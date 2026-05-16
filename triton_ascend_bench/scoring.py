@@ -1,18 +1,22 @@
 """scoring.py — primary metric per specs/scoring_spec.md.
 
-Per v4.13 §5 + R12-P1-1/5 + R13-P1-1 + R16-P1 + R18-S5:
+This is a GPU-triton → NPU-triton **migration** benchmark; there is no
+AscendC-native baseline (removed). The performance reference is the
+task's declared `baseline_ns` — currently deferred (correctness is the
+live scored axis; raw NPU latency is reported when 910B is available).
+`*_native` symbol/key names are retained for output-schema stability
+and denote the **NPU-triton track**, not AscendC.
 
     s_t = ε                         if any of 4 statuses != ok OR fallback detected
     s_t = max(ε, min(P_CAP, baseline_ns / measured_ns))   otherwise
 
-    capped_geomean_native = exp( (1/|S_native|) Σ_t log(s_t) )
-    FastP_native@1.0 = |{t : s_t ≥ 1.0}| / |S_native|
-    FastP_native@1.5 = |{t : s_t ≥ 1.5}| / |S_native|
+    capped_geomean_native = exp( (1/|catalogue|) Σ_t log(s_t) )
+    FastP_native@1.0 = |{t : s_t ≥ 1.0}| / |catalogue|
+    FastP_native@1.5 = |{t : s_t ≥ 1.5}| / |catalogue|
 
-Note `|S_native|` is the **fixed** denominator (all native-baseline tasks),
-not just attempted ones. Failures contribute ε to the geomean, NOT zero.
-
-Ranking eligibility: native_coverage ≥ 0.70 over `S_native`.
+`|catalogue|` (passed as `s_native_size`) is the **fixed** denominator —
+the full scored task set, not just attempted ones. Failures contribute
+ε to the geomean, NOT zero. Ranking eligibility: coverage ≥ 0.70.
 """
 from __future__ import annotations
 
@@ -71,6 +75,24 @@ class ShapeMeasurement:
     measured_ns: float | None
     baseline_ns: float | None
     failure_reason: str | None = None
+
+
+def perf_measurable(m: TaskMeasurement) -> bool:
+    """True iff this task can yield a real speedup ratio: all statuses
+    ok AND a positive finite perf baseline is present.
+
+    Post-AscendC (codex P0-1): a task with ok statuses but NO baseline
+    is perf-**unavailable**, NOT a failure. Callers must exclude it
+    from the perf metric rather than ε-collapse it (which would make a
+    correct fast solution indistinguishable from total failure).
+    """
+    if not m.all_statuses_ok:
+        return False
+    if m.measured_ns is None or m.baseline_ns is None:
+        return False
+    if not (math.isfinite(m.measured_ns) and math.isfinite(m.baseline_ns)):
+        return False
+    return m.measured_ns > 0 and m.baseline_ns > 0
 
 
 def s_t_value(m: TaskMeasurement, p_cap: float = P_CAP, eps: float = EPSILON) -> float:
@@ -227,6 +249,46 @@ def is_rank_eligible(
     s_native_size: int,
 ) -> bool:
     return native_coverage(task_measurements, s_native_size) >= MIN_COVERAGE_FOR_RANKING
+
+
+def aggregate_perf(
+    task_measurements: list[TaskMeasurement],
+    eligible_size: int,
+) -> dict:
+    """Honest perf aggregate (codex P0-1/P0-2).
+
+    Distinguishes "perf unavailable" (no task has a real baseline — the
+    current post-AscendC state) from a genuine low score. When no
+    measurement is `perf_measurable`, returns
+    ``{"perf_status": "unavailable", ...metrics: None}`` instead of a
+    fabricated ε-collapsed number. `eligible_size` must be the count of
+    *score-eligible* tasks (real gradeable oracle), NOT the full
+    catalogue — using the full catalogue would systematically depress
+    valid submissions with ε-padding for ungradeable tasks.
+    """
+    measurable = [m for m in task_measurements if perf_measurable(m)]
+    if not measurable:
+        return {
+            "perf_status": "unavailable",
+            "perf_status_reason": (
+                "no task has a defined performance baseline "
+                "(AscendC removed; perf baseline deferred)"
+            ),
+            "capped_geomean_native": None,
+            "fastp_native_at_1_0": None,
+            "fastp_native_at_1_5": None,
+        }
+    denom = max(eligible_size, len(measurable))
+    return {
+        "perf_status": "ok",
+        "perf_status_reason": None,
+        "capped_geomean_native": capped_geomean_native(
+            task_measurements, s_native_size=denom),
+        "fastp_native_at_1_0": fastp_at_threshold(
+            task_measurements, threshold=1.0, s_native_size=denom),
+        "fastp_native_at_1_5": fastp_at_threshold(
+            task_measurements, threshold=1.5, s_native_size=denom),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

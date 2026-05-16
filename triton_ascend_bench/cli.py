@@ -214,7 +214,6 @@ def _cmd_run_suite(args) -> int:
             if not sol_py.exists():
                 per_task.append({
                     "task_id": task.task_id,
-                    "in_s_native": task.is_in_s_native,
                     "skipped": True,
                     "reason": f"missing solution.py at {sol_py}",
                     "correctness_status": "error",
@@ -226,7 +225,6 @@ def _cmd_run_suite(args) -> int:
                 r = evaluate(task.task_id, sol_py, backend=args.backend)
                 per_task.append({
                     "task_id": r.task_id,
-                    "in_s_native": task.is_in_s_native,
                     "static_checks_passed": r.static_checks_passed,
                     "aggregate_score": r.aggregate_score,
                     "coverage": r.coverage,
@@ -244,7 +242,6 @@ def _cmd_run_suite(args) -> int:
             except Exception as exc:                           # noqa: BLE001
                 per_task.append({
                     "task_id": task.task_id,
-                    "in_s_native": task.is_in_s_native,
                     "error": f"{type(exc).__name__}: {exc}",
                     "correctness_status": "error",
                 })
@@ -563,14 +560,16 @@ def _cmd_analyze(args) -> int:
       `performance_status` / `fallback_detected` fields from each result.
     - Does NOT infer correctness from `static_checks_passed` (static check
       proves the code is well-formed, not that it produces correct outputs).
-    - Filters to only tasks marked `in_s_native: true` for native-track
-      metrics. `s_native_size` is the cardinality of that subset, not the
-      total count of results.
+    - The scored catalogue is ALL tasks (this is a GPU-triton →
+      NPU-triton migration benchmark; there is no AscendC-native
+      subset). A result whose task_id is not in the catalogue is
+      ignored — it cannot inflate the score (denominator is the
+      catalogue size). `*_native` metric names are retained for output
+      schema stability and now denote the NPU-triton track.
     """
     from .dataset import iter_all_tasks
     from .scoring import (
-        EPSILON, P_CAP, TaskMeasurement, capped_geomean_native,
-        fastp_at_threshold, native_coverage,
+        EPSILON, P_CAP, TaskMeasurement, aggregate_perf, native_coverage,
     )
 
     verified = json.loads(Path(args.verified_results).read_text())
@@ -593,20 +592,36 @@ def _cmd_analyze(args) -> int:
     if not isinstance(raw_results, list):
         verified = {**verified, "results": []}
 
-    # Authoritative |S_native| from the loaded task catalogue.
-    catalogue_native_ids = {
-        t.task_id for t in iter_all_tasks() if t.is_in_s_native
-    }
-    s_native_size = len(catalogue_native_ids)
+    # The scored catalogue is the full task set (no AscendC-native
+    # subset post-removal). The scored denominator is the
+    # *score-eligible* set, frozen from trusted repo metadata (codex
+    # P0-2/P0-3): a task counts only if it has a real working oracle
+    # (not a NotImplementedError stub) and is not PHASE-C-MANUAL.
+    # Counting stub/manual tasks as failures would systematically
+    # depress valid submissions. The submission JSON cannot influence
+    # this set.
+    all_tasks = iter_all_tasks()
+    catalogue_ids = {t.task_id for t in all_tasks}
+    score_eligible_ids: set[str] = set()
+    for t in all_tasks:
+        try:
+            osrc = (t.task_dir / "oracle_pytorch.py").read_text()
+            shp = (t.task_dir / "shapes.yaml").read_text()
+        except OSError:
+            continue
+        if "raise NotImplementedError" in osrc or "PHASE-C-MANUAL" in shp:
+            continue
+        score_eligible_ids.add(t.task_id)
+    s_native_size = len(score_eligible_ids)
 
-    # Build TaskMeasurement only for results that explicitly belong to
-    # S_native AS DEFINED BY THE CATALOGUE. codex round-7 NEW-P0 #3:
-    # forged `in_s_native: true` from a submitter cannot promote a
-    # non-catalogue task into the scored set. The submission JSON is
-    # input, not authority.
+    # Build TaskMeasurement only for results whose task_id is in the
+    # catalogue. The submission JSON is input, not authority: a result
+    # for an unknown task_id is ignored (cannot inflate the score —
+    # denominator is the catalogue size, not the result count).
     task_measurements: list[TaskMeasurement] = []
     seen_ids: set[str] = set()
-    forged_count = 0
+    non_catalogue_count = 0
+    non_eligible_count = 0
     missing_task_id_count = 0
     duplicate_task_id_count = 0
     for r in verified.get("results", []):
@@ -618,9 +633,13 @@ def _cmd_analyze(args) -> int:
         if not tid or not isinstance(tid, str):
             missing_task_id_count += 1
             continue
-        if tid not in catalogue_native_ids:
-            if r.get("in_s_native"):
-                forged_count += 1
+        if tid not in catalogue_ids:
+            non_catalogue_count += 1
+            continue
+        if tid not in score_eligible_ids:
+            # known task but not score-eligible (stub / manual oracle):
+            # excluded from the denominator, not counted as a failure.
+            non_eligible_count += 1
             continue
         if tid in seen_ids:
             # codex round-16/17 P1: duplicate worst-case propagation
@@ -676,25 +695,27 @@ def _cmd_analyze(args) -> int:
             baseline_ns=baseline,
         ))
 
-    # Effective denominator: prefer the catalogue's true |S_native|; only
-    # fall back to len(results) when there is no catalogue (CI smoke).
+    # Denominator = score-eligible set (frozen from repo metadata).
+    # Fall back to measurement count only when there is no eligible set
+    # (CI smoke with synthetic task_ids).
     effective_denom = s_native_size if s_native_size > 0 else len(task_measurements)
+    # Honest perf aggregate: returns perf_status=unavailable + null
+    # metrics when no task has a real baseline (codex P0-1) instead of
+    # a fabricated ε-collapsed number.
+    perf = aggregate_perf(task_measurements, eligible_size=effective_denom)
     score_doc = {
         "submitter": args.submitter,
-        "n_native_tasks_in_catalogue": s_native_size,
+        "n_score_eligible_tasks": s_native_size,
         "n_native_measurements": len(task_measurements),
-        "forged_in_s_native_count": forged_count,
+        "non_catalogue_task_count": non_catalogue_count,
+        "non_eligible_task_count": non_eligible_count,
         "missing_task_id_count": missing_task_id_count,
         "duplicate_task_id_count": duplicate_task_id_count,
-        "capped_geomean_native": capped_geomean_native(
-            task_measurements, s_native_size=effective_denom
-        ),
-        "fastp_native_at_1_0": fastp_at_threshold(
-            task_measurements, threshold=1.0, s_native_size=effective_denom
-        ),
-        "fastp_native_at_1_5": fastp_at_threshold(
-            task_measurements, threshold=1.5, s_native_size=effective_denom
-        ),
+        "perf_status": perf["perf_status"],
+        "perf_status_reason": perf["perf_status_reason"],
+        "capped_geomean_native": perf["capped_geomean_native"],
+        "fastp_native_at_1_0": perf["fastp_native_at_1_0"],
+        "fastp_native_at_1_5": perf["fastp_native_at_1_5"],
         "native_coverage": native_coverage(
             task_measurements, s_native_size=effective_denom
         ),
@@ -704,8 +725,9 @@ def _cmd_analyze(args) -> int:
     }
     Path(args.out).write_text(json.dumps(score_doc, indent=2))
     print(
-        f"analyze: {len(task_measurements)} native measurement(s) "
-        f"of |S_native|={effective_denom} → {args.out}"
+        f"analyze: {len(task_measurements)} measurement(s) of "
+        f"{effective_denom} score-eligible; perf_status={perf['perf_status']}"
+        f" → {args.out}"
     )
     return 0
 

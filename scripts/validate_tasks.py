@@ -11,7 +11,6 @@ Checks:
 - kernel.py and oracle_pytorch.py parse (ast.parse) — no SyntaxError
 - kernel.py contains @triton.jit
 - file_sha256 matches the on-disk kernel.py if set
-- in_s_native ⇒ oracle.ascendc.available
 
 Exit non-zero on first error (or all errors with --strict).
 """
@@ -35,7 +34,8 @@ REQUIRED_FILES = {
     "meta.yaml",
     "shapes.yaml",
     "contract.md",
-    "ascendc_baseline.yaml",
+    # ascendc_baseline.yaml removed: GPU-triton → NPU-triton *migration*
+    # benchmark; perf is not measured vs hand-written AscendC native.
 }
 
 REQUIRED_META_TOP_LEVEL = {
@@ -43,7 +43,7 @@ REQUIRED_META_TOP_LEVEL = {
     "repo", "dtype_class", "category", "npu_difficulty",
     "upstream", "interface", "oracle", "tolerance_class",
     "oracle_simplified", "runner_checks",
-    "is_canary", "is_hidden_only", "in_s_native",
+    "is_canary", "is_hidden_only",   # `in_s_native` removed (no AscendC)
 }
 
 VALID_LEVELS = {"L1", "L2", "L3", "appendix", "canary"}
@@ -111,34 +111,11 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
             f"({sorted(policy_classes)})"
         )
 
-    # Step 5: in_s_native ⇒ AscendC baseline available **and** frozen.
-    # Per codex round-2 N-P0-2: an `available: true` baseline with
-    # `status: placeholder_*` is not actually frozen and cannot serve as
-    # the FastP denominator.
-    if meta.get("in_s_native") is True:
-        ascendc = (meta.get("oracle") or {}).get("ascendc") or {}
-        if not ascendc.get("available"):
-            errs.append(
-                f"{tid}: in_s_native=true but oracle.ascendc.available is "
-                f"{ascendc.get('available')!r}"
-            )
-        baseline_path = task_dir / "ascendc_baseline.yaml"
-        if baseline_path.exists():
-            baseline = yaml.safe_load(baseline_path.read_text()) or {}
-            status = baseline.get("status", "")
-            if str(status).startswith("placeholder"):
-                errs.append(
-                    f"{tid}: in_s_native=true but ascendc_baseline.yaml "
-                    f"status={status!r} (not frozen). Either flip "
-                    f"`in_s_native: false` until baseline is measured, "
-                    f"or freeze the baseline first."
-                )
-            src_sha = (baseline.get("source") or {}).get("sha256", "")
-            if any(p in str(src_sha) for p in PLACEHOLDER_PATTERNS):
-                errs.append(
-                    f"{tid}: ascendc_baseline source.sha256 still a placeholder: "
-                    f"{src_sha!r}"
-                )
+    # Step 5 removed: the in_s_native ⇒ AscendC-baseline-frozen check is
+    # obsolete. This is a GPU-triton → NPU-triton migration benchmark;
+    # there is no AscendC native baseline (see scoring_spec.md). The
+    # performance reference is deferred (correctness is the live scored
+    # axis); no per-task baseline artifact is required.
 
     # Step 6: Python syntax gate (G11 fix). A schema-valid task whose
     # kernel.py / oracle_pytorch.py does not even parse can never compile

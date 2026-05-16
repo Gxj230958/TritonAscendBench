@@ -1,76 +1,69 @@
-schema_version: "1.0"
-benchmark_version: "0.1.0-poc"
+schema_version: '1.0'
+benchmark_version: 0.1.0-poc
 task_id: L1_16_silu_and_mul
-level: "L1"
+level: L1
 idx: 16
-name: "silu_and_mul_kernel"
-repo: "SGLang"
-dtype_class: "VV"
-category: "elementwise"
-npu_difficulty: "low"
-
+name: silu_and_mul_kernel
+repo: SGLang
+dtype_class: VV
+category: elementwise
+npu_difficulty: low
 upstream:
-  repo: "sgl-project/sglang"
-  path: "python/sglang/srt/layers/elementwise.py"
-  commit_sha: "snapshot-no-git"
-  file_sha256: "5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64"
-  function_hash: "5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64"
-  license: "Apache-2.0"
-  notes: |
-    Locks the unquantized variant only (quant_max=None). The quantization
+  repo: sgl-project/sglang
+  path: python/sglang/srt/layers/elementwise.py
+  commit_sha: snapshot-no-git
+  file_sha256: 5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64
+  function_hash: 5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64
+  license: Apache-2.0
+  notes: 'Locks the unquantized variant only (quant_max=None). The quantization
+
     branch in upstream raises NotImplementedError and is excluded from
+
     the contract.
 
+    '
 interface:
   alias_map:
     hidden_states: ro
     output: wo_candidate_allocated
-  mutability: "no_inplace"
-  stride_layout: "hidden_states.contiguous() required, last dim even"
-  workspace_policy: "none"
-  stream_sync_policy: "runner-managed"
-  rng_state_policy: "deterministic"
-
+  mutability: no_inplace
+  stride_layout: hidden_states.contiguous() required, last dim even
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
 oracle:
-  pytorch: "oracle_pytorch.py::run"
-  gpu_triton: "kernel.py::silu_and_mul_triton"
-  ascendc:
-    available: true
-    config_file: "ascendc_baseline.yaml"
-
-tolerance_class: "elementwise"
-
-oracle_simplified: "simple_pytorch_ok"
-
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::silu_and_mul_triton
+tolerance_class: elementwise
+oracle_simplified: simple_pytorch_ok
 runner_checks:
-  expected_kernel_count_range: [1, 1]
+  expected_kernel_count_range:
+  - 1
+  - 1
   min_dram_bytes: 65536
   min_flops: 262144
-  output_format: "safetensors"
-  output_allocation: "candidate_allocated"
+  output_format: safetensors
+  output_allocation: candidate_allocated
   static_checks:
-    - ast_denylist
-    - import_allowlist
-    - constexpr_match
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
   metamorphic_checks:
-    - name: zero_x1_yields_zero
-      description: x1 all zeros ⇒ output is zero everywhere (silu(0)=0).
-    - name: linear_x3_scaling
-      description: scaling x3 by k scales output by k exactly.
+  - name: zero_x1_yields_zero
+    description: x1 all zeros ⇒ output is zero everywhere (silu(0)=0).
+  - name: linear_x3_scaling
+    description: scaling x3 by k scales output by k exactly.
   shape_coverage:
     public: 5
     hidden: 3
-
 is_canary: false
 is_hidden_only: false
-in_s_native: false  # baseline placeholder; flip to true when ascendc_baseline.yaml is frozen
-
 hardware:
-  npu: "910b"
+  npu: 910b
   ub_budget_kb: 48
   fp8_required: false
-
 provenance:
-  added_in: "v0.1"
-  authors: ["triton-ascend-bench team"]
-  last_modified: "2026-05-14"
+  added_in: v0.1
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-14'

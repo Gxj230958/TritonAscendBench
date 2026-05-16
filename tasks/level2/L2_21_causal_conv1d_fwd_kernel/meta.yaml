@@ -27,9 +27,6 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
-  ascendc:
-    available: false
-    config_file: ascendc_baseline.yaml
 tolerance_class: vector_reduce
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -51,7 +48,6 @@ runner_checks:
 is_canary: false
 is_hidden_only: false
 is_appendix: false
-in_s_native: false
 hardware:
   npu: 910b
   ub_budget_kb: 192

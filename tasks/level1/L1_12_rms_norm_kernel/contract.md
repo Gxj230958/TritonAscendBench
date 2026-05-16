@@ -55,8 +55,8 @@ These run on a small held-out shape and **cannot be passed by table-lookup** bec
 Public shapes: 6 (see `shapes.yaml`).
 Hidden shapes: 4 (sealed, rotated every benchmark epoch).
 
-## Ascend-C baseline
+## Performance reference
 
-A hand-tuned Ascend-C kernel for the same op lives at
-`ascendc_baseline.yaml`. Your `FastP_native` score is normalized against
-its measured latency on identical shapes.
+This is a GPU-triton → NPU-triton migration benchmark; there is no
+AscendC native baseline. Correctness is the scored axis; performance is
+reported as raw NPU latency when 910B hardware is available.

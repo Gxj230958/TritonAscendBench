@@ -8,8 +8,7 @@ that does not already exist on disk.
 The scaffold passes scripts/validate_tasks.py and the dataset loader, but
 each file carries explicit TODO markers. kernel.py / oracle_pytorch.py
 must be filled in by hand (freeze the upstream GPU triton kernel) before
-the task is graded; ascendc_baseline.yaml status stays `placeholder_*`
-until a real NPU baseline is measured.
+the task is graded.
 
 Idempotent: directories that already exist are skipped.
 """
@@ -347,25 +346,6 @@ hidden_shapes:
     dtype: float32
 '''
 
-PLACEHOLDER_ASCENDC = '''# AscendC baseline placeholder for {task_id}.
-#
-# TODO(scaffold): once a hand-written AscendC reference (or vLLM-Ascend /
-# sgl-kernel-npu native impl) is available, drop the SHA + measurements
-# in here and flip meta.yaml `in_s_native` to true.
-
-status: placeholder_scaffold
-source:
-  path: _shared/ascendc_baselines/{task_id}.placeholder
-  sha256: <fill-after-baseline-build>
-  build: scripts/build_ascendc_baselines.sh
-  notes: |
-    No AscendC baseline yet. This task is NOT in S_native; FastP / coverage
-    will exclude it until the baseline is measured.
-
-measured_latency_ns: {{}}
-'''
-
-
 def file_sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -403,9 +383,6 @@ interface:
 oracle:
   pytorch: "oracle_pytorch.py::run"
   gpu_triton: "kernel.py::placeholder"
-  ascendc:
-    available: false
-    config_file: "ascendc_baseline.yaml"
 
 tolerance_class: "{row.tolerance_class}"
 oracle_simplified: "upstream_oracle_required"
@@ -428,7 +405,6 @@ runner_checks:
 is_canary: false
 is_hidden_only: false
 is_appendix: {appendix_flag}
-in_s_native: false
 
 hardware:
   npu: "910b"
@@ -482,7 +458,6 @@ def write_scaffold(row: RawRow, force: bool, dry_run: bool) -> str:
             tolerance_class=row.tolerance_class,
         ),
         "shapes.yaml": PLACEHOLDER_SHAPES.format(task_id=row.task_id),
-        "ascendc_baseline.yaml": PLACEHOLDER_ASCENDC.format(task_id=row.task_id),
         "meta.yaml": render_meta(row, kernel_sha),
     }
 

@@ -98,15 +98,16 @@ def test_run_suite_skips_missing_solutions(tmp_path):
 
 
 def test_analyze_smoke(tmp_path):
-    """analyze must emit the standard fields. Round-7: forged task_ids
-    are skipped (catalogue_native_ids is empty at v0.1 PoC time)."""
+    """analyze must emit the standard fields. Results whose task_id is
+    not in the catalogue are ignored (post-AscendC: scored catalogue is
+    the full task set; unknown ids cannot inflate the score)."""
     verified = {
         "results": [
-            {"task_id": "t1", "in_s_native": True,
+            {"task_id": "t1",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "aggregate_score": 1.5},
-            {"task_id": "t2", "in_s_native": True,
+            {"task_id": "t2",
              "static_checks_passed": False, "correctness_status": "fail",
              "runtime_status": "ok", "performance_status": "ok",
              "aggregate_score": 0.01},
@@ -123,9 +124,9 @@ def test_analyze_smoke(tmp_path):
     doc = json.loads(out_path.read_text())
     assert "capped_geomean_native" in doc
     assert "fastp_native_at_1_0" in doc
-    # Round-7 N-P0-3: fake task_ids cannot inflate scores.
+    # Fake task_ids cannot inflate scores; both are non-catalogue.
     assert doc["n_native_measurements"] == 0
-    assert doc["forged_in_s_native_count"] == 2
+    assert doc["non_catalogue_task_count"] == 2
 
 
 def test_analyze_does_not_use_static_check_as_correctness(tmp_path):
@@ -136,7 +137,7 @@ def test_analyze_does_not_use_static_check_as_correctness(tmp_path):
     """
     verified = {
         "results": [
-            {"task_id": "t1", "in_s_native": True,
+            {"task_id": "t1",
              "static_checks_passed": True,         # static-only path
              "correctness_status": "error",         # not yet run
              "runtime_status": "error",
@@ -157,15 +158,16 @@ def test_analyze_does_not_use_static_check_as_correctness(tmp_path):
     assert doc["native_coverage"] == 0.0
 
 
-def test_analyze_filters_to_in_s_native(tmp_path):
-    """Only catalogue-known in_s_native task_ids count (round-7 N-P0-3)."""
+def test_analyze_filters_to_catalogue(tmp_path):
+    """Only catalogue-known task_ids count. An unknown task_id cannot
+    inflate the score regardless of the claimed aggregate_score."""
     verified = {
         "results": [
-            {"task_id": "t1", "in_s_native": True,
+            {"task_id": "t1",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "aggregate_score": 2.0},
-            {"task_id": "t2", "in_s_native": False,
+            {"task_id": "t2",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "aggregate_score": 100.0},
@@ -180,10 +182,10 @@ def test_analyze_filters_to_in_s_native(tmp_path):
     )
     assert r.returncode == 0
     doc = json.loads(out_path.read_text())
-    # Round-7: neither t1 nor t2 is in the catalogue → 0 measurements.
-    # t1 carries forged `in_s_native=true` → counted as forged.
+    # Neither t1 nor t2 is in the catalogue → 0 measurements, both
+    # counted as non-catalogue (the 100.0 score cannot leak in).
     assert doc["n_native_measurements"] == 0
-    assert doc["forged_in_s_native_count"] == 1
+    assert doc["non_catalogue_task_count"] == 2
 
 
 def test_validate_submission_rejects_missing_manifest(tmp_path):
@@ -354,7 +356,6 @@ def test_round8_analyze_handles_missing_task_id(tmp_path):
         "results": [
             {
                 # task_id missing
-                "in_s_native": True,
                 "correctness_status": "ok",
                 "runtime_status": "ok",
                 "performance_status": "ok",

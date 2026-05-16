@@ -6,7 +6,6 @@ Reads `tasks/level{1,2,3}/<task_id>/` per `specs/task_api_contract.md`:
 - contract.md    (human-readable contract)
 - kernel.py      (frozen GPU reference)
 - oracle_pytorch.py
-- ascendc_baseline.yaml
 """
 from __future__ import annotations
 
@@ -56,10 +55,6 @@ class TaskDef:
     @property
     def upstream_sha(self) -> str:
         return self.meta["upstream"]["commit_sha"]
-
-    @property
-    def is_in_s_native(self) -> bool:
-        return bool(self.meta.get("in_s_native", False))
 
 
 def _sha256_text(s: str) -> str:

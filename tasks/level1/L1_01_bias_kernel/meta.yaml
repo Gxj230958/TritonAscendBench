@@ -1,23 +1,21 @@
-schema_version: "1.0"
-benchmark_version: "0.1.0-poc"
+schema_version: '1.0'
+benchmark_version: 0.1.0-poc
 task_id: L1_01_bias_kernel
-level: "L1"
+level: L1
 idx: 1
-name: "_bias_kernel"
-repo: "vLLM"
-dtype_class: "VV"
-category: "sampling"
-npu_difficulty: "medium"
-
+name: _bias_kernel
+repo: vLLM
+dtype_class: VV
+category: sampling
+npu_difficulty: medium
 upstream:
-  repo: "vllm-project/vllm"
-  path: "vllm/v1/worker/gpu/sample/logit_bias.py"
-  commit_sha: "snapshot-no-git"
-  file_sha256: "a3060896f855d81d12ea5530709c7f776c36316038adbb250f217879b9761f0d"
-  function_hash: "a3060896f855d81d12ea5530709c7f776c36316038adbb250f217879b9761f0d"
-  license: "Apache-2.0"
-  notes: "see L1_12 meta for snapshot-no-git rationale"
-
+  repo: vllm-project/vllm
+  path: vllm/v1/worker/gpu/sample/logit_bias.py
+  commit_sha: snapshot-no-git
+  file_sha256: a3060896f855d81d12ea5530709c7f776c36316038adbb250f217879b9761f0d
+  function_hash: a3060896f855d81d12ea5530709c7f776c36316038adbb250f217879b9761f0d
+  license: Apache-2.0
+  notes: see L1_12 meta for snapshot-no-git rationale
 interface:
   alias_map:
     logits: rw_in_place
@@ -31,54 +29,46 @@ interface:
     min_lens: ro
     num_stop_token_ids: ro
     stop_token_ids: ro
-  mutability: "in_place_logits"
-  stride_layout: "logits must be contiguous (num_tokens, vocab_size)"
-  workspace_policy: "none"
-  stream_sync_policy: "runner-managed"
-  rng_state_policy: "deterministic"
-
+  mutability: in_place_logits
+  stride_layout: logits must be contiguous (num_tokens, vocab_size)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
 oracle:
-  pytorch: "oracle_pytorch.py::run"
-  gpu_triton: "kernel.py::apply_logit_bias"
-  ascendc:
-    available: true
-    config_file: "ascendc_baseline.yaml"
-
-tolerance_class: "elementwise_exact_or_inf_safe"
-
-oracle_simplified: "simple_pytorch_ok"
-
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::apply_logit_bias
+tolerance_class: elementwise_exact_or_inf_safe
+oracle_simplified: simple_pytorch_ok
 runner_checks:
-  expected_kernel_count_range: [1, 1]
+  expected_kernel_count_range:
+  - 1
+  - 1
   min_dram_bytes: 32768
   min_flops: 131072
-  output_format: "safetensors"
-  output_allocation: "candidate_inplace"
+  output_format: safetensors
+  output_allocation: candidate_inplace
   static_checks:
-    - ast_denylist
-    - import_allowlist
-    - constexpr_match
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
   metamorphic_checks:
-    - name: empty_allowed_is_noop_stage1
-      description: num_allowed_token_ids[r]=0 ⇒ stage 1 makes no change to row r.
-    - name: zero_bias_is_noop_stage2
-      description: logit_bias[r]=0 ⇒ stage 2 is identity for row r.
-    - name: pos_ge_min_len_keeps_stop_tokens
-      description: pos[t] >= min_lens[r] ⇒ stage 3 must not fire.
+  - name: empty_allowed_is_noop_stage1
+    description: num_allowed_token_ids[r]=0 ⇒ stage 1 makes no change to row r.
+  - name: zero_bias_is_noop_stage2
+    description: logit_bias[r]=0 ⇒ stage 2 is identity for row r.
+  - name: pos_ge_min_len_keeps_stop_tokens
+    description: pos[t] >= min_lens[r] ⇒ stage 3 must not fire.
   shape_coverage:
     public: 5
     hidden: 4
-
 is_canary: false
 is_hidden_only: false
-in_s_native: false  # baseline placeholder; flip to true when ascendc_baseline.yaml is frozen
-
 hardware:
-  npu: "910b"
+  npu: 910b
   ub_budget_kb: 80
   fp8_required: false
-
 provenance:
-  added_in: "v0.1"
-  authors: ["triton-ascend-bench team"]
-  last_modified: "2026-05-14"
+  added_in: v0.1
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-14'

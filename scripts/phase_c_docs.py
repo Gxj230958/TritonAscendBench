@@ -237,6 +237,22 @@ _RECURRENT_GDR = {
 }
 
 SHAPE_OVERRIDES: dict[str, dict] = {
+    # v3.2 errata substitutes
+    "L1_30_act_quant_kernel": {
+        "x": _T(["B", "D"]), "block_size": _S(8),
+    },
+    # ngroups == nheads (rep=1) — a valid Mamba2 config that keeps the
+    # H % G constraint trivially satisfied across the knob grid.
+    "L3_03_chunk_state_varlen_kernel": {
+        "B": _T(["B*L", "H", "N"]), "x": _T(["B*L", "H", "Dv"]),
+        "dt": _T(["B*L", "H"], "rand"),
+        "dA_cumsum": _T(["B*L", "H"], "rand"),
+        "cu_seqlens": _I(["B+1"], "offsets:to=B*L"),
+    },
+    "L3_07_correct_attn_cp_out_kernel": {
+        "out": _T(["B", "H", "D"]), "lses": _T(["E", "B", "H"]),
+        "cp_rank": _S(0), "is_lse_base_on_e": _S(True),
+    },
     # sampling
     "L1_22_min_p_kernel": {
         "logits": _T(["B", "N"]),

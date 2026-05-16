@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/Plan-v4.13_FROZEN-brightgreen)](docs/benchmark_impl_plan.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
-[![Tasks](https://img.shields.io/badge/Tasks-100_scored_+_1_appendix-blue)](tasks/)
+[![Tasks](https://img.shields.io/badge/Tasks-101-blue)](tasks/)
 
 ## What
 
@@ -87,19 +87,27 @@ needs the 910B machine — see **Pipeline Status** below.
 |-------|-------|------|----------|
 | **L1** | 40 | Single-op / elementwise / reduce / quant / sample | NPU Vector |
 | **L2** | 38 | Fused / Cube matmul / LoRA / MoE EP / Mamba step | NPU Cube + Vector |
-| **L3** | 22 + 1 appendix | Full Flash Attention / Fused MoE / Mamba chunk pipeline | NPU full pipeline |
+| **L3** | 23 | Full Flash Attention / Fused MoE / Mamba chunk pipeline | NPU full pipeline |
 
 Selection rationale: see [`docs/benchmark_select.md`](docs/benchmark_select.md).
 
 ## Scoring
 
-Primary metric (NPU Triton track):
+This is a GPU-triton → NPU-triton **migration** benchmark. **Correctness
+is the live scored axis** (per-shape `tolerance.compare` vs the PyTorch
+oracle). There is **no AscendC native baseline** — the migration
+question is "does the port preserve correctness/perf vs the GPU-triton
+original," not "is triton-ascend as fast as hand-written native."
 
-$$\text{FastP}_{\text{native}}(p) = \frac{|\{t \in S_{\text{native}} : \text{correct} \land t_{\text{npu}} \le p \cdot t_{\text{ascendc}}\}|}{|S_{\text{native}}|}$$
+Performance metric (deferred — requires Ascend 910B):
 
-- `FastP_native@1.0` — % tasks beating AscendC native
-- `FastP_native@1.5` — % tasks within 1.5× AscendC native
-- `capped_geomean_native` — geometric mean speedup (capped at 5×, floor ε=0.01)
+$$\text{FastP}(p) = \frac{|\{t \in \text{catalogue} : \text{correct} \land t_{\text{npu}} \le p \cdot t_{\text{baseline}}\}|}{|\text{catalogue}|}$$
+
+- `t_baseline` is the task's declared perf reference (currently
+  unmeasured; raw NPU latency is reported when hardware is available)
+- `FastP_native@1.0/1.5`, `capped_geomean_native` — function/key names
+  retained for output-schema stability; `_native` = the NPU-triton
+  track (not AscendC). Capped at 5×, floor ε=0.01.
 
 Full scoring spec: [`specs/scoring_spec.md`](specs/scoring_spec.md).
 
@@ -130,28 +138,28 @@ Full defense spec: [`specs/reward_hack_defense.md`](specs/reward_hack_defense.md
 | Plan | ✅ FROZEN v4.13 |
 | Repo skeleton + 13 provider modules | ✅ Done |
 | 101 task directories (L1=40, L2=38, L3=23) | ✅ Done |
-| Phase A — frozen upstream `kernel.py` | ✅ 93 frozen + 5 PoC (98/101); 3 errata-pending |
-| Phase B — `oracle_pytorch.py` ground truth | ✅ 96 working references; 1 manual; 4 errata/RNG stubs |
-| Phase C — `shapes.yaml` + `contract.md` | ✅ 96 executable via `inputs.build_inputs` |
+| Phase A — frozen upstream `kernel.py` | ✅ 101/101 real upstream kernels (3 v3.2 errata slots re-tasked from CSV) |
+| Phase B — `oracle_pytorch.py` ground truth | ✅ 99 working references; 1 manual (L1_24); 1 RNG stub (L1_21) |
+| Phase C — `shapes.yaml` + `contract.md` | ✅ 99 executable via `inputs.build_inputs` |
 | Phase 2.B — isolated correctness grader | ✅ Works on dev (no GPU/NPU) |
-| Baseline data + timing grader | ⬜ Needs 910B machine |
+| Perf baseline + timing grader | ⬜ Deferred (no AscendC; needs 910B) |
 | Leaderboard | ⬜ Phase 4 |
 
 ### Pipeline Status
 
 End-to-end on a non-GPU dev box, a legitimate NPU-triton solution
 flows: **static-check → isolated subprocess → `tolerance.compare`
-vs oracle**, for **96 / 101** tasks.
+vs oracle**, for **99 / 101** tasks.
 
 | Bucket | Count | Note |
 |--------|------:|------|
-| Executable & gradeable (correctness) | 96 | `build_inputs → oracle.run` verified across ≥6 shape rows |
+| Executable & gradeable (correctness) | 99 | `build_inputs → oracle.run` verified across ≥6 shape rows |
 | Phase-C manual | 1 | `L1_24` — non-indptr cumulative input convention; documented `PHASE-C-MANUAL` |
-| Errata / RNG stubs | 4 | `L1_21` (philox RNG → upstream oracle), `L1_30` / `L3_03` / `L3_07` (v3.2 errata: no public source / upstream-merged) |
+| RNG stub | 1 | `L1_21` (philox RNG → upstream oracle). The 3 former errata slots (`L1_30`/`L3_03`/`L3_07`) were re-tasked to real CSV operators in v3.2 |
 
 **Honest scope:** correctness grading is fully exercised here.
-Timing/`FastP_native` requires the Ascend 910B (process-isolation §2,
-AscendC baselines). 17 oracles are canonical references with
+Timing/`FastP` requires the Ascend 910B (process-isolation §2);
+there is no AscendC baseline (removed — migration benchmark). 17 oracles are canonical references with
 documented `ORACLE-SCOPE` gaps (uncovered optional kernel paths) and
 carry `oracle_simplified: upstream_oracle_required` so the runner does
 not over-claim exactness.

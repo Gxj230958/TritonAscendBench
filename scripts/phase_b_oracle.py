@@ -2542,8 +2542,112 @@ def run(inputs: dict) -> dict:
     return {"w": w, "u": u}
 '''
 
+_ACT_QUANT_BODY = '''
+
+def _act_quant(x: torch.Tensor, block_size: int, fp8_max: float = 448.0):
+    """Block-wise activation quant (SGLang NSA act_quant).
+
+    x: [..., N], N % block_size == 0. Per contiguous block of
+    `block_size` along the last dim: s = amax(|blk|) / fp8_max;
+    q = (blk / s) cast to float8_e4m3fn. Returns (q, s [..., N/bs]).
+    """
+    *lead, n = x.shape
+    bs = block_size
+    xv = x.to(torch.float32).reshape(*lead, n // bs, bs)
+    s = (xv.abs().amax(-1, keepdim=True) / float(fp8_max)).clamp_min(1e-12)
+    q = (xv / s).clamp(-float(fp8_max), float(fp8_max)).reshape(*lead, n)
+    return q.to(torch.float8_e4m3fn), s.squeeze(-1).reshape(*lead, n // bs)
+
+
+def run(inputs: dict) -> dict:
+    q, s = _act_quant(inputs["x"], int(inputs["block_size"]),
+                      float(inputs.get("fp8_max", 448.0)))
+    return {"q": q, "scale": s}
+'''
+
+_CHUNK_STATE_VARLEN_BODY = '''
+
+def _chunk_state_varlen(
+    B: torch.Tensor, x: torch.Tensor, dt: torch.Tensor,
+    dA_cumsum: torch.Tensor, cu_seqlens: torch.Tensor,
+    initial_states: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Mamba2 SSD var-length intra-chunk state (per-sequence reference).
+
+    Per sequence span [s,e) from cu_seqlens, accumulate the SSD state:
+      state = sum_t exp(dA_cumsum[-1] - dA_cumsum[t]) * dt[t] * B[t] ⊗ x[t]
+    optionally seeded with initial_states. B: [L,G,N]; x: [L,H,P];
+    dt,dA_cumsum: [L,H]. Returns [n_seq, H, P, N].
+    """
+    cu = cu_seqlens.to(torch.long).tolist()
+    L, H, P = x.shape
+    G, N = B.shape[1], B.shape[2]
+    rep = H // G
+    Bf, xf = B.to(torch.float32), x.to(torch.float32)
+    dtf, dAc = dt.to(torch.float32), dA_cumsum.to(torch.float32)
+    out = x.new_zeros((len(cu) - 1, H, P, N), dtype=torch.float32)
+    for i in range(len(cu) - 1):
+        a, b = cu[i], cu[i + 1]
+        if b <= a:
+            continue
+        decay = torch.exp(dAc[b - 1] - dAc[a:b])              # [l,H]
+        w = (decay * dtf[a:b])                                # [l,H]
+        Bg = Bf[a:b][:, (torch.arange(H, device=x.device) // rep)]  # [l,H,N]
+        st = torch.einsum("lhp,lhn,lh->hpn", xf[a:b], Bg, w)
+        if initial_states is not None:
+            # Carried state decays through the chunk's cumulative decay
+            # before the in-chunk contributions accumulate (standard
+            # Mamba2 SSD form). The exact varlen dA_cumsum-reset
+            # boundary is upstream-convention-dependent → L3_03 is
+            # ORACLE-SCOPE-downgraded for the HAS_INITSTATES path.
+            chunk_decay = torch.exp(dAc[b - 1])               # [H]
+            st = st + chunk_decay[:, None, None] * initial_states.to(torch.float32)[i]
+        out[i] = st
+    return out.to(x.dtype)
+
+
+def run(inputs: dict) -> dict:
+    return {"states": _chunk_state_varlen(
+        inputs["B"], inputs["x"], inputs["dt"], inputs["dA_cumsum"],
+        inputs["cu_seqlens"], inputs.get("initial_states"))}
+'''
+
+_CORRECT_ATTN_CP_BODY = '''
+
+def _correct_attn_cp_out(
+    out: torch.Tensor, lses: torch.Tensor, cp_rank: int,
+    is_lse_base_on_e: bool = True,
+) -> torch.Tensor:
+    """Context-parallel attention output correction.
+
+    out: [B,H,D] this rank's partial attention output. lses: [N,B,H]
+    all-gathered per-rank log-sum-exp. Reweight this rank's output by
+    its share of the global softmax denominator:
+      w = exp(lses[cp_rank] - logsumexp_n(lses))   (base-e; base-2 if
+      is_lse_base_on_e is False); out' = out * w.
+    """
+    o = out.to(torch.float32)
+    L = lses.to(torch.float32)
+    if not is_lse_base_on_e:
+        L = L * float(torch.log(torch.tensor(2.0)))
+    gmax = L.max(dim=0).values
+    denom = torch.log(torch.exp(L - gmax).sum(dim=0)) + gmax     # [B,H]
+    w = torch.exp(L[cp_rank] - denom)                            # [B,H]
+    return (o * w.unsqueeze(-1)).to(out.dtype)
+
+
+def run(inputs: dict) -> dict:
+    return {"output": _correct_attn_cp_out(
+        inputs["out"], inputs["lses"], int(inputs.get("cp_rank", 0)),
+        bool(inputs.get("is_lse_base_on_e", True)))}
+'''
+
 # (task_dir_basename → (oracle body, tier label)).
 WORKING_REFS: dict[str, tuple[str, str]] = {
+    # v3.2 errata substitutes (replaced non-freezable placeholders)
+    "L1_30_act_quant_kernel":                 (_ACT_QUANT_BODY,            "formula_exact_manual"),
+    "L3_03_chunk_state_varlen_kernel":        (_CHUNK_STATE_VARLEN_BODY,   "formula_exact_manual"),
+    "L3_07_correct_attn_cp_out_kernel":       (_CORRECT_ATTN_CP_BODY,      "formula_exact_manual"),
     # index / metadata / copy
     "L1_02_compute_slot_mappings_kernel":     (_COMPUTE_SLOT_MAPPINGS_BODY,  "formula_exact_manual"),
     "L1_04_copy_page_indices_kernel":         (_COPY_PAGE_INDICES_BODY,      "formula_exact_manual"),
@@ -2663,6 +2767,11 @@ WORKING_REFS: dict[str, tuple[str, str]] = {
 # (HAS_NULL_BLOCK) and test-only (SYNTHETIC_MODE) toggles are NOT
 # downgraded — they do not change the reference math.
 ORACLE_SCOPE_DOWNGRADE: dict[str, str] = {
+    "L3_03_chunk_state_varlen_kernel":
+        "covers varlen intra-chunk SSD state (no-initial-states path "
+        "exact); HAS_INITSTATES carried-state decay uses the standard "
+        "Mamba2 form but the exact varlen dA_cumsum-reset boundary is "
+        "upstream-convention-dependent (not bit-exact)",
     "L3_01_kernel_unified_attention_3d":
         "covers causal + GQA + ALiBi + softcap; NOT covered: "
         "USE_SINKS, USE_FP8/KV_QUANT_MODE, USE_QQ_BIAS, USE_MM_PREFIX",
