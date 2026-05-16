@@ -1,0 +1,62 @@
+# Contract — L1_12 RMS norm kernel
+
+## What you must implement
+
+A `solution.py` exposing:
+
+```python
+def rms_norm(input: torch.Tensor, weight: torch.Tensor, eps: float = 1.0e-6) -> torch.Tensor: ...
+```
+
+The kernel must run on **Atlas 910B via triton-ascend** and produce a tensor
+of the same shape and dtype as `input`, where the last dimension is RMS
+normalized and scaled by `weight`.
+
+## What you must NOT do
+
+- Call CPU PyTorch for the actual normalization (allowed only for shape/contiguity setup).
+- Import anything outside `infra/version_matrix.toml`'s pinned allowlist.
+- Read or `os.stat` any file under `tasks/` from inside the solution.
+- Use `ctypes`, `cffi`, `torch.utils.cpp_extension.load_inline`, or any non-broker `.so` load.
+- Branch on shape values to short-circuit toward a precomputed answer.
+
+(Full denylist: see `specs/ast_denylist.md`.)
+
+## Inputs available to your kernel
+
+| Name | Type | Shape | Dtype |
+|------|------|-------|-------|
+| `input` | tensor | `(..., hidden_size)` | fp16 / bf16 / fp32 |
+| `weight` | tensor | `(hidden_size,)` | same family as input |
+| `eps` | float | scalar | fp32 |
+
+## Required semantics
+
+```
+y[..., j] = (input[..., j] / sqrt(mean_j(input[..., j]^2) + eps)) * weight[j]
+```
+
+Accumulation **must be in float32** regardless of input dtype.
+
+## Tolerance class
+
+`vector_reduce` — see `specs/tolerance_policy.md` and
+`triton_ascend_bench/tolerance_policy.yaml` (atol 1e-3, rtol 1e-3).
+
+## Metamorphic checks (runner-enforced)
+
+1. **Scale invariance** — `rms_norm(2*input, w, eps)` differs from `rms_norm(input, w, eps)` by ≤ fp rounding only.
+2. **Weight identity** — `rms_norm(x, torch.ones_like(weight), 0)` must equal `x / rms(x)` within tolerance.
+
+These run on a small held-out shape and **cannot be passed by table-lookup** because they require the real function to be implemented.
+
+## Shape coverage
+
+Public shapes: 6 (see `shapes.yaml`).
+Hidden shapes: 4 (sealed, rotated every benchmark epoch).
+
+## Ascend-C baseline
+
+A hand-tuned Ascend-C kernel for the same op lives at
+`ascendc_baseline.yaml`. Your `FastP_native` score is normalized against
+its measured latency on identical shapes.

@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit tests (CPU, mock backends)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (CPU-only)
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint with ruff
+        run: |
+          ruff check triton_ascend_bench/ tests/ scripts/
+
+      - name: Type check (mypy, soft mode)
+        continue-on-error: true
+        run: |
+          mypy triton_ascend_bench/ || true
+
+      - name: Run unit tests
+        env:
+          TAB_BACKEND: mock
+        run: |
+          pytest tests/unit_tests/ -v --cov=triton_ascend_bench
+
+      - name: Validate task manifests against schema
+        run: |
+          python scripts/validate_tasks.py --strict
+
+      - name: Verify version matrix matches frozen pins
+        run: |
+          python scripts/verify_version_matrix.py
+
+  adversarial-tests:
+    name: Adversarial defense self-checks
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run static-checker adversarial tests
+        env:
+          TAB_BACKEND: mock
+        run: pytest tests/unit_tests/test_static_checker.py tests/unit_tests/test_adversarial.py -v
+
+  gpu-baseline-smoke:
+    name: GPU triton baseline smoke (manual trigger only)
+    runs-on: [self-hosted, gpu, h100]
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build GPU Docker image
+        run: docker build -f infra/Dockerfile.gpu -t tab-gpu:ci .
+      - name: Run 5-task PoC smoke
+        run: |
+          docker run --rm --gpus all -v $(pwd)/results:/workspace/results tab-gpu:ci \
+            tab run-suite --level 1 --solutions-root /workspace/solutions \
+            --backend gpu --out /workspace/results/h100_gpu_triton/ci_smoke.json
+
+  # NPU verified runner is intentionally NOT in standard CI —
+  # runs on dedicated 910B host triggered by verified_runner.yml.

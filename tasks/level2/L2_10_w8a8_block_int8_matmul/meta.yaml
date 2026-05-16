@@ -1,0 +1,82 @@
+schema_version: "1.0"
+benchmark_version: "0.1.0-poc"
+task_id: L2_10_w8a8_block_int8_matmul
+level: "L2"
+idx: 10
+name: "_w8a8_block_int8_matmul"
+repo: "vLLM"
+dtype_class: "CV"
+category: "moe"   # block-quant matmul belongs to the cube-dominant family
+npu_difficulty: "high"
+
+upstream:
+  repo: "vllm-project/vllm"
+  path: "vllm/model_executor/layers/quantization/utils/int8_utils.py"
+  commit_sha: "snapshot-no-git"
+  file_sha256: "84b1f99fcbefbba588ec7e65efd41d341f54c86b8c68a5858dd11f5d4f7950bf"
+  function_hash: "84b1f99fcbefbba588ec7e65efd41d341f54c86b8c68a5858dd11f5d4f7950bf"
+  license: "Apache-2.0"
+
+interface:
+  alias_map:
+    A: ro
+    B: ro
+    As: ro
+    Bs: ro
+    block_size: ro
+    output_dtype: ro
+    C: wo_candidate_allocated
+  mutability: "no_inplace"
+  stride_layout: |
+    A contiguous, B contiguous (note: kernel uses stride_bk=B.stride(1),
+    stride_bn=B.stride(0), which is B-transposed-in-memory access).
+  workspace_policy: "none"
+  stream_sync_policy: "runner-managed"
+  rng_state_policy: "deterministic"
+
+oracle:
+  pytorch: "oracle_pytorch.py::run"
+  gpu_triton: "kernel.py::w8a8_block_int8_matmul"
+  ascendc:
+    available: true
+    config_file: "ascendc_baseline.yaml"
+
+tolerance_class: "int8_w8a8"
+
+oracle_simplified: "upstream_oracle_required"
+
+runner_checks:
+  expected_kernel_count_range: [1, 1]
+  min_dram_bytes: 524288
+  min_flops: 16777216
+  output_format: "safetensors"
+  output_allocation: "candidate_allocated"
+  static_checks:
+    - ast_denylist
+    - import_allowlist
+    - constexpr_match
+    - cube_arithmetic_present
+  metamorphic_checks:
+    - name: scale_homogeneity_a
+      description: |
+        Doubling all entries of As doubles every output value exactly
+        (within fp16 rounding at the final cast).
+    - name: zero_a_yields_zero
+      description: A = 0 ⇒ C = 0 regardless of B, As, Bs.
+  shape_coverage:
+    public: 6
+    hidden: 4
+
+is_canary: false
+is_hidden_only: false
+in_s_native: false  # baseline placeholder; flip to true when ascendc_baseline.yaml is frozen
+
+hardware:
+  npu: "910b"
+  ub_budget_kb: 160
+  fp8_required: false
+
+provenance:
+  added_in: "v0.1"
+  authors: ["triton-ascend-bench team"]
+  last_modified: "2026-05-14"

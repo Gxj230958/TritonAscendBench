@@ -1,0 +1,36 @@
+TritonAscendBench
+Copyright 2026 TritonAscendBench Authors
+
+This product includes software developed by:
+- The vLLM Project (https://github.com/vllm-project/vllm) — Apache License 2.0
+- The SGLang Project (https://github.com/sgl-project/sglang) — Apache License 2.0
+- The KernelBench Project (https://github.com/ScalingIntelligence/KernelBench) — Apache License 2.0
+- The TritonBench Project (https://github.com/thunlp/TritonBench) — Apache License 2.0
+
+Specifically:
+
+1. **Task source kernels** (`tasks/*/kernel.py`):
+   GPU Triton kernel implementations are extracted from vLLM and SGLang
+   upstream sources, with original Apache 2.0 license preserved. Each task's
+   `meta.yaml` declares the upstream commit SHA, file path, and license.
+   Vendored snapshots are stored in `tasks/_vendored/` per the freeze policy.
+
+2. **Evaluator harness** (`triton_ascend_bench/`):
+   The 13-module Provider Surface design (dataset / eval / timing / scoring /
+   adversarial / static_checker / compile_cache / profile / analysis /
+   leaderboard_validator / manifest / make_hf_dataset / backends) is inspired
+   by and partially adapted from KernelBench's `src/kernelbench/` modules,
+   under Apache 2.0.
+
+3. **Adversarial test kernels** (`tests/adversarial_kernels/`):
+   The three NPU-adapted adversarial kernels (`result_reuse_kernel_npu.py`,
+   `zero_out_kernel_npu.py`, `non_default_stream_kernel_npu.py`) are derived
+   from KernelBench's `src/kernelbench/unit_tests/test_kernels/*.py`.
+
+4. **CI fast-fail prefilter design** (`triton_ascend_bench/eval.py`):
+   Inspired by TritonBench's stdout-based comparison pattern, but reimplemented
+   as `sampled_numeric_allclose` (raw element sampling + torch.allclose) for
+   reward-hacking robustness. See `specs/reward_hack_defense.md` §5b.25.
+
+All vendored / adapted code retains its original copyright notices.
+Modifications and new contributions are licensed under Apache 2.0.

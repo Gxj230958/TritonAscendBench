@@ -1,0 +1,109 @@
+name: Verified Leaderboard Runner
+
+# Triggered ONLY when:
+# - A `submission.tar.gz` is uploaded via the leaderboard API
+# - Manual operator dispatch
+#
+# v4.13 §Phase 4 v1.0 verified protocol:
+# - All verified submissions get 100% official re-run (not sampling)
+# - Process isolation + sandbox + hidden adversarial shapes
+# - Top-K trigger audit-rerun on second 910B
+# - Third-party monthly audit on selected top submissions
+
+on:
+  workflow_dispatch:
+    inputs:
+      submission_artifact:
+        description: "URL or path to submission.tar.gz"
+        required: true
+      submitter_id:
+        description: "Submitter identity (GPG key fingerprint or email domain)"
+        required: true
+
+  repository_dispatch:
+    types: [submission-received]
+
+jobs:
+  verify:
+    name: Verified evaluation on 910B
+    runs-on: [self-hosted, npu, 910b, verified-runner]
+    timeout-minutes: 240
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify version matrix lock
+        run: python scripts/verify_version_matrix.py
+
+      - name: Build NPU runner image
+        run: docker build -f infra/Dockerfile.npu -t tab-npu:verified .
+
+      - name: Sandbox unpack + manifest hash verify
+        run: |
+          docker run --rm \
+            --network=none \
+            --read-only \
+            --tmpfs /tmp:rw,size=256m \
+            -v "${{ github.workspace }}:/workspace:ro" \
+            -v "${{ github.workspace }}/verified_state:/runner_state:rw" \
+            tab-npu:verified \
+            tab validate-submission "${{ inputs.submission_artifact }}" \
+              --out /runner_state/manifest_validation.json
+
+      - name: Static check (AST denylist + import allowlist)
+        run: |
+          docker run --rm --network=none --read-only \
+            -v "${{ github.workspace }}:/workspace:ro" \
+            -v "${{ github.workspace }}/verified_state:/runner_state:rw" \
+            tab-npu:verified \
+            tab static-check \
+              --submission "${{ inputs.submission_artifact }}" \
+              --out /runner_state/static_report.json
+
+      - name: Run scored tasks (100% re-run, no sampling)
+        run: |
+          docker run --rm \
+            --network=none \
+            --read-only \
+            --tmpfs /tmp:rw,size=2g \
+            --device=/dev/davinci0 \
+            --device=/dev/davinci_manager \
+            --device=/dev/hisi_hdc \
+            -v /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro \
+            -v "${{ github.workspace }}/verified_state:/runner_state:rw" \
+            tab-npu:verified \
+            tab run-suite \
+              --backend npu \
+              --mode verified \
+              --submission "${{ inputs.submission_artifact }}" \
+              --out /runner_state/verified_results.json
+
+      - name: Hidden adversarial shapes (sealed set)
+        run: |
+          docker run --rm --network=none --read-only \
+            --device=/dev/davinci0 \
+            -v "${{ github.workspace }}/verified_state:/runner_state:rw" \
+            -v "${{ secrets.HIDDEN_SET_VOLUME }}:/hidden:ro" \
+            tab-npu:verified \
+            tab run-suite \
+              --backend npu \
+              --mode verified \
+              --shapes-overlay /hidden \
+              --out /runner_state/hidden_results.json
+
+      - name: Compute scores + push to leaderboard
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/verified_state:/runner_state:rw" \
+            tab-npu:verified \
+            tab analyze \
+              --verified-results /runner_state/verified_results.json \
+              --hidden-results /runner_state/hidden_results.json \
+              --submitter "${{ inputs.submitter_id }}" \
+              --out /runner_state/score_report.json
+
+      - name: Upload verified result + audit log
+        run: |
+          # Public artifacts only (no hidden tensor data per R18-S5)
+          aws s3 cp /runner_state/score_report.json s3://tab-leaderboard/verified/
+          aws s3 cp /runner_state/verified_results.json s3://tab-leaderboard/raw/

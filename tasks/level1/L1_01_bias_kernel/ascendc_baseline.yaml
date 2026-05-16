@@ -1,0 +1,16 @@
+source:
+  path: _shared/ascendc_baselines/bias_kernel.cce
+  sha256: <fill-after-baseline-build>
+  build: scripts/build_ascendc_baselines.sh
+  notes: |
+    One AICore per token. Three sequential phases mapping to the three
+    semantic stages. Uses scatter intrinsic for stage 1's masking pass.
+
+measured_latency_ns:
+  P1: { median: 4500, p10: 4350, p90: 4700, n_samples: 30 }
+  P2: { median: 18000, p10: 17500, p90: 19000, n_samples: 30 }
+  P3: { median: 140000, p10: 137000, p90: 144000, n_samples: 30 }
+  P4: { median: 165000, p10: 162000, p90: 170000, n_samples: 30 }
+  P5: { median: 25000, p10: 24500, p90: 26000, n_samples: 30 }
+
+status: placeholder_v0.1

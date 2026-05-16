@@ -1,0 +1,86 @@
+# Machine-readable tolerance policy
+# Loaded by triton_ascend_bench/eval.py via tolerance_policy.lookup(class_name)
+# Per spec: specs/tolerance_policy.md
+
+schema_version: "1.0"
+
+classes:
+  elementwise:
+    atol: 1.0e-3
+    rtol: 1.0e-3
+    notes: "Pointwise ops (silu, gelu, bias)"
+
+  elementwise_exact_or_inf_safe:
+    atol: 1.0e-6
+    rtol: 0.0
+    inf_must_match: true
+    nan_must_match: true
+    notes: "Additive ops on logits; -inf positions must match exactly"
+
+  vector_reduce:
+    atol: 1.0e-3
+    rtol: 1.0e-3
+    notes: "RMSNorm / LayerNorm / softmax"
+
+  cube_matmul_fp16:
+    atol: 5.0e-3
+    rtol: 1.0e-3
+    notes: "GEMM with FP32 accumulator"
+
+  int8_w8a8:
+    atol: 5.0e-2
+    rtol: 1.0e-2
+    notes: "W8A8 INT8 matmul"
+
+  int4_w4a8:
+    atol: 5.0e-2
+    rtol: 1.0e-2
+    notes: "W4A8 grouped matmul"
+
+  fp8_software_emulated:
+    atol: 1.0e-1
+    rtol: 5.0e-2
+    notes: "910B has no FP8 cube; correctness only, not for primary score"
+
+  recurrent_chunk:
+    atol: 5.0e-3
+    rtol: 5.0e-3
+    notes: "Mamba / GDN / KDA chunk pipelines"
+
+  sampling_rng:
+    atol: 0.0
+    rtol: 0.0
+    bit_exact: true
+    notes: "Bit-exact when seed matches"
+
+  atomic_scatter:
+    atol: 1.0e-4
+    rtol: 1.0e-4
+    non_deterministic: true
+    rerun_count: 3
+    notes: "Non-deterministic; rerun for consistency"
+
+  cumsum_scan:
+    atol: 1.0e-3
+    rtol: 1.0e-3
+    notes: "Prefix scan accumulation"
+
+  attention_flash:
+    atol: 5.0e-3
+    rtol: 1.0e-3
+    notes: "Online softmax + matmul fused"
+
+  mrope:
+    atol: 1.0e-3
+    rtol: 1.0e-3
+    notes: "mRoPE position embedding"
+
+# Per-dtype sentinel values (for output buffer poisoning detection)
+sentinels:
+  float32: "NaN"
+  float16: "NaN"
+  bfloat16: "NaN"
+  int8: -128
+  int16: -32768
+  int32: -2147483648
+  bool: "alternating_0xAA"

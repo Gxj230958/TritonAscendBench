@@ -1,0 +1,64 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_31_moe_align_block_size_stage2
+level: L2
+idx: 31
+name: moe_align_block_size_stage2
+repo: SGLang
+dtype_class: VV
+category: moe
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/moe/ep_moe/kernels.py`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: 63590e3321b518da74ef4208fe6d14dbced23ff13dd7038c16e7d5ce3996ccfe
+  function_hash: 63590e3321b518da74ef4208fe6d14dbced23ff13dd7038c16e7d5ce3996ccfe
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_31_moe_align_block_size_stage2_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+  ascendc:
+    available: false
+    config_file: ascendc_baseline.yaml
+tolerance_class: atomic_scatter
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+in_s_native: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-31

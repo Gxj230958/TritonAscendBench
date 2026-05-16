@@ -1,0 +1,94 @@
+# Frozen Version Matrix (v4.13 R6-1 — must lock at Phase 0.1)
+# Any deviation from this matrix invalidates baseline and verified ranking.
+
+schema_version = "1.0"
+benchmark_version = "v0.1"
+frozen_at = "2026-05-14T00:00:00Z"
+
+# ============================================================================
+# GPU side (H100 / A100 for GPU triton baseline)
+# ============================================================================
+[gpu]
+arch = "x86_64"
+os = "ubuntu22.04"
+cuda = "13.0.0"
+driver_min = "535.0"
+python = "3.11"
+torch = "2.5.1"
+triton = "3.2.0"
+# Docker image (digest filled when v0.1 release tag is cut on a 910B host).
+# Empty string is the documented "unset" state, NOT a `<placeholder>`.
+docker_image = "nvcr.io/nvidia/pytorch:24.10-py3"
+docker_digest = ""
+
+# ============================================================================
+# NPU side (Ascend 910B / Atlas A2)
+# ============================================================================
+[npu]
+arch = "aarch64"  # or x86_64 depending on Atlas server
+os = "openEuler 22.03"
+cann = "8.5.0"
+hdk = "25.5.2"
+driver = ""              # populated at v0.1 release on real 910B host
+python = "3.11"
+torch = "2.8.0"
+torch_npu = "2.8.0.post1"  # PyTorch Ascend adapter
+triton_ascend = "3.2.0"  # x86; ARM uses 3.5.0 per quick_start
+memfabric = "1.0.5"
+docker_image = "quay.io/ascend/cann:8.5.0-py3.11"
+docker_digest = ""
+
+# ============================================================================
+# Common Python deps
+# ============================================================================
+[python_deps]
+numpy = "1.26.0"
+pyyaml = "6.0"
+safetensors = "0.4.5"
+click = "8.1.7"
+rich = "13.7"
+
+# ============================================================================
+# Upstream sources (frozen at Phase 1.2 per task)
+# ============================================================================
+[upstream]
+# Per-task commit SHAs live in tasks/*/meta.yaml upstream.commit_sha.
+# These two fields document the upstream repo identity only.
+vllm = "vllm-project/vllm"
+sglang = "sgl-project/sglang"
+
+# ============================================================================
+# Hardware specs (for utilization computation)
+# ============================================================================
+[hardware.h100]
+peak_fp16_tflops = 989  # H100 SXM5
+peak_int8_tops = 1979
+hbm_bandwidth_gbps = 3350
+
+[hardware.910b]
+peak_fp16_tflops = 256
+peak_int8_tops = 512
+hbm_bandwidth_gbps = 1600
+ub_size_kb = 192  # Unified Buffer per AI core, critical for triton-ascend tile design
+
+# ============================================================================
+# Benchmark protocol parameters
+# ============================================================================
+[protocol]
+correctness_trials = 5
+warmup_iterations = 10
+measurement_trials = 100
+independent_runs = 3
+cv_threshold_pct = 10
+host_event_drift_threshold_pct = 10
+speedup_cap = 5.0
+speedup_floor_epsilon = 0.01
+min_coverage_for_ranking = 0.70  # native_coverage >= 70% of |S_native|
+
+# Sentinel patterns (per dtype, R12-P1-3)
+[protocol.sentinels]
+float = "NaN"
+int8 = -128  # INT8_MIN
+int16 = -32768  # INT16_MIN
+int32 = -2147483648  # INT32_MIN
+bool = "alternating"  # 0xAA mask

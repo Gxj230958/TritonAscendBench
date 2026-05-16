@@ -1,0 +1,59 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.venv/
+venv/
+.env
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.tox/
+*.log
+
+# Triton / NPU caches
+.triton/
+.cache/
+triton-cache/
+triton-ascend-cache/
+__torch_compile_cache__/
+
+# Tensors / artifacts
+*.pt
+*.pth
+*.pkl
+*.safetensors
+*.npy
+*.npz
+*.bin
+
+# Result data (some kept, some not)
+results/**/*.raw.json
+results/**/temp/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Submission artifacts
+submission_*.tar.gz
+my_solutions/
+solutions/                      # local test/scaffold solutions (provider-only repo)
+
+# External upstream checkouts — NOT benchmark artifacts. The frozen
+# per-task kernel.py + tasks/_vendored/ snapshots (with NOTICE
+# attribution) are what ship; the full clones are reproducible.
+external/
+
+# Hidden set (never commit)
+tasks/**/shapes_hidden.yaml
+tasks/_hidden_sealed/

@@ -1,0 +1,27 @@
+# GPU baseline runner — H100 / A100 (CUDA 13.0)
+# Used for: Phase 3.1 GPU triton baseline collection
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+WORKDIR /workspace
+COPY pyproject.toml /workspace/
+COPY triton_ascend_bench /workspace/triton_ascend_bench
+COPY tasks /workspace/tasks
+COPY scripts /workspace/scripts
+
+# Frozen versions per infra/version_matrix.toml
+RUN pip install --no-cache-dir \
+    "torch==2.5.1" \
+    "triton==3.2.0" \
+    "numpy==1.26.0" \
+    "pyyaml==6.0" \
+    "safetensors==0.4.5" \
+    "click==8.1.7" \
+    "rich==13.7"
+
+RUN pip install --no-cache-dir -e ".[dev,gpu]"
+
+# Lock down /tmp at runtime for sandbox tests
+ENV TRITON_CACHE_DIR=/runner_cache/triton
+ENV HF_HOME=/runner_cache/hf
+
+ENTRYPOINT ["tab"]

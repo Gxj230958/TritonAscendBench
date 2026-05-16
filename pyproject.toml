@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "triton-ascend-bench"
+version = "0.1.0"
+description = "Migration Benchmark for porting GPU Triton kernels to Huawei Ascend 910B via triton-ascend"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "TritonAscendBench Authors" },
+]
+keywords = ["benchmark", "triton", "ascend", "npu", "910b", "migration", "vllm", "sglang"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "torch>=2.5.0",
+    "triton>=3.0.0",
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+    "safetensors>=0.4.0",
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+npu = [
+    # torch_npu (Ascend PyTorch adapter) — install via Huawei wheel
+    # triton-ascend — install via pip install triton-ascend
+]
+gpu = [
+    # triton — already in core deps
+]
+
+[project.scripts]
+tab = "triton_ascend_bench.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/<TBD>/triton-ascend-bench"
+Documentation = "https://triton-ascend-bench.readthedocs.io"
+Repository = "https://github.com/<TBD>/triton-ascend-bench"
+Issues = "https://github.com/<TBD>/triton-ascend-bench/issues"
+
+[tool.setuptools.packages.find]
+include = ["triton_ascend_bench*"]
+exclude = ["tests*", "tasks*", "results*", "specs*", "docs*", "infra*", "scripts*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "C4", "UP", "RUF"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: unit tests (fast, no GPU/NPU)",
+    "integration: integration tests (require GPU or NPU)",
+    "adversarial: reward-hacking adversarial tests",
+    "gpu: requires CUDA GPU",
+    "npu: requires Ascend NPU",
+    "slow: slow tests (>10s)",
+]
+addopts = "-v --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true

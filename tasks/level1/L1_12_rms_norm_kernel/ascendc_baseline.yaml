@@ -1,0 +1,21 @@
+# Hand-tuned Ascend-C reference for L1_12, used as denominator in FastP_native.
+# Measured on Atlas 910B, CANN 8.5.0, host-side CLOCK_MONOTONIC_RAW (see specs/timing_arbitration.md).
+
+source:
+  path: _shared/ascendc_baselines/rms_norm.cce
+  sha256: <fill-after-baseline-build>
+  build: scripts/build_ascendc_baselines.sh
+  notes: |
+    UB tiling: row-major, one row per block, tile 1024 cols.
+    Uses VectorReduce intrinsic for sum-of-squares.
+
+measured_latency_ns:
+  P1: { median: 12500, p10: 12100, p90: 13200, n_samples: 30 }
+  P2: { median: 88000, p10: 86500, p90: 91000, n_samples: 30 }
+  P3: { median: 1450000, p10: 1430000, p90: 1480000, n_samples: 30 }
+  P4: { median: 950000, p10: 935000, p90: 980000, n_samples: 30 }
+  P5: { median: 9800, p10: 9600, p90: 10200, n_samples: 30 }
+  P6: { median: 71000, p10: 69500, p90: 73000, n_samples: 30 }
+
+# These numbers are placeholders for v0.1; will be re-measured + frozen at v1.0.
+status: placeholder_v0.1

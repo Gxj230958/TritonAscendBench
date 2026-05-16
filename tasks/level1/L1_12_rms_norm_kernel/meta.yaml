@@ -1,0 +1,85 @@
+schema_version: "1.0"
+benchmark_version: "0.1.0-poc"
+task_id: L1_12_rms_norm_kernel
+level: "L1"
+idx: 12
+name: "_rms_norm_kernel"
+repo: "vLLM"
+dtype_class: "VV"
+category: "norm"
+npu_difficulty: "medium"
+
+upstream:
+  repo: "vllm-project/vllm"
+  path: "vllm/model_executor/layers/batch_invariant.py"
+  commit_sha: "snapshot-no-git"
+  file_sha256: "efe8c82170e03f8304ee24f8700821ed1fe584ec922a12c97cfe41c3a1af8df3"
+  function_hash: "efe8c82170e03f8304ee24f8700821ed1fe584ec922a12c97cfe41c3a1af8df3"
+  license: "Apache-2.0"
+  vendored_snapshot: "tasks/_vendored/L1_12_rms_norm_kernel.py"
+  notes: |
+    Snapshot of vLLM checked out at /data1/code/agentic-rl/kernel/infer/vllm/
+    without .git directory. commit_sha "snapshot-no-git" is an explicit
+    sentinel; verify by file_sha256 only. Real git SHA must be filled
+    before v0.1 release (run scripts/freeze_source.py against a fresh
+    `git clone vllm` checkout).
+
+interface:
+  alias_map:
+    input: ro
+    weight: ro
+    eps: ro
+    output: wo_candidate_allocated
+  mutability: "no_inplace"
+  stride_layout: "input.reshape(-1, hidden).contiguous() required"
+  workspace_policy: "none"
+  stream_sync_policy: "runner-managed"
+  rng_state_policy: "deterministic"
+
+oracle:
+  pytorch: "oracle_pytorch.py::run"
+  gpu_triton: "kernel.py::rms_norm"
+  ascendc:
+    available: true
+    config_file: "ascendc_baseline.yaml"
+
+tolerance_class: "vector_reduce"
+
+oracle_simplified: "formula_exact_manual"
+
+runner_checks:
+  expected_kernel_count_range: [1, 1]
+  min_dram_bytes: 65536
+  min_flops: 524288
+  output_format: "safetensors"
+  output_allocation: "candidate_allocated"
+  static_checks:
+    - ast_denylist
+    - import_allowlist
+    - constexpr_match
+  metamorphic_checks:
+    - name: weight_one_identity_eps_zero
+      description: |
+        rms_norm(x, ones, eps=0) reduces to x / rms(x); strict equality
+        within fp16/bf16 cast rounding. eps MUST be 0 for this invariant.
+    - name: row_independence
+      description: |
+        Permuting rows of `input` permutes rows of output identically.
+        Cross-row contamination would break this.
+  shape_coverage:
+    public: 6
+    hidden: 4
+
+is_canary: false
+is_hidden_only: false
+in_s_native: false  # baseline placeholder; flip to true when ascendc_baseline.yaml is frozen
+
+hardware:
+  npu: "910b"
+  ub_budget_kb: 96
+  fp8_required: false
+
+provenance:
+  added_in: "v0.1"
+  authors: ["triton-ascend-bench team"]
+  last_modified: "2026-05-14"

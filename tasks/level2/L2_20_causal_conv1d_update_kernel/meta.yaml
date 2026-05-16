@@ -1,0 +1,64 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_20_causal_conv1d_update_kernel
+level: L2
+idx: 20
+name: _causal_conv1d_update_kernel
+repo: vLLM
+dtype_class: VV
+category: convolution
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/mamba/ops/causal_conv1d.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
+  function_hash: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_20_causal_conv1d_update_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+  ascendc:
+    available: false
+    config_file: ascendc_baseline.yaml
+tolerance_class: vector_reduce
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+in_s_native: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-20

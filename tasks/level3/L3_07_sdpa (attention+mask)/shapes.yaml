@@ -1,0 +1,25 @@
+# Placeholder shape coverage for L3_07_sdpa (attention+mask) (SCAFFOLD).
+#
+# TODO(scaffold): the `kernel.py` body is a no-op. Once the real kernel is
+# frozen, replace these dummy shapes with the upstream coverage suite
+# (Public ≥ 5, Hidden ≥ 4 per task_api_contract §6).
+
+public_shapes:
+  - id: P1
+    name: scaffold_smoke
+    num_tokens: 4
+    dtype: float32
+  - id: P2
+    name: scaffold_medium
+    num_tokens: 128
+    dtype: float32
+  - id: P3
+    name: scaffold_large
+    num_tokens: 1024
+    dtype: float32
+
+hidden_shapes:
+  - id: H1
+    name: scaffold_hidden_smoke
+    num_tokens: 8
+    dtype: float32

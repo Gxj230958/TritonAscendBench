@@ -1,0 +1,36 @@
+# NPU verified runner — Ascend 910B / Atlas A2 (CANN 8.5)
+# Used for: Phase 3.4 AscendC native baseline + Phase 4 verified leaderboard re-runs
+FROM quay.io/ascend/cann:8.5.0-py3.11
+
+WORKDIR /workspace
+
+# Frozen versions per infra/version_matrix.toml
+# torch_npu installed by base image
+RUN pip install --no-cache-dir \
+    "torch==2.8.0" \
+    "torch-npu==2.8.0.post1" \
+    "triton-ascend==3.2.0" \
+    "numpy==1.26.0" \
+    "pyyaml==6.0" \
+    "safetensors==0.4.5" \
+    "click==8.1.7" \
+    "rich==13.7"
+
+COPY pyproject.toml /workspace/
+COPY triton_ascend_bench /workspace/triton_ascend_bench
+COPY tasks /workspace/tasks
+COPY scripts /workspace/scripts
+
+RUN pip install --no-cache-dir -e ".[dev,npu]"
+
+# Runner-controlled cache namespace (per v4.13 §5b.4 artifact provenance)
+ENV TRITON_ASCEND_CACHE_DIR=/runner_cache/triton-ascend
+ENV ASCEND_DEVICE_ID=0
+
+# Verified sandbox env (per v4.13 §5b.2 timing isolation)
+# These will be overridden by sandbox-specific configs at runtime
+ENV NETWORK=disabled
+ENV READ_ONLY_FS=true
+ENV PYTHONDONTWRITEBYTECODE=1
+
+ENTRYPOINT ["tab"]

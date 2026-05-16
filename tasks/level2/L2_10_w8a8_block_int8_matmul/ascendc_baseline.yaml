@@ -1,0 +1,18 @@
+source:
+  path: _shared/ascendc_baselines/w8a8_block_int8_matmul.cce
+  sha256: <fill-after-baseline-build>
+  build: scripts/build_ascendc_baselines.sh
+  notes: |
+    Cube-aware Ascend-C implementation. Uses MatMulV2 intrinsic on
+    128x128 INT8 tiles. Scales applied at fp32 accumulator level before
+    cast.
+
+measured_latency_ns:
+  P1: { median: 28000, p10: 27500, p90: 29000, n_samples: 30 }
+  P2: { median: 215000, p10: 211000, p90: 220000, n_samples: 30 }
+  P3: { median: 580000, p10: 572000, p90: 590000, n_samples: 30 }
+  P4: { median: 3100000, p10: 3050000, p90: 3160000, n_samples: 30 }
+  P5: { median: 410000, p10: 405000, p90: 418000, n_samples: 30 }
+  P6: { median: 95000, p10: 93500, p90: 97000, n_samples: 30 }
+
+status: placeholder_v0.1

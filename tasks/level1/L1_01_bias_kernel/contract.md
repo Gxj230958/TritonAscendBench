@@ -1,0 +1,65 @@
+# Contract — L1_01 sampler logit-bias kernel
+
+## What you must implement
+
+A `solution.py` exposing:
+
+```python
+def apply_logit_bias(
+    logits, expanded_idx_mapping, pos,
+    num_allowed_token_ids, allowed_token_ids,
+    num_logit_bias, logit_bias_token_ids, logit_bias,
+    min_lens, num_stop_token_ids, stop_token_ids,
+) -> None: ...
+```
+
+The kernel mutates `logits` **in place**. It must run on **Atlas 910B via
+triton-ascend** and produce a logits tensor matching the upstream GPU
+kernel semantics within the declared tolerance class.
+
+## Required semantics (per token row `t`, request index `r = expanded_idx_mapping[t]`)
+
+```
+# Stage 1: allowed token mask
+if num_allowed_token_ids[r] > 0:
+    allowed = allowed_token_ids[r, :num_allowed_token_ids[r]]
+    saved = logits[t, allowed]
+    logits[t, :] = -inf
+    logits[t, allowed] = saved
+
+# Stage 2: additive logit bias
+if num_logit_bias[r] > 0:
+    ids = logit_bias_token_ids[r, :num_logit_bias[r]]
+    logits[t, ids] += logit_bias[r, :num_logit_bias[r]]
+
+# Stage 3: min-length stop-token suppression
+if num_stop_token_ids[r] > 0 and pos[t] < min_lens[r]:
+    sids = stop_token_ids[r, :num_stop_token_ids[r]]
+    logits[t, sids] = -inf
+```
+
+Stage ordering is **load-bearing**: bias is added after masking, and
+stop-suppression is applied last.
+
+## Tolerance class
+
+`elementwise_exact_or_inf_safe` — additive ops compared in fp32 with atol
+1e-6; `-inf` positions must match exactly (no NaN substitution).
+
+## Metamorphic checks (runner-enforced)
+
+1. **Empty allowed is no-op** — `num_allowed_token_ids[r]=0` → stage 1 makes no change.
+2. **Zero bias is no-op** — `logit_bias[r] = 0` → stage 2 is identity.
+3. **`pos >= min_lens` keeps stop tokens** — stage 3 must not fire.
+
+These run on a small held-out shape and **cannot be passed by lookup**.
+
+## Shape coverage
+
+Public: 5 (tiny_one_req → batch_4_speculative). Hidden: 4.
+
+## Static checks
+
+- AST denylist (see `specs/ast_denylist.md`)
+- Import allowlist (`infra/version_matrix.toml`)
+- `constexpr_match` — `LOGITS_BLOCK_SIZE` and `BLOCK_SIZE` must be `tl.constexpr` with the same names as upstream
