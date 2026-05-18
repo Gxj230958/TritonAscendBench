@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""validate_tasks.py — schema validator for every task in tasks/.
+"""validate_tasks.py -- schema validator for every task in tasks/.
 
-Per specs/task_api_contract.md §5–7 + R14-P1-2.
+Per specs/task_api_contract.md §5-7 + R14-P1-2.
 
 Checks:
 - All 6 mandatory files present
 - meta.yaml has required top-level fields and nested structures
 - tolerance_class references an entry in tolerance_policy.yaml
 - oracle_simplified ∈ {simple_pytorch_ok, formula_exact_manual, upstream_oracle_required}
-- kernel.py and oracle_pytorch.py parse (ast.parse) — no SyntaxError
+- kernel.py and oracle_pytorch.py parse (ast.parse) -- no SyntaxError
 - kernel.py contains @triton.jit
 - file_sha256 matches the on-disk kernel.py if set
 
@@ -34,7 +34,7 @@ REQUIRED_FILES = {
     "meta.yaml",
     "shapes.yaml",
     "contract.md",
-    # ascendc_baseline.yaml removed: GPU-triton → NPU-triton *migration*
+    # ascendc_baseline.yaml removed: GPU-triton -> NPU-triton *migration*
     # benchmark; perf is not measured vs hand-written AscendC native.
 }
 
@@ -112,14 +112,14 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
         )
 
     # Step 5 removed: the in_s_native ⇒ AscendC-baseline-frozen check is
-    # obsolete. This is a GPU-triton → NPU-triton migration benchmark;
+    # obsolete. This is a GPU-triton -> NPU-triton migration benchmark;
     # there is no AscendC native baseline (see scoring_spec.md). The
     # performance reference is deferred (correctness is the live scored
     # axis); no per-task baseline artifact is required.
 
     # Step 6: Python syntax gate (G11 fix). A schema-valid task whose
     # kernel.py / oracle_pytorch.py does not even parse can never compile
-    # or be evaluated, so it must fail validation — not slip through.
+    # or be evaluated, so it must fail validation -- not slip through.
     kernel_text = (task_dir / "kernel.py").read_text()
     for fname, src in (
         ("kernel.py", kernel_text),
@@ -136,15 +136,45 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     if "@triton.jit" not in kernel_text:
         errs.append(f"{tid}: kernel.py contains no @triton.jit")
 
-    # Step 8: file_sha256 must match (and never be a placeholder)
-    declared_sha = (meta.get("upstream") or {}).get("file_sha256", "")
-    if any(p in str(declared_sha) for p in PLACEHOLDER_PATTERNS):
-        errs.append(
-            f"{tid}: upstream.file_sha256 still a placeholder: {declared_sha!r}"
-        )
+    # Step 8: PHASE-AWARE hash integrity (plan U5 codex-cep-r2 must-fix).
+    # If the task has been Phase-A'-processed it carries
+    # meta.phase_a_prime.standalone_sha256 -- compare THAT to the on-disk
+    # kernel.py. Otherwise (unprocessed / PoC / legacy: kernel.py is
+    # still the verbatim upstream freeze) keep the legacy behaviour and
+    # compare meta.upstream.file_sha256. `upstream.file_sha256` is
+    # ALWAYS preserved as the original provenance hash. This makes a
+    # mixed rollout (some rewritten, some legacy) all-green under the
+    # normal schema/hash mode (release gate is a SEPARATE mode, U7).
     actual_sha = _file_sha256(task_dir / "kernel.py")
-    if declared_sha and not any(p in declared_sha for p in PLACEHOLDER_PATTERNS):
-        if declared_sha != actual_sha:
+    pap = meta.get("phase_a_prime") or {}
+    standalone_sha = pap.get("standalone_sha256", "")
+    if standalone_sha and not any(
+        p in str(standalone_sha) for p in PLACEHOLDER_PATTERNS
+    ):
+        if standalone_sha != actual_sha:
+            errs.append(
+                f"{tid}: phase_a_prime.standalone_sha256 mismatch: "
+                f"meta has {str(standalone_sha)[:16]}…, actual {actual_sha[:16]}…"
+            )
+    else:
+        declared_sha = (meta.get("upstream") or {}).get("file_sha256", "")
+        if any(p in str(declared_sha) for p in PLACEHOLDER_PATTERNS):
+            errs.append(
+                f"{tid}: upstream.file_sha256 still a placeholder: {declared_sha!r}"
+            )
+        elif not declared_sha:
+            # FIX 5: NEITHER phase_a_prime.standalone_sha256 NOR
+            # upstream.file_sha256 is populated -> there is NO
+            # on-disk-comparable integrity hash at all. The old code
+            # silently passed this (a task with zero integrity check).
+            # Every task MUST have at least one comparable hash.
+            errs.append(
+                f"{tid}: no integrity hash -- neither "
+                f"phase_a_prime.standalone_sha256 nor "
+                f"upstream.file_sha256 is populated (every task must "
+                f"have at least one on-disk-comparable hash)"
+            )
+        elif declared_sha != actual_sha:
             errs.append(
                 f"{tid}: kernel.py sha256 mismatch: "
                 f"meta has {declared_sha[:16]}…, actual {actual_sha[:16]}…"
@@ -153,12 +183,112 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     return errs
 
 
+def _load_eligible_ids() -> tuple[set[str], int]:
+    """Return (score_eligible_ids, catalogue_expected_eligible_count).
+
+    Single source of truth: triton_ascend_bench.eligibility (shared
+    with cli.py -- plan U7, prevents drift). The expected count is
+    derived independently from iter_all_tasks() so the non-vacuity
+    guard can detect a wrong task-root / empty fixture / compute bug.
+    """
+    sys.path.insert(0, str(REPO_ROOT))
+    from triton_ascend_bench.dataset import iter_all_tasks
+    from triton_ascend_bench.eligibility import compute_score_eligible
+
+    all_tasks = iter_all_tasks()
+    eligible = compute_score_eligible(all_tasks)
+    return eligible, len(eligible)
+
+
+def run_release_gate(tasks=None, eligible_ids=None) -> int:
+    """`--release-gate` mode (plan U7): SEPARATE from schema/hash mode.
+
+    `eligibility  intersect  {phase_a_prime.status != PASS}` non-empty ⇒ nonzero
+    exit + the blocking list. PLUS a non-vacuity guard (codex-cep-r3
+    must-fix): if the examined eligible count == 0, OR != the
+    catalogue-expected eligible count, this is a HARD FAIL -- never a
+    vacuous pass ("no tasks so nothing BLOCKED so releasable" is the
+    degenerate path S6 / no-subset-escape forbids).
+
+    `tasks` / `eligible_ids` are injectable for unit tests; in
+    production they are loaded from the real catalogue.
+    """
+    if tasks is None or eligible_ids is None:
+        eligible_ids, expected = _load_eligible_ids()
+        from triton_ascend_bench.dataset import iter_all_tasks
+
+        tasks = iter_all_tasks()
+    else:
+        expected = len(eligible_ids)
+
+    # MATERIALISE before BOTH passes (codex FIX 2 [confirmed]): the
+    # function iterates `tasks` once for `examined` and again for
+    # `blocking`. If `tasks` is a one-shot generator the 2nd pass is
+    # empty -> `blocking` is [] -> a vacuous return 0 ("releasable")
+    # even with eligible non-PASS tasks. list() makes it re-iterable.
+    tasks = list(tasks)
+
+    if expected == 0:
+        print(
+            "RELEASE-GATE HARD FAIL: catalogue-expected eligible count is 0 "
+            "(bad task root / empty fixture / eligibility compute bug). "
+            "Refusing to vacuously pass.",
+            file=sys.stderr,
+        )
+        return 2
+
+    all_tasks = tasks
+    examined = {t.task_id for t in all_tasks if t.task_id in eligible_ids}
+    if len(examined) == 0 or len(examined) != expected:
+        print(
+            f"RELEASE-GATE HARD FAIL: examined eligible count "
+            f"{len(examined)} != catalogue-expected {expected} "
+            f"(non-vacuity guard; never vacuous-pass).",
+            file=sys.stderr,
+        )
+        return 2
+
+    blocking: list[str] = []
+    for t in all_tasks:
+        if t.task_id not in eligible_ids:
+            continue
+        pap = (t.meta or {}).get("phase_a_prime") or {}
+        if pap.get("status") != "PASS":
+            blocking.append(t.task_id)
+    blocking.sort()
+
+    if blocking:
+        print(
+            f"RELEASE-GATE FAIL: {len(blocking)} score-eligible task(s) "
+            f"with phase_a_prime.status != PASS -- benchmark NOT releasable:",
+            file=sys.stderr,
+        )
+        for tid in blocking:
+            print(f"  - {tid}", file=sys.stderr)
+        return 1
+
+    print(
+        f"release-gate OK: all {expected} score-eligible tasks "
+        f"phase_a_prime.status == PASS."
+    )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", help="Validate a single task id (skip the rest)")
     parser.add_argument("--strict", action="store_true",
                         help="Stop on first task error")
+    parser.add_argument(
+        "--release-gate", action="store_true",
+        help="Phase A' S6 release gate (SEPARATE from schema/hash mode): "
+             "eligible  intersect  {phase_a_prime.status != PASS} non-empty ⇒ fail; "
+             "non-vacuity guarded (never vacuous-pass).",
+    )
     args = parser.parse_args()
+
+    if args.release_gate:
+        return run_release_gate()
 
     policy_classes = _load_policy_classes()
 

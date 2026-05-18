@@ -1,5 +1,8 @@
 # Process Isolation Architecture
 
+> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+
+
 > v0 — per v4.13 §5b.1 + §5b.1a + §5b.2 + R11-P0-1/2 + R12-P0-1/2 + R15-P1-1/2
 
 ## Three-Process Model

@@ -48,6 +48,16 @@ jobs:
         run: |
           python scripts/verify_version_matrix.py
 
+      - name: Phase A′ release gate (S6 — eligible ∩ status!=PASS ⇒ block)
+        # SEPARATE from the schema/hash step above. Non-vacuity guarded:
+        # an empty / wrong task root HARD-fails (never vacuous-pass).
+        # S6 is a HARD gate: a failing release gate MUST turn CI red
+        # (no continue-on-error). Until every score-eligible task is
+        # S2-gpu-authoritative PASS this step (correctly) fails CI —
+        # that is the intentional S6 hard gate, not a CI flake.
+        run: |
+          python scripts/validate_tasks.py --release-gate
+
   adversarial-tests:
     name: Adversarial defense self-checks
     runs-on: ubuntu-22.04

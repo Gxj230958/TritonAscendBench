@@ -1,5 +1,8 @@
 # 910B NPU Triton Migration Benchmark — 实施方案 v4.13 ✅ FROZEN
 
+> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+
+
 > **状态：✅ FROZEN — codex round 19 终极判定：整体 4.94/5，RH 子域 4.86/5，0 P0 + 0 P1**
 > 起草：2026-05-14；冻结时间：2026-05-14（19 轮 review 完整迭代后）
 > 历史轨迹：v1 (2.7) → v4.5 (4.95 整体 frozen 但 RH 仅 4.20) → v4.13 (4.94/4.86 ✅ 完整 frozen)

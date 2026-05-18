@@ -1,5 +1,8 @@
 # Tolerance Policy
 
+> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+
+
 > v0 — per v4.13 §10.2 + R18-S2
 > Machine-readable form: `triton_ascend_bench/tolerance_policy.yaml` (loaded by `eval.py`)
 

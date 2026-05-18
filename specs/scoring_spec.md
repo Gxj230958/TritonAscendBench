@@ -1,5 +1,8 @@
 # Scoring Specification
 
+> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+
+
 > v0 — per v4.13 §5 + R12-P1-1/5 + R13-P1-1 + R16-P1 + R18-S5
 
 ## Primary Metric: `score_native_only(p)`

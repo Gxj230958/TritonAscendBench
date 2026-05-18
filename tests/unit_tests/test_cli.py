@@ -10,8 +10,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO = Path(__file__).resolve().parent.parent.parent
 
 
@@ -59,7 +57,7 @@ def test_package_and_validate_submission_smoke(tmp_path):
     assert r.returncode == 0
     assert pkg.exists()
 
-    # validate-submission returns 1 because no manifest.yaml — fine, it ran.
+    # validate-submission returns 1 because no manifest.yaml -- fine, it ran.
     out_path = tmp_path / "valid.json"
     r = _run_tab("validate-submission", str(pkg), "--out", str(out_path))
     assert r.returncode in (0, 1), f"unexpected rc={r.returncode}"
@@ -77,7 +75,7 @@ def test_static_check_on_submission_unpacks(tmp_path):
     r = _run_tab(
         "static-check", "--submission", str(pkg), "--out", str(out_path)
     )
-    # Skeleton solution → any_blocked true → rc 1.
+    # Skeleton solution -> any_blocked true -> rc 1.
     assert r.returncode == 1
     doc = json.loads(out_path.read_text())
     assert doc["any_blocked"]
@@ -85,7 +83,7 @@ def test_static_check_on_submission_unpacks(tmp_path):
 
 
 def test_run_suite_skips_missing_solutions(tmp_path):
-    # Empty solutions root → every task gets `skipped: missing solution.py`.
+    # Empty solutions root -> every task gets `skipped: missing solution.py`.
     out_path = tmp_path / "suite.json"
     r = _run_tab(
         "run-suite", "--level", "1", "--solutions-root", str(tmp_path / "no_sols"),
@@ -154,7 +152,7 @@ def test_analyze_does_not_use_static_check_as_correctness(tmp_path):
     )
     assert r.returncode == 0
     doc = json.loads(out_path.read_text())
-    # NOT 1.0 — the single result is `correctness_status=error`, not `ok`.
+    # NOT 1.0 -- the single result is `correctness_status=error`, not `ok`.
     assert doc["native_coverage"] == 0.0
 
 
@@ -182,7 +180,7 @@ def test_analyze_filters_to_catalogue(tmp_path):
     )
     assert r.returncode == 0
     doc = json.loads(out_path.read_text())
-    # Neither t1 nor t2 is in the catalogue → 0 measurements, both
+    # Neither t1 nor t2 is in the catalogue -> 0 measurements, both
     # counted as non-catalogue (the 100.0 score cannot leak in).
     assert doc["n_native_measurements"] == 0
     assert doc["non_catalogue_task_count"] == 2
@@ -532,6 +530,7 @@ def test_validate_result_rejects_invalid_status_values(tmp_path):
 def test_validate_submission_accepts_well_formed(tmp_path):
     """A valid manifest.yaml + solution.py tarball passes validation."""
     import tarfile
+
     import yaml as _yaml
 
     sol_dir = tmp_path / "sol"
@@ -575,3 +574,47 @@ def test_tab_run_does_not_crash_on_skeleton_solution(tmp_path):
     assert r.returncode in (0, 1), f"crash: {r.stderr}"
     assert "TypeError" not in r.stderr
     assert out_path.exists()
+
+
+# ── Phase A' S6 release_blocked (plan U7 / R6) ──────────────────────
+def test_analyze_release_blocked_when_eligible_not_pass(tmp_path):
+    """Phase A' S6: the real catalogue has no task with
+    phase_a_prime.status==PASS yet -> analyze must emit
+    release_blocked:true + a non-empty blocking list, while STILL
+    emitting the diagnostic score (C2: coherent coexistence)."""
+    verified = {"results": []}
+    (tmp_path / "v.json").write_text(json.dumps(verified))
+    out_path = tmp_path / "score.json"
+    r = _run_tab(
+        "analyze",
+        "--verified-results", str(tmp_path / "v.json"),
+        "--out", str(out_path),
+    )
+    assert r.returncode == 0
+    doc = json.loads(out_path.read_text())
+    # Diagnostic score still present (C2).
+    assert "capped_geomean_native" in doc
+    assert "perf_status" in doc
+    # S6 release gate fields present + blocking (no task is PASS).
+    assert doc["release_blocked"] is True
+    assert isinstance(doc["release_blocked_tasks"], list)
+    assert len(doc["release_blocked_tasks"]) > 0
+    # Blocking set  subset-of  score-eligible set.
+    assert len(doc["release_blocked_tasks"]) <= doc["n_score_eligible_tasks"]
+
+
+def test_analyze_release_blocked_fields_always_emitted(tmp_path):
+    """release_blocked / release_blocked_tasks must ALWAYS be in the
+    schema (even with empty results) so downstream readers can rely
+    on them."""
+    (tmp_path / "v.json").write_text(json.dumps({"results": []}))
+    out_path = tmp_path / "score.json"
+    r = _run_tab(
+        "analyze",
+        "--verified-results", str(tmp_path / "v.json"),
+        "--out", str(out_path),
+    )
+    assert r.returncode == 0
+    doc = json.loads(out_path.read_text())
+    assert "release_blocked" in doc
+    assert "release_blocked_tasks" in doc

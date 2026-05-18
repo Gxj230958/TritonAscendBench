@@ -1,4 +1,4 @@
-"""cli.py — `tab` argparse entrypoint.
+"""cli.py -- `tab` argparse entrypoint.
 
 Subcommands (all driven via `tab <subcommand> ...`):
     init-solution        scaffold an empty solution dir
@@ -12,7 +12,7 @@ Subcommands (all driven via `tab <subcommand> ...`):
     analyze              compute final scores from verified-runner outputs
 
 Only `tab` is exposed in pyproject.toml [project.scripts]; sub-aliases were
-removed (per codex P0-2) — use `tab <subcommand>` everywhere instead.
+removed (per codex P0-2) -- use `tab <subcommand>` everywhere instead.
 """
 from __future__ import annotations
 
@@ -159,13 +159,13 @@ def _cmd_run(args) -> int:
     Path(args.out).write_text(json.dumps(out, indent=2))
     print(
         f"score={result.aggregate_score:.4f}  coverage={result.coverage:.2f}  "
-        f"static_ok={result.static_checks_passed}  → {args.out}"
+        f"static_ok={result.static_checks_passed}  -> {args.out}"
     )
     return 0 if result.static_checks_passed else 1
 
 
 def _cmd_run_suite(args) -> int:
-    """Evaluate many tasks → suite_results.json.
+    """Evaluate many tasks -> suite_results.json.
 
     Minimal v0.1: walks all tasks, looks up `solutions_root/<task_id>/solution.py`
     (or unpacks `submission.tar.gz` to a temp dir first), and calls
@@ -239,7 +239,7 @@ def _cmd_run_suite(args) -> int:
                         for f in r.static_findings
                     ],
                 })
-            except Exception as exc:                           # noqa: BLE001
+            except Exception as exc:
                 per_task.append({
                     "task_id": task.task_id,
                     "error": f"{type(exc).__name__}: {exc}",
@@ -254,7 +254,7 @@ def _cmd_run_suite(args) -> int:
             "results": per_task,
         }
         Path(args.out).write_text(json.dumps(out_doc, indent=2))
-        print(f"run-suite: {len(per_task)} task(s) → {args.out}")
+        print(f"run-suite: {len(per_task)} task(s) -> {args.out}")
         return 0
     finally:
         if tmp_root is not None:
@@ -264,7 +264,7 @@ def _cmd_run_suite(args) -> int:
 def _cmd_package(args) -> int:
     """Tar.gz a solution dir into `out`.
 
-    Warns if the directory has no `manifest.yaml` — the resulting tarball
+    Warns if the directory has no `manifest.yaml` -- the resulting tarball
     will not pass `validate-submission` (codex round-3 R-P0-2 follow-up).
     """
     src = Path(args.solution_dir)
@@ -276,16 +276,16 @@ def _cmd_package(args) -> int:
         tf.add(str(src), arcname=src.name)
     has_manifest = (src / "manifest.yaml").exists()
     has_solution = bool(list(src.rglob("solution.py")))
-    print(f"packaged {src} → {out}")
+    print(f"packaged {src} -> {out}")
     if not has_manifest:
         print(
-            f"  warning: no manifest.yaml in {src} — submission will fail "
+            f"  warning: no manifest.yaml in {src} -- submission will fail "
             "validate-submission. See manifest.SolutionManifest for required fields.",
             file=sys.stderr,
         )
     if not has_solution:
         print(
-            f"  warning: no solution.py in {src} — runner will skip all tasks.",
+            f"  warning: no solution.py in {src} -- runner will skip all tasks.",
             file=sys.stderr,
         )
     return 0
@@ -314,14 +314,14 @@ def _cmd_submit(args) -> int:
     rc = _cmd_validate_submission(_Args())
     if rc != 0:
         print(
-            f"submit: refusing to ship — validate-submission failed (rc={rc}) "
+            f"submit: refusing to ship -- validate-submission failed (rc={rc}) "
             f"on {pkg}",
             file=sys.stderr,
         )
         return 1
 
     print(
-        f"submit: validated {pkg} → endpoint={args.endpoint} "
+        f"submit: validated {pkg} -> endpoint={args.endpoint} "
         "(actual HTTP POST is the leaderboard service's responsibility at v0.1)",
         file=sys.stderr,
     )
@@ -335,6 +335,7 @@ def _cmd_validate_submission(args) -> int:
     and reject malformed/incomplete manifests, not just verify file existence.
     """
     import yaml as _yaml
+
     from .manifest import SolutionManifest
 
     pkg = Path(args.submission)
@@ -553,23 +554,27 @@ def _cmd_static_check(args) -> int:
 
 
 def _cmd_analyze(args) -> int:
-    """Read run-suite output → compute final scores → score_report.json.
+    """Read run-suite output -> compute final scores -> score_report.json.
 
     codex round-3 N-P0-1 hardening:
     - Reads explicit `correctness_status` / `runtime_status` /
       `performance_status` / `fallback_detected` fields from each result.
     - Does NOT infer correctness from `static_checks_passed` (static check
       proves the code is well-formed, not that it produces correct outputs).
-    - The scored catalogue is ALL tasks (this is a GPU-triton →
+    - The scored catalogue is ALL tasks (this is a GPU-triton  ->
       NPU-triton migration benchmark; there is no AscendC-native
       subset). A result whose task_id is not in the catalogue is
-      ignored — it cannot inflate the score (denominator is the
+      ignored -- it cannot inflate the score (denominator is the
       catalogue size). `*_native` metric names are retained for output
       schema stability and now denote the NPU-triton track.
     """
     from .dataset import iter_all_tasks
     from .scoring import (
-        EPSILON, P_CAP, TaskMeasurement, aggregate_perf, native_coverage,
+        EPSILON,
+        P_CAP,
+        TaskMeasurement,
+        aggregate_perf,
+        native_coverage,
     )
 
     verified = json.loads(Path(args.verified_results).read_text())
@@ -587,7 +592,7 @@ def _cmd_analyze(args) -> int:
     if not isinstance(hidden, dict):
         hidden = {"results": []}
 
-    # codex round-10 P1 #3: results may be None / scalar — coerce safely.
+    # codex round-10 P1 #3: results may be None / scalar -- coerce safely.
     raw_results = verified.get("results")
     if not isinstance(raw_results, list):
         verified = {**verified, "results": []}
@@ -600,23 +605,32 @@ def _cmd_analyze(args) -> int:
     # Counting stub/manual tasks as failures would systematically
     # depress valid submissions. The submission JSON cannot influence
     # this set.
+    # Single source of truth: triton_ascend_bench.eligibility (plan U7,
+    # shared with scripts/validate_tasks.py to prevent drift).
+    from .eligibility import compute_score_eligible
+
     all_tasks = iter_all_tasks()
     catalogue_ids = {t.task_id for t in all_tasks}
-    score_eligible_ids: set[str] = set()
-    for t in all_tasks:
-        try:
-            osrc = (t.task_dir / "oracle_pytorch.py").read_text()
-            shp = (t.task_dir / "shapes.yaml").read_text()
-        except OSError:
-            continue
-        if "raise NotImplementedError" in osrc or "PHASE-C-MANUAL" in shp:
-            continue
-        score_eligible_ids.add(t.task_id)
+    score_eligible_ids = compute_score_eligible(all_tasks)
     s_native_size = len(score_eligible_ids)
+
+    # Phase A' S6 release gate (plan U7 / R6): if ANY score-eligible
+    # task has `phase_a_prime.status != PASS`, the benchmark is NOT
+    # releasable. The diagnostic score still computes (C2: coherent
+    # with perf_status=unavailable) -- only the *releasable leaderboard*
+    # is refused.
+    release_blocking: list[str] = []
+    for t in all_tasks:
+        if t.task_id not in score_eligible_ids:
+            continue
+        pap = (t.meta or {}).get("phase_a_prime") or {}
+        if pap.get("status") != "PASS":
+            release_blocking.append(t.task_id)
+    release_blocking.sort()
 
     # Build TaskMeasurement only for results whose task_id is in the
     # catalogue. The submission JSON is input, not authority: a result
-    # for an unknown task_id is ignored (cannot inflate the score —
+    # for an unknown task_id is ignored (cannot inflate the score --
     # denominator is the catalogue size, not the result count).
     task_measurements: list[TaskMeasurement] = []
     seen_ids: set[str] = set()
@@ -683,7 +697,7 @@ def _cmd_analyze(args) -> int:
             flags = list(raw_flags)
         else:
             flags = []
-        # s_t = baseline / measured → set measured=1 so baseline maps to s_t.
+        # s_t = baseline / measured -> set measured=1 so baseline maps to s_t.
         task_measurements.append(TaskMeasurement(
             task_id=tid,
             correctness_status=r.get("correctness_status", "error"),
@@ -722,12 +736,18 @@ def _cmd_analyze(args) -> int:
         "p_cap": P_CAP,
         "epsilon": EPSILON,
         "hidden_results_n": len(hidden.get("results") if isinstance(hidden.get("results"), list) else []),
+        # Phase A' S6 (plan U7 / C2): release_blocked and
+        # perf_status=unavailable coexist coherently -- the diagnostic
+        # score is still emitted; only the releasable leaderboard is
+        # refused while any eligible task is not PASS.
+        "release_blocked": bool(release_blocking),
+        "release_blocked_tasks": release_blocking,
     }
     Path(args.out).write_text(json.dumps(score_doc, indent=2))
     print(
         f"analyze: {len(task_measurements)} measurement(s) of "
         f"{effective_denom} score-eligible; perf_status={perf['perf_status']}"
-        f" → {args.out}"
+        f" -> {args.out}"
     )
     return 0
 
@@ -751,7 +771,7 @@ def _unpack_submission(pkg: Path, dest: Path) -> Path:
             if m.issym() or m.islnk():
                 raise ValueError(
                     f"symlink/hardlink entries not allowed in submission: "
-                    f"{m.name!r} → {m.linkname!r}"
+                    f"{m.name!r} -> {m.linkname!r}"
                 )
             if m.isdev() or m.ischr() or m.isblk() or m.isfifo():
                 raise ValueError(

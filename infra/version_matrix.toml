@@ -22,6 +22,27 @@ docker_image = "nvcr.io/nvidia/pytorch:24.10-py3"
 docker_digest = ""
 
 # ============================================================================
+# Phase A′ S2-gpu-authoritative + B′ ground-truth capture environment
+# (v0.1 — must lock at capture time; Any deviation invalidates baseline)
+# ============================================================================
+# Reuses [gpu]'s cuda/torch/triton/py pins. The device-dependent
+# fields below have NO honest literal value off the capture host
+# (plan U6 SHIP-w/-note: NEVER fabricate). They are the literal
+# string "pending: filled-on-capture-host" until backfilled on the
+# real GPU host. A `pending:` value is allowed by the schema check
+# but a task whose semantics depend on it is NOT release-PASS.
+[gpu_capture]
+cuda = "13.0.0"            # = [gpu].cuda
+torch = "2.5.1"            # = [gpu].torch
+triton = "3.2.0"           # = [gpu].triton
+python = "3.11"            # = [gpu].python
+device_identity = "pending: filled-on-capture-host"
+compute_capability = "pending: filled-on-capture-host"
+fp8_semantics = "pending: filled-on-capture-host"
+# Class-D stable third-party pins (plan: einops only; doubtful ⇒ A).
+extra_pins = ["einops==0.8.0"]
+
+# ============================================================================
 # NPU side (Ascend 910B / Atlas A2)
 # ============================================================================
 [npu]
