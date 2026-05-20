@@ -171,3 +171,61 @@ def shape_ids(shapes_doc: dict[str, Any]) -> tuple[list[str], list[str]]:
     pub = [r["id"] for r in shapes_doc.get("public_shapes", [])]
     hid = [r["id"] for r in shapes_doc.get("hidden_shapes", [])]
     return pub, hid
+
+
+# --- W1.0: inputs materialisation for the process-isolation IPC ----------
+#
+# The runner (trusted parent) materialises a shape's inputs ONCE, then ships
+# them to the candidate child over the narrow safetensors+sidecar channel so
+# the child never gets `repo_root` / `shapes.yaml` / `build_inputs`. A built
+# inputs dict mixes tensors and non-tensor scalars; the IPC splits the two:
+#
+#   * tensor values     -> safetensors payload  (data-only, no pickle)
+#   * non-tensor values -> JSON sidecar manifest (scalar / scalar_knob results)
+#
+# `split_inputs` produces the (tensors, sidecar) pair the runner writes;
+# `merge_inputs` is the inverse the child uses to rebuild the full dict.
+
+# JSON-representable non-tensor scalar types accepted in an inputs dict.
+_JSON_SCALAR_TYPES = (bool, int, float, str, type(None))
+
+
+def split_inputs(
+    built: dict[str, Any],
+) -> tuple[dict[str, torch.Tensor], dict[str, Any]]:
+    """Split a built inputs dict into (tensors, sidecar).
+
+    ``tensors`` holds every ``torch.Tensor`` value (safetensors-serialisable);
+    ``sidecar`` is a JSON-serialisable manifest of the non-tensor values
+    (the ``scalar`` / ``scalar_knob`` results) keyed by input name.
+
+    Raises ``TypeError`` if a non-tensor value is not JSON-representable —
+    the IPC carries no pickle, so unexpected object types must fail loudly.
+    """
+    tensors: dict[str, torch.Tensor] = {}
+    sidecar: dict[str, Any] = {}
+    for name, value in built.items():
+        if torch.is_tensor(value):
+            tensors[name] = value.detach().contiguous().cpu()
+        elif isinstance(value, _JSON_SCALAR_TYPES):
+            sidecar[name] = value
+        else:
+            raise TypeError(
+                f"input {name!r} is {type(value).__name__}; only torch.Tensor "
+                f"or JSON scalars (bool/int/float/str/None) cross the IPC")
+    return tensors, sidecar
+
+
+def merge_inputs(
+    tensors: dict[str, torch.Tensor], sidecar: dict[str, Any],
+) -> dict[str, Any]:
+    """Rebuild a full mixed inputs dict from a safetensors payload + sidecar.
+
+    Inverse of :func:`split_inputs`; used by the candidate child to
+    reconstruct the dict ``build_inputs`` would have returned, without ever
+    touching ``shapes.yaml`` or ``build_inputs`` itself.
+    """
+    merged: dict[str, Any] = dict(tensors)
+    for name, value in sidecar.items():
+        merged[name] = value
+    return merged

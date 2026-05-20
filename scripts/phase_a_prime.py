@@ -2436,7 +2436,13 @@ def _render_status_md(
     ``verify_fn`` is injectable (defaults to the real
     ``s2_verify_task``) so this is unit-testable without fabricating
     outcomes. No status is ``UNRUN``/``PASS`` unless the real verify
-    actually established it; PASS is impossible here (no GPU)."""
+    actually established it; PASS is impossible here (no GPU).
+
+    ``eligible_count`` (W1.5) is the S6 release-gate BLOCKER count --
+    the number of score-eligible tasks whose COMPOSITE
+    ``release_status != PASS`` (see ``_format_status_md`` /
+    ``_release_blocker_count``); it is passed through verbatim to the
+    S6 verdict section."""
     import shutil
     import tempfile
 
@@ -2808,6 +2814,14 @@ def _format_status_md(
     verdicts + tallies (pure string work -- no temp dirs, kept separate
     from the verify loop so its scratch base is cleaned first).
 
+    ``eligible_count`` (W1.5): the S6 release-gate BLOCKER count -- the
+    number of score-eligible tasks whose COMPOSITE ``release_status !=
+    PASS`` (``phase_a_prime.status == PASS AND cost_model.status ==
+    PASS``, DESIGN-V2 §4.4). It is computed by the SAME shared
+    ``eligibility.compute_release_blocking`` that ``validate_tasks.py
+    --release-gate`` uses, so the S6 verdict's blocker count is
+    identical to the gate's by construction.
+
     FIX 1 (codex deep-review [confirmed]): the banner + summary state
     the HONEST dominant truth -- NOT the misleading collapsed
     'no-upstream-entrypoint / no callable exists' bucket. Each of the
@@ -2920,20 +2934,29 @@ def _format_status_md(
     lines.append("## S6 release verdict")
     lines.append("")
     lines.append(
-        f"- score-eligible tasks with `phase_a_prime.status != PASS`: "
+        f"- score-eligible tasks with `release_status != PASS`: "
         f"**{eligible_count}** (matches `validate_tasks.py "
-        f"--release-gate` blocker count -- every `BLOCKED*` and "
-        f"`UNRUN(needs-gpu)` is `!= PASS`)"
+        f"--release-gate` blocker count -- both compute the SAME "
+        f"COMPOSITE predicate via `eligibility.compute_release_blocking`)"
+    )
+    lines.append(
+        f"- **composite release predicate (W1.5 / DESIGN-V2 §4.4)**: "
+        f"`release_status == PASS  <=>  phase_a_prime.status == PASS  "
+        f"AND  cost_model.status == PASS`. A missing `cost_model.status` "
+        f"(most metas pre-W4.2 GPU cross-check) is `!= PASS`, so the "
+        f"gate stays red until Phase 4."
     )
     lines.append(
         f"- **benchmark NOT releasable** (S6 hard gate): {n_pass} "
-        f"score-eligible PASS. Dominant blocker: this dev env lacks "
-        f"optional deps so {n_not_invocable} vendored upstream files "
-        f"cannot be imported here (`upstream-not-invocable-here`) -- an "
-        f"environment limitation, NOT 'no entrypoint exists' "
-        f"({n_no_ep} tasks genuinely lack a callable). Plus "
-        f"{n_shapes_inc} shapes-incomplete + {n_oracle_mismatch} "
-        f"oracle-mismatch; 0 PASS (no GPU)."
+        f"score-eligible `phase_a_prime.status == PASS`. Dominant "
+        f"blocker: this dev env lacks optional deps so "
+        f"{n_not_invocable} vendored upstream files cannot be imported "
+        f"here (`upstream-not-invocable-here`) -- an environment "
+        f"limitation, NOT 'no entrypoint exists' ({n_no_ep} tasks "
+        f"genuinely lack a callable). Plus {n_shapes_inc} "
+        f"shapes-incomplete + {n_oracle_mismatch} oracle-mismatch; 0 "
+        f"PASS (no GPU). The composite gate ALSO requires "
+        f"`cost_model.status == PASS` (W4.2) -- independently red."
     )
     lines.append(f"- tasks classified this run: **{len(results)}**")
     lines.append(f"- **PASS: {n_pass}**")
@@ -2997,16 +3020,32 @@ def _format_status_md(
     return "\n".join(lines) + "\n"
 
 
-def _score_eligible_count() -> int:
-    """Real score-eligible set size from the single source of truth
-    (FIX 3 / U7): MUST match `validate_tasks.py --release-gate`'s
-    blocker count. Uses `triton_ascend_bench.eligibility`."""
+def _release_blocker_count() -> int:
+    """Real S6 release-gate blocker count from the single source of
+    truth (W1.5 / FIX 3 / U7): MUST match `validate_tasks.py
+    --release-gate`'s blocker count.
+
+    A task blocks release iff it is score-eligible AND its COMPOSITE
+    `release_status != PASS`, where (DESIGN-V2 §4.4)::
+
+        release_status == PASS
+            <=> phase_a_prime.status == PASS AND cost_model.status == PASS
+
+    Uses the SAME shared `eligibility.compute_release_blocking` that
+    `validate_tasks.py --release-gate` and `cli.py` analyze use, so the
+    S6 verdict's blocker count is identical to theirs by construction
+    (not merely a numeric coincidence on a 0-PASS dev box)."""
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
     from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import compute_score_eligible
+    from triton_ascend_bench.eligibility import (
+        compute_release_blocking,
+        compute_score_eligible,
+    )
 
-    return len(compute_score_eligible(iter_all_tasks()))
+    tasks = iter_all_tasks()
+    eligible_ids = compute_score_eligible(tasks)
+    return len(compute_release_blocking(tasks, eligible_ids))
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -3023,14 +3062,19 @@ def cmd_run(args: argparse.Namespace) -> int:
         results.append(tc)
         task_dirs_by_id[td.name] = td
     gpu = _cuda_available()
-    eligible_count = _score_eligible_count()
+    # W1.5: the S6 verdict's blocker count is the COMPOSITE release
+    # predicate's blocking-set size -- identical to `validate_tasks.py
+    # --release-gate` (both call `eligibility.compute_release_blocking`).
+    release_blocker_count = _release_blocker_count()
     PLANS_DIR.mkdir(parents=True, exist_ok=True)
     STATUS_MD.write_text(
-        _render_status_md(results, gpu, eligible_count, task_dirs_by_id)
+        _render_status_md(
+            results, gpu, release_blocker_count, task_dirs_by_id
+        )
     )
     print(
         f"run: {len(results)} tasks (tier={args.tier}) "
-        f"score-eligible={eligible_count} -> "
+        f"release-blockers={release_blocker_count} -> "
         f"{STATUS_MD.relative_to(REPO_ROOT)}  "
         f"(GPU={'yes' if gpu else 'no'})"
     )

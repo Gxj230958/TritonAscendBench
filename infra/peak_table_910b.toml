@@ -1,0 +1,80 @@
+# 910B Roofline 峰值表 — per-compute-class π_c / per-resource β_r
+#
+# 用途: scoring 的 Roofline 理论延迟基线
+#   t_ref = max( max_c W_c/π_c , max_r M_r/β_r )   (DESIGN-V2 §5.6 / §9)
+# 其中 W_c = 第 c 计算类 FLOPs, π_c = 910B 该类峰值算力;
+#       M_r = 第 r 资源字节,   β_r = 该资源峰值带宽。
+#
+# 与 infra/version_matrix.toml 同级锁定 (DESIGN-V2 §5.6)。
+# 粒度细化自 version_matrix.toml [hardware.910b] 的粗粒度 peak_* 字段。
+#
+# 数据来源标注约定:
+#   - 每个数值在行内注释给出来源与单位;
+#   - 无法从公开规格确证的数值标 `# [unverified]`,待在 910B 实机核实,
+#     不编造精确数字冒充权威。
+#
+# 设备身份: 华为昇腾 910B / Atlas A2 训练系列。
+# 注: 910B 存在多个 SKU (910B1/B2/B3/B4),峰值随 SKU 与 dtype 略有差异;
+#     下表取常见公开规格档位,具体发布版须以 v0.1 release 在实机锁定为准。
+
+schema_version = "1.0"
+device = "Ascend 910B / Atlas A2"
+# 与 version_matrix.toml [hardware.910b] 的粗粒度字段对应关系:
+#   peak_fp16_tflops=256  -> [compute_class.fp16_cube].peak_tflops
+#   peak_int8_tops=512    -> [compute_class.int8].peak_tops
+#   hbm_bandwidth_gbps=1600 -> [resource.hbm].peak_bandwidth_gbps
+
+# ============================================================================
+# per-compute-class 峰值算力 π_c
+#   单位: peak_tflops (10^12 FLOP/s) — int8 类用 peak_tops (10^12 OP/s)。
+#   loader 统一归一化为 FLOP/s (即 *1e12) 供 t_ref 公式直接使用。
+# ============================================================================
+
+[compute_class.fp16_cube]
+# Cube (matrix) 单元 fp16 累加峰值算力。
+peak_tflops = 256.0   # TFLOP/s; 来源: 华为昇腾 910B 公开规格 (FP16 算力 ~256 TFLOPS),
+                      # 与 version_matrix.toml [hardware.910b].peak_fp16_tflops 一致。
+description = "Cube unit, fp16 matrix multiply-accumulate"
+
+[compute_class.bf16_cube]
+# Cube 单元 bf16 累加峰值算力。910B Cube 对 bf16 与 fp16 走同一矩阵流水,
+# 公开规格未单列 bf16,按与 fp16 同档处理。
+peak_tflops = 256.0   # TFLOP/s; [unverified] — 公开规格未单列 bf16 cube 峰值,
+                      # 此处按 fp16_cube 同档假设,待 910B 实机核实。
+description = "Cube unit, bf16 matrix multiply-accumulate"
+
+[compute_class.int8]
+# Cube 单元 int8 量化峰值算力。
+peak_tops = 512.0     # TOP/s; 来源: 华为昇腾 910B 公开规格 (INT8 算力 ~512 TOPS),
+                      # 与 version_matrix.toml [hardware.910b].peak_int8_tops 一致。
+description = "Cube unit, int8 quantized multiply-accumulate"
+
+[compute_class.vector]
+# Vector (SIMD) 单元逐元素 / 归约峰值算力。910B 公开规格未单列 vector 单元
+# 的 FLOPS 峰值;vector 算力远低于 cube,此值对 vector-bound 算子的 t_ref 计算
+# 必不可少,但暂无公开权威数字。
+peak_tflops = 0.0     # TFLOP/s; [unverified] — 公开规格未给 vector 单元峰值算力,
+                      # 占位 0.0,须在 910B 实机用 microbenchmark 实测后回填。
+                      # loader 会对 π_c<=0 的类拒绝并报错,强制核实后才可用于评分。
+description = "Vector unit, elementwise / reduction FLOPS"
+
+# ============================================================================
+# per-resource 峰值带宽 β_r
+#   单位: peak_bandwidth_gbps (GB/s)。loader 归一化为 byte/s (*1e9)。
+# ============================================================================
+
+[resource.hbm]
+# 片上 HBM (片内显存) 峰值带宽。
+peak_bandwidth_gbps = 1600.0  # GB/s; 来源: 华为昇腾 910B 公开规格
+                              # (HBM 带宽 ~1.6 TB/s),与 version_matrix.toml
+                              # [hardware.910b].hbm_bandwidth_gbps 一致。
+description = "On-package HBM memory bandwidth"
+
+[resource.interconnect]
+# 跨设备互联带宽 (HCCS / 卡间通信),用于多卡算子 (allreduce / all2all 等) 的
+# 通信字节 M_r 归一化。910B Atlas A2 卡间互联 (HCCS) 公开规格因服务器形态
+# (8 卡全互联拓扑等) 而异,无单一权威数字。
+peak_bandwidth_gbps = 0.0     # GB/s; [unverified] — 跨设备互联带宽随 Atlas A2
+                              # 服务器拓扑而变,公开规格无单一权威值,占位 0.0。
+                              # loader 对 β_r<=0 的资源拒绝并报错,强制核实后才可用。
+description = "Cross-device interconnect (HCCS) bandwidth for collective ops"

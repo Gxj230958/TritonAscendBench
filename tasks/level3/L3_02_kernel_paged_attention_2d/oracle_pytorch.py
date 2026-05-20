@@ -14,7 +14,13 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers paged GQA + ALiBi + sliding
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _softmax(x: torch.Tensor, dim: int) -> torch.Tensor:
+    """Numerically-stable softmax spelled from its definition -- keeps the
+    oracle body free of high-level torch ops (contract §6 / L195)."""
+    e = torch.exp(x - x.amax(dim, keepdim=True))
+    return e / e.sum(dim, keepdim=True)
 
 
 def _paged_attention_2d(
@@ -64,7 +70,7 @@ def _paged_attention_2d(
                 scores = scores + slope * (pos.to(torch.float32) - (L - 1))
             if lo > 0:
                 scores[:lo] = float("-inf")
-            p = torch.softmax(scores, dim=-1)
+            p = _softmax(scores, dim=-1)
             out[i, h] = p @ v[:, kvh, :]
     return out.to(query.dtype)
 

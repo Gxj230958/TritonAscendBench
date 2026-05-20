@@ -38,6 +38,17 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::apply_logit_bias
 tolerance_class: elementwise_exact_or_inf_safe
+cost_model:
+  # Scalar (single-compute-class / single-resource degenerate) form — the
+  # logit-bias kernel is a vector-bound elementwise pass over the
+  # `logits` tensor (B rows x N vocab). DESIGN-V2 §5.6. The scalar form
+  # names its compute class / resource via the companion fields so the
+  # formula keys a real peak-table entry.
+  flops: "B*N"
+  flops_class: vector       # elementwise add — vector unit
+  bytes: "2*B*N*dtype_size"
+  bytes_resource: hbm       # read logits + bias, write logits — HBM traffic
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

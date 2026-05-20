@@ -1,6 +1,8 @@
 """NPU backend — Atlas 910B via torch_npu + triton-ascend."""
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import torch
 
 try:
@@ -8,6 +10,63 @@ try:
     _NPU_AVAILABLE = True
 except ImportError:
     _NPU_AVAILABLE = False
+
+
+class EventTimer:
+    """R6-1: an NPU event timer that BRACKETS one externally-made call.
+
+    `specs/timing_arbitration.md` records the NPU `Event` start/end around
+    the *same* measured invocation that host time and the profiler see —
+    it never re-runs the candidate to take a separate event sample. This
+    context manager makes that contract explicit:
+
+        timer = backend.event_timer()          # None on the dev machine
+        with timer:                            # records the start event
+            out = fn(inp)                      # the ONE measured call
+        event_ns = timer.elapsed_ns()          # reads start.elapsed_time(end)
+
+    `__enter__` records the start event on the current stream; `__exit__`
+    records the end event and syncs so `elapsed_time` is readable. The
+    candidate `fn` is invoked exactly once — by the caller, inside the
+    `with` block — so a stateful candidate cannot be handed a second,
+    untimed call (R6-1 / re-closes the R5-2 stateful-candidate hole).
+
+    On the dev machine there is no NPU; `NpuBackend.event_timer()` returns
+    `None` and the caller degrades to host-only timing.
+    """
+
+    def __init__(self, sync: Callable | None = None) -> None:
+        self._sync = sync
+        self._ev_start = torch.npu.Event(enable_timing=True)
+        self._ev_end = torch.npu.Event(enable_timing=True)
+        self._elapsed_ns: int | None = None
+
+    def __enter__(self) -> "EventTimer":
+        if self._sync:
+            self._sync()
+        self._ev_start.record()  # current stream
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        self._ev_end.record()
+        if self._sync:
+            self._sync()
+        # PyTorch / torch_npu API: `start.elapsed_time(end)` returns the
+        # elapsed time FROM the start event TO the end event. The receiver
+        # must be the earlier (start) event and the argument the later
+        # (end) event — the reversed form yields a wrong / negative
+        # duration on a real 910B. Result is milliseconds; convert to ns.
+        # Only read a clean exit — on an exception the bracket is
+        # incomplete and `event_ns` stays None.
+        if exc_type is None:
+            self._elapsed_ns = int(
+                self._ev_start.elapsed_time(self._ev_end) * 1e6)
+        return False  # never suppress an exception from the measured call
+
+    def elapsed_ns(self) -> int | None:
+        """Event-measured nanoseconds for the bracketed call, or ``None``
+        when the bracket did not complete cleanly."""
+        return self._elapsed_ns
 
 
 class NpuBackend:
@@ -33,3 +92,133 @@ class NpuBackend:
         if not _NPU_AVAILABLE:
             return "<no torch_npu>"
         return torch.npu.get_device_name(0)
+
+    def event_timer(self, sync: Callable | None = None) -> EventTimer | None:
+        """W1.3 / R1-3 / R6-1 timing cross-check seam
+        (specs/timing_arbitration.md).
+
+        The host `CLOCK_MONOTONIC_RAW` timer is authoritative; the NPU
+        event timer is a secondary signal used only to detect work hidden
+        on a non-default stream.
+
+        R6-1: this returns an :class:`EventTimer` *context manager*, not a
+        callable that runs `fn` itself. The event `record()` calls bracket
+        the SAME single measured `fn(inp)` invocation that host time and
+        the profiler observe — the timing-pass child does::
+
+            timer = backend.event_timer(sync)
+            with (timer or contextlib.nullcontext()):
+                out = fn(inp)            # the one measured call
+            event_ns = timer.elapsed_ns() if timer else None
+
+        The candidate is never invoked a second time merely to take an
+        event sample (that re-opened the R5-2 stateful-candidate hole —
+        each measured input was executed twice). One measured trial is now
+        exactly one candidate call, host-timed AND event-bracketed.
+
+        R1-3: the resulting `event_ns` series travels up the status.json
+        and the trusted parent feeds it to
+        `timing.arbitrate_timing(event_ns=...)`, so the "host/event drift
+        > 10% + non-default stream ⇒ invalid_timing" rule is reachable on
+        the 910B.
+
+        On the dev machine there is no NPU, so this returns `None`; the
+        child's `event_ns` series stays all-`None` and timing degrades to
+        host-only (`drift_status="single_source"`). The real
+        `torch.npu.Event` implementation lands on the 910B machine — the
+        dev machine simply never constructs an :class:`EventTimer`.
+        """
+        if not _NPU_AVAILABLE:
+            return None
+        return EventTimer(sync=sync)
+
+    def profile_call(self, fn: Callable, inputs: object) -> dict:
+        """W2.4 runtime-defense profiler seam.
+
+        Runs ``fn(inputs)`` **exactly once** under an NPU profiler and
+        reports — alongside that single call's return value — three
+        signals the runner uses to detect reward hacking (DESIGN §8):
+
+        * ``output`` — the value ``fn(inputs)`` returned on the profiled
+          call. The caller MUST consume this rather than re-invoking
+          ``fn``: a re-invocation would let a stateful candidate behave
+          honestly on the profiled call and cheat on the call that is
+          actually graded/timed (R5-1 / R5-2).
+        * ``kernel_event_present`` — did the call dispatch at least one
+          real NPU/triton kernel? An empty-kernel cheat (B5) lands here.
+        * ``stream_nondefault`` — did any work run on a non-default
+          stream? Work hidden off the default stream (B2) escapes host
+          timing and is flagged.
+        * ``fallback_signal`` — derived: a candidate that produced **no**
+          NPU/triton kernel event has silently fallen back to the generic
+          torch (CPU/eager) path (C7) rather than running a real Ascend
+          kernel; ``fallback_signal = not kernel_event_present``.
+
+        On the dev machine there is no NPU and no profiler. The hook
+        returns a documented stub: it still *runs* ``fn`` once (and
+        returns that call's output) so the child's plumbing is exercised,
+        but reports ``kernel_event_present=None`` /
+        ``stream_nondefault=None`` and — because absence of a kernel event
+        cannot be confirmed without a profiler — ``fallback_signal=None``.
+        ``None`` means "not measured on this host"; the real ``torch_npu``
+        profiler implementation lands on the 910B machine. The
+        fallback-from-kernel-event derivation below is host-independent
+        and is the production code path; only the kernel-event *source*
+        is stubbed here.
+
+        Any exception from ``fn`` propagates — the caller records the run
+        error; profiling never swallows it.
+        """
+        if not _NPU_AVAILABLE:
+            # dev-machine stub: run fn once for plumbing; signals are
+            # unknowable without a profiler. The single call's output is
+            # returned so the caller never has to re-invoke `fn`.
+            output = fn(inputs)
+            return {
+                "output": output,
+                "kernel_event_present": None,
+                "stream_nondefault": None,
+                "fallback_signal": None,
+            }
+        # NPU machine: torch_npu profiler trace inspection lands here.
+        # `_profile_npu` runs `fn` under the profiler (one call total) and
+        # returns that call's output alongside the kernel-event / stream
+        # signals. The fallback derivation is host-independent (see
+        # _derive_fallback).
+        output, kernel_event_present, stream_nondefault = self._profile_npu(
+            fn, inputs)
+        return {
+            "output": output,
+            "kernel_event_present": kernel_event_present,
+            "stream_nondefault": stream_nondefault,
+            "fallback_signal": _derive_fallback(kernel_event_present),
+        }
+
+    def _profile_npu(self, fn: Callable, inputs: object) -> tuple:
+        """Real NPU profiler trace inspection (910B machine only).
+
+        Stubbed on the dev machine — `profile_call` never reaches here
+        without `_NPU_AVAILABLE`. The 910B implementation runs `fn` under
+        `torch_npu.profiler` exactly once and inspects the trace for
+        NPU/triton kernel events and non-default-stream activity. It
+        returns ``(output, kernel_event_present, stream_nondefault)`` —
+        ``output`` is that single call's return value so the caller never
+        re-invokes `fn` (R5-1 / R5-2).
+        """
+        raise RuntimeError("NPU profiler only available on the 910B machine")
+
+
+def _derive_fallback(kernel_event_present: bool | None) -> bool | None:
+    """Derive the fallback signal from kernel-event presence (C7).
+
+    A candidate that emitted no NPU/triton kernel event has silently
+    fallen back to the generic torch path instead of running a real
+    Ascend kernel — ``fallback_signal = not kernel_event_present``. When
+    the kernel-event source is unknown (``None``, dev-machine stub) the
+    fallback signal is likewise unknown. This derivation is
+    host-independent: it is the production code path even though the
+    dev-machine stub feeds it ``None``.
+    """
+    if kernel_event_present is None:
+        return None
+    return not kernel_event_present

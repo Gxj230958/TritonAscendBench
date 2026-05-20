@@ -14,7 +14,23 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers causal + GQA + ALiBi + soft
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _softmax(x: torch.Tensor, dim: int) -> torch.Tensor:
+    """Numerically-stable softmax spelled from its definition -- keeps the
+    oracle body free of high-level torch ops (contract §6 / L195). Rows that
+    are fully -inf (e.g. an over-masked causal row) propagate NaN exactly as
+    torch.softmax would."""
+    e = torch.exp(x - x.amax(dim, keepdim=True))
+    return e / e.sum(dim, keepdim=True)
+
+
+def _tanh(u: torch.Tensor) -> torch.Tensor:
+    """Overflow-safe tanh spelled from its definition -- keeps the oracle body
+    free of high-level torch ops (contract §6 / L195). exp acts on -2*|u| so
+    large |u| never overflows: tanh(u) = sign(u)*(1-e)/(1+e), e = exp(-2*|u|)."""
+    e = torch.exp(-2.0 * torch.abs(u))
+    return torch.sign(u) * (1.0 - e) / (1.0 + e)
 
 
 def _unified_attention(
@@ -49,7 +65,7 @@ def _unified_attention(
             sc = (qf[s:e, h] @ kf[s:s + Lk, hk].T) * scale     # [Lq,Lk]
             if softcap and softcap > 0:
                 c = float(softcap)
-                sc = c * torch.tanh(sc / c)
+                sc = c * _tanh(sc / c)
             if alibi_slopes is not None:
                 qi = torch.arange(Lq, device=q.device)[:, None] + (Lk - Lq)
                 ki = torch.arange(Lk, device=q.device)[None, :]
@@ -58,7 +74,7 @@ def _unified_attention(
                 qi = torch.arange(Lq, device=q.device)[:, None] + (Lk - Lq)
                 ki = torch.arange(Lk, device=q.device)[None, :]
                 sc = sc.masked_fill(ki > qi, float("-inf"))
-            p = torch.softmax(sc, dim=-1)
+            p = _softmax(sc, dim=-1)
             out[s:e, h] = p @ vf[s:s + Lk, hk]
     return out.to(q.dtype)
 

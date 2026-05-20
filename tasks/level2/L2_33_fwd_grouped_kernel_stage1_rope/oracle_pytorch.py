@@ -14,7 +14,13 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers MLA stage1 + q-side RoPE; k
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _softmax(x: torch.Tensor, dim: int) -> torch.Tensor:
+    """Numerically-stable softmax spelled from its definition -- keeps the
+    oracle body free of high-level torch ops (contract §6 / L195)."""
+    e = torch.exp(x - x.amax(dim, keepdim=True))
+    return e / e.sum(dim, keepdim=True)
 
 
 def _rope_half(x: torch.Tensor) -> torch.Tensor:
@@ -58,7 +64,7 @@ def _grouped_mla_stage1(
             kf = torch.cat(
                 [kr * cf2 + _rope_half(kr) * sf2, kf[..., rope_dim:]], dim=-1)
     sc = torch.einsum("nhd,cd->nhc", qf, kf) * scale
-    p = torch.softmax(sc, dim=-1)
+    p = _softmax(sc, dim=-1)
     return torch.einsum("nhc,cd->nhd", p, vf).to(q.dtype)
 
 

@@ -1,10 +1,16 @@
-"""U7: validate_tasks.py --release-gate + phase-aware hash tests.
+"""U7 + W1.5: validate_tasks.py --release-gate + phase-aware hash tests.
 
 Covers: all-PASS ⇒ exit 0; one eligible BLOCKED ⇒ nonzero + named;
 non-eligible BLOCKED ⇒ not blocking; missing status (UNRUN) ⇒ blocks;
 non-vacuity guard (empty / mismatched count ⇒ HARD FAIL, never
 vacuous-pass); mixed rollout passes normal schema/hash mode while
 release-gate independently blocks.
+
+W1.5: the release predicate is now COMPOSITE -- a task is releasable
+iff `phase_a_prime.status == PASS AND cost_model.status == PASS`
+(DESIGN-V2 §4.4). The `_pass()` helper therefore sets BOTH statuses;
+dedicated composite-predicate coverage lives in
+`test_validate_w1_5_release_gate.py`.
 """
 from __future__ import annotations
 
@@ -32,7 +38,15 @@ class _T:
 
 
 def _pass(tid):
-    return _T(tid, {"phase_a_prime": {"status": "PASS"}})
+    """A task that is releasable under the W1.5 COMPOSITE predicate:
+    BOTH `phase_a_prime.status` and `cost_model.status` are PASS."""
+    return _T(
+        tid,
+        {
+            "phase_a_prime": {"status": "PASS"},
+            "cost_model": {"status": "PASS"},
+        },
+    )
 
 
 def test_all_eligible_pass_exit_zero():

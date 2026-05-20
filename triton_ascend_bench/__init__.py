@@ -20,4 +20,5 @@ __all__ = [
     "adversarial",
     "timing",
     "backends",
+    "peak_table",
 ]

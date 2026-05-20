@@ -5,7 +5,6 @@ import pytest
 
 from triton_ascend_bench.dataset import iter_all_tasks, load_task
 
-
 POC_TASK_IDS = [
     "L1_01_bias_kernel",
     "L1_12_rms_norm_kernel",
@@ -52,3 +51,48 @@ def test_tolerance_class_exists_in_policy(task_id):
         f"{task_id} tolerance class {task.tolerance_class!r} "
         f"not in policy: {sorted(pol.keys())}"
     )
+
+
+# --- W1.2: cost_model parsing on TaskDef -----------------------------------
+
+def test_cost_model_missing_is_none():
+    # Backward compat: a task whose meta.yaml has no `cost_model` block
+    # loads fine with `TaskDef.cost_model = None` — pre-W3.1 most of the
+    # 100 tasks have no cost_model and shared loader paths must not break.
+    task = load_task("L1_16_silu_and_mul")
+    assert task.cost_model is None
+
+
+def test_cost_model_scalar_form_parsed():
+    # L1_01 carries a hand-authored scalar-form cost_model (W1.2 sample).
+    task = load_task("L1_01_bias_kernel")
+    assert task.cost_model is not None
+    assert task.cost_model.flops_scalar is True
+    assert task.cost_model.bytes_scalar is True
+    # scalar form is normalised to a one-entry map keyed by the companion
+    # class / resource — a real peak-table key (bias is a vector-unit
+    # elementwise op over HBM-resident tensors).
+    assert set(task.cost_model.flops) == {"vector"}
+    assert set(task.cost_model.bytes) == {"hbm"}
+
+
+def test_cost_model_map_form_parsed():
+    # L1_12 carries a hand-authored map-form cost_model (W1.2 sample).
+    task = load_task("L1_12_rms_norm_kernel")
+    assert task.cost_model is not None
+    assert task.cost_model.flops_scalar is False
+    assert task.cost_model.bytes_scalar is False
+    assert "vector" in task.cost_model.flops
+    assert "hbm" in task.cost_model.bytes
+
+
+def test_iter_all_tasks_tolerates_missing_cost_model():
+    # The shared `iter_all_tasks` path must not crash on the (majority)
+    # pre-W3.1 tasks that have no cost_model block.
+    tasks = iter_all_tasks()
+    assert len(tasks) > 0
+    with_cm = [t for t in tasks if t.cost_model is not None]
+    # at least the two W1.2 sample tasks carry one
+    assert {"L1_01_bias_kernel", "L1_12_rms_norm_kernel"} <= {
+        t.task_id for t in with_cm
+    }

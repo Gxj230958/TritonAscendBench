@@ -14,7 +14,12 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers weighted+gated path; NOT co
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _silu(t: torch.Tensor) -> torch.Tensor:
+    """SiLU spelled from its definition x * sigmoid(x) = x / (1 + exp(-x)) --
+    keeps the oracle body free of high-level torch ops (contract §6 / L195)."""
+    return t / (1.0 + torch.exp(-t))
 
 
 def _layer_norm_gated(
@@ -30,7 +35,7 @@ def _layer_norm_gated(
     y = (xf - mean) * torch.rsqrt(var + float(eps)) * w.to(torch.float32)
     if b is not None:
         y = y + b.to(torch.float32)
-    y = y * F.silu(g.to(torch.float32))
+    y = y * _silu(g.to(torch.float32))
     return y.to(x.dtype)
 
 

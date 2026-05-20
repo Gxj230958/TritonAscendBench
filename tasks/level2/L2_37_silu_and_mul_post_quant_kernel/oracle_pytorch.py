@@ -14,7 +14,12 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers E4M3 group quant; NOT cover
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _silu(t: torch.Tensor) -> torch.Tensor:
+    """SiLU spelled from its definition x * sigmoid(x) = x / (1 + exp(-x)) --
+    keeps the oracle body free of high-level torch ops (contract §6 / L195)."""
+    return t / (1.0 + torch.exp(-t))
 
 
 def _silu_and_mul_post_quant(
@@ -31,7 +36,7 @@ def _silu_and_mul_post_quant(
     E, T, two_d = x.shape
     d = two_d // 2
     gate, up = x[..., :d], x[..., d:]
-    y = (F.silu(gate.to(torch.float32)) * up.to(torch.float32))     # [E,T,D]
+    y = (_silu(gate.to(torch.float32)) * up.to(torch.float32))     # [E,T,D]
     tok = torch.arange(T, device=x.device).view(1, T)
     valid = tok < masked_m.to(torch.long).view(E, 1)
     y = y * valid.unsqueeze(-1)

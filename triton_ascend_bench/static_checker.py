@@ -6,7 +6,8 @@ Per `specs/ast_denylist.md` v0 (R11-P1-8 / R12-P1-6 / R14-P1-5):
     Layer B — AST node-type allowlist (positive)
     Layer C — Call dotted-name allowlist
     Layer D — Attribute dotted-name denylist
-    Layer E — Runtime audit hook (installed at runner time, not here)
+    Layer E — Runtime audit hook (`install_runtime_audit_hook`; the
+              runner installs it inside the isolated candidate child)
     Layer F — Source string denylist (case-insensitive)
 
 Returns a CheckReport with `(layer, severity, message, line)` findings.
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import ast
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -4163,3 +4165,94 @@ def _check_call_allow_either(
         f"call not in Layer C allowlist: canonical={canonical!r} raw={raw!r}",
         line,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Layer E — Runtime audit hook (specs/ast_denylist.md §Layer E, DESIGN §6.4)
+# ─────────────────────────────────────────────────────────────────────────────
+# The static layers (A–D/F) scan the candidate source AST. Layer E is the
+# *runtime fallback* line: a `sys.addaudithook` callback that traps
+# dynamically-constructed dangerous operations the static pass cannot see
+# (e.g. an `exec` reached via an alias, a `subprocess` spawned through a
+# data-dependent path). The verified runner installs it inside the
+# isolated candidate child *before* candidate code runs.
+
+# Audit events that abort the candidate process when raised. CPython emits
+# these for the corresponding dangerous operations regardless of how the
+# call was syntactically spelled (alias, getattr, exec'd string …), so the
+# hook catches what the static AST scan misses.
+_AUDIT_BLOCKED_EVENTS = frozenset({
+    "exec",                 # exec()/eval() of a code object
+    "compile",              # compile() of a source string
+    "subprocess.Popen",     # any subprocess spawn
+    "os.system",            # shell-out
+    "os.exec",              # exec-family
+    "os.spawn",             # spawn-family
+    "os.fork",              # fork
+    "ctypes.dlopen",        # native library load
+    "ctypes.dlsym",         # native symbol resolution
+    "ctypes.call_function", # raw native call
+    "import",               # __import__ — see _AUDIT_IMPORT_DENY below
+})
+
+# Modules a runtime `import` audit event must refuse. The Layer A static
+# import denylist already rejects these in source; this is the runtime
+# net for an import reached dynamically (importlib through an alias, an
+# `__import__` built from a data-dependent name).
+_AUDIT_IMPORT_DENY = frozenset({
+    "ctypes", "cffi", "subprocess", "importlib",
+    "oracle_pytorch", "tasks",
+})
+
+
+class RuntimeAuditViolation(RuntimeError):
+    """Raised by the Layer E audit hook when a candidate trips a blocked
+    runtime operation. Uncaught, it aborts the isolated candidate process;
+    the runner records the candidate as failed."""
+
+
+def _runtime_audit_hook(event: str, audit_args: tuple) -> None:
+    """`sys.addaudithook` callback — the Layer E runtime fallback.
+
+    Raises :class:`RuntimeAuditViolation` for a blocked audit event. A
+    raising audit hook aborts the offending operation (and, uncaught, the
+    process) — this is the intended fail-closed behaviour inside the
+    isolated candidate child. Never installed in the trusted parent.
+    """
+    if event in _AUDIT_BLOCKED_EVENTS and event != "import":
+        raise RuntimeAuditViolation(
+            f"Layer E: blocked runtime operation {event!r}"
+        )
+    if event == "import":
+        # audit_args for "import" is
+        # (module, filename, sys.path, sys.meta_path, sys.path_hooks).
+        module = audit_args[0] if audit_args else ""
+        root = str(module).split(".", 1)[0]
+        if root in _AUDIT_IMPORT_DENY:
+            raise RuntimeAuditViolation(
+                f"Layer E: blocked runtime import {module!r}"
+            )
+
+
+# Module-level guard so a process installs the hook at most once.
+_AUDIT_HOOK_INSTALLED = False
+
+
+def install_runtime_audit_hook() -> bool:
+    """Install the Layer E `sys.addaudithook` runtime-defense hook.
+
+    Called by `process_isolation`'s candidate child at start-up, *before*
+    any candidate code loads. Idempotent: a second call is a no-op and
+    returns ``False``; the first install returns ``True``. Audit hooks
+    cannot be removed once installed (CPython has no `removeaudithook`),
+    so the idempotency guard avoids stacking duplicates across re-entry.
+
+    Returns ``True`` if this call installed the hook, ``False`` if it was
+    already installed.
+    """
+    global _AUDIT_HOOK_INSTALLED
+    if _AUDIT_HOOK_INSTALLED:
+        return False
+    sys.addaudithook(_runtime_audit_hook)
+    _AUDIT_HOOK_INSTALLED = True
+    return True

@@ -14,7 +14,21 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers core gated-delta update; NO
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _softplus(x: torch.Tensor, beta: float, threshold: float) -> torch.Tensor:
+    """softplus(x; beta, threshold) spelled from its definition -- keeps the
+    oracle body free of high-level torch ops (contract §6 / L195).
+
+    softplus(x) = (1/beta) * log(1 + exp(beta*x)); to avoid exp overflow it is
+    evaluated as relu(z) + log1p(exp(-|z|)) with z = beta*x, then divided by
+    beta. Matching F.softplus, inputs with beta*x > threshold fall back to the
+    linear branch (returns x) so large activations stay numerically stable.
+    """
+    z = beta * x
+    relu_z = torch.clamp_min(z, 0.0)
+    stable = (relu_z + torch.log1p(torch.exp(-torch.abs(z)))) / beta
+    return torch.where(z > threshold, x, stable)
 
 
 def _fused_sigmoid_gating_delta_update(
@@ -28,9 +42,8 @@ def _fused_sigmoid_gating_delta_update(
     g = exp(-exp(A_log)·softplus(a+dt_bias)); state' = g·state + β·k^T(v − k·state);
     out = q·state'. q,k,v: [B,H,D]; state: [B,H,D,D].
     """
-    sp = F.softplus(softplus_beta * (a.to(torch.float32)
-                    + dt_bias.to(torch.float32)),
-                    threshold=softplus_threshold) / softplus_beta
+    sp = _softplus(a.to(torch.float32) + dt_bias.to(torch.float32),
+                   softplus_beta, softplus_threshold)
     g = torch.exp(-torch.exp(A_log.to(torch.float32)) * sp)   # [B,H]
     g = g.reshape(*g.shape, 1, 1)
     qf, kf, vf = (t.to(torch.float32) for t in (q, k, v))

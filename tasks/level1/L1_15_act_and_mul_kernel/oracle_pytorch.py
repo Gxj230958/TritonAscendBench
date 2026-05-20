@@ -13,17 +13,46 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers silu/gelu/relu act·mul; NO
 """
 from __future__ import annotations
 
+import math
+
 import torch
-import torch.nn.functional as F
 
 
 # Reference for the generic act*mul fused op. The exact activation is
 # tied to the kernel's autotune/template choice; default to SiLU which
 # is the most common production path. Override via inputs["act"].
+#
+# Activations are spelled out from their mathematical definitions (no
+# high-level torch ops) so this oracle body stays a primitive expansion
+# per task_api_contract.md §6 / L195. Composite activations decompose to
+# basic-math primitives (exp/abs); tanh itself is a high-level op:
+#   silu(x) = x * sigmoid(x) = x / (1 + exp(-x))
+#   gelu_tanh(x) = 0.5*x*(1 + tanh(sqrt(2/pi)*(x + 0.044715*x^3)))
+#   tanh(u)  = sign(u) * (1 - e) / (1 + e),  e = exp(-2*|u|)  [overflow-safe]
+#   relu(x) = max(x, 0)
+def _tanh(u: torch.Tensor) -> torch.Tensor:
+    # Overflow-safe tanh via exp on -2*|u| so large |u| never overflows.
+    e = torch.exp(-2.0 * torch.abs(u))
+    return torch.sign(u) * (1.0 - e) / (1.0 + e)
+
+
+def _silu(t: torch.Tensor) -> torch.Tensor:
+    return t / (1.0 + torch.exp(-t))
+
+
+def _gelu_tanh(t: torch.Tensor) -> torch.Tensor:
+    c = math.sqrt(2.0 / math.pi)
+    return 0.5 * t * (1.0 + _tanh(c * (t + 0.044715 * t * t * t)))
+
+
+def _relu(t: torch.Tensor) -> torch.Tensor:
+    return torch.clamp_min(t, 0.0)
+
+
 _ACT_FNS = {
-    "silu": F.silu,
-    "gelu": lambda t: F.gelu(t, approximate="tanh"),
-    "relu": F.relu,
+    "silu": _silu,
+    "gelu": _gelu_tanh,
+    "relu": _relu,
 }
 
 

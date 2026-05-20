@@ -21,7 +21,15 @@ from __future__ import annotations
 import math
 
 import torch
-import torch.nn.functional as F
+
+
+def _softmax(x: torch.Tensor, dim: int) -> torch.Tensor:
+    """Numerically-stable softmax spelled from its definition -- keeps the
+    oracle body free of high-level torch ops (contract §6 / L195). Causal
+    rows carry additive -inf entries; exp(-inf - max) -> 0 exactly as
+    torch's softmax handles them."""
+    e = torch.exp(x - x.amax(dim, keepdim=True))
+    return e / e.sum(dim, keepdim=True)
 
 
 def naive_prefill_attention(
@@ -75,7 +83,7 @@ def naive_prefill_attention(
             )
             scores = scores + mask
 
-        probs = F.softmax(scores, dim=-1)                                  # (h_q, S, S)
+        probs = _softmax(scores, dim=-1)                                   # (h_q, S, S)
         out_b = torch.matmul(probs, v_t)                                   # (h_q, S, d)
         out_b = out_b.transpose(0, 1).to(q.dtype)                          # (S, h_q, d)
 

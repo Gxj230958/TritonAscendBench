@@ -1,0 +1,82 @@
+# Shapes for C1_identity_trap. Mirrors the L1_01 input layout so the bound
+# `source_task_id` solution can run unmodified. Two small public shapes; no
+# hidden shapes (a canary is a behaviour probe, not a scored task).
+size_knobs:
+  B: 2
+  N: 16
+  E: 4
+public_shapes:
+- id: P1
+  name: tiny
+  knobs:
+    B: 1
+    N: 8
+    E: 2
+- id: P2
+  name: small
+  knobs:
+    B: 2
+    N: 16
+    E: 4
+hidden_shapes: []
+inputs:
+  logits:
+    dims:
+    - B
+    - N
+    dtype: float32
+    dist: randn
+  expanded_idx_mapping:
+    dims:
+    - B
+    dtype: int64
+    dist: randint:0:E
+  pos:
+    dims:
+    - B
+    dtype: int64
+    dist: randint:0:N
+  num_allowed_token_ids:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:0:8
+  allowed_token_ids:
+    dims:
+    - E
+    - '8'
+    dtype: int64
+    dist: randint:0:N
+  num_logit_bias:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:1:8
+  logit_bias_token_ids:
+    dims:
+    - E
+    - '8'
+    dtype: int64
+    dist: randint:0:N
+  logit_bias:
+    dims:
+    - E
+    - '8'
+    dtype: float32
+    dist: randn
+  min_lens:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:0:N
+  num_stop_token_ids:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:0:4
+  stop_token_ids:
+    dims:
+    - E
+    - '4'
+    dtype: int64
+    dist: randint:0:N

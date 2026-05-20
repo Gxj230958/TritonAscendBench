@@ -10,14 +10,23 @@ Reads `tasks/level{1,2,3}/<task_id>/` per `specs/task_api_contract.md`:
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from triton_ascend_bench.cost_model import CostModel, CostModelError, parse_cost_model
+
+logger = logging.getLogger(__name__)
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
+# Canary trap tasks live here (W2.5 / DESIGN-V2 §6.8). `iter_all_tasks()`
+# deliberately skips every `_`-prefixed directory, so canaries are NEVER
+# score-eligible. They are discovered ONLY through `iter_canary_tasks()`.
+CANARY_ROOT = TASKS_ROOT / "_canary"
 
 
 @dataclass
@@ -38,6 +47,12 @@ class TaskDef:
     kernel_py: str
     kernel_py_sha256: str
     oracle_module_name: str = "oracle_pytorch"
+    # Normalised performance cost model (DESIGN-V2 §5.6). ``None`` when the
+    # task's meta.yaml omits `cost_model` — the loader stays backward
+    # compatible so pre-W3.1 tasks (most of the first 100, no cost_model yet)
+    # still load; the red→green transition is carried by `validate_tasks`,
+    # never by the loader.
+    cost_model: CostModel | None = None
 
     @property
     def tolerance_class(self) -> str:
@@ -93,6 +108,17 @@ def load_task(task_id: str) -> TaskDef:
     else:
         level_int = int(raw_level)
 
+    # `cost_model` is optional at the loader level (backward compatible):
+    # a missing block yields `TaskDef.cost_model=None`; a malformed block
+    # raises CostModelError so a typo never silently produces a bad baseline.
+    cost_model: CostModel | None = None
+    raw_cost_model = meta.get("cost_model")
+    if raw_cost_model is not None:
+        try:
+            cost_model = parse_cost_model(raw_cost_model)
+        except CostModelError as e:
+            raise CostModelError(f"{task_id}: {e}") from e
+
     return TaskDef(
         task_id=task_id,
         level=level_int,
@@ -102,6 +128,7 @@ def load_task(task_id: str) -> TaskDef:
         contract_md=contract_md,
         kernel_py=kernel_py,
         kernel_py_sha256=_sha256_text(kernel_py),
+        cost_model=cost_model,
     )
 
 
@@ -114,4 +141,130 @@ def iter_all_tasks() -> list[TaskDef]:
         for d in sorted(level_dir.iterdir()):
             if d.is_dir() and not d.name.startswith("_"):
                 out.append(load_task(d.name))
+    return out
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Canary discovery (W2.5 — DESIGN-V2 §6.8 / §8)
+# ─────────────────────────────────────────────────────────────────────────────
+# Canary trap tasks live under `tasks/_canary/`. Because `iter_all_tasks()`
+# skips `_`-prefixed directories by design, a canary can never leak into the
+# score-eligible denominator. They are loaded ONLY by the dedicated enumerator
+# below and fed to `adversarial.check_canaries` through an independent path.
+
+
+@dataclass
+class CanaryTaskDef:
+    """A loaded canary trap task (`tasks/_canary/<canary_id>/`).
+
+    A canary mirrors a real task's interface but carries an intentionally wrong
+    (trap) oracle. It is NOT score-eligible. Distinct from :class:`TaskDef`:
+
+    * ``source_task_id`` binds the canary to a real level1/2/3 task — the
+      runner reuses the submission's ``solution.py`` for THAT task to run the
+      canary (the submitter writes no canary-specific solution).
+    * ``canary_trap_type`` is the trap class (1 of 10; DESIGN-V2 §8).
+    * ``expected_honest_pass`` is whether an honest submission should PASS the
+      canary; ``check_canaries`` flags any ``got != expected_honest_pass``.
+
+    A canary carries no ``kernel.py`` (it has no own solution), so unlike
+    :class:`TaskDef` there is no ``kernel_py`` field.
+    """
+
+    canary_id: str
+    task_dir: Path
+    meta: dict[str, Any]
+    public_shapes: list[ShapeSpec]
+    contract_md: str
+    source_task_id: str
+    canary_trap_type: str
+    expected_honest_pass: bool
+    oracle_module_name: str = "oracle_pytorch"
+
+    def as_task_def(self) -> TaskDef:
+        """Adapt this canary into a :class:`TaskDef` for the grading machinery.
+
+        `eval.evaluate(task_def=...)` grades a task purely from its `task_dir`
+        / `meta` / `tolerance_class` / `cost_model`; it never reads
+        `kernel_py`. A canary has no `kernel.py`, so the adapter sets an empty
+        `kernel_py` (and its sha) — every field the runner actually touches is
+        the canary's own. `level=0` because a canary is not a level1/2/3 task.
+        """
+        return TaskDef(
+            task_id=self.canary_id,
+            level=0,
+            task_dir=self.task_dir,
+            meta=self.meta,
+            public_shapes=list(self.public_shapes),
+            contract_md=self.contract_md,
+            kernel_py="",
+            kernel_py_sha256=_sha256_text(""),
+            cost_model=None,
+        )
+
+
+# Files a canary task directory must contain. A canary has NO `kernel.py` and
+# NO submitter solution — `source_task_id` binds it to a real task instead.
+CANARY_REQUIRED_FILES = frozenset(
+    {"meta.yaml", "shapes.yaml", "contract.md", "oracle_pytorch.py"}
+)
+
+
+def load_canary_task(canary_id: str) -> CanaryTaskDef:
+    """Load a single canary task from `tasks/_canary/<canary_id>/`.
+
+    Raises ``FileNotFoundError`` if the directory is absent and ``KeyError`` if
+    a required canary-schema field is missing. Static schema enforcement (incl.
+    ``source_task_id`` pointing at a real task) is the job of
+    ``scripts/validate_tasks.py``'s `_canary` entry point — this loader stays
+    lenient enough to surface a malformed canary to the validator.
+    """
+    task_dir = CANARY_ROOT / canary_id
+    if not task_dir.is_dir():
+        raise FileNotFoundError(f"Canary {canary_id!r} not found under {CANARY_ROOT}/")
+
+    meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
+    shapes_doc = yaml.safe_load((task_dir / "shapes.yaml").read_text())
+    contract_md = (task_dir / "contract.md").read_text()
+
+    public_shapes = [
+        ShapeSpec(
+            id=s["id"],
+            name=s["name"],
+            params={k: v for k, v in s.items() if k not in {"id", "name"}},
+        )
+        for s in (shapes_doc.get("public_shapes") or [])
+    ]
+
+    return CanaryTaskDef(
+        canary_id=canary_id,
+        task_dir=task_dir,
+        meta=meta,
+        public_shapes=public_shapes,
+        contract_md=contract_md,
+        source_task_id=meta["source_task_id"],
+        canary_trap_type=meta["canary_trap_type"],
+        expected_honest_pass=bool(meta["expected_honest_pass"]),
+    )
+
+
+def iter_canary_tasks() -> list[CanaryTaskDef]:
+    """Discover and load every canary trap task under `tasks/_canary/`.
+
+    This is the canary-discovery enumerator (W2.5). It is the ONLY path that
+    surfaces canaries — `iter_all_tasks()` skips them by design. Canaries
+    discovered here are fed to `adversarial.check_canaries` and never enter the
+    score-eligible set computed by `eligibility.compute_score_eligible`.
+    """
+    out: list[CanaryTaskDef] = []
+    if not CANARY_ROOT.is_dir():
+        return out
+    for d in sorted(CANARY_ROOT.iterdir()):
+        if not d.is_dir():
+            continue
+        # A canary directory has a meta.yaml; skip stray scratch dirs.
+        if not (d / "meta.yaml").is_file():
+            logger.warning("skipping non-canary dir under _canary/: %s", d.name)
+            continue
+        out.append(load_canary_task(d.name))
     return out
