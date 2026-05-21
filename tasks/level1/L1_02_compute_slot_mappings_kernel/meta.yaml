@@ -58,3 +58,37 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-02
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Computes per-token KV-cache slot indices from idx_mapping [B] (token->request id in [0, E)), positions [B], and a paged block_table [E, N]. block_size is the KV page size.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - E >= 1
+  - N >= 1
+  dtypes:
+    idx_mapping: int64
+    positions: int64
+    block_table: int64
+  dists:
+    idx_mapping:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    positions:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    block_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+  scalars:
+    block_size: block_size >= 1
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: idx_mapping
+      value: E

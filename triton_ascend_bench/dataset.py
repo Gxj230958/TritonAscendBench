@@ -53,6 +53,16 @@ class TaskDef:
     # still load; the red→green transition is carried by `validate_tasks`,
     # never by the loader.
     cost_model: CostModel | None = None
+    # Operator input contract (WA.1, `specs/task_api_contract.md §5.2`).
+    # Stored as the **raw dict** straight from `meta.yaml.param_constraints`
+    # — the loader does NOT parse it into a structured object and does NOT
+    # validate it. ``None`` when the block is absent. A malformed block is
+    # kept verbatim (no raise) so it can reach the WA.4 `task_status=blocked`
+    # gate instead of crashing `load_task`. The default keeps direct
+    # ``TaskDef(...)`` construction sites (canary adapter, test fixtures)
+    # backward compatible. `loader-lenient / validator-strict`: presence and
+    # schema are enforced only by `scripts/validate_tasks.py`.
+    param_constraints: dict[str, Any] | None = None
 
     @property
     def tolerance_class(self) -> str:
@@ -119,6 +129,33 @@ def load_task(task_id: str) -> TaskDef:
         except CostModelError as e:
             raise CostModelError(f"{task_id}: {e}") from e
 
+    # `param_constraints` is FULLY lenient at the loader level (WA.1,
+    # `specs/task_api_contract.md §5.2`). Unlike `cost_model` above — which
+    # eager-parses and raises on a malformed block — `param_constraints` is
+    # kept as the raw dict and NEVER validated / parsed here:
+    #   * missing  -> `TaskDef.param_constraints = None`;
+    #   * present  -> stored verbatim, even when schema-illegal, so a
+    #     malformed block reaches the WA.4 `task_status=blocked` gate
+    #     instead of crashing `load_task`.
+    # This is a deliberate departure from `cost_model`'s eager-parse-then-raise
+    # (see `cost_model` handling just above). Presence + schema enforcement
+    # is the job of `scripts/validate_tasks.py` ("validator-strict").
+    raw_param_constraints = meta.get("param_constraints")
+    param_constraints: dict[str, Any] | None = None
+    if raw_param_constraints is not None:
+        if isinstance(raw_param_constraints, dict):
+            param_constraints = raw_param_constraints
+        else:
+            # A non-dict `param_constraints` (e.g. a stray list / scalar) is
+            # still malformed-but-present: keep it reachable by the validator
+            # rather than dropping it. `TaskDef.param_constraints` is typed
+            # `dict | None`, so wrap a non-dict payload under a sentinel key.
+            logger.warning(
+                "%s: param_constraints is not a mapping (%s); kept raw for "
+                "validate_tasks", task_id, type(raw_param_constraints).__name__,
+            )
+            param_constraints = {"__raw__": raw_param_constraints}
+
     return TaskDef(
         task_id=task_id,
         level=level_int,
@@ -129,6 +166,7 @@ def load_task(task_id: str) -> TaskDef:
         kernel_py=kernel_py,
         kernel_py_sha256=_sha256_text(kernel_py),
         cost_model=cost_model,
+        param_constraints=param_constraints,
     )
 
 

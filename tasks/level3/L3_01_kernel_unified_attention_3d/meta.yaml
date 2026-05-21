@@ -15,7 +15,7 @@ upstream:
   file_sha256: b953102d1e6f5ad56bc3e1ef41f3ffeeb7e548a44859c6e667648e0492eaf349
   function_hash: b953102d1e6f5ad56bc3e1ef41f3ffeeb7e548a44859c6e667648e0492eaf349
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L3_01_kernel_unified_attention_3d_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,5 +58,54 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-01
-  errata_note: 'v3.2: upstream renamed/merged kernel_unified_attention_3d → kernel_unified_attention
-    (single kernel handles 3D and 2D).'
+  errata_note: "v3.2: upstream renamed/merged kernel_unified_attention_3d \u2192 kernel_unified_attention\
+    \ (single kernel handles 3D and 2D)."
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - L >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    cu_seqlens_q: int64
+    seqused_k: int64
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    cu_seqlens_q:
+      kind: offsets
+      args:
+        to: E*L
+    seqused_k:
+      kind: randint
+      args:
+        lo: '1'
+        hi: L
+  scalars:
+    scale:
+      derive: 1/sqrt(D)
+    causal: causal in [0, 1]
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_seqlens_q
+  - type: first_eq
+    args:
+      input: cu_seqlens_q
+      value: 0
+  - type: last_eq
+    args:
+      input: cu_seqlens_q
+      value: E*L
+  - type: length_eq
+    args:
+      input: seqused_k
+      value: E

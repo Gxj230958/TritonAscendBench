@@ -62,6 +62,15 @@ def _write_task(td: Path, *, cost_model=_OMIT, shapes_knobs=None) -> None:
         "tolerance_class": "_t",
         "oracle_simplified": "simple_pytorch_ok", "runner_checks": {},
         "is_canary": False, "is_hidden_only": False,
+        # WA.1/WA.4: `param_constraints` is a required top-level meta key.
+        # Use a reconciled (`scaffold: false`) schema-closed block — WA.4's
+        # semantic gate rejects `scaffold: true`, and R4-1 requires all five
+        # semantic subsections (empty containers here); this cost_model
+        # fixture is not testing param_constraints (its own checks live in
+        # the WA.1/WA.4 suites).
+        "param_constraints": {"scaffold": False, "dims": [], "dtypes": {},
+                              "dists": {}, "scalars": {},
+                              "tensor_invariants": []},
     }
     if cost_model is not _OMIT:
         meta["cost_model"] = cost_model
@@ -173,7 +182,12 @@ def test_cost_model_bad_tol_reported(tmp_path):
 # --------------------------------------------------------------------------
 
 def test_sample_tasks_validate_clean_via_cli():
-    for task_id in ("L1_01_bias_kernel", "L1_12_rms_norm_kernel"):
+    # WA.4: a `scaffold: true` corpus task is now a `validate_tasks` error
+    # (Phase A red — WB.1 reconciles every task to turn the full corpus
+    # green). `L1_12_rms_norm_kernel` is the fully-reconciled sample task
+    # (`param_constraints.scaffold: false` AND a complete `cost_model`), so
+    # it is the one that validates clean end-to-end pre-WB.1.
+    for task_id in ("L1_12_rms_norm_kernel",):
         proc = subprocess.run(
             [sys.executable, str(REPO / "scripts" / "validate_tasks.py"),
              "--task", task_id],

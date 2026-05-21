@@ -58,3 +58,27 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-23
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Lightning-attention KV parallel pass: q/k/v [B, H, L, D] with a per-head decay slope [H]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - L >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    slope: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    slope:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

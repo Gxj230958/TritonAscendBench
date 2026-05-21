@@ -58,3 +58,23 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-19
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Gathers per-token log-probabilities of token_ids [B, D] out of the log_softmax of logits [B, N]. token_ids are vocab indices in [0, N).
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - N >= 2
+  - D >= 1
+  dtypes:
+    logits: float32
+    token_ids: int64
+  dists:
+    logits:
+      kind: randn
+    token_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '2'
+  scalars: {}
+  tensor_invariants: []

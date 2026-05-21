@@ -58,3 +58,45 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-08
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Segmented LoRA-A GEMM: per-segment LoRA-A down-projection. seg_indptr [E+1] is the monotonic per-expert segment offsets vector; weight_indices [E] selects the LoRA weight slab (index in [0, E)); lora_ranks [E] is the per-expert rank.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  - E >= 1
+  - G >= 1
+  dtypes:
+    x: float32
+    weights: float32
+    seg_indptr: int64
+    weight_indices: int64
+    lora_ranks: int64
+  dists:
+    x:
+      kind: randn
+    weights:
+      kind: randn
+    seg_indptr:
+      kind: offsets
+      args:
+        step: '2'
+    weight_indices:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    lora_ranks:
+      kind: randint
+      args:
+        lo: '1'
+        hi: G
+  scalars: {}
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: seg_indptr
+  - type: index_in_range
+    args:
+      input: weight_indices
+      value: E

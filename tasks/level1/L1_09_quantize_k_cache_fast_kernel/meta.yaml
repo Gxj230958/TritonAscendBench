@@ -58,3 +58,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-09
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Quantises the K cache: k_nope [B, D] is group-quantised (group_size=8 ⇒ D % 8 == 0) to fp8 with per-group scales; k_rope is passed through. fp8_max is the fp8 saturation bound.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - D >= 8
+  - B >= 1
+  dtypes:
+    k_nope: float32
+    k_rope: float32
+  dists:
+    k_nope:
+      kind: randn
+    k_rope:
+      kind: randn
+  scalars:
+    group_size: group_size == 8
+    fp8_max: 0 < fp8_max <= 1e4
+  tensor_invariants: []

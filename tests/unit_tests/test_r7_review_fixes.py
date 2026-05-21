@@ -79,6 +79,20 @@ _SHAPES = {
     "inputs": {"x": {"dims": ["B"], "dtype": "float32", "dist": "randn"}},
 }
 
+# WA.4: a reconciled (`scaffold: false`), semantically-valid
+# `param_constraints` block for `_SHAPES` — these tests exercise the R7-1
+# offline-golden routing, so the WA.4 param_constraints gate must PASS.
+# R4-1: a `scaffold: false` block must be schema-closed (all five semantic
+# subsections present); the unused ones are empty containers.
+_PARAM_CONSTRAINTS = {
+    "scaffold": False,
+    "dims": [],
+    "dtypes": {"x": "float32"},
+    "dists": {"x": {"kind": "randn"}},
+    "scalars": {},
+    "tensor_invariants": [],
+}
+
 _META = {
     "task_id": "SYN_r7_upstream",
     "level": "L1",
@@ -86,6 +100,7 @@ _META = {
     "oracle_simplified": "upstream_oracle_required",
     "runner_checks": {},
     "upstream": {"commit_sha": "deadbeef"},
+    "param_constraints": _PARAM_CONSTRAINTS,
 }
 
 
@@ -127,6 +142,7 @@ def _make_upstream_task(tmp_path: Path, *, oracle_src: str,
         contract_md="# synthetic\n",
         kernel_py="# frozen\n",
         kernel_py_sha256="0" * 64,
+        param_constraints=_PARAM_CONSTRAINTS,
     )
     sol = tmp_path / "solution.py"
     sol.write_text(_HONEST_SOLUTION)

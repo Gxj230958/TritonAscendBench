@@ -58,3 +58,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-28
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Packs topk_ids [B, D] (per-token expert ids) into a per-token expert bitmatrix. num_experts is the expert count.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  dtypes:
+    topk_ids: int64
+  dists:
+    topk_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '2'
+  scalars:
+    num_experts: num_experts >= 1
+  tensor_invariants: []

@@ -569,12 +569,13 @@ def _representative_dtype_size(shapes_doc: dict) -> float | None:
     Rule (documented here and in ``specs/task_api_contract.md`` §5.1): the
     representative element size is the byte width of the **first declared
     tensor input** — i.e. the first ``inputs`` entry that is a tensor spec
-    (carries ``dims``), in YAML declaration order, skipping ``scalar`` /
-    ``scalar_knob`` entries which have no element size. A task authors its
-    primary operand first, so this picks the dominant dtype for the common
-    single-dtype task. Per-input precise handling for genuinely mixed-dtype
-    tasks is W3.1's long tail; until then this one representative value is
-    fed to ``compute_t_ref`` / ``FormulaEnv``.
+    (carries ``dims``), in YAML declaration order, skipping the non-tensor
+    forms (``scalar`` / ``derive`` / ``scalar_seq`` / ``scalar_knob``) which
+    have no element size. A task authors its primary operand first, so this
+    picks the dominant dtype for the common single-dtype task. Per-input
+    precise handling for genuinely mixed-dtype tasks is W3.1's long tail;
+    until then this one representative value is fed to ``compute_t_ref`` /
+    ``FormulaEnv``.
 
     Returns ``None`` when no tensor input is declared (a scalar-only inputs
     block) — the caller then falls back to the fp16 default ``dtype_size``.
@@ -582,8 +583,8 @@ def _representative_dtype_size(shapes_doc: dict) -> float | None:
     for spec in (shapes_doc.get("inputs", {}) or {}).values():
         if not isinstance(spec, dict):
             continue
-        if "scalar" in spec or "scalar_knob" in spec:
-            continue
+        # A tensor spec carries `dims`; the non-tensor forms (scalar /
+        # derive / scalar_seq / scalar_knob) have no element size.
         if "dims" not in spec:
             continue
         dtype_name = str(spec.get("dtype", "float32"))
@@ -825,6 +826,71 @@ def _resolve_golden(
     return (scoring.TASK_STATUS_EVALUATED, "offline", offline)
 
 
+def _resolve_eval_task_status(task: TaskDef, mode: str) -> str:
+    """The repo-authoritative ``task_status`` for one task — WA.4 ②(b).
+
+    ``eval.evaluate`` calls this once, immediately after the task is loaded
+    and **before any early return**, so every early-return branch
+    (static-check ``blocked``, non-gradeable stub / manual, oracle-import /
+    input-build short-circuit) carries the same verdict ``cli analyze``'s
+    ``_authoritative_task_status`` derives. Both route through the shared
+    :func:`param_constraints.resolve_task_status` arbiter with the same
+    trusted-repo-derived booleans, so the two layers cannot drift.
+
+    The fixed priority (high → low): ``is_canary`` ⇒ ``evaluated``;
+    self-reported ``upstream_oracle_required`` ⇒ ``unsupported``;
+    verified-mode incomplete offline golden ⇒ ``blocked``;
+    ``param_constraints`` fails the shared helper ⇒ ``blocked``;
+    otherwise ⇒ ``evaluated``.
+
+    Args:
+        task: the loaded :class:`TaskDef`.
+        mode: ``"self-reported"`` or ``"verified"``.
+
+    Returns:
+        One of ``"evaluated"`` / ``"unsupported"`` / ``"blocked"``.
+    """
+    import yaml
+
+    from . import eligibility, param_constraints
+
+    meta = getattr(task, "meta", None) or {}
+    is_canary = meta.get("is_canary") is True
+
+    try:
+        upstream = task.oracle_tier == _UPSTREAM_ORACLE_TIER
+    except (KeyError, TypeError, AttributeError):
+        upstream = False
+
+    self_reported_unsupported = mode == "self-reported" and upstream
+    verified_golden_incomplete = (
+        mode == "verified" and upstream
+        and not eligibility.golden_complete(task))
+
+    # The `param_constraints` gate: load the task's shapes.yaml and run the
+    # shared helper (scaffold short-circuit → schema → semantics).
+    shapes_doc: dict | None = None
+    shapes_path = task.task_dir / "shapes.yaml"
+    try:
+        if shapes_path.is_file():
+            loaded = yaml.safe_load(shapes_path.read_text())
+            if isinstance(loaded, dict):
+                shapes_doc = loaded
+    except (OSError, yaml.YAMLError) as e:  # noqa: BLE001
+        logger.warning("param_constraints gate: shapes.yaml unreadable for "
+                        "%s: %s", task.task_id, e)
+    pc_result = param_constraints.check_param_constraints(
+        getattr(task, "param_constraints", None), shapes_doc,
+        tid=task.task_id)
+
+    return param_constraints.resolve_task_status(
+        is_canary=is_canary,
+        self_reported_unsupported=self_reported_unsupported,
+        verified_golden_incomplete=verified_golden_incomplete,
+        param_constraints_failed=not pc_result.ok,
+    )
+
+
 def evaluate(
     task_id: str,
     solution_path: Path,
@@ -889,6 +955,14 @@ def evaluate(
         static_findings=static_report.findings,
     )
 
+    # WA.4 ②(b): resolve the repo-authoritative `task_status` ONCE, before
+    # any early return. Every early-return branch below (static-check
+    # `blocked`, non-gradeable stub / manual, `_resolve_golden`
+    # short-circuit) then carries this verdict — none falls through to the
+    # default `evaluated`. The verdict is the SAME one `cli analyze`'s
+    # `_authoritative_task_status` derives (shared `resolve_task_status`).
+    result.task_status = _resolve_eval_task_status(task, mode)
+
     if static_report.blocked:
         result.correctness_status = "fail"
         result.runtime_status = "ok"               # static-only path didn't run anything
@@ -946,11 +1020,15 @@ def evaluate(
             golden_status, golden_kind, offline_golden = _resolve_golden(
                 task, mode, eval_shape_ids)
             if golden_status != scoring.TASK_STATUS_EVALUATED:
-                # No evaluable golden in this mode — record the
-                # task_status and return with null perf. correctness /
-                # runtime / performance statuses are left at their
-                # "not graded" defaults; the orthogonal task_status field
-                # carries the "unsupported"/"blocked" verdict (DESIGN §5.7).
+                # No evaluable golden in this mode — return with null perf.
+                # `result.task_status` was already set by the WA.4 ②(b)
+                # resolver (`_resolve_task_status_for_eval`) before any early
+                # return; `golden_status` here is the same "unsupported" /
+                # "blocked" verdict (the resolver's tiers 2-3 mirror
+                # `_resolve_golden`), so it is consistent. correctness /
+                # runtime / performance statuses are left at their "not
+                # graded" defaults; the orthogonal task_status field carries
+                # the verdict (DESIGN §5.7).
                 result.task_status = golden_status
                 result.correctness_status = "error"
                 result.runtime_status = "error"

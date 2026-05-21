@@ -58,3 +58,33 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-27
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies a structured-decoding grammar bitmask to logits [B, N]. bitmask [E, N//32+1] packs 32 vocab bits per int word; logits_indices [B] selects the bitmask row (request id in [0, E)).
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - N >= 2
+  - E >= 1
+  dtypes:
+    logits: float32
+    logits_indices: int64
+    bitmask: int64
+  dists:
+    logits:
+      kind: randn
+    logits_indices:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    bitmask:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '1024'
+  scalars: {}
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: logits_indices
+      value: E

@@ -15,7 +15,7 @@ upstream:
   file_sha256: 3b51886b58a5a901c5b8b3a02f57da8270bbd294a85acca3d56dc30066926752
   function_hash: 3b51886b58a5a901c5b8b3a02f57da8270bbd294a85acca3d56dc30066926752
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L1_14_layer_norm_fwd_1pass_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,3 +58,25 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-14
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 2
+  - B >= 1
+  dtypes:
+    x: float32
+    weight: float32
+    bias: float32
+    residual: float32
+  dists:
+    x:
+      kind: randn
+    weight:
+      kind: randn
+    bias:
+      kind: randn
+    residual:
+      kind: randn
+  scalars:
+    eps: 0 < eps <= 1e-2
+  tensor_invariants: []

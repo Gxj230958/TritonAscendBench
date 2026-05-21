@@ -58,3 +58,30 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-04
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Copies per-request page indices out of a paged block_table [E, N] given per-request seq_lens [E]; page_size is the KV page granularity. Indices are valid block ids; seq_lens are >= 1.
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - N >= 1
+  dtypes:
+    block_table: int64
+    seq_lens: int64
+  dists:
+    block_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    seq_lens:
+      kind: randint
+      args:
+        lo: '1'
+        hi: N
+  scalars:
+    page_size: page_size >= 1
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: block_table
+      value: N

@@ -58,3 +58,19 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-39
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SSM state-passing forward: per-chunk states [C, D, D] are recurrently combined with the cumulative decay dA_cumsum [C]. fp32; states randn, decay uniform in [0, 1).
+param_constraints:
+  scaffold: false
+  dims:
+  - C >= 1
+  - D >= 1
+  dtypes:
+    states: float32
+    dA_cumsum: float32
+  dists:
+    states:
+      kind: randn
+    dA_cumsum:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

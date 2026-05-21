@@ -58,3 +58,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-38
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Concatenates the nope/rope halves of an MLA K vector and casts to out_dtype. k_nope / k_rope are both [n_tokens, dim]=[B, D]. out_dtype names the output cast target.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  dtypes:
+    k_nope: float32
+    k_rope: float32
+  dists:
+    k_nope:
+      kind: randn
+    k_rope:
+      kind: randn
+  scalars:
+    out_dtype: out_dtype in ['bf16', 'bfloat16', 'fp16', 'float16', 'float32', 'fp32']
+  tensor_invariants: []

@@ -58,3 +58,23 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-18
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Chunked scaled K·K^T forward: k [C, L, D], per-step gate g [C, L], per-step beta [C, L]. fp32; g / beta uniform in [0, 1).
+param_constraints:
+  scaffold: false
+  dims:
+  - C >= 1
+  - L >= 1
+  - D >= 1
+  dtypes:
+    k: float32
+    g: float32
+    beta: float32
+  dists:
+    k:
+      kind: randn
+    g:
+      kind: rand
+    beta:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

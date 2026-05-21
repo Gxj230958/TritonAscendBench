@@ -58,3 +58,28 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-31
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Qwen2-VL multimodal RoPE (mrope). q is [n_tokens, n_qh*head_size], k is [n_tokens, n_kh*head_size]; cos/sin are [3, n_tokens, rotary_dim//2] for the T/H/W position channels. head_size and rotary_dim are fixed at 16 in this corpus (rotary_dim//2 == 8), so mrope_section = [t,h,w] must sum to 8. Hand-reconciled WB.1 attention end-to-end sample.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  dtypes:
+    q: float32
+    k: float32
+    cos: float32
+    sin: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    cos:
+      kind: randn
+    sin:
+      kind: randn
+  scalars:
+    mrope_section: sum(mrope_section) == 8 and len(mrope_section) == 3
+    head_size: head_size == 16
+    rotary_dim: 0 < rotary_dim <= 16 and rotary_dim % 2 == 0
+  tensor_invariants: []

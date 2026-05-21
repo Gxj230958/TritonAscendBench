@@ -58,3 +58,28 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-05
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). ALiBi attention forward: q/k/v [H, L, D] with per-head ALiBi slopes [H]. scale is the QK softmax scale, derived as 1/sqrt(D).
+param_constraints:
+  scaffold: false
+  dims:
+  - H >= 1
+  - L >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    alibi_slopes: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    alibi_slopes:
+      kind: rand
+  scalars:
+    scale:
+      derive: 1/sqrt(D)
+  tensor_invariants: []

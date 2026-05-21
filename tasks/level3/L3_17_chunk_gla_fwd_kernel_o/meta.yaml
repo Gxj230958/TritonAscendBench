@@ -15,7 +15,7 @@ upstream:
   file_sha256: fa84f2c6462cafbe828e4048fb27f938f723a1c97aee01d65c055c5d4eef869c
   function_hash: fa84f2c6462cafbe828e4048fb27f938f723a1c97aee01d65c055c5d4eef869c
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L3_17_chunk_gla_fwd_kernel_o_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,3 +58,31 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-17
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - D >= 1
+  - Dv >= 1
+  dtypes:
+    q: float32
+    v: float32
+    g: float32
+    A: float32
+    h: float32
+  dists:
+    q:
+      kind: randn
+    v:
+      kind: randn
+    g:
+      kind: randn
+    A:
+      kind: tril
+    h:
+      kind: randn
+  scalars:
+    scale:
+      derive: 1/sqrt(D)
+  tensor_invariants: []

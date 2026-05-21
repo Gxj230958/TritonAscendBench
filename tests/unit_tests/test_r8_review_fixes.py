@@ -111,7 +111,24 @@ class TestR8_1BlockedInDenominator:
         if not blocked:
             pytest.skip("no eligible verified-blocked task in the corpus")
         a_blocked = sorted(blocked)[0]
-        an_evaluated = sorted(eligible - blocked)[0]
+        # WA.4: pick an `an_evaluated` whose `param_constraints` is RECONCILED
+        # (`scaffold: false` + semantically clean) — a scaffold task would
+        # itself be `blocked` by the WA.4 gate, so `blocked_in_denominator_
+        # count` would no longer be exactly 1. The reconciled corpus tasks
+        # are the WA.1 sample tasks.
+        by_id = {t.task_id: t for t in tasks}
+
+        def _pc_ok(tid: str) -> bool:
+            t = by_id.get(tid)
+            pc = getattr(t, "param_constraints", None) if t else None
+            return isinstance(pc, dict) and pc.get("scaffold") is False
+
+        evaluated_candidates = sorted(
+            tid for tid in (eligible - blocked) if _pc_ok(tid))
+        if not evaluated_candidates:
+            pytest.skip("no reconciled (non-scaffold) eligible task yet "
+                        "(WB.1 backfill incomplete)")
+        an_evaluated = evaluated_candidates[0]
 
         suite = {
             "mode": "verified",

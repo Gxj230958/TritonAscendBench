@@ -58,3 +58,27 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-03
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Mamba2 chunk-state forward: per-chunk B [C, L, N], x [C, L, D], timestep dt and cumulative decay dA_cumsum [C, L] accumulate the SSM state. fp32; dt / dA_cumsum uniform in [0, 1).
+param_constraints:
+  scaffold: false
+  dims:
+  - C >= 1
+  - L >= 1
+  - N >= 1
+  - D >= 1
+  dtypes:
+    B: float32
+    x: float32
+    dt: float32
+    dA_cumsum: float32
+  dists:
+    B:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: rand
+    dA_cumsum:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

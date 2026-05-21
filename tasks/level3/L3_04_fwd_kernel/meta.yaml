@@ -57,21 +57,14 @@ runner_checks:
   - online_softmax_present
   metamorphic_checks:
   - name: qk_scale_inverse
-    description: 'Replacing (Q, K) with (αQ, K/α) for scalar α>0 leaves output
-
-      unchanged (q·k product preserved exactly in fp32, modulo the
-
-      final cast).
-
-      '
+    description: "Replacing (Q, K) with (\u03B1Q, K/\u03B1) for scalar \u03B1>0 leaves\
+      \ output\nunchanged (q\xB7k product preserved exactly in fp32, modulo the\n\
+      final cast).\n"
   - name: zero_v_yields_zero
-    description: v = 0 ⇒ o = 0 regardless of q, k.
+    description: "v = 0 \u21D2 o = 0 regardless of q, k."
   - name: single_token_per_seq_equals_v
-    description: 'Every b_seq_len[i] = 1 ⇒ softmax over a single logit = 1 ⇒
-
-      output equals v exactly.
-
-      '
+    description: "Every b_seq_len[i] = 1 \u21D2 softmax over a single logit = 1 \u21D2\
+      \noutput equals v exactly.\n"
   shape_coverage:
     public: 6
     hidden: 5
@@ -81,13 +74,54 @@ hardware:
   npu: 910b
   ub_budget_kb: 180
   fp8_required: false
-  notes: 'head_dim ≤ 128 at v0.1. Larger head_dim (DeepSeek MLA) belongs to a
-
-    separate task variant.
-
-    '
+  notes: "head_dim \u2264 128 at v0.1. Larger head_dim (DeepSeek MLA) belongs to a\n\
+    separate task variant.\n"
 provenance:
   added_in: v0.1
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    b_start_loc: int64
+    b_seq_len: int64
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    b_start_loc:
+      kind: offsets
+      args:
+        to: B*L
+    b_seq_len:
+      kind: full
+      args:
+        value: L
+  scalars:
+    sm_scale:
+      derive: 1/sqrt(D)
+    is_causal: is_causal in [0, 1]
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: b_start_loc
+  - type: first_eq
+    args:
+      input: b_start_loc
+      value: 0
+  - type: last_eq
+    args:
+      input: b_start_loc
+      value: B*L

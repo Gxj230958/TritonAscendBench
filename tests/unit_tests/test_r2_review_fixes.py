@@ -496,7 +496,11 @@ def test_r2_4_bad_result_cannot_drop_failing_task_via_unsupported(tmp_path):
         "results": [
             # A score-eligible non-upstream-oracle task FAILED — and the
             # result lies, claiming "unsupported" to escape the geomean.
-            {"task_id": "L1_01_bias_kernel",
+            # WA.4: use a RECONCILED task (`param_constraints.scaffold:
+            # false`, semantically clean) so the repo-authoritative status
+            # is genuinely "evaluated" — a scaffold task would itself be
+            # "blocked" by the WA.4 gate, which is a different code path.
+            {"task_id": "L1_16_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "fail",
              "runtime_status": "error", "performance_status": "error",
              "performance_flags": [], "fallback_detected": False,

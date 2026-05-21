@@ -58,3 +58,36 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-11
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). W8A8 block-scaled matmul: A [B, D] @ B [D, N] with per-block scales As [B, D/8] / Bs [D/8, N/8]. group_n / group_k are the quant tile dims (8); D % 8 == 0 / N % 8 == 0.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - N % 8 == 0
+  - D >= 8
+  - N >= 8
+  - B >= 1
+  dtypes:
+    A: int64
+    B: int64
+    As: float32
+    Bs: float32
+  dists:
+    A:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '8'
+    B:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '8'
+    As:
+      kind: rand
+    Bs:
+      kind: rand
+  scalars:
+    group_n: group_n == 8
+    group_k: group_k == 8
+  tensor_invariants: []

@@ -58,3 +58,35 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-08
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged K-cache dequant: nope_q [C, D] with per-group scales nope_s [C, D/group_size] dequantised, rope [C, D] passed through, gathered via page_table [B, 2] (cache-block indices in [0, C)). group_size=8 ⇒ D % 8 == 0.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - D >= 8
+  - C >= 1
+  - B >= 1
+  dtypes:
+    nope_q: float32
+    nope_s: float32
+    rope: float32
+    page_table: int64
+  dists:
+    nope_q:
+      kind: randn
+    nope_s:
+      kind: rand
+    rope:
+      kind: randn
+    page_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: C
+  scalars:
+    group_size: group_size == 8
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: page_table
+      value: C

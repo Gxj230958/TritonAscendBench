@@ -58,3 +58,17 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-20
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). log_softmax over the last (D) axis of a [B, D] logit matrix. The reduction axis must be non-trivial; dim selects the softmax axis (last axis only for this kernel).
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 2
+  - B >= 1
+  dtypes:
+    input: float32
+  dists:
+    input:
+      kind: randn
+  scalars:
+    dim: dim in [-1, 1]
+  tensor_invariants: []

@@ -58,3 +58,45 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-23
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies repetition/frequency/presence penalties and temperature to logits [B, N], routed per-request via expanded_idx_mapping [B] (request id in [0, E)). Penalties / counts are per-request [E] / [E, N].
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - N >= 1
+  - E >= 1
+  dtypes:
+    logits: float32
+    expanded_idx_mapping: int64
+    output_token_counts: float32
+    prompt_bin_mask: int64
+    repetition_penalty: float32
+    frequency_penalty: float32
+    presence_penalty: float32
+  dists:
+    logits:
+      kind: randn
+    expanded_idx_mapping:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    output_token_counts:
+      kind: rand
+    prompt_bin_mask:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '2'
+    repetition_penalty:
+      kind: rand
+    frequency_penalty:
+      kind: rand
+    presence_penalty:
+      kind: rand
+  scalars: {}
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: expanded_idx_mapping
+      value: E

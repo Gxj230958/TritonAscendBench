@@ -58,3 +58,29 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-22
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Linear-attention decode step: q/k/v [B, H, D] update the per-head kv_caches [B, H, D, D] with a per-head exponential decay slope_rate [H]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    kv_caches: float32
+    slope_rate: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    kv_caches:
+      kind: randn
+    slope_rate:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

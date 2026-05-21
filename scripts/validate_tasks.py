@@ -16,6 +16,7 @@ Checks:
 - upstream_oracle_required tasks: a complete golden/ artifact set is required
 - runner_checks.metamorphic_checks names are in the known-check registry
 - cost_model schema + formula evaluability (W1.2)
+- param_constraints required + schema-shape valid (WA.1; canary tasks exempt)
 - file_sha256 matches the on-disk kernel.py if set
 
 Exit non-zero on first error (or all errors with --strict).
@@ -39,6 +40,7 @@ CANARY_ROOT = TASKS_ROOT / "_canary"
 POLICY_FILE = REPO_ROOT / "triton_ascend_bench" / "tolerance_policy.yaml"
 
 sys.path.insert(0, str(REPO_ROOT))
+from triton_ascend_bench import param_constraints  # noqa: E402
 from triton_ascend_bench.adversarial import (  # noqa: E402
     KNOWN_METAMORPHIC_CHECKS,
 )
@@ -75,7 +77,22 @@ REQUIRED_META_TOP_LEVEL = {
     # block) so shared loader paths are not broken — the two layers do not
     # contradict: only `validate_tasks` enforces presence.
     "cost_model",
+    # WA.1: `param_constraints` (the operator input contract, six subsections
+    # — `specs/task_api_contract.md §5.2`) is a required top-level key, with
+    # the SAME loader-lenient / validator-strict split as `cost_model`. A
+    # missing block is a validation error. `is_canary` tasks are EXEMPT —
+    # `_param_constraints_required` removes the key for them before the
+    # missing-key check (see `validate_task` Step 2). The full-corpus
+    # red→green transition is carried by WB.1, never by the loader.
+    "param_constraints",
 }
+
+# `param_constraints` is required for every real task EXCEPT canary tasks
+# (`is_canary: true`) — a canary reuses its source task's solution, is a
+# deliberately-crafted trap, and is never score-eligible. Removing the key
+# from the required set for canaries keeps the W2.5 canary detection chain
+# open. Every other top-level key in `REQUIRED_META_TOP_LEVEL` stays required.
+_CANARY_EXEMPT_REQUIRED_KEYS = frozenset({"param_constraints"})
 
 VALID_LEVELS = {"L1", "L2", "L3", "appendix", "canary"}
 VALID_REPOS = {
@@ -219,6 +236,88 @@ def _validate_cost_model(tid: str, meta: dict, task_dir: Path) -> list[str]:
     except CostModelError as e:
         return [f"{tid}: cost_model formula not evaluable: {e}"]
     return []
+
+
+def _validate_param_constraints(tid: str, meta: dict) -> list[str]:
+    """Validate ``meta.yaml.param_constraints`` — schema-shape layer (WA.1).
+
+    Checks only the **shape** of the operator input contract: that the block
+    is a mapping, that every key is one of the six known subsections, and
+    that each present subsection has the right container type and the coarse
+    per-element structure (`specs/task_api_contract.md §5.2`). The
+    five-subsection *semantic* checks — ``dims`` predicates against the knob
+    universe, materialised-tensor ``tensor_invariants``, etc. — are run by
+    :func:`_validate_param_constraints_semantic` (WA.4).
+
+    The schema-shape logic is the shared
+    :func:`triton_ascend_bench.param_constraints.validate_schema_shape`, so
+    the validator and the eval gate cannot drift. A missing block is reported
+    by the :data:`REQUIRED_META_TOP_LEVEL` check (Step 2) and skipped here so
+    it is not double-reported.
+
+    Args:
+        tid: Task id (for error-message prefixing).
+        meta: The parsed ``meta.yaml`` mapping.
+
+    Returns:
+        A list of human-readable schema-shape error strings; empty when the
+        block is absent or schema-shape-valid.
+    """
+    raw = meta.get("param_constraints")
+    if raw is None:
+        return []
+    if not isinstance(raw, dict):
+        return [f"{tid}: param_constraints must be a mapping, "
+                f"got {type(raw).__name__}"]
+    return param_constraints.validate_schema_shape(raw, tid=tid)
+
+
+def _validate_param_constraints_semantic(
+    tid: str, meta: dict, task_dir: Path,
+) -> list[str]:
+    """Validate ``meta.yaml.param_constraints`` semantics — WA.4 ①.
+
+    Runs the shared :func:`triton_ascend_bench.param_constraints.
+    check_param_constraints` helper (the SAME helper ``eval`` and the
+    ``cli.py`` status resolver consult) against the task's ``shapes.yaml``.
+    The helper's fixed decision order is: scaffold short-circuit → schema
+    shape → five-subsection semantics.
+
+    A missing block is reported by :data:`REQUIRED_META_TOP_LEVEL` (Step 2)
+    and the schema-shape errors by :func:`_validate_param_constraints`
+    (Step 7b'); to avoid double-reporting, this step suppresses the helper's
+    *missing* verdict and only adds its semantic / scaffold reasons that the
+    schema-shape pass did not already surface.
+
+    Args:
+        tid: Task id (for error-message prefixing).
+        meta: The parsed ``meta.yaml`` mapping.
+        task_dir: The task directory (to load ``shapes.yaml``).
+
+    Returns:
+        A list of semantic / scaffold error strings; empty when the block is
+        absent, semantically clean, or its only problem is a schema-shape one
+        already reported by Step 7b'.
+    """
+    raw = meta.get("param_constraints")
+    if not isinstance(raw, dict):
+        # Missing / non-mapping: reported elsewhere — do not double-report.
+        return []
+    shapes_doc: dict | None = None
+    shapes_path = task_dir / "shapes.yaml"
+    if shapes_path.is_file():
+        loaded = yaml.safe_load(shapes_path.read_text())
+        if isinstance(loaded, dict):
+            shapes_doc = loaded
+    result = param_constraints.check_param_constraints(
+        raw, shapes_doc, tid=tid)
+    if result.ok or result.missing:
+        return []
+    # A schema-shape failure short-circuits the helper before the semantic
+    # layer; Step 7b' already owns those reasons, so drop them here. The
+    # scaffold reason and every semantic reason are WA.4's to report.
+    schema_errs = set(param_constraints.validate_schema_shape(raw, tid=tid))
+    return [r for r in result.reasons if r not in schema_errs]
 
 
 def _module_exports(src: str, name: str) -> bool:
@@ -744,8 +843,14 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
 
     meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
 
-    # Step 2: top-level keys
-    missing_keys = REQUIRED_META_TOP_LEVEL - set(meta.keys())
+    # Step 2: top-level keys. `is_canary` tasks are exempt from a subset of
+    # required keys (WA.1: `param_constraints` — a canary reuses its source
+    # task's solution and is never score-eligible). For a canary, the exempt
+    # keys are dropped from the required set before the missing-key check.
+    required_keys = REQUIRED_META_TOP_LEVEL
+    if meta.get("is_canary") is True:
+        required_keys = REQUIRED_META_TOP_LEVEL - _CANARY_EXEMPT_REQUIRED_KEYS
+    missing_keys = required_keys - set(meta.keys())
     if missing_keys:
         errs.append(f"{tid}: meta.yaml missing keys {sorted(missing_keys)}")
         if strict and missing_keys:
@@ -804,6 +909,23 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # form for `flops` / `bytes`; confirms every formula is parseable and
     # evaluable under the shared cost_model evaluator.
     errs.extend(_validate_cost_model(tid, meta, task_dir))
+
+    # Step 7b': param_constraints schema-shape check (WA.1). Presence is the
+    # REQUIRED_META_TOP_LEVEL check's job (Step 2, with the canary exemption);
+    # this only validates the SHAPE of a present block (six subsections,
+    # container types).
+    errs.extend(_validate_param_constraints(tid, meta))
+
+    # Step 7b'': param_constraints five-subsection semantic check (WA.4 ①).
+    # Runs the shared `param_constraints.check_param_constraints` helper —
+    # the same pass/fail authority `eval` and `cli analyze` consult — so the
+    # `dims` predicates, `dtypes` / `dists` agreement, `scalars` value
+    # domains and materialised-tensor `tensor_invariants` are enforced here.
+    # `is_canary` tasks are exempt (canary reuses its source solution and is
+    # never score-eligible — keeps the W2.5 canary detection chain open).
+    if meta.get("is_canary") is not True:
+        errs.extend(
+            _validate_param_constraints_semantic(tid, meta, task_dir))
 
     # Step 7c: oracle_pytorch.py / contract.md consistency (W2.3). oracle
     # exports `run`; contract.md references the task id; an

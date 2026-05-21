@@ -35,6 +35,22 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::silu_and_mul_triton
 tolerance_class: elementwise
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). silu_and_mul
+# takes a single [B, 2*D] tensor: the kernel splits it into halves x1 / x3 on
+# the last axis, so the inner dim must be even (2*D is even by construction).
+# Hand-reconciled WA.1 sample task.
+param_constraints:
+  scaffold: false
+  dims:
+    # The fused gate splits the last axis into two equal halves.
+    - "D >= 4"
+    - "B >= 1"
+  dtypes:
+    hidden_states: float32
+  dists:
+    hidden_states: {kind: randn}
+  scalars: {}
+  tensor_invariants: []
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

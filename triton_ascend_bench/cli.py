@@ -883,24 +883,66 @@ def _cmd_analyze(args) -> int:
         compute_verified_blocked(all_tasks) if mode == "verified" else set()
     )
 
+    def _param_constraints_failed(tid: str) -> bool:
+        """True iff `tid`'s `param_constraints` fails the shared WA.4 helper.
+
+        Derived purely from trusted repo state (`meta.param_constraints` +
+        the task's `shapes.yaml`) — never from the result JSON. A missing /
+        `scaffold: true` / schema-illegal / semantically-violated block is a
+        failure. A task absent from the repo (no `task_dir`) is treated as
+        not-failed here so the existing self-reported / verified verdicts
+        still own its status.
+        """
+        import yaml
+
+        from . import param_constraints as _pc
+
+        task = task_by_id.get(tid)
+        if task is None:
+            return False
+        shapes_doc: dict | None = None
+        shapes_path = task.task_dir / "shapes.yaml"
+        try:
+            if shapes_path.is_file():
+                loaded = yaml.safe_load(shapes_path.read_text())
+                if isinstance(loaded, dict):
+                    shapes_doc = loaded
+        except (OSError, yaml.YAMLError) as e:  # noqa: BLE001
+            logger.warning("param_constraints gate: shapes.yaml unreadable "
+                            "for %s: %s", tid, e)
+        result = _pc.check_param_constraints(
+            getattr(task, "param_constraints", None), shapes_doc, tid=tid)
+        return not result.ok
+
     def _authoritative_task_status(tid: str) -> str:
         """The repo-derived task_status for `tid` under the suite's mode.
 
-        Three states, all derived from trusted repo state (meta + the
-        presence of golden artifacts), never from the result JSON:
+        WA.4 ②(b): the SINGLE authoritative arbiter — all `task_status`
+        verdicts are decided here, from trusted repo state (meta + golden
+        artifacts + `param_constraints`), never from the result JSON. The
+        fixed priority (high → low) is delegated to the shared
+        `param_constraints.resolve_task_status`:
 
-        * self-reported — an `upstream_oracle_required` task has no
-          provider golden ⇒ "unsupported".
-        * verified — an `upstream_oracle_required` task whose offline
-          `golden/` artifact set is missing/incomplete ⇒ "blocked"
-          (fail-closed; R3-2).
-        * everything else ⇒ "evaluated".
+        1. `is_canary` ⇒ "evaluated" (exempt from the param_constraints gate);
+        2. self-reported `upstream_oracle_required` ⇒ "unsupported";
+        3. verified-mode incomplete offline golden ⇒ "blocked";
+        4. `param_constraints` fails the shared helper ⇒ "blocked"
+           (stays in the fixed denominator, scored as ε — not dropped);
+        5. otherwise ⇒ "evaluated".
         """
-        if mode == "self-reported" and tid in upstream_oracle_ids:
-            return "unsupported"
-        if mode == "verified" and tid in verified_blocked_ids:
-            return "blocked"
-        return TASK_STATUS_EVALUATED
+        from . import param_constraints as _pc
+
+        task = task_by_id.get(tid)
+        is_canary = bool(
+            (getattr(task, "meta", None) or {}).get("is_canary") is True)
+        return _pc.resolve_task_status(
+            is_canary=is_canary,
+            self_reported_unsupported=(
+                mode == "self-reported" and tid in upstream_oracle_ids),
+            verified_golden_incomplete=(
+                mode == "verified" and tid in verified_blocked_ids),
+            param_constraints_failed=_param_constraints_failed(tid),
+        )
 
     # R9-1: a task's Roofline data is "complete" iff repo state can score
     # it — it has a `cost_model` AND every π/β that cost model references

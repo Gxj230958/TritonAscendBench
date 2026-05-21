@@ -58,3 +58,29 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-17
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Gated LayerNorm: LayerNorm(x) gated by silu(g), scaled by w, shifted by b, with an optional residual add. Reduction over D. eps is the variance floor. g and w use randn: the `ones` scaffold dist made silu(g) a constant gate and w an identity scale, so the gate path and the per-channel scale could both be baked in without exercising the operator semantics (WB.1 dist fix). NOTE: shapes.yaml declares g as [B, D] and w as [D]; the canonical LayerNorm per-channel gain is [D]. The tensor-dims contract gap on g is flagged for a later shapes.yaml fix (out of WB.1 param_constraints scope).
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 2
+  - B >= 1
+  dtypes:
+    x: float32
+    g: float32
+    w: float32
+    b: float32
+    residual: float32
+  dists:
+    x:
+      kind: randn
+    g:
+      kind: randn
+    w:
+      kind: randn
+    b:
+      kind: randn
+    residual:
+      kind: randn
+  scalars:
+    eps: 0 < eps <= 1e-2
+  tensor_invariants: []

@@ -58,3 +58,30 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-32
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Builds the FlashInfer paged-KV indptr/indices from per-request seq_lens [E] and a paged block_table [E, N]. page_size is the page granularity; seq_lens >= 1.
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - N >= 1
+  dtypes:
+    seq_lens: int64
+    block_table: int64
+  dists:
+    seq_lens:
+      kind: randint
+      args:
+        lo: '1'
+        hi: N
+    block_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+  scalars:
+    page_size: page_size >= 1
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: block_table
+      value: N

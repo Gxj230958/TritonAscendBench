@@ -62,3 +62,44 @@ provenance:
     no freezable upstream (non-existent/merged/no-public-source); re-tasked to CSV
     operator _chunk_state_varlen_kernel. docs/npu/benchmark_select.md (root-owned)
     pending sync.'
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Variable-length chunk-state forward: B [B*L, H, N], x [B*L, H, Dv], timestep dt / decay dA_cumsum [B*L, H], segmented by cu_seqlens [B+1] (monotonic cumulative offsets, to=B*L).
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - H >= 1
+  - N >= 1
+  - Dv >= 1
+  dtypes:
+    B: float32
+    x: float32
+    dt: float32
+    dA_cumsum: float32
+    cu_seqlens: int64
+  dists:
+    B:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: rand
+    dA_cumsum:
+      kind: rand
+    cu_seqlens:
+      kind: offsets
+      args:
+        to: B*L
+  scalars: {}
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_seqlens
+  - type: first_eq
+    args:
+      input: cu_seqlens
+      value: 0
+  - type: last_eq
+    args:
+      input: cu_seqlens
+      value: B*L

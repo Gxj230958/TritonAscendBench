@@ -58,3 +58,18 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-17
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). gelu_and_mul is a GeGLU fused gate: the single [B, D] input is split on the last axis into gate / value halves, so D must be even. Plain randn activations, fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 2 == 0
+  - D >= 4
+  - B >= 1
+  dtypes:
+    x: float32
+  dists:
+    x:
+      kind: randn
+  scalars:
+    approximate: approximate in ['tanh', 'none']
+  tensor_invariants: []

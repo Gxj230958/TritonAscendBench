@@ -15,7 +15,7 @@ upstream:
   file_sha256: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
   function_hash: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L1_40_chunk_cumsum_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,3 +58,19 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-40
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  dtypes:
+    dt: float32
+    A: float32
+  dists:
+    dt:
+      kind: rand
+    A:
+      kind: rand
+  scalars:
+    dt_softplus: dt_softplus in [0, 1]
+  tensor_invariants: []

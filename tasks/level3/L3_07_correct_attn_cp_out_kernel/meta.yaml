@@ -15,7 +15,7 @@ upstream:
   file_sha256: 6bc0152d8dbcdf3b25ddab15fa5b5054723fec4ba98d89b612b6d04fe6364702
   function_hash: 6bc0152d8dbcdf3b25ddab15fa5b5054723fec4ba98d89b612b6d04fe6364702
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L3_07_correct_attn_cp_out_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -61,3 +61,22 @@ provenance:
   errata_note: 'v3.2 errata: original slot (L3_07_sdpa (attention+mask)) had no freezable
     upstream (non-existent/merged/no-public-source); re-tasked to CSV operator _correct_attn_cp_out_kernel.
     docs/npu/benchmark_select.md (root-owned) pending sync.'
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - D >= 1
+  - E >= 1
+  dtypes:
+    out: float32
+    lses: float32
+  dists:
+    out:
+      kind: randn
+    lses:
+      kind: randn
+  scalars:
+    cp_rank: cp_rank >= 0
+    is_lse_base_on_e: is_lse_base_on_e in [0, 1]
+  tensor_invariants: []

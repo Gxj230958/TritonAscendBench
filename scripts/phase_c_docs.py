@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""phase_c_docs.py — generate shapes.yaml + contract.md from oracles.
+"""phase_c_docs.py — scaffold-only generator for shapes.yaml + contract.md +
+meta.yaml ``param_constraints``.
 
-For every non-PoC working-reference task:
+For every non-PoC working-reference task this generator emits, from the
+oracle:
 
   shapes.yaml  — size-knob schema consumed by triton_ascend_bench.inputs:
     derive each oracle input's {dims,dtype,dist} from the run() body
@@ -10,10 +12,24 @@ For every non-PoC working-reference task:
 
   contract.md  — the authoritative spec is the oracle docstring (math +
     I/O + ORACLE-SCOPE). Surface it plus meta (tolerance, upstream),
-    a metamorphic-check stub, and the shape-coverage table.
+    a metamorphic-check stub, and the shape-coverage table. The
+    ``param_constraints`` block of ``meta.yaml`` is also mirrored here as
+    a human-readable constraint section, fenced by explicit markers and
+    rewritten in place on every run.
 
-Skips the 5 hand-curated PoCs and the 3 errata-scaffold tasks (their
-oracle is still a stub).
+For **all 100 tasks** (PoCs and stub-oracle tasks included) this generator
+also seeds a ``scaffold: true`` ``param_constraints`` skeleton into
+``meta.yaml`` — the operator input contract (WA.1 /
+``specs/task_api_contract.md §5.2``). The skeleton is merged into the
+existing ``meta.yaml`` without disturbing any other field; a task whose
+``param_constraints`` block already exists with ``scaffold: false`` (a
+human-reconciled block) is left untouched (the meta-skip path).
+
+The shapes.yaml / contract.md *body* is still skipped for the 5
+hand-curated PoCs and the stub-oracle tasks (their oracle is a stub); the
+``param_constraints`` seeding and the contract.md constraint-mirror refresh
+are **not** skipped for them — see WA.5 in
+``docs/plans/2026-05-21-operator-param-validity-impl.md``.
 """
 from __future__ import annotations
 
@@ -22,8 +38,10 @@ import ast
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 import yaml
+from loguru import logger
 
 REPO = Path(__file__).resolve().parent.parent
 TASKS = REPO / "tasks"
@@ -188,6 +206,14 @@ def _I(dims, dist="randint:0:2"):
 
 
 def _S(v):
+    """Non-tensor literal input spec.
+
+    A list literal is emitted under the ``scalar_seq`` key (WA.3 literal
+    schema); a JSON scalar stays under ``scalar``. The sidecar / validator
+    no longer accept a list under ``scalar``.
+    """
+    if isinstance(v, (list, tuple)):
+        return {"scalar_seq": list(v)}
     return {"scalar": v}
 
 
@@ -523,6 +549,288 @@ SHAPE_OVERRIDES: dict[str, dict] = {
 }
 
 
+# --------------------- param_constraints scaffold ---------------------
+
+# Marker pair fencing the contract.md constraint-mirror section. The
+# generator always rewrites the text between these two markers from the
+# current `meta.param_constraints`; everything outside is left untouched.
+_MIRROR_BEGIN = "<!-- param_constraints mirror: auto-generated -->"
+_MIRROR_END = "<!-- /param_constraints mirror -->"
+
+# Heading text the legacy hand-written constraint sections used. When a
+# contract.md has no mirror marker yet, a `## <heading>` block matching one
+# of these is replaced in place by the marker-fenced mirror (so the file
+# never carries two authoritative constraint sections).
+_LEGACY_CONSTRAINT_HEADINGS = ("Constraints", "Constraint")
+
+
+def _param_constraints_scaffold() -> dict[str, Any]:
+    """Return a fresh ``scaffold: true`` ``param_constraints`` skeleton.
+
+    The skeleton is schema-shape-valid (passes the WA.1 validator layer)
+    with the five constraint subsections empty / defaulted. ``scaffold:
+    true`` is the single sentinel the WA.4 validator / eval gate consult to
+    flag the block as not yet hand-reconciled.
+
+    Returns:
+        A new ``param_constraints`` mapping with ``scaffold: true`` and the
+        five empty constraint subsections.
+    """
+    return {
+        "scaffold": True,
+        "dims": [],
+        "dtypes": {},
+        "dists": {},
+        "scalars": {},
+        "tensor_invariants": [],
+    }
+
+
+def _is_reconciled(param_constraints: Any) -> bool:
+    """True when a ``param_constraints`` block is human-reconciled.
+
+    A block counts as reconciled — and therefore protected from the
+    generator's merge-write — only when it already exists and carries an
+    explicit ``scaffold == false``. A missing block, or one with ``scaffold
+    == true`` (or a missing / non-boolean ``scaffold``), is treated as an
+    un-reconciled draft eligible for (re-)seeding.
+
+    Args:
+        param_constraints: the raw ``meta.yaml.param_constraints`` value, or
+            ``None`` when the block is absent.
+
+    Returns:
+        ``True`` when the block must be left untouched (meta-skip path).
+    """
+    if not isinstance(param_constraints, dict):
+        return False
+    return param_constraints.get("scaffold") is False
+
+
+def _seed_meta_param_constraints(task_dir: Path, dry: bool) -> str:
+    """Merge a ``scaffold: true`` ``param_constraints`` skeleton into meta.yaml.
+
+    Only the ``param_constraints`` key is added / replaced; every other
+    ``meta.yaml`` field is preserved verbatim. A task whose
+    ``param_constraints`` block already exists with ``scaffold == false`` (a
+    human-reconciled block) is left untouched — the meta-skip path.
+
+    Args:
+        task_dir: the task directory containing ``meta.yaml``.
+        dry: when ``True`` no file is written; the would-be action is
+            reported instead.
+
+    Returns:
+        A short status token — ``meta-seeded`` (skeleton merged in),
+        ``meta-skip`` (reconciled block protected), or ``meta-dry-*``.
+    """
+    meta_path = task_dir / "meta.yaml"
+    meta = yaml.safe_load(meta_path.read_text()) or {}
+    existing = meta.get("param_constraints")
+    if _is_reconciled(existing):
+        return "meta-skip"
+    if dry:
+        return "meta-dry-seed"
+    meta["param_constraints"] = _param_constraints_scaffold()
+    meta_path.write_text(
+        yaml.safe_dump(meta, sort_keys=False, allow_unicode=True))
+    return "meta-seeded"
+
+
+def _render_constraint_mirror(param_constraints: Any) -> str:
+    """Render the ``param_constraints`` block as a human-readable section.
+
+    The returned text is the marker-fenced contract.md constraint mirror —
+    a pure derived rendering of ``meta.param_constraints`` (the single
+    authoritative source). It always starts with :data:`_MIRROR_BEGIN` and
+    ends with :data:`_MIRROR_END`.
+
+    Args:
+        param_constraints: the raw ``meta.yaml.param_constraints`` value, or
+            ``None`` when the block is absent.
+
+    Returns:
+        The marker-fenced markdown section (no trailing newline).
+    """
+    lines: list[str] = [_MIRROR_BEGIN, "", "## Constraints", ""]
+    lines.append(
+        "> Mirror of `meta.yaml.param_constraints` — `meta.yaml` is the "
+        "single authoritative source; this section is regenerated by "
+        "`scripts/phase_c_docs.py`.")
+    lines.append("")
+
+    pc = param_constraints if isinstance(param_constraints, dict) else None
+    if pc is None:
+        lines.append("_No `param_constraints` block in `meta.yaml`._")
+        lines.append("")
+        lines.append(_MIRROR_END)
+        return "\n".join(lines)
+
+    scaffold = pc.get("scaffold")
+    if scaffold is True:
+        lines.append(
+            "**Status:** `scaffold: true` — un-reconciled draft; the "
+            "constraint subsections below are placeholders pending the "
+            "WB.1 per-task reconcile.")
+    elif scaffold is False:
+        lines.append("**Status:** `scaffold: false` — hand-reconciled.")
+    else:
+        lines.append(f"**Status:** `scaffold: {scaffold!r}`.")
+    lines.append("")
+
+    dims = pc.get("dims")
+    lines.append("### Knob predicates (`dims`)")
+    lines.append("")
+    if dims:
+        for expr in dims:
+            lines.append(f"- `{expr}`")
+    else:
+        lines.append("_(none)_")
+    lines.append("")
+
+    dtypes = pc.get("dtypes")
+    lines.append("### Input dtypes (`dtypes`)")
+    lines.append("")
+    if dtypes:
+        for name, dt in dtypes.items():
+            lines.append(f"- `{name}`: `{dt}`")
+    else:
+        lines.append("_(none)_")
+    lines.append("")
+
+    dists = pc.get("dists")
+    lines.append("### Input distributions (`dists`)")
+    lines.append("")
+    if dists:
+        for name, spec in dists.items():
+            kind = spec.get("kind") if isinstance(spec, dict) else spec
+            args = spec.get("args") if isinstance(spec, dict) else None
+            suffix = f" — args `{args}`" if args else ""
+            lines.append(f"- `{name}`: `{kind}`{suffix}")
+    else:
+        lines.append("_(none)_")
+    lines.append("")
+
+    scalars = pc.get("scalars")
+    lines.append("### Scalar / scalar_seq constraints (`scalars`)")
+    lines.append("")
+    if scalars:
+        for name, rule in scalars.items():
+            if isinstance(rule, dict) and "derive" in rule:
+                lines.append(f"- `{name}`: derive `{rule['derive']}`")
+            else:
+                lines.append(f"- `{name}`: `{rule}`")
+    else:
+        lines.append("_(none)_")
+    lines.append("")
+
+    invariants = pc.get("tensor_invariants")
+    lines.append("### Tensor invariants (`tensor_invariants`)")
+    lines.append("")
+    if invariants:
+        for inv in invariants:
+            if isinstance(inv, dict):
+                args = inv.get("args") or {}
+                lines.append(f"- `{inv.get('type')}` — args `{args}`")
+            else:
+                lines.append(f"- `{inv}`")
+    else:
+        lines.append("_(none)_")
+    lines.append("")
+
+    lines.append(_MIRROR_END)
+    return "\n".join(lines)
+
+
+def _strip_legacy_constraint_section(text: str) -> str:
+    """Remove a legacy hand-written ``## Constraints`` section.
+
+    Used only when a contract.md has no mirror marker yet: the first
+    heading-2 block whose title is in :data:`_LEGACY_CONSTRAINT_HEADINGS` is
+    deleted so the marker-fenced mirror can take its place as the file's one
+    authoritative constraint section.
+
+    Args:
+        text: the full contract.md text.
+
+    Returns:
+        The text with any legacy constraint section removed.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i]
+        m = re.match(r"^##\s+(.+?)\s*$", line)
+        if m and m.group(1) in _LEGACY_CONSTRAINT_HEADINGS:
+            i += 1
+            while i < n and not re.match(r"^##\s+", lines[i]):
+                i += 1
+            # Drop a single trailing blank line left before the next heading.
+            while out and out[-1].strip() == "":
+                out.pop()
+            out.append("")
+            continue
+        out.append(line)
+        i += 1
+    return "\n".join(out)
+
+
+def _apply_constraint_mirror(contract_text: str, mirror: str) -> str:
+    """Splice the constraint mirror into a contract.md body.
+
+    If the body already carries a marker-fenced mirror section, that section
+    is rewritten in place. Otherwise the marker block is appended at end of
+    file — after first removing any legacy hand-written constraint section so
+    the file never holds two authoritative constraint sections.
+
+    Args:
+        contract_text: the full contract.md text (with or without a mirror).
+        mirror: the freshly rendered marker-fenced mirror section.
+
+    Returns:
+        The updated contract.md text.
+    """
+    begin = contract_text.find(_MIRROR_BEGIN)
+    end = contract_text.find(_MIRROR_END)
+    if begin != -1 and end != -1 and end > begin:
+        end += len(_MIRROR_END)
+        return contract_text[:begin] + mirror + contract_text[end:]
+    body = _strip_legacy_constraint_section(contract_text)
+    body = body.rstrip("\n")
+    return body + "\n\n" + mirror + "\n"
+
+
+def _refresh_contract_mirror(task_dir: Path, dry: bool) -> str:
+    """Rewrite the contract.md constraint mirror from current meta.yaml.
+
+    Always runs — even for a meta-skipped (reconciled) task — so the
+    contract.md mirror never lags behind ``meta.param_constraints``.
+
+    Args:
+        task_dir: the task directory.
+        dry: when ``True`` no file is written.
+
+    Returns:
+        A short status token describing the action taken.
+    """
+    contract_path = task_dir / "contract.md"
+    meta_path = task_dir / "meta.yaml"
+    if not contract_path.is_file() or not meta_path.is_file():
+        return "mirror-missing-files"
+    meta = yaml.safe_load(meta_path.read_text()) or {}
+    mirror = _render_constraint_mirror(meta.get("param_constraints"))
+    old_text = contract_path.read_text()
+    new_text = _apply_constraint_mirror(old_text, mirror)
+    if new_text == old_text:
+        return "mirror-unchanged"
+    if dry:
+        return "mirror-dry-rewrite"
+    contract_path.write_text(new_text)
+    return "mirror-rewritten"
+
+
 def _emit_shapes_yaml(inputs_spec: dict) -> str:
     doc = {
         "size_knobs": KNOB_DEFAULT,
@@ -597,7 +905,21 @@ Knob grid in `shapes.yaml`.
 """
 
 
-def process(task_dir: Path, dry: bool) -> str:
+def process_body(task_dir: Path, dry: bool) -> str:
+    """Regenerate the shapes.yaml + contract.md *body* for a task.
+
+    Skipped for the 5 hand-curated PoCs and stub-oracle tasks (their oracle
+    is a stub). The ``param_constraints`` seeding and the contract.md
+    constraint-mirror refresh are handled separately by
+    :func:`process_param_constraints` and run for **all** tasks.
+
+    Args:
+        task_dir: the task directory.
+        dry: when ``True`` no file is written.
+
+    Returns:
+        A short status token describing the action taken.
+    """
     tid = task_dir.name
     if tid in SKIP_POC:
         return "skip-poc"
@@ -653,25 +975,113 @@ def process(task_dir: Path, dry: bool) -> str:
     return f"wrote ({len(run_keys)} inputs)" + (" [MANUAL]" if manual_note else "")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--task")
-    args = ap.parse_args()
-    counts: dict[str, int] = {}
+def process_param_constraints(task_dir: Path, dry: bool) -> str:
+    """Seed the ``param_constraints`` skeleton + refresh the contract mirror.
+
+    Runs for **every** task — PoCs and stub-oracle tasks included — because
+    ``param_constraints`` is a required top-level ``meta.yaml`` key. The
+    ``meta.yaml`` write is meta-skipped for a human-reconciled block
+    (``scaffold == false``); the contract.md mirror is **always** rewritten
+    so it never lags behind ``meta.param_constraints``.
+
+    Args:
+        task_dir: the task directory.
+        dry: when ``True`` no file is written.
+
+    Returns:
+        A combined status string ``"<meta-token>/<mirror-token>"``.
+    """
+    meta_result = _seed_meta_param_constraints(task_dir, dry)
+    mirror_result = _refresh_contract_mirror(task_dir, dry)
+    return f"{meta_result}/{mirror_result}"
+
+
+def _iter_task_dirs(only: str | None = None):
+    """Yield the real (non-canary, non-PoC-namespace) task directories.
+
+    Walks ``level1`` / ``level2`` / ``level3`` in sorted order, skipping any
+    underscore-prefixed directory (``tasks/_canary/`` is excluded this way —
+    canary tasks are exempt from ``param_constraints``, see WA.1).
+
+    Args:
+        only: when given, yield only the task directory of that exact name.
+
+    Yields:
+        Each matching task directory as a :class:`~pathlib.Path`.
+    """
     for level in ("level1", "level2", "level3"):
         for d in sorted((TASKS / level).iterdir()):
             if not d.is_dir() or d.name.startswith("_"):
                 continue
-            if args.task and d.name != args.task:
+            if only and d.name != only:
                 continue
-            r = process(d, args.dry_run)
-            head = r.split(" ", 1)[0]
-            counts[head] = counts.get(head, 0) + 1
-            flag = {"wrote": "✓", "would-write": "·",
-                    "skip-poc": "·", "skip-stub": "—"}.get(head, "?")
-            print(f"  {flag} {d.name:55s} {r}")
-    print(f"\n== summary == {counts}")
+            yield d
+
+
+def refresh_mirror_only(dry: bool, only: str | None = None) -> dict[str, int]:
+    """Refresh **only** the contract.md ``param_constraints`` mirror sections.
+
+    This is the ``--refresh-mirror-only`` mode. It runs the marker-fenced
+    contract.md mirror rewrite (:func:`_refresh_contract_mirror`) for every
+    real task and touches nothing else — in particular it never calls
+    :func:`process_body` (which would rewrite ``shapes.yaml``) and never calls
+    :func:`_seed_meta_param_constraints` (which would write ``meta.yaml``). It
+    exists so a stale contract.md mirror can be re-synced to its already
+    reconciled ``meta.param_constraints`` without disturbing the WB.1 knob-grid
+    edits in ``shapes.yaml`` or any ``meta.yaml`` content.
+
+    Because the rewrite is a pure derived rendering of
+    ``meta.param_constraints``, re-running it on an already synced corpus is a
+    byte-stable no-op (every task reports ``mirror-unchanged``).
+
+    Args:
+        dry: when ``True`` no file is written; the would-be action is
+            reported instead.
+        only: when given, restrict the refresh to that single task directory.
+
+    Returns:
+        A mapping of mirror status token → count across the processed tasks.
+    """
+    counts: dict[str, int] = {}
+    for d in _iter_task_dirs(only):
+        token = _refresh_contract_mirror(d, dry)
+        counts[token] = counts.get(token, 0) + 1
+        flag = {"mirror-rewritten": "✓", "mirror-unchanged": "·",
+                "mirror-dry-rewrite": "·"}.get(token, "?")
+        logger.info(f"  {flag} {d.name:55s} mirror={token}")
+    logger.info(f"== contract-mirror refresh summary == {counts}")
+    return counts
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--task")
+    ap.add_argument(
+        "--refresh-mirror-only", action="store_true",
+        help="Only rewrite the contract.md param_constraints mirror section "
+             "from the current meta.param_constraints; never touch "
+             "shapes.yaml or meta.yaml.")
+    args = ap.parse_args()
+    if args.refresh_mirror_only:
+        refresh_mirror_only(args.dry_run, args.task)
+        return 0
+    body_counts: dict[str, int] = {}
+    pc_counts: dict[str, int] = {}
+    for d in _iter_task_dirs(args.task):
+        body = process_body(d, args.dry_run)
+        body_head = body.split(" ", 1)[0]
+        body_counts[body_head] = body_counts.get(body_head, 0) + 1
+        # param_constraints seeding + contract-mirror refresh — runs for
+        # every task (PoCs and stub-oracle tasks included).
+        pc = process_param_constraints(d, args.dry_run)
+        for token in pc.split("/"):
+            pc_counts[token] = pc_counts.get(token, 0) + 1
+        flag = {"wrote": "✓", "would-write": "·",
+                "skip-poc": "·", "skip-stub": "—"}.get(body_head, "?")
+        logger.info(f"  {flag} {d.name:55s} body={body}  pc={pc}")
+    logger.info(f"== body summary == {body_counts}")
+    logger.info(f"== param_constraints summary == {pc_counts}")
     return 0
 
 

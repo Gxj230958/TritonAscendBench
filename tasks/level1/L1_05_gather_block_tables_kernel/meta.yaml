@@ -58,3 +58,30 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-05
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Gathers rows of block_table [E, N] selected by idx_mapping [B] (each entry a valid row index into [0, E)). All int64.
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - N >= 1
+  - B >= 1
+  dtypes:
+    block_table: int64
+    idx_mapping: int64
+  dists:
+    block_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    idx_mapping:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+  scalars: {}
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: idx_mapping
+      value: E

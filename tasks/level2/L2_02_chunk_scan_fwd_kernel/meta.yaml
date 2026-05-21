@@ -58,3 +58,38 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-02
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Mamba2 chunk-scan forward: the intra-chunk attention cb [B, L, L] (lower-triangular), inputs x / z [B, L, Dv], timestep dt / decay dA_cumsum [B, L], C [B, L, B], carried states [B, B, Dv], skip D [Dv]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - Dv >= 1
+  dtypes:
+    cb: float32
+    x: float32
+    dt: float32
+    dA_cumsum: float32
+    C: float32
+    states: float32
+    D: float32
+    z: float32
+  dists:
+    cb:
+      kind: tril
+    x:
+      kind: randn
+    dt:
+      kind: randn
+    dA_cumsum:
+      kind: randn
+    C:
+      kind: randn
+    states:
+      kind: randn
+    D:
+      kind: randn
+    z:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []

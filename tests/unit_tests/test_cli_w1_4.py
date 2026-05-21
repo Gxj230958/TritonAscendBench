@@ -14,7 +14,10 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
-_TASK = "L1_01_bias_kernel"
+# WA.4: use a RECONCILED task (`param_constraints.scaffold: false`,
+# semantically clean) so its repo-authoritative `task_status` is genuinely
+# "evaluated" — a `scaffold: true` corpus task is "blocked" by the WA.4 gate.
+_TASK = "L1_16_silu_and_mul"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 
@@ -164,15 +167,18 @@ def test_analyze_consumes_real_s_t(tmp_path):
     """analyze assembles the perf metric from the real per-task `s_t`,
     not the removed `measured_ns=1.0` shim. Two eligible tasks with
     s_t = 0.5 and s_t = 2.0 -> capped_geomean_native = geomean = 1.0."""
+    # WA.4: use the two RECONCILED corpus tasks (`param_constraints.
+    # scaffold: false`) so their repo-authoritative `task_status` is
+    # genuinely "evaluated" — a scaffold corpus task is "blocked".
     verified = {
         "mode": "verified",
         "results": [
-            {"task_id": "L1_01_bias_kernel",
+            {"task_id": "L1_16_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
              "aggregate_score": 0.5, "s_t": 0.5, "task_status": "evaluated"},
-            {"task_id": "L1_02_compute_slot_mappings_kernel",
+            {"task_id": "L1_12_rms_norm_kernel",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -206,7 +212,8 @@ def test_analyze_skips_non_evaluated_tasks(tmp_path):
     verified = {
         "mode": "self-reported",
         "results": [
-            {"task_id": "L1_01_bias_kernel",
+            # WA.4: a RECONCILED non-upstream task — genuinely "evaluated".
+            {"task_id": "L1_16_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,

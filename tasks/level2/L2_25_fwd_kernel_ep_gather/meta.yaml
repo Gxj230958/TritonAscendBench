@@ -58,3 +58,26 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-25
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). EP gather: rows of input_tensor [n_tokens, D] gathered by input_index [n_tokens] (each a valid row index in [0, B)).
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  dtypes:
+    input_tensor: float32
+    input_index: int64
+  dists:
+    input_tensor:
+      kind: randn
+    input_index:
+      kind: randint
+      args:
+        lo: '0'
+        hi: B
+  scalars: {}
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: input_index
+      value: B

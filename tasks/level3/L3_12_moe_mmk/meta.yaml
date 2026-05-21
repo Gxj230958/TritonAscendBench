@@ -58,3 +58,31 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-12
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). MoE matmul-K inner kernel: per-expert a [E, T, D] @ b^T [E, N, D] over each expert's expert_num_tokens [E] (token count in [0, T]). fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - T >= 1
+  - D >= 1
+  - N >= 1
+  dtypes:
+    a: float32
+    b: float32
+    expert_num_tokens: int64
+  dists:
+    a:
+      kind: randn
+    b:
+      kind: randn
+    expert_num_tokens:
+      kind: randint
+      args:
+        lo: '0'
+        hi: T
+  scalars: {}
+  tensor_invariants:
+  - type: bounded_above_by
+    args:
+      input: expert_num_tokens
+      value: T

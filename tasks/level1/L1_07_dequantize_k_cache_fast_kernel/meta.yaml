@@ -58,3 +58,24 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-07
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Dequantises the K cache: nope_q [B, D] with per-group scales nope_s [B, D/group_size] is dequantised; rope [B, D] is passed through. group_size is fixed at 8 ⇒ D % 8 == 0. Scales are positive (uniform).
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - D >= 8
+  - B >= 1
+  dtypes:
+    nope_q: float32
+    nope_s: float32
+    rope: float32
+  dists:
+    nope_q:
+      kind: randn
+    nope_s:
+      kind: rand
+    rope:
+      kind: randn
+  scalars:
+    group_size: group_size == 8
+  tensor_invariants: []

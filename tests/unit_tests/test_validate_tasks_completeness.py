@@ -92,6 +92,15 @@ def _write_task(
             "flops": "B*N", "flops_class": "vector",
             "bytes": "B*N", "bytes_resource": "hbm",
         },
+        # WA.1/WA.4: `param_constraints` is a required top-level meta key.
+        # Use a reconciled (`scaffold: false`) schema-closed block: WA.4's
+        # semantic gate rejects `scaffold: true`, and R4-1 requires all five
+        # semantic subsections (empty containers here). These fixtures are
+        # not testing param_constraints itself — its own checks live in
+        # test_validate_tasks_param_constraints.py and the WA.4 suite.
+        "param_constraints": {"scaffold": False, "dims": [], "dtypes": {},
+                              "dists": {}, "scalars": {},
+                              "tensor_invariants": []},
     }
     if phase_a_prime is not None:
         meta["phase_a_prime"] = phase_a_prime

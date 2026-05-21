@@ -15,7 +15,7 @@ upstream:
   file_sha256: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
   function_hash: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L2_20_causal_conv1d_update_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,3 +58,25 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-20
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  dtypes:
+    x: float32
+    conv_state: float32
+    weight: float32
+    bias: float32
+  dists:
+    x:
+      kind: randn
+    conv_state:
+      kind: randn
+    weight:
+      kind: randn
+    bias:
+      kind: randn
+  scalars:
+    activation: activation in ['silu', 'swish', 'none']
+  tensor_invariants: []

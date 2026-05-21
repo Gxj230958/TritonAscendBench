@@ -58,3 +58,63 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-24
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Speculative-decoding rejection sampler. draft_token_ids / recovered_token_ids [E*2] are vocab ids; cu_num_draft_tokens [E] is the per-request cumulative draft-token count materialised as a non-leading-zero `cumcount` vector (element r = running count through request r, final element == E*2); draft_probs / target_probs [E*2, N] are row-stochastic (softmax_rows); uniform_probs [E*2] the acceptance randoms; is_greedy [E] the per-request greedy flag.
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - N >= 1
+  dtypes:
+    draft_token_ids: int64
+    cu_num_draft_tokens: int64
+    draft_probs: float32
+    target_probs: float32
+    bonus_token_ids: int64
+    recovered_token_ids: int64
+    uniform_probs: float32
+    is_greedy: int64
+  dists:
+    draft_token_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    cu_num_draft_tokens:
+      kind: cumcount
+      args:
+        to: E*2
+    draft_probs:
+      kind: softmax_rows
+    target_probs:
+      kind: softmax_rows
+    bonus_token_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    recovered_token_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    uniform_probs:
+      kind: rand
+    is_greedy:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '2'
+  scalars:
+    max_spec_len: max_spec_len >= 2
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_num_draft_tokens
+  - type: last_eq
+    args:
+      input: cu_num_draft_tokens
+      value: E*2
+  - type: length_eq
+    args:
+      input: cu_num_draft_tokens
+      value: E

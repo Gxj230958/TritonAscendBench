@@ -58,3 +58,19 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-32
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Elementwise residual combine of the MoE and MLP expert outputs; both are [n_tokens, hidden]=[B, D] and must share shape. fp32 randn.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  dtypes:
+    moe_hidden_states: float32
+    mlp_hidden_states: float32
+  dists:
+    moe_hidden_states:
+      kind: randn
+    mlp_hidden_states:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []

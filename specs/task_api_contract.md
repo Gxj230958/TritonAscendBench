@@ -187,21 +187,24 @@ same parameterisation as `shapes.yaml` (`B` / `L` / `D` / …) plus a fixed set
 of *derived symbols* — currently `dtype_size` (element size in bytes of the
 task's primary dtype). At scoring time `eval.py` derives the **representative
 `dtype_size`** as the byte width of the **first declared tensor input** in
-`shapes.yaml.inputs` (declaration order, skipping `scalar` / `scalar_knob`
-entries) — e.g. a `float32` primary operand gives `dtype_size = 4`, `int64`
+`shapes.yaml.inputs` (declaration order, skipping the non-tensor forms
+`scalar` / `derive` / `scalar_seq` / `scalar_knob` which have no element
+size) — e.g. a `float32` primary operand gives `dtype_size = 4`, `int64`
 gives `8`. A scalar-only `inputs` block has no tensor element size, so the
 fp16 default (`2.0`) is used. Per-input precise handling for genuinely
 mixed-dtype tasks is a W3.1 long-tail item; until then this single
 representative value feeds every `flops` / `bytes` formula. The validator
 evaluates formulas with the fp16 default `dtype_size` — it only confirms a
-formula *parses and evaluates*, not its numeric value. The shared evaluator
-(`triton_ascend_bench/cost_model.py`) defines exactly which derived symbols
-exist and is reused verbatim by `dataset.py`, `validate_tasks.py` and the W4.2
-GPU cross-check, so the symbol set never drifts. Allowed: `+ - * / // ** %`,
-unary `+` / `-`, numeric literals, knob/derived names, and `min` / `max` /
-`ceil` / `floor` calls. Anything else (attribute access, subscripts,
-comprehensions, unknown names) is rejected — formulas are evaluated through an
-AST whitelist, never `eval()`.
+formula *parses and evaluates*, not its numeric value. `cost_model.py` defines
+exactly which derived symbols exist and is reused verbatim by `dataset.py`,
+`validate_tasks.py` and the W4.2 GPU cross-check, so the symbol set never
+drifts. The arithmetic safety core itself lives in
+`triton_ascend_bench/expr.py` (WA.2): `cost_model` formula evaluation is the
+`eval_numeric` entrypoint of that shared AST-whitelist evaluator. Allowed in
+numeric mode: `+ - * / // ** %`, unary `+` / `-`, numeric literals,
+knob/derived names, and `min` / `max` / `ceil` / `floor` / `sqrt` calls.
+Anything else (attribute access, subscripts, comprehensions, unknown names) is
+rejected — formulas are evaluated through an AST whitelist, never `eval()`.
 
 **`cost_model` presence — layered (loader lenient, validator strict).** The
 two consumers treat a missing `cost_model` block differently *by design*:
@@ -220,6 +223,258 @@ two consumers treat a missing `cost_model` block differently *by design*:
 In short: a missing `cost_model` is *not an error to load* but *is an error to
 release*. When the block is present it is validated strictly by both.
 
+### 5.2 `param_constraints` schema (operator input contract)
+
+`meta.yaml.param_constraints` declares the operator's **full input contract**
+in machine-checkable form — tensor dimensions, dtypes, value distributions,
+non-tensor literals, and cross-tensor invariants. It exists so a benchmark
+task can no longer ship with mechanical placeholder parameters that either
+fail to run or, worse, evaluate the oracle and the candidate at a meaningless
+parameter point where both spuriously "pass" (`docs/plans/2026-05-21-operator-param-validity-impl.md`).
+
+`param_constraints` has **six subsections**:
+
+| subsection | object | form |
+|-----------|--------|------|
+| `dims` | size-knob integers | list of **predicate** expression strings |
+| `dtypes` | each tensor `inputs.*` | `{input_name: dtype_enum}` |
+| `dists` | each tensor `inputs.*` | `{input_name: {kind, args}}` |
+| `scalars` | non-tensor literals (`scalar` / `scalar_seq`) | `{name: predicate-or-derive}` |
+| `tensor_invariants` | materialised tensors | list of `{type, args}` |
+| `scaffold` | the block itself | bool — `true` = un-reconciled draft |
+
+#### `dims` — knob constraint predicates
+
+A list of predicate expression strings over the `shapes.yaml` size knobs.
+Each string is a boolean expression evaluated against every public / hidden
+knob row. Examples:
+
+```yaml
+dims:
+  - "D in [16, 32, 64, 128]"   # closed knob set
+  - "H % G == 0"               # divisibility (constexpr-derived)
+  - "is_pow2(D)"               # power-of-two head dim
+  - "L >= 16"                  # lower bound (BLOCK_SIZE tile floor)
+```
+
+These cover the constraints a kernel's `tl.constexpr` / `BLOCK_SIZE` impose
+on the knob universe. The evaluator (the WA.2 shared `eval_predicate`
+entrypoint) supports comparisons (`== != < <= > >=`), boolean operators
+(`and or not`), `in`, list / tuple literals, and the predicate helpers
+`is_pow2` / `gcd` / `sqrt` / `len` / `sum`. WA.1 only validates the *shape*
+of this subsection (that it is a list of strings); semantic evaluation is
+WA.4.
+
+#### `dtypes` — per-input dtype constraint
+
+A `{input_name: dtype}` map; one entry per tensor input declared in
+`shapes.yaml.inputs`. The value is a **closed enum** — the keys of the
+`build_inputs` dtype alias table (`triton_ascend_bench/inputs.py`), which is
+the **single authority** for the legal dtype set:
+
+```
+float32  float16  bfloat16  bf16  fp16  fp32
+int8  int32  int64  long  bool  float8_e4m3fn
+```
+
+`validate_tasks` and `build_inputs` share this one table, so an unknown
+dtype string (a typo) is statically rejected rather than silently falling
+back to `float32`. Example:
+
+```yaml
+dtypes:
+  x: float32
+  a: int8        # W8A8 quantised activation
+```
+
+#### `dists` — per-input distribution constraint
+
+A `{input_name: {kind, args}}` map declaring the distribution each tensor
+input must be materialised with. `kind` is a value from the **dist-kind
+table** below; `args` is a (possibly empty) map of structured arguments.
+This statically rejects a *wrong-but-supported* distribution — e.g. an
+input that must be a row-stochastic `softmax_rows` matrix declared as plain
+`randn`.
+
+```yaml
+dists:
+  q:          {kind: randn}
+  probs:      {kind: softmax_rows}
+  seqused_k:  {kind: randint, args: {lo: 0, hi: "L"}}
+```
+
+**Representation bridge.** `shapes.yaml.inputs.*.dist` keeps its existing
+string DSL form (`randint:0:E`, `offsets:to=B*L`, `full:expr`); the
+`param_constraints.dists` block uses the structured `{kind, args}` form.
+The two are reconciled through a single shared `parse_dist_spec` normaliser
+(`triton_ascend_bench/inputs.py`, WA.3 — string DSL ⇄ `{kind, args}`) so
+there is no duplicated parsing or drift: `build_inputs` materialisation, the
+`validate_tasks` dist check (WA.4) and the generators all route through it.
+The string DSL stays the authoritative `shapes.yaml` authoring form and is
+not migrated.
+
+**dist-kind table** (the closed `kind` enum, bound to the `build_inputs`
+distribution vocabulary):
+
+| kind | meaning | `args` |
+|------|---------|--------|
+| `randn` | standard normal | — |
+| `rand` | uniform `[0, 1)` | — |
+| `ones` | constant 1 | — |
+| `zeros` | constant 0 | — |
+| `eye` | identity matrix | — |
+| `tril` | well-conditioned lower-triangular | — |
+| `randint` | uniform integers | `lo`, `hi` (knob exprs) |
+| `softmax_rows` | row-stochastic (softmax over last dim) | — |
+| `offsets` | monotonic **leading-zero** indptr int64 vector (`[0] == 0`, total in `[-1]`) | `step` *or* `to` (knob expr) |
+| `cumcount` | monotonic **non-leading-zero** cumulative count int64 vector (element `r` = running count through segment `r`, total in `[-1]`) | `to` (knob expr) |
+| `arange` | `0 .. n-1` int64 | — |
+| `full` | constant-filled int64 | `value` (knob expr) |
+
+#### `scalars` — non-tensor literal constraint
+
+Constraints on the **non-tensor literal** inputs — `shapes.yaml.inputs`
+entries declared with a `scalar` key (a single JSON scalar) or a
+`scalar_seq` key (a list literal). Each entry is either:
+
+- a **value-domain predicate** — a Python-compatible boolean expression
+  (chained comparisons allowed) over the literal's name **and the
+  `shapes.yaml` size knobs**, e.g. `"0 < eps <= 1e-2"` or the
+  knob-referencing `"sum(mrope_section) == D // 2"`. (Python-parseable form
+  only — *not* the mathematical interval notation `(0, 1e-2]`.) The
+  predicate is evaluated against a symbol table that merges the shape row's
+  knobs with the literal's own name, mirroring the `dims` predicate
+  evaluation; the literal name wins on a knob/name clash.
+- a **derive rule** — see WA.3 (`{derive: "1/sqrt(D)"}`). A derive rule is
+  reconciled against `shapes.yaml.inputs[name]`: that input must itself be a
+  `derive` form and carry a structurally equivalent formula. A task may not
+  declare `scale: {derive: "1/sqrt(D)"}` while `shapes.yaml` pins `scale` to
+  a fixed `{scalar: 0.125}` — the validator rejects the mismatch.
+
+`scalar_seq` predicates may use `len()`, `sum()` and **constant-integer
+indexing** (`block_size[0] == 8`, `mrope_section[-1] == 2`), so a list
+literal is itself brought into the machine-checkable contract. Indexing
+accepts only a constant integer literal (negative indices allowed); a slice
+or a non-constant index is rejected, and an out-of-range index is a
+validation error.
+
+```yaml
+scalars:
+  eps:           "0 < eps <= 1e-2"
+  mrope_section: "sum(mrope_section) == D // 2"   # scalar_seq, knob-referencing
+  block_size:    "len(block_size) == 2 and block_size[0] == 8"  # scalar_seq, indexed
+```
+
+**`shapes.yaml.inputs` non-tensor forms (WA.3).** The materialisation layer
+(`triton_ascend_bench/inputs.py`) declares a non-tensor input with exactly
+one of these keys; the value type is **schema-fixed**:
+
+| key | meaning | value |
+|-----|---------|-------|
+| `scalar` | a literal constant | a single JSON scalar (`bool`/`int`/`float`/`str`/`None`) |
+| `derive` | a per-shape-row derived scalar | a numeric knob expression string, e.g. `"1/sqrt(D)"`; `build_inputs` evaluates it through `eval_numeric` against the shape row's knobs |
+| `scalar_seq` | a literal list | a list of JSON scalars (e.g. `L2_10` `block_size`, `L1_31` `mrope_section`) |
+| `scalar_knob` | a derived integer | an integer-valued knob expression string (legacy form) |
+
+A `scalar` / `derive` value **must** be a JSON scalar — it crosses the W1.0
+sidecar IPC type boundary, which carries no pickle. A list literal therefore
+*may not* be authored under `scalar`; it uses the dedicated `scalar_seq`
+key, which the IPC sidecar carries as a JSON array. `build_inputs` rejects a
+non-JSON-scalar `scalar` / `derive` value with a `TypeError`.
+
+#### `tensor_invariants` — materialised-tensor invariants
+
+A list of `{type, args}` entries, each an **enumerated** invariant checked
+against the materialised (post-`build_inputs`) tensors. `type` is a value
+from the closed set below; `args` carries the per-type parameters. These
+express contracts a knob expression cannot — e.g. `cu_seqlens` must be
+monotonic, `len(seqused_k)` must equal a knob.
+
+**Enumerated invariant type table:**
+
+| `type` | meaning | `args` |
+|--------|---------|--------|
+| `monotonic_nondecreasing` | values are non-decreasing along the last axis | `input` |
+| `first_eq` | first element equals a value | `input`, `value` (knob expr) |
+| `last_eq` | last element equals a value | `input`, `value` (knob expr) |
+| `length_eq` | `len(input)` equals a knob expression | `input`, `value` (knob expr) |
+| `bounded_above_by` | every element `<=` a bound | `input`, `value` (knob expr) |
+| `index_in_range` | every element is a valid index into `[0, value)` | `input`, `value` (knob expr) |
+
+```yaml
+tensor_invariants:
+  - {type: monotonic_nondecreasing, args: {input: cu_seqlens}}
+  - {type: first_eq,  args: {input: cu_seqlens, value: 0}}
+  - {type: length_eq, args: {input: seqused_k, value: "E"}}
+```
+
+#### `scaffold` — un-reconciled-draft sentinel
+
+An explicit boolean field. `scaffold: true` marks a `param_constraints`
+block that was emitted by the `phase_c_docs` scaffold generator and **not
+yet manually reconciled** against the operator's real contract. It is the
+**single shared sentinel** consulted by the generator, the validator, and
+the eval gate (WA.4 / WA.5) — an explicit schema field replacing the older
+implicit text markers, so no component drifts. `scaffold` does **not**
+participate in score-eligibility (the score-eligible denominator looks only
+at stub / `PHASE-C-MANUAL`) — a `scaffold` task is `blocked` and stays in
+the fixed denominator, never dropped from it.
+
+#### `param_constraints` as a `task_status` gate (WA.4)
+
+Beyond the validator, `param_constraints` is an **eval gate**: a task whose
+block is missing / `scaffold: true` / schema-illegal / semantically violated
+is `task_status = "blocked"`. The verdict is decided by the single
+repo-authoritative arbiter `cli analyze`'s `_authoritative_task_status`
+(mirrored by `eval.evaluate`, both via the shared
+`param_constraints.resolve_task_status`) under a fixed priority:
+
+1. `is_canary: true` ⇒ `evaluated` (exempt from the `param_constraints` gate);
+2. self-reported-mode `upstream_oracle_required` ⇒ `unsupported` (W4.3 — the
+   `param_constraints` gate does **not** pull it back into the denominator);
+3. verified-mode incomplete offline `golden/` ⇒ `blocked` (W4.3 — priority
+   over the `param_constraints` gate);
+4. `param_constraints` fails the shared helper ⇒ `blocked` — the task stays
+   in the **fixed** score-eligible denominator and is scored as ε (it is
+   **not** dropped from the set; dropping it would be a subset-escape);
+5. otherwise ⇒ `evaluated`.
+
+A `blocked` `param_constraints` task therefore behaves exactly like a
+Roofline-data-incomplete one: it stays in `|S|` and counts as a failure. It
+does **not** change the score-eligible set itself (still `stub` /
+`PHASE-C-MANUAL` only).
+
+#### `param_constraints` presence — layered (loader lenient, validator strict)
+
+Like `cost_model` (§5.1), the two consumers treat `param_constraints`
+differently *by design* — but the loader is **more** lenient here:
+
+- **Dataset loader (`dataset.py`)** — *fully lenient*. `TaskDef.param_constraints`
+  is a `dict | None` field defaulting to `None`. A missing block yields
+  `None`. A **malformed** block (illegal schema, bad constraint expression)
+  is kept **verbatim as the raw dict** — the loader does **not** validate
+  or raise. This deliberately differs from `cost_model`, which eager-parses
+  and raises on a malformed block: a malformed `param_constraints` must be
+  allowed to load so it can reach the `task_status = blocked` gate (WA.4)
+  rather than crash inside `load_task`. The loader stores the raw dict; it
+  never builds a structured object.
+- **Task validator (`scripts/validate_tasks.py`)** — *strict*.
+  `param_constraints` is a **required** top-level `meta.yaml` key; a missing
+  block is a hard validation error. The WA.1 validator layer checks only
+  the **schema shape** (the six subsections exist and have the right
+  container types); the five-subsection *semantic* checks are WA.4. The
+  red→green transition for the 100-task corpus is carried by the validator
+  (WB.1 backfills every task), never by the loader.
+
+**`is_canary` exemption.** A task with `is_canary: true` is **not** required
+to carry `param_constraints` — a canary reuses its source task's solution,
+is a deliberately-crafted trap, and is never score-eligible. `validate_tasks`
+(and the WA.4 eval gate) skip the `param_constraints` requirement for any
+`is_canary` task so the canary detection chain is not sealed shut.
+
+In short: a missing or malformed `param_constraints` is *not an error to
+load* but *is an error to release*.
+
 ## 6. Authority + Cross-File Consistency
 
 - `meta.yaml` is **source of truth** for all machine-readable fields.
@@ -233,6 +488,7 @@ release*. When the block is present it is validated strictly by both.
 `python scripts/validate_tasks.py` (per-task schema / hash validation; `--release-gate` runs the S6 gate) checks:
 - All 5 files present (`kernel.py` / `oracle_pytorch.py` / `meta.yaml` / `shapes.yaml` / `contract.md`)
 - `meta.yaml` matches schema; the top-level `cost_model` key is **required** (R1-4) — a missing block is a hard error. `cost_model.{flops,bytes}` (scalar or map form) parse under the shared evaluator and every formula evaluates against the task's `shapes.yaml` knob universe (§5.1). (The dataset *loader* stays lenient — a missing block yields `TaskDef.cost_model = None`; only the validator enforces presence. See §5.1.)
+- the top-level `param_constraints` key is **required** (WA.1) — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (WA.1 — the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (WA.4 — `dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `triton_ascend_bench.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)
 - `kernel.py` has at least one `@triton.jit` and exports the resolved upstream entrypoint (`meta.yaml.oracle.gpu_triton`)
 - `oracle_pytorch.py` exports `run`
 - `contract.md` references match `meta.yaml`

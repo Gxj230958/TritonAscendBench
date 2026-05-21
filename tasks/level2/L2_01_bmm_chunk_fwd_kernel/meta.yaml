@@ -15,7 +15,7 @@ upstream:
   file_sha256: cfe0011509b25ada9437a312ea3f9988d0ca68b8ffc453fa8368b66aa0c9e435
   function_hash: cfe0011509b25ada9437a312ea3f9988d0ca68b8ffc453fa8368b66aa0c9e435
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L2_01_bmm_chunk_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -58,3 +58,33 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-01
+param_constraints:
+  scaffold: false
+  dims:
+  - C >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    a: float32
+    b: float32
+    cu_chunk_seqlens: int64
+  dists:
+    a:
+      kind: randn
+    b:
+      kind: randn
+    cu_chunk_seqlens:
+      kind: offsets
+      args:
+        to: C*4
+  scalars:
+    chunk_size: chunk_size >= 1
+    causal: causal in [0, 1]
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_chunk_seqlens
+  - type: first_eq
+    args:
+      input: cu_chunk_seqlens
+      value: 0

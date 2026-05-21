@@ -1,4 +1,13 @@
-# Placeholder shape coverage for L1_21_gumbel_sample_kernel (SCAFFOLD).
+# PHASE-C-MANUAL: L1_21_gumbel_sample_kernel cannot be reconciled in WB.1.
+# oracle_pytorch.run is an unimplemented NotImplementedError stub, the kernel
+# entrypoint is unresolved (meta.oracle.gpu_triton: kernel.py::placeholder),
+# and this shapes.yaml is a non-executable placeholder with no size_knobs /
+# inputs block. The operator (vLLM _gumbel_sample_kernel) is a multi-stage
+# RNG + block-argmax sampler over 13 tensor args; deriving a faithful input
+# contract requires first authoring the oracle and GPU-verifying the chunked
+# RNG semantics — out of WB.1 scope. param_constraints stays scaffold:true
+# (genuinely un-reconciled). Non-score-eligible via the stub-oracle path
+# (eligibility.is_score_eligible). Hand-author inputs before enabling.
 #
 # TODO(scaffold): the `kernel.py` body is a no-op. Once the real kernel is
 # frozen, replace these dummy shapes with the upstream coverage suite

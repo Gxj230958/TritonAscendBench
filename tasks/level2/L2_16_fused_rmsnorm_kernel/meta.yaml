@@ -15,7 +15,7 @@ upstream:
   file_sha256: aae0166945daf3b77f5f616ba8b437ce7e6e4b7ae3e4bb35a45495407ad8f9a0
   function_hash: aae0166945daf3b77f5f616ba8b437ce7e6e4b7ae3e4bb35a45495407ad8f9a0
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
   vendored_snapshot: tasks/_vendored/L2_16_fused_rmsnorm_kernel_409d350.py
 interface:
   alias_map: {}
@@ -58,3 +58,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-16
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 2
+  - B >= 1
+  dtypes:
+    x: float32
+    residual: float32
+    weight: float32
+  dists:
+    x:
+      kind: randn
+    residual:
+      kind: randn
+    weight:
+      kind: randn
+  scalars:
+    eps: 0 < eps <= 1e-2
+  tensor_invariants: []

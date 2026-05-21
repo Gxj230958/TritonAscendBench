@@ -62,3 +62,18 @@ provenance:
     had no freezable upstream (non-existent/merged/no-public-source); re-tasked to
     CSV operator _act_quant_kernel. docs/npu/benchmark_select.md (root-owned) pending
     sync.'
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Block-wise activation fp8 quantisation: x [B, D] is tiled into blocks of block_size along D, each block scaled to the fp8 dynamic range. block_size is fixed at 8 here, so D must be a multiple of 8.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - D >= 8
+  - B >= 1
+  dtypes:
+    x: float32
+  dists:
+    x:
+      kind: randn
+  scalars:
+    block_size: block_size == 8
+  tensor_invariants: []

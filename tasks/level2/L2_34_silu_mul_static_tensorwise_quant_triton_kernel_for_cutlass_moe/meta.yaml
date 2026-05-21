@@ -58,3 +58,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-34
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SiLU-gated mul followed by static per-tensor int8 quant. input [n_tokens, D] is split on the last axis into gate/value halves (D must be even); scale [1] is the per-tensor quant scale (positive).
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 2 == 0
+  - D >= 2
+  - B >= 1
+  dtypes:
+    input: float32
+    scale: float32
+  dists:
+    input:
+      kind: randn
+    scale:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

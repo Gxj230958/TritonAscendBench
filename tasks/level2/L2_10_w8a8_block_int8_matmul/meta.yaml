@@ -74,3 +74,35 @@ provenance:
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). W8A8 block-quantised int8 matmul: A [B, D] @ B^T [N, D] with per-block scale tensors As [B, D/8] / Bs [N/8, D/8]. block_size = [block_n, block_k]; the //8 scale-tensor layout pins block_n == 8 and block_k == 8 exactly (kernel.py:106,111-112 assert cdiv(K,block_k)==As.cols and cdiv(N,block_n)==Bs.rows). D % 8 == 0 / N % 8 == 0.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - N % 8 == 0
+  - D >= 8
+  - N >= 8
+  - B >= 1
+  dtypes:
+    A: int8
+    B: int8
+    As: float32
+    Bs: float32
+  dists:
+    A:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '8'
+    B:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '8'
+    As:
+      kind: rand
+    Bs:
+      kind: rand
+  scalars:
+    block_size: len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 8
+  tensor_invariants: []

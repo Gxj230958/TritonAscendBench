@@ -58,3 +58,17 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-22
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Per-chunk local cumulative sum of g [L, D] along the sequence axis. reverse selects suffix cumsum; it is driven by the per-row REV knob (0/1) so both the prefix-cumsum and suffix-cumsum oracle branches are exercised across shape rows (the fixed scalar:false scaffold value left the reverse branch untested; WB.1 knob fix). g uses randn (the `ones` scaffold dist was a degenerate cumsum test point; WB.1 dist fix).
+param_constraints:
+  scaffold: false
+  dims:
+  - L >= 1
+  - D >= 1
+  dtypes:
+    g: float32
+  dists:
+    g:
+      kind: randn
+  scalars:
+    reverse: reverse in [0, 1]
+  tensor_invariants: []

@@ -39,15 +39,23 @@ parsed with :mod:`ast` and walked through an arithmetic whitelist (``+ - * /
 ** //``, unary ``+`` / ``-``, numeric literals, whitelisted names, whitelisted
 calls). Anything else (attribute access, subscripts, comprehensions, unknown
 names, …) raises :class:`CostModelError`.
+
+The AST-whitelist safety core was extracted to :mod:`triton_ascend_bench.expr`
+by WA.2 so the numeric path and the ``param_constraints`` predicate path share
+one evaluator. ``cost_model`` keeps the public surface below
+(:class:`FormulaEnv` / :func:`evaluate_formula` / :func:`parse_cost_model` /
+:class:`CostModelError`) unchanged and is layered on :func:`expr.eval_numeric`
+— the W1.2 numeric contract (values, signatures, exception behaviour) is
+preserved exactly.
 """
 from __future__ import annotations
 
-import ast
 import logging
-import operator
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
+
+from triton_ascend_bench.expr import ExprError, check_expr_syntax, eval_numeric
 
 logger = logging.getLogger(__name__)
 
@@ -73,16 +81,6 @@ DERIVED_SYMBOL_DEFAULTS: dict[str, float] = {
     "dtype_size": 2.0,
 }
 
-#: Whitelisted callables a formula may invoke (``min(...)``, ``max(...)``,
-#: ``ceil(...)`` cover the realistic cost-model needs without opening the door
-#: to arbitrary attribute/builtin access).
-_HELPERS: dict[str, Callable[..., float]] = {
-    "min": min,
-    "max": max,
-    "ceil": lambda x: float(__import__("math").ceil(x)),
-    "floor": lambda x: float(__import__("math").floor(x)),
-}
-
 #: Compute classes a scalar-form ``flops_class`` may name — the
 #: ``peak_table_910b.toml`` compute classes (kept here as the schema-level
 #: allowed set so ``cost_model`` validation does not need the TOML file).
@@ -92,25 +90,16 @@ VALID_FLOPS_CLASSES: frozenset[str] = frozenset(
 #: Resources a scalar-form ``bytes_resource`` may name.
 VALID_BYTES_RESOURCES: frozenset[str] = frozenset({"hbm", "interconnect"})
 
-# Binary / unary operators allowed in a formula AST.
-_BIN_OPS: dict[type, Callable[[Any, Any], Any]] = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.FloorDiv: operator.floordiv,
-    ast.Pow: operator.pow,
-    ast.Mod: operator.mod,
-}
-_UNARY_OPS: dict[type, Callable[[Any], Any]] = {
-    ast.UAdd: operator.pos,
-    ast.USub: operator.neg,
-}
 
-
-class CostModelError(ValueError):
+class CostModelError(ExprError):
     """Raised on a malformed ``cost_model`` block or an unparseable /
-    unevaluable cost-model formula."""
+    unevaluable cost-model formula.
+
+    Subclasses :class:`triton_ascend_bench.expr.ExprError` (WA.2): the
+    AST-whitelist safety core raises ``ExprError``, and the cost-model layer
+    re-raises it as ``CostModelError`` so the W1.2 exception contract — every
+    cost-model failure is a ``CostModelError`` — is preserved unchanged.
+    """
 
 
 @dataclass(frozen=True)
@@ -213,10 +202,11 @@ def _as_number(name: str, value: Any) -> float:
 def evaluate_formula(formula: str, symbols: Mapping[str, Any]) -> float:
     """Safely evaluate a cost-model formula against ``symbols``.
 
-    This is the single arithmetic evaluator the whole project shares. It
-    parses ``formula`` with :mod:`ast` and walks the tree through an
-    arithmetic whitelist — no :func:`eval`, no attribute access, no
-    subscripts, no arbitrary builtins.
+    Thin wrapper over :func:`triton_ascend_bench.expr.eval_numeric` — the
+    shared AST-whitelist numeric evaluator (WA.2). No :func:`eval`, no
+    attribute access, no subscripts, no arbitrary builtins. The wrapper exists
+    only to re-raise the core's :class:`ExprError` as :class:`CostModelError`,
+    keeping the W1.2 exception contract intact for every cost-model call site.
 
     Args:
         formula: the size-knob expression string.
@@ -229,79 +219,12 @@ def evaluate_formula(formula: str, symbols: Mapping[str, Any]) -> float:
         CostModelError: on a non-string formula, a syntax error, an unknown
             name, an unknown call, or any disallowed AST node.
     """
-    if not isinstance(formula, str):
-        raise CostModelError(
-            f"formula must be a string, got {type(formula).__name__}"
-        )
-    text = formula.strip()
-    if not text:
-        raise CostModelError("formula is empty")
     try:
-        tree = ast.parse(text, mode="eval")
-    except SyntaxError as e:
-        raise CostModelError(f"cannot parse formula {formula!r}: {e.msg}") from e
-    value = _eval_node(tree.body, symbols, formula)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise CostModelError(
-            f"formula {formula!r} did not evaluate to a number"
-        )
-    return float(value)
-
-
-def _eval_node(node: ast.AST, symbols: Mapping[str, Any], formula: str) -> Any:
-    if isinstance(node, ast.Constant):
-        if isinstance(node.value, bool) or not isinstance(
-            node.value, (int, float)
-        ):
-            raise CostModelError(
-                f"formula {formula!r}: only numeric literals are allowed"
-            )
-        return node.value
-    if isinstance(node, ast.Name):
-        if node.id not in symbols:
-            raise CostModelError(
-                f"formula {formula!r}: unknown symbol {node.id!r} "
-                f"(allowed: {sorted(symbols)})"
-            )
-        return symbols[node.id]
-    if isinstance(node, ast.BinOp):
-        op = _BIN_OPS.get(type(node.op))
-        if op is None:
-            raise CostModelError(
-                f"formula {formula!r}: operator "
-                f"{type(node.op).__name__} not allowed"
-            )
-        left = _eval_node(node.left, symbols, formula)
-        right = _eval_node(node.right, symbols, formula)
-        try:
-            return op(left, right)
-        except ZeroDivisionError as e:
-            raise CostModelError(
-                f"formula {formula!r}: division by zero"
-            ) from e
-    if isinstance(node, ast.UnaryOp):
-        op = _UNARY_OPS.get(type(node.op))
-        if op is None:
-            raise CostModelError(
-                f"formula {formula!r}: unary "
-                f"{type(node.op).__name__} not allowed"
-            )
-        return op(_eval_node(node.operand, symbols, formula))
-    if isinstance(node, ast.Call):
-        if not isinstance(node.func, ast.Name) or node.func.id not in _HELPERS:
-            allowed = sorted(_HELPERS)
-            raise CostModelError(
-                f"formula {formula!r}: only {allowed} calls are allowed"
-            )
-        if node.keywords:
-            raise CostModelError(
-                f"formula {formula!r}: keyword arguments not allowed"
-            )
-        args = [_eval_node(a, symbols, formula) for a in node.args]
-        return _HELPERS[node.func.id](*args)
-    raise CostModelError(
-        f"formula {formula!r}: {type(node).__name__} node not allowed"
-    )
+        return eval_numeric(formula, symbols)
+    except CostModelError:
+        raise
+    except ExprError as e:
+        raise CostModelError(str(e)) from e
 
 
 # --------------------------------------------------------------------------
@@ -461,49 +384,18 @@ def parse_cost_model(raw: Any) -> CostModel:
 def _check_formula_syntax(formula: str, where: str) -> None:
     """Confirm a formula parses and uses only whitelisted AST nodes.
 
-    Unknown *names* are tolerated here (the knob set is task-specific); only
-    syntax errors and disallowed node types are rejected.
+    Thin wrapper over :func:`triton_ascend_bench.expr.check_expr_syntax` in
+    ``numeric`` mode (WA.2). Unknown *names* are tolerated here (the knob set
+    is task-specific); only syntax errors and disallowed node types are
+    rejected. The wrapper prefixes the error with ``where`` and re-raises the
+    core's :class:`ExprError` as :class:`CostModelError`.
     """
     if not isinstance(formula, str) or not formula.strip():
         raise CostModelError(f"{where}: formula must be a non-empty string")
     try:
-        tree = ast.parse(formula.strip(), mode="eval")
-    except SyntaxError as e:
-        raise CostModelError(f"{where}: cannot parse {formula!r}: {e.msg}") from e
-    for node in ast.walk(tree):
-        if isinstance(node, ast.expr) and not isinstance(
-            node,
-            (ast.Constant, ast.Name, ast.BinOp, ast.UnaryOp, ast.Call,
-             ast.Load),
-        ):
-            raise CostModelError(
-                f"{where}: {type(node).__name__} node not allowed in "
-                f"formula {formula!r}"
-            )
-        if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name) or (
-                node.func.id not in _HELPERS
-            ):
-                raise CostModelError(
-                    f"{where}: only {sorted(_HELPERS)} calls allowed in "
-                    f"formula {formula!r}"
-                )
-        if isinstance(node, ast.Constant) and (
-            isinstance(node.value, bool)
-            or not isinstance(node.value, (int, float))
-        ):
-            raise CostModelError(
-                f"{where}: only numeric literals allowed in formula "
-                f"{formula!r}"
-            )
-        if isinstance(node, ast.BinOp) and type(node.op) not in _BIN_OPS:
-            raise CostModelError(
-                f"{where}: operator {type(node.op).__name__} not allowed"
-            )
-        if isinstance(node, ast.UnaryOp) and type(node.op) not in _UNARY_OPS:
-            raise CostModelError(
-                f"{where}: unary {type(node.op).__name__} not allowed"
-            )
+        check_expr_syntax(formula, "numeric")
+    except ExprError as e:
+        raise CostModelError(f"{where}: {e}") from e
 
 
 def validate_formulas(model: CostModel, knob_names: set[str]) -> None:

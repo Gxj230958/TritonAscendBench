@@ -111,6 +111,20 @@ _SHAPES = {
     },
 }
 
+# WA.4: a reconciled (`scaffold: false`), semantically-valid
+# `param_constraints` for `_SHAPES` — these R4-1 tests exercise the
+# offline-golden routing, so the WA.4 param_constraints gate must PASS.
+# R4-1: a `scaffold: false` block must be schema-closed (all five semantic
+# subsections present); the unused ones are empty containers.
+_PARAM_CONSTRAINTS = {
+    "scaffold": False,
+    "dims": [],
+    "dtypes": {"x": "float32"},
+    "dists": {"x": {"kind": "randn"}},
+    "scalars": {},
+    "tensor_invariants": [],
+}
+
 _META = {
     "task_id": "SYN_r4_upstream",
     "level": "L1",
@@ -118,6 +132,7 @@ _META = {
     "oracle_simplified": "upstream_oracle_required",
     "runner_checks": {},
     "upstream": {"commit_sha": "deadbeef"},
+    "param_constraints": _PARAM_CONSTRAINTS,
 }
 
 
@@ -166,6 +181,7 @@ def _make_upstream_task(tmp_path: Path, *, solution_src: str,
         contract_md="# synthetic\n",
         kernel_py="# frozen\n",
         kernel_py_sha256="0" * 64,
+        param_constraints=_PARAM_CONSTRAINTS,
     )
     sol = tmp_path / "solution.py"
     sol.write_text(solution_src)
@@ -389,6 +405,14 @@ def _write_validatable_task(td: Path, *, oracle_simplified: str) -> None:
             "flops": "B*N", "flops_class": "vector",
             "bytes": "B*N", "bytes_resource": "hbm",
         },
+        # WA.1/WA.4: `param_constraints` is a required top-level meta key.
+        # Use a reconciled (`scaffold: false`) schema-closed block — WA.4's
+        # semantic gate rejects `scaffold: true`, and R4-1 requires all five
+        # semantic subsections (empty containers here); this fixture is not
+        # testing param_constraints (its checks live in the WA.1/WA.4 suites).
+        "param_constraints": {"scaffold": False, "dims": [], "dtypes": {},
+                              "dists": {}, "scalars": {},
+                              "tensor_invariants": []},
     }
     (td / "meta.yaml").write_text(yaml.safe_dump(meta))
 
