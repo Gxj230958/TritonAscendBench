@@ -17,7 +17,7 @@ from triton_ascend_bench.adversarial import MetamorphicResult
 from triton_ascend_bench.eval import ShapeRunResult, TaskEvalResult
 
 REPO = Path(__file__).resolve().parent.parent.parent
-_TASK = "L1_01_bias_kernel"
+_TASK = "L1_01_bias"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 

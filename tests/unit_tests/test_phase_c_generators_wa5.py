@@ -49,7 +49,7 @@ def _base_meta() -> dict:
     """A minimal meta.yaml mapping with a handful of non-param fields."""
     return {
         "schema_version": "1.0",
-        "task_id": "L9_99_demo_kernel",
+        "task_id": "L9_99_demo",
         "level": "L9",
         "idx": 99,
         "name": "demo_kernel",
@@ -361,7 +361,7 @@ def test_scaffold_meta_has_validator_passing_cost_model(tmp_path):
 
 def test_scaffold_contract_has_marker_fenced_mirror():
     contract = gts.PLACEHOLDER_CONTRACT.format(
-        task_id="L9_99_demo_kernel", md_id="L9-99", repo="vLLM",
+        task_id="L9_99_demo", md_id="L9-99", repo="vLLM",
         name="_demo_kernel", source_path="x/y.py", cv_vv="VV",
         difficulty="medium", category="other", rationale="demo",
         tolerance_class="elementwise",
@@ -375,7 +375,7 @@ def test_scaffold_contract_mirror_is_rewritable_by_phase_c(tmp_path):
     """The marker block generate_task_scaffolds emits is a valid target for
     phase_c_docs' in-place rewrite (the two generators stay symmetric)."""
     contract = gts.PLACEHOLDER_CONTRACT.format(
-        task_id="L9_99_demo_kernel", md_id="L9-99", repo="vLLM",
+        task_id="L9_99_demo", md_id="L9-99", repo="vLLM",
         name="_demo_kernel", source_path="x/y.py", cv_vv="VV",
         difficulty="medium", category="other", rationale="demo",
         tolerance_class="elementwise",

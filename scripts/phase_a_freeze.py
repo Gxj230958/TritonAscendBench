@@ -52,11 +52,11 @@ FBGEMM_COMMIT = "bf6dce360a4fe133bc779e2fd036277678509f95"
 
 # 5 existing PoCs — kernel.py is hand-curated; leave alone.
 SKIP_TASKS = {
-    "L1_01_bias_kernel",
-    "L1_12_rms_norm_kernel",
+    "L1_01_bias",
+    "L1_12_rms_norm",
     "L1_16_silu_and_mul",
     "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd_kernel",
+    "L3_04_fwd",
 }
 
 AMBIGUOUS_PATH_MARKERS = ("通用", "同上", "TODO", "<")

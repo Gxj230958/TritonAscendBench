@@ -24,7 +24,7 @@ from triton_ascend_bench.process_isolation import (
 )
 
 REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias_kernel"
+_TASK = "L1_01_bias"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 

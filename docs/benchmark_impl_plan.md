@@ -154,7 +154,7 @@
 v4.5 把 GPU triton kernel + PyTorch oracle + AscendC ref + shape configs + adversarial + 11 字段 META 全塞进单 .py，违反 single responsibility。v4.6 改成**目录结构**：
 
 ```
-tasks/level1/L1_12_rms_norm_kernel/
+tasks/level1/L1_12_rms_norm/
 ├── kernel.py              ← 纯算子实现（@triton.jit + wrapper，可独立 import 复用）
 ├── oracle_pytorch.py      ← PyTorch reference 兜底（独立 oracle，runner 外层加载）
 ├── meta.yaml              ← 结构化元数据（11 字段 + license + commit SHA + tolerance class），跨语言可读
@@ -171,7 +171,7 @@ tasks/level1/L1_12_rms_norm_kernel/
 # 必备字段（task validator enforce）
 schema_version: "1.0"                        # str（v4.9 R13-P1 修：必须加引号防 YAML 解析成 float）
 benchmark_version: "v0.1"                    # str, 必填
-task_id: "L1_12_rms_norm_kernel"             # str, 必填, 必须与目录名一致
+task_id: "L1_12_rms_norm"             # str, 必填, 必须与目录名一致
 
 # Identity
 level: "L1"                                  # str（v4.9 R13-P1 修：类型与 enum 一致；enum {L1,L2,L3,appendix,canary}，原 int+混合字符串 enum 矛盾）
@@ -241,7 +241,7 @@ runner_checks:
   "benchmark_version": "v0.1",
   "tasks": [
     {
-      "task_id": "L1_12_rms_norm_kernel",
+      "task_id": "L1_12_rms_norm",
       "level": 1,
       "is_canary": false,
       "is_hidden_only": false,
@@ -470,7 +470,7 @@ Phase 0  →  Phase 1  ─┐
 **v4.6 单题目录示例**（详见 v4.5 文档前面问答展示）：
 
 ```
-tasks/level1/L1_12_rms_norm_kernel/
+tasks/level1/L1_12_rms_norm/
 ├── kernel.py              # 纯 @triton.jit + wrapper, 可独立 import
 ├── oracle_pytorch.py      # 独立 PyTorch reference
 ├── meta.yaml              # 结构化元数据
@@ -538,9 +538,9 @@ v4.6 已改目录结构（见 §修订 A），单题完整示例（L1-12 `_rms_n
 $ pip install npu-kernel-bench
 
 # 1. 拿到 task bundle（只读 + hash 锁定）
-$ npu-bench init-solution --task L1_01_bias_kernel --out my_solutions/
+$ npu-bench init-solution --task L1_01_bias --out my_solutions/
 # 生成:
-#   my_solutions/L1_01_bias_kernel/
+#   my_solutions/L1_01_bias/
 #     ├── task_bundle.tar.gz       # read-only, SHA256-verified
 #     ├── task_bundle.sha256       # canonical hash
 #     └── solution.py              # 待填充模板
@@ -551,10 +551,10 @@ $ npu-bench init-solution --task L1_01_bias_kernel --out my_solutions/
 # 调用 npu-bench run 时会自动校验 task_bundle 未被篡改
 
 # 3. 单题评测
-$ npu-bench run --task L1_01_bias_kernel --solution my_solutions/L1_01_bias_kernel/solution.py
+$ npu-bench run --task L1_01_bias --solution my_solutions/L1_01_bias/solution.py
 # 输出 result.json:
 {
-  "task_id": "L1_01_bias_kernel",
+  "task_id": "L1_01_bias",
   "task_bundle_sha": "<frozen sha>",       # v4.1 E2 新增
   "solution_sha": "<submitter sha>",       # v4.1 E2 新增
   "runner_hash": "<npu-bench version>",    # v4.1 E2 新增
@@ -888,7 +888,7 @@ v4.4 R7-4 信任边界关键修订：
 Phase A: Build (verified 模式下由 runner 自建，不信任 submitter 包)
   1. runner 启动 no-network build sandbox
   2. mount solutions/<task_id>.py read-only（从 submission.tar.gz 提取）
-  3. python -c "from solutions.L1_01_bias_kernel import npu_triton_impl; warm up call"
+  3. python -c "from solutions.L1_01_bias import npu_triton_impl; warm up call"
   4. LD_AUDIT hook 记录所有 dlopen 加载的 .so 路径
   5. 计算每个 .so sha256
   6. 写入 runner-controlled 路径：/runner_state/<submission_id>/solution_artifacts.json
@@ -1518,11 +1518,11 @@ submission.tar.gz
 │     "submission_id": "<uuid>",
 │     "submitted_at": "<iso8601>",
 │     "track": "npu_triton" | "hybrid" | "self_reported",
-│     "tasks": ["L1_01_bias_kernel", ...],
+│     "tasks": ["L1_01_bias", ...],
 │     "files": [    # v4.3 R6-3: 列出 tar 内每个文件（manifest.json 自身除外）
-│       {"path": "solutions/L1_01_bias_kernel.py", "sha256": "<>", "size": 1234},
-│       {"path": "results/L1_01_bias_kernel.json", "sha256": "<>", "size": 567},
-│       {"path": "logs/L1_01_bias_kernel.log",      "sha256": "<>", "size": 8901},
+│       {"path": "solutions/L1_01_bias.py", "sha256": "<>", "size": 1234},
+│       {"path": "results/L1_01_bias.json", "sha256": "<>", "size": 567},
+│       {"path": "logs/L1_01_bias.log",      "sha256": "<>", "size": 8901},
 │       {"path": "runtime_env/Dockerfile",          "sha256": "<>", "size": 2345},
 │       {"path": "runtime_env/pip_lockfile.txt",    "sha256": "<>", "size": 6789},
 │       {"path": "runtime_env/docker_digest.txt",   "sha256": "<>", "size": 65},
@@ -1543,10 +1543,10 @@ submission.tar.gz
 │   #   4. tar 内 payload 文件不在 manifest.files[] → reject；files[] 列出但 tar 缺失 → reject
 │   #   5. tar 内 path 不重复
 ├── solutions/
-│   ├── L1_01_bias_kernel.py    # NPU triton 实现，hash 入 manifest
+│   ├── L1_01_bias.py    # NPU triton 实现，hash 入 manifest
 │   └── ...
 ├── results/
-│   ├── L1_01_bias_kernel.json  # result.json per task
+│   ├── L1_01_bias.json  # result.json per task
 │   └── ...
 ├── runtime_env/
 │   ├── Dockerfile              # 可复现的容器

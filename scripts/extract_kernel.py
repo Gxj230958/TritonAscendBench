@@ -5,10 +5,10 @@ Per v4.13 Phase 1.1 + R7-6. Outputs a clean kernel.py for tasks/level{1,2,3}/<ta
 
 Usage:
     python scripts/extract_kernel.py \\
-        --task L1_12_rms_norm_kernel \\
+        --task L1_12_rms_norm \\
         --kernel _rms_norm_kernel \\
         --from infer/vllm/vllm/model_executor/layers/batch_invariant.py \\
-        --out tasks/level1/L1_12_rms_norm_kernel/kernel.py
+        --out tasks/level1/L1_12_rms_norm/kernel.py
 
 Resolves:
 - Extracts the `@triton.jit` kernel function
@@ -183,7 +183,7 @@ Per v4.13 spec, this kernel.py is read-only and hash-verified by `tab` evaluator
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--task", required=True, help="Task ID, e.g. L1_12_rms_norm_kernel")
+    parser.add_argument("--task", required=True, help="Task ID, e.g. L1_12_rms_norm")
     parser.add_argument("--kernel", required=True, help="Kernel function name to extract")
     parser.add_argument(
         "--from",

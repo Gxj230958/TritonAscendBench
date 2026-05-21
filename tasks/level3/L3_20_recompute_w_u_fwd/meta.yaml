@@ -1,0 +1,86 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_20_recompute_w_u_fwd
+level: L3
+idx: 20
+name: recompute_w_u_fwd_kernel
+repo: vLLM
+dtype_class: CV
+category: other
+npu_difficulty: high
+upstream:
+  repo: vllm-project/vllm
+  path: 同上
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 3f9aa27668ea03a4c68446f34d39898389c917932e6a41faf5b1fd1571c3c06d
+  function_hash: 3f9aa27668ea03a4c68446f34d39898389c917932e6a41faf5b1fd1571c3c06d
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_20_recompute_w_u_fwd_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: elementwise
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-20
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Delta-rule w/u recomputation: k / v [B, L, D], per-step beta / g_cumsum [B, L], and the intra-chunk attention A [B, L, L]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - D >= 1
+  dtypes:
+    k: float32
+    v: float32
+    beta: float32
+    g_cumsum: float32
+    A: float32
+  dists:
+    k:
+      kind: randn
+    v:
+      kind: randn
+    beta:
+      kind: rand
+    g_cumsum:
+      kind: rand
+    A:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []

@@ -2,7 +2,7 @@
 
 > Submitter-facing note: this task shares the L1_01 sampler logit-bias
 > interface. You do **not** write a separate solution for it — the runner
-> reuses your `L1_01_bias_kernel` solution.
+> reuses your `L1_01_bias` solution.
 
 ## What this task is
 
@@ -12,8 +12,8 @@ They exist only as a behaviour probe for the runner.
 
 ## Bound source task
 
-`meta.yaml.source_task_id` = `L1_01_bias_kernel`. The runner runs this canary
-with the submission's `solution.py` for `L1_01_bias_kernel`. No canary-specific
+`meta.yaml.source_task_id` = `L1_01_bias`. The runner runs this canary
+with the submission's `solution.py` for `L1_01_bias`. No canary-specific
 solution is required or accepted.
 
 ## Interface

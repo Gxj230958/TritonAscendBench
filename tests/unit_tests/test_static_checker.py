@@ -3570,11 +3570,11 @@ def test_required_op_cube_missing():
 
 
 @pytest.mark.parametrize("task_id", [
-    "L1_01_bias_kernel",
-    "L1_12_rms_norm_kernel",
+    "L1_01_bias",
+    "L1_12_rms_norm",
     "L1_16_silu_and_mul",
     "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd_kernel",
+    "L3_04_fwd",
 ])
 def test_real_poc_kernels_pass_static(task_id):
     """Every PoC task's reference kernel.py must pass static checks."""

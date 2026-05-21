@@ -280,7 +280,7 @@ class TestR8_2SampledOutputFailClosed:
             static_checker, "check_solution",
             lambda *a, **k: static_checker.CheckReport(findings=[]))
 
-        task = "L1_01_bias_kernel"
+        task = "L1_01_bias"
         solution = REPO / "solutions" / task / "solution.py"
         if not solution.exists():
             pytest.skip(f"no solution for {task}")

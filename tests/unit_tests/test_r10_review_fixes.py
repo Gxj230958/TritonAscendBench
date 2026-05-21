@@ -133,14 +133,14 @@ def test_analyze_stripped_s_t_cannot_escape_epsilon_denominator(
     geomean (the R10-1 subset-escape)."""
     monkeypatch.setattr(peak_table, "load_peak_table", _all_verified_peaks)
 
-    # `L1_01_bias_kernel` is a score-eligible, non-upstream task whose
+    # `L1_01_bias` is a score-eligible, non-upstream task whose
     # cost model references ('hbm', 'vector'); with the all-verified
     # table above it is authoritatively `roofline_data_complete=True`.
     verified = {
         "mode": "verified",
         "results": [
             # A real scorable task to keep `perf_status == "ok"`.
-            {"task_id": "L1_02_compute_slot_mappings_kernel",
+            {"task_id": "L1_02_compute_slot_mappings",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -148,7 +148,7 @@ def test_analyze_stripped_s_t_cannot_escape_epsilon_denominator(
             # Hand-edited: status all-ok, `task_status="evaluated"`, but
             # `s_t` stripped to null. Repo says data is complete -> this
             # is NOT a data gap; it must be ε-scored, not dropped.
-            {"task_id": "L1_01_bias_kernel",
+            {"task_id": "L1_01_bias",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,

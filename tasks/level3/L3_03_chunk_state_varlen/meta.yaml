@@ -1,0 +1,105 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_03_chunk_state_varlen
+level: L3
+idx: 3
+name: _chunk_state_varlen_kernel
+repo: SGLang
+dtype_class: CV
+category: ssm
+npu_difficulty: high
+upstream:
+  repo: sgl-project/sglang
+  path: python/sglang/srt/layers/attention/mamba/ops/ssd_chunk_state.py
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: b86113ec9ff8b4f304c00b401a07366ba2eea0d6cc13fee587889c3aca9ef548
+  function_hash: b86113ec9ff8b4f304c00b401a07366ba2eea0d6cc13fee587889c3aca9ef548
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_03_chunk_state_varlen_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: attention_flash
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-03
+  errata_note: 'v3.2 errata: original slot (L3_03_kernel_unified_attention_2d) had
+    no freezable upstream (non-existent/merged/no-public-source); re-tasked to CSV
+    operator _chunk_state_varlen_kernel. docs/npu/benchmark_select.md (root-owned)
+    pending sync.'
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Variable-length chunk-state forward: B [B*L, H, N], x [B*L, H, Dv], timestep dt / decay dA_cumsum [B*L, H], segmented by cu_seqlens [B+1] (monotonic cumulative offsets, to=B*L).
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - H >= 1
+  - N >= 1
+  - Dv >= 1
+  dtypes:
+    B: float32
+    x: float32
+    dt: float32
+    dA_cumsum: float32
+    cu_seqlens: int64
+  dists:
+    B:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: rand
+    dA_cumsum:
+      kind: rand
+    cu_seqlens:
+      kind: offsets
+      args:
+        to: B*L
+  scalars: {}
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_seqlens
+  - type: first_eq
+    args:
+      input: cu_seqlens
+      value: 0
+  - type: last_eq
+    args:
+      input: cu_seqlens
+      value: B*L

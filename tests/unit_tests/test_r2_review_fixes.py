@@ -453,14 +453,14 @@ def test_r2_4_self_reported_denominator_excludes_upstream_oracle(tmp_path):
     verified = {
         "mode": "self-reported",
         "results": [
-            {"task_id": "L1_01_bias_kernel",
+            {"task_id": "L1_01_bias",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
              "aggregate_score": 1.0, "s_t": 1.0, "task_status": "evaluated"},
             # upstream_oracle_required — has no provider golden in
             # self-reported mode; excluded by the fixed formula.
-            {"task_id": "L1_15_act_and_mul_kernel",
+            {"task_id": "L1_15_act_and_mul",
              "static_checks_passed": True, "correctness_status": "fail",
              "runtime_status": "error", "performance_status": "error",
              "performance_flags": [], "fallback_detected": False,
@@ -534,7 +534,7 @@ def test_r2_4_verified_mode_denominator_is_full_eligible_set(tmp_path):
     verified = {
         "mode": "verified",
         "results": [
-            {"task_id": "L1_15_act_and_mul_kernel",
+            {"task_id": "L1_15_act_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -562,7 +562,7 @@ def test_r2_4_missing_mode_defaults_to_self_reported(tmp_path):
     the scored set to the verified |S|."""
     verified = {
         "results": [
-            {"task_id": "L1_01_bias_kernel",
+            {"task_id": "L1_01_bias",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,

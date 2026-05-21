@@ -15,7 +15,7 @@ from pathlib import Path
 from triton_ascend_bench.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias_kernel"
+_TASK = "L1_01_bias"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 

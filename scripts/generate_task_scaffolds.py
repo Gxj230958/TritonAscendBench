@@ -43,11 +43,11 @@ REPO_MAP = {
 # Existing PoCs — directory names diverge from the default pattern.
 # Keys are markdown IDs (e.g. "L1-01"), values are existing dir names.
 KNOWN_POC_DIRS = {
-    "L1-01": "L1_01_bias_kernel",
-    "L1-12": "L1_12_rms_norm_kernel",
+    "L1-01": "L1_01_bias",
+    "L1-12": "L1_12_rms_norm",
     "L1-16": "L1_16_silu_and_mul",
     "L2-10": "L2_10_w8a8_block_int8_matmul",
-    "L3-04": "L3_04_fwd_kernel",
+    "L3-04": "L3_04_fwd",
 }
 
 # Category heuristic: substring → category enum.
@@ -302,7 +302,7 @@ PLACEHOLDER_CONTRACT = '''# Contract — {task_id} (SCAFFOLD)
 
 TODO(scaffold): describe the upstream kernel's per-tile semantics,
 mutability of arguments, stride layout, workspace policy, and any
-stage ordering invariants — mirror `tasks/level1/L1_01_bias_kernel/contract.md`.
+stage ordering invariants — mirror `tasks/level1/L1_01_bias/contract.md`.
 
 ## Tolerance class
 

@@ -28,7 +28,7 @@ def _load_oracle_module(task):
 
 
 def test_l1_12_rms_norm_oracle_shape_dtype():
-    task = load_task("L1_12_rms_norm_kernel")
+    task = load_task("L1_12_rms_norm")
     mod = _load_oracle_module(task)
     x = torch.randn(4, 4096, dtype=torch.float16)
     w = torch.ones(4096, dtype=torch.float16)
@@ -40,7 +40,7 @@ def test_l1_12_rms_norm_oracle_shape_dtype():
 def test_l1_12_rms_norm_metamorphic_weight_one():
     """rms_norm(x, ones, eps≈0) should equal x / rms(x) — exercise the
     metamorphic-check definition."""
-    task = load_task("L1_12_rms_norm_kernel")
+    task = load_task("L1_12_rms_norm")
     mod = _load_oracle_module(task)
     x = torch.randn(2, 128, dtype=torch.float32)
     w = torch.ones(128, dtype=torch.float32)
@@ -62,7 +62,7 @@ def test_l1_16_silu_and_mul_oracle_zero_x1():
 
 def test_l3_04_fwd_attention_single_token_per_seq():
     """Each sequence has length 1 ⇒ output == v."""
-    task = load_task("L3_04_fwd_kernel")
+    task = load_task("L3_04_fwd")
     mod = _load_oracle_module(task)
     batch, h, d = 4, 8, 64
     total = batch  # 1 token per seq

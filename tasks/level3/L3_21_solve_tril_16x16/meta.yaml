@@ -1,0 +1,80 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_21_solve_tril_16x16
+level: L3
+idx: 21
+name: solve_tril_16x16_kernel
+repo: vLLM
+dtype_class: VV
+category: ssm
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/fla/ops/solve_tril.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: dc99d5228c21cb966f6b35edf88106ad77947959b46c0a31e8793a2a36989dee
+  function_hash: dc99d5228c21cb966f6b35edf88106ad77947959b46c0a31e8793a2a36989dee
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_21_solve_tril_16x16_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: recurrent_chunk
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-21
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). FLA chunk
+# solve_tril 16x16 path: kernel.py solve_tril_16x16_kernel is the BT==16 branch
+# (kernel.py:52,78,98) and inverts one independent 16x16 diagonal tile per
+# program (no cross-tile coupling — that is done by the merge_* kernels). The
+# formula_exact_manual oracle (_solve_tril) inverts the full T x T lower-tri
+# matrix via solve_triangular, so it equals the kernel's single-tile output
+# only when the matrix fits one 16x16 tile: T <= 16. A is [T, T] lower-tri
+# float32. Knob grid surgery (P4/H3 T: 32/64 -> 16) keeps every row T <= 16.
+param_constraints:
+  scaffold: false
+  dims:
+  - T >= 1
+  - T <= 16
+  dtypes:
+    A: float32
+  dists:
+    A:
+      kind: tril
+  scalars: {}
+  tensor_invariants: []

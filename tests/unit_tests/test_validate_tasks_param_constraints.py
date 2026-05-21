@@ -125,7 +125,7 @@ def test_param_constraints_missing_is_none(tmp_path, monkeypatch):
 def test_param_constraints_sample_task_loaded_as_raw_dict():
     # The hand-reconciled sample task carries a real block; the loader
     # stores it verbatim as a raw dict (no structured object).
-    task = load_task("L1_12_rms_norm_kernel")
+    task = load_task("L1_12_rms_norm")
     assert isinstance(task.param_constraints, dict)
     assert task.param_constraints["scaffold"] is False
     assert task.param_constraints["dtypes"] == {
@@ -427,7 +427,7 @@ def test_scaffold_true_block_exempt_from_schema_closure():
 # end-to-end: the WA.1 sample tasks pass the schema-shape check
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("task_id", ["L1_12_rms_norm_kernel", "L1_16_silu_and_mul"])
+@pytest.mark.parametrize("task_id", ["L1_12_rms_norm", "L1_16_silu_and_mul"])
 def test_sample_tasks_param_constraints_pass_schema_shape(task_id):
     # The two hand-reconciled WA.1 sample tasks carry a `scaffold: false`
     # block that passes the WA.1 schema-shape validator layer cleanly.

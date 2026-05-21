@@ -131,7 +131,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 
 ## Per-task per-symbol -> Class
 
-### L1_01_bias_kernel -- tier=T0 closure=0
+### L1_01_bias -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -139,7 +139,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_02_compute_slot_mappings_kernel -- tier=T3 closure=630 -- BLOCKED-candidate
+### L1_02_compute_slot_mappings -- tier=T3 closure=630 -- BLOCKED-candidate
 - _note_: jit-only: needs deterministic launcher template (U5)
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -1041,7 +1041,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xxhash.xxhash` | D |  | BLOCKED: unaudited third-party package 'xxhash' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_03_convert_req_index_to_global_index_kernel -- tier=T1 closure=2
+### L1_03_convert_req_index_to_global_index -- tier=T1 closure=2
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -1049,7 +1049,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_04_copy_page_indices_kernel -- tier=T3 closure=620 -- BLOCKED-candidate
+### L1_04_copy_page_indices -- tier=T3 closure=620 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'flashinfer' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -1958,7 +1958,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_05_gather_block_tables_kernel -- tier=T3 closure=630 -- BLOCKED-candidate
+### L1_05_gather_block_tables -- tier=T3 closure=630 -- BLOCKED-candidate
 - _note_: jit-only: needs deterministic launcher template (U5)
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -3710,7 +3710,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `weakref.WeakValueDictionary` | torch+triton |  | weakref.WeakValueDictionary is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_07_dequantize_k_cache_fast_kernel -- tier=T3 closure=0
+### L1_07_dequantize_k_cache_fast -- tier=T3 closure=0
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -3719,7 +3719,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_08_dequantize_k_cache_paged_kernel -- tier=T3 closure=0
+### L1_08_dequantize_k_cache_paged -- tier=T3 closure=0
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -3728,7 +3728,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_09_quantize_k_cache_fast_kernel -- tier=T2 closure=1 -- BLOCKED-candidate
+### L1_09_quantize_k_cache_fast -- tier=T2 closure=1 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'dequant_k_cache' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 
 | symbol | class | seed | proof |
@@ -4656,7 +4656,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_11_awq_dequantize_kernel -- tier=T3 closure=2
+### L1_11_awq_dequantize -- tier=T3 closure=2
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -4665,7 +4665,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_12_rms_norm_kernel -- tier=T0 closure=0
+### L1_12_rms_norm -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -4673,7 +4673,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_13_layer_norm_fwd_kernel -- tier=T3 closure=632 -- BLOCKED-candidate
+### L1_13_layer_norm_fwd -- tier=T3 closure=632 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'amdsmi' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -5584,7 +5584,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_14_layer_norm_fwd_1pass_kernel -- tier=T1 closure=2
+### L1_14_layer_norm_fwd_1pass -- tier=T1 closure=2
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -5592,7 +5592,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_15_act_and_mul_kernel -- tier=T3 closure=632 -- BLOCKED-candidate
+### L1_15_act_and_mul -- tier=T3 closure=632 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (9 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -6571,7 +6571,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_17_gelu_and_mul_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L1_17_gelu_and_mul -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -7497,7 +7497,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_18_fused_softcap_kernel -- tier=T3 closure=671 -- BLOCKED-candidate
+### L1_18_fused_softcap -- tier=T3 closure=671 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'transformers' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'huggingface_hub' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'granian' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -8384,7 +8384,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_19_topk_log_softmax_kernel -- tier=T3 closure=638 -- BLOCKED-candidate
+### L1_19_topk_log_softmax -- tier=T3 closure=638 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'msgspec' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -9313,7 +9313,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_20_log_softmax_kernel -- tier=T3 closure=631 -- BLOCKED-candidate
+### L1_20_log_softmax -- tier=T3 closure=631 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'amdsmi' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -10219,7 +10219,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_21_gumbel_sample_kernel -- tier=T3 closure=2
+### L1_21_gumbel_sample -- tier=T3 closure=2
 - _note_: multi-kernel pipeline (4 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -10228,7 +10228,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_22_min_p_kernel -- tier=T1 closure=2
+### L1_22_min_p -- tier=T1 closure=2
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -10236,7 +10236,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_23_penalties_and_temperature_kernel -- tier=T3 closure=633 -- BLOCKED-candidate
+### L1_23_penalties_and_temperature -- tier=T3 closure=633 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'msgspec' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -11175,7 +11175,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_24_rejection_sample_kernel -- tier=T3 closure=646 -- BLOCKED-candidate
+### L1_24_rejection_sample -- tier=T3 closure=646 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (4 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'packaging' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -12100,7 +12100,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_25_merge_attn_states_kernel -- tier=T3 closure=634 -- BLOCKED-candidate
+### L1_25_merge_attn_states -- tier=T3 closure=634 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'amdsmi' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -13017,7 +13017,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_26_merge_state_kernel -- tier=T0 closure=0
+### L1_26_merge_state -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -13027,7 +13027,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `typing.Optional` | torch+triton | Y | typing.Optional is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `typing.Tuple` | torch+triton | Y | typing.Tuple is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_27_apply_grammar_bitmask_kernel -- tier=T3 closure=625 -- BLOCKED-candidate
+### L1_27_apply_grammar_bitmask -- tier=T3 closure=625 -- BLOCKED-candidate
 - _note_: jit-only: needs deterministic launcher template (U5)
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -14855,7 +14855,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xielu.ops.xielu.ops` | D |  | BLOCKED: unaudited third-party package 'xielu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_29_prepare_eagle_inputs_kernel -- tier=T3 closure=642 -- BLOCKED-candidate
+### L1_29_prepare_eagle_inputs -- tier=T3 closure=642 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'pydantic' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'pydantic' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -15757,7 +15757,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_30_act_quant_kernel -- tier=T3 closure=0
+### L1_30_act_quant -- tier=T3 closure=0
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -17643,7 +17643,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_34_transform_index_page_table_decode_kernel -- tier=T0 closure=0
+### L1_34_transform_index_page_table_decode -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -17653,7 +17653,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `typing.List` | torch+triton | Y | typing.List is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `typing.Optional` | torch+triton | Y | typing.Optional is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L1_35_compute_src2dst_triton_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L1_35_compute_src2dst_triton -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -18593,7 +18593,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_36_compute_seg_indptr_triton_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L1_36_compute_seg_indptr_triton -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -19533,7 +19533,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_37_compute_problem_sizes_w4a8_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L1_37_compute_problem_sizes_w4a8 -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -21391,7 +21391,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xielu.ops.xielu.ops` | D |  | BLOCKED: unaudited third-party package 'xielu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L1_39_state_passing_fwd_kernel -- tier=T3 closure=3 -- BLOCKED-candidate
+### L1_39_state_passing_fwd -- tier=T3 closure=3 -- BLOCKED-candidate
 - _note_: closure cycle detected -> T3 BLOCKED-candidate
 
 | symbol | class | seed | proof |
@@ -21401,7 +21401,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L1_40_chunk_cumsum_fwd_kernel -- tier=T3 closure=4 -- BLOCKED-candidate
+### L1_40_chunk_cumsum_fwd -- tier=T3 closure=4 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: closure cycle detected -> T3 BLOCKED-candidate
 
@@ -21413,7 +21413,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L2_01_bmm_chunk_fwd_kernel -- tier=T1 closure=2
+### L2_01_bmm_chunk_fwd -- tier=T1 closure=2
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -21421,7 +21421,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L2_02_chunk_scan_fwd_kernel -- tier=T3 closure=4 -- BLOCKED-candidate
+### L2_02_chunk_scan_fwd -- tier=T3 closure=4 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'packaging' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: closure cycle detected -> T3 BLOCKED-candidate
 
@@ -21432,7 +21432,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L2_03_chunk_state_fwd_kernel -- tier=T3 closure=4 -- BLOCKED-candidate
+### L2_03_chunk_state_fwd -- tier=T3 closure=4 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: closure cycle detected -> T3 BLOCKED-candidate
 
@@ -21444,7 +21444,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L2_04_chunked_lora_expand_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_04_chunked_lora_expand -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'psutil' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -22336,7 +22336,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_05_chunked_lora_shrink_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_05_chunked_lora_shrink -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'psutil' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -23228,7 +23228,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_06_qkv_lora_b_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_06_qkv_lora_b -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'torch_npu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -24120,7 +24120,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_07_gate_up_lora_b_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_07_gate_up_lora_b -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'torch_npu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -25012,7 +25012,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_08_sgemm_lora_a_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_08_sgemm_lora_a -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'torch_npu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -25904,7 +25904,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_09_sgemm_lora_b_kernel -- tier=T3 closure=672 -- BLOCKED-candidate
+### L2_09_sgemm_lora_b -- tier=T3 closure=672 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'torch_npu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'mooncake' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -27654,7 +27654,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `weakref.WeakValueDictionary` | torch+triton |  | weakref.WeakValueDictionary is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_12_awq_gemm_kernel -- tier=T3 closure=2
+### L2_12_awq_gemm -- tier=T3 closure=2
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -27663,7 +27663,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L2_13_bmm_kernel -- tier=T3 closure=631 -- BLOCKED-candidate
+### L2_13_bmm -- tier=T3 closure=631 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'amdsmi' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -29475,7 +29475,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_15_fused_dual_residual_rmsnorm_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L2_15_fused_dual_residual_rmsnorm -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -30401,7 +30401,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_16_fused_rmsnorm_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L2_16_fused_rmsnorm -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -31327,7 +31327,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_17_layer_norm_gated_fwd_kernel -- tier=T3 closure=647 -- BLOCKED-candidate
+### L2_17_layer_norm_gated_fwd -- tier=T3 closure=647 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (7 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'amdsmi' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -32275,7 +32275,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_18_fused_gdn_gating_kernel -- tier=T3 closure=653 -- BLOCKED-candidate
+### L2_18_fused_gdn_gating -- tier=T3 closure=653 -- BLOCKED-candidate
 - _note_: unaudited third-party package 'transformers' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'aiter' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'aiter' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -33203,7 +33203,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_19_fused_sigmoid_gating_delta_rule_update_kernel -- tier=T0 closure=0
+### L2_19_fused_sigmoid_gating_delta_rule_update -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -33212,7 +33212,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `typing.Optional` | torch+triton | Y | typing.Optional is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_20_causal_conv1d_update_kernel -- tier=T3 closure=631 -- BLOCKED-candidate
+### L2_20_causal_conv1d_update -- tier=T3 closure=631 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'typing_extensions' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -34116,7 +34116,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xxhash.xxhash` | D |  | BLOCKED: unaudited third-party package 'xxhash' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_21_causal_conv1d_fwd_kernel -- tier=T3 closure=631 -- BLOCKED-candidate
+### L2_21_causal_conv1d_fwd -- tier=T3 closure=631 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'typing_extensions' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -35020,7 +35020,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xxhash.xxhash` | D |  | BLOCKED: unaudited third-party package 'xxhash' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_22_linear_attn_decode_kernel -- tier=T3 closure=631 -- BLOCKED-candidate
+### L2_22_linear_attn_decode -- tier=T3 closure=631 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (5 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'typing_extensions' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -39566,7 +39566,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xielu.ops.xielu.ops` | D |  | BLOCKED: unaudited third-party package 'xielu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_27_deepep_permute_triton_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L2_27_deepep_permute_triton -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -40506,7 +40506,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_28_deepep_post_reorder_triton_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L2_28_deepep_post_reorder_triton -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -41446,7 +41446,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_29_fused_moe_router_cudacore_kernel -- tier=T3 closure=665 -- BLOCKED-candidate
+### L2_29_fused_moe_router_cudacore -- tier=T3 closure=665 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -42404,7 +42404,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `weakref.weakref` | torch+triton |  | weakref.weakref is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L2_30_fused_moe_router_tensorcore_kernel -- tier=T3 closure=665 -- BLOCKED-candidate
+### L2_30_fused_moe_router_tensorcore -- tier=T3 closure=665 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -44293,7 +44293,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_32_experts_combine_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L2_32_experts_combine -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (6 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'orjson' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -48965,7 +48965,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_37_silu_and_mul_post_quant_kernel -- tier=T3 closure=635 -- BLOCKED-candidate
+### L2_37_silu_and_mul_post_quant -- tier=T3 closure=635 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (21 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -49905,7 +49905,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.XPUB_VERBOSE` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L2_38_concat_and_cast_mha_k_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L2_38_concat_and_cast_mha_k -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (11 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'sgl_kernel' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'flashinfer' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -52665,7 +52665,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `warnings.warnings` | torch+triton |  | warnings.warnings is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_03_chunk_state_varlen_kernel -- tier=T3 closure=1
+### L3_03_chunk_state_varlen -- tier=T3 closure=1
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -52676,7 +52676,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L3_04_fwd_kernel -- tier=T0 closure=0
+### L3_04_fwd -- tier=T0 closure=0
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -54520,7 +54520,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_07_correct_attn_cp_out_kernel -- tier=T3 closure=609 -- BLOCKED-candidate
+### L3_07_correct_attn_cp_out -- tier=T3 closure=609 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'ray' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'regex' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -55441,7 +55441,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_08_jagged_dense_flash_attention_fwd_kernel -- tier=T3 closure=1
+### L3_08_jagged_dense_flash_attention_fwd -- tier=T3 closure=1
 - _note_: multi-kernel pipeline (4 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -55451,7 +55451,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `triton.language.triton.language` | torch+triton | Y | triton.language.triton.language is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) (local alias `tl`) |
 | `triton.triton` | torch+triton | Y | triton.triton is stdlib/torch/triton (always-available, never severed; explicit handled category -- not silently dropped) |
 
-### L3_09_fused_moe_kernel -- tier=T3 closure=639 -- BLOCKED-candidate
+### L3_09_fused_moe -- tier=T3 closure=639 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (4 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'libtpu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -57297,7 +57297,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `xielu.ops.xielu.ops` | D |  | BLOCKED: unaudited third-party package 'xielu' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zentorch.zentorch` | D |  | BLOCKED: unaudited third-party package 'zentorch' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_11_expert_triton_kernel -- tier=T3 closure=679 -- BLOCKED-candidate
+### L3_11_expert_triton -- tier=T3 closure=679 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'triton_kernels' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'numpy' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -59146,7 +59146,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L3_14_fused_recurrent_gated_delta_rule_fwd_kernel -- tier=T3 closure=3
+### L3_14_fused_recurrent_gated_delta_rule_fwd -- tier=T3 closure=3
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -59156,7 +59156,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L3_15_fused_recurrent_gated_delta_rule_update_fwd_kernel -- tier=T3 closure=640 -- BLOCKED-candidate
+### L3_15_fused_recurrent_gated_delta_rule_update_fwd -- tier=T3 closure=640 -- BLOCKED-candidate
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 - _note_: unaudited third-party package 'packaging' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
 - _note_: unaudited third-party package 'transformers' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored
@@ -61043,7 +61043,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_18_chunk_scaled_dot_kkt_fwd_kernel -- tier=T3 closure=5
+### L3_18_chunk_scaled_dot_kkt_fwd -- tier=T3 closure=5
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -62002,7 +62002,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `zmq.asyncio.zmq.asyncio` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 | `zmq.zmq` | D |  | BLOCKED: unaudited third-party package 'zmq' (not on the Class-D allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: either add to version_matrix extra_pins with a proof or vendor it; never silently ignored |
 
-### L3_20_recompute_w_u_fwd_kernel -- tier=T2 closure=3
+### L3_20_recompute_w_u_fwd -- tier=T2 closure=3
 
 | symbol | class | seed | proof |
 |--------|-------|------|-------|
@@ -62011,7 +62011,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L3_21_solve_tril_16x16_kernel -- tier=T3 closure=7
+### L3_21_solve_tril_16x16 -- tier=T3 closure=7
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -62026,7 +62026,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L3_22_chunk_local_cumsum_vector_kernel -- tier=T3 closure=5
+### L3_22_chunk_local_cumsum_vector -- tier=T3 closure=5
 - _note_: multi-kernel pipeline (2 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |
@@ -62038,7 +62038,7 @@ MACHINE-GENERATED. Do not hand-edit. Regenerate with `python3 scripts/phase_a_pr
 | `vllm.triton_utils.tl` | B-rewrite-public | Y | vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 | `vllm.triton_utils.triton` | B-rewrite-public | Y | vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`; rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT shimmed) |
 
-### L3_23_merge_16x16_to_32x32_inverse_kernel -- tier=T3 closure=7
+### L3_23_merge_16x16_to_32x32_inverse -- tier=T3 closure=7
 - _note_: multi-kernel pipeline (3 @triton.jit) -- host orchestration
 
 | symbol | class | seed | proof |

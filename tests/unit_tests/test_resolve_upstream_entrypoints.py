@@ -121,7 +121,7 @@ def test_enumerate_finds_host_wrapper_not_helper_or_jit():
 def test_ranking_prefers_host_wrapper_over_bare_jit():
     ranked = rue.rank_candidates(
         rue.enumerate_candidates(_KERNEL_WITH_WRAPPER),
-        Path("/nonexistent/L1_99_op_kernel"),
+        Path("/nonexistent/L1_99_op"),
         _KERNEL_WITH_WRAPPER,
     )
     assert ranked[0].name == "op_host"
@@ -136,7 +136,7 @@ def test_placeholder_only_kernel_has_only_bare_jit_candidate():
 
 # ── meta.yaml surgery: byte-preserving, idempotent ────────────────────
 def test_set_gpu_triton_only_touches_that_line(tmp_path):
-    td = _make_task(tmp_path, "L1_01_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_01_op", _KERNEL_WITH_WRAPPER)
     mp = td / "meta.yaml"
     before = mp.read_text()
     assert rue.read_gpu_triton(mp) == "placeholder"
@@ -152,7 +152,7 @@ def test_set_gpu_triton_only_touches_that_line(tmp_path):
 
 
 def test_set_gpu_triton_never_touches_kernel_py(tmp_path):
-    td = _make_task(tmp_path, "L1_02_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_02_op", _KERNEL_WITH_WRAPPER)
     k_before = (td / "kernel.py").read_text()
     rue.set_gpu_triton(td / "meta.yaml", "op_host")
     assert (td / "kernel.py").read_text() == k_before
@@ -169,7 +169,7 @@ def test_correct_entrypoint_picked_and_applied_when_both_pass(
     tmp_path, monkeypatch
 ):
     """oracle-consistent + S2-smoke UNRUN  ->  picked AND written."""
-    td = _make_task(tmp_path, "L1_03_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_03_op", _KERNEL_WITH_WRAPPER)
     # codex r6: oracle_consistency_check now returns a 3-tuple
     # (consistent, detail, upstream_closure). A synthetic fixture task
     # imports nothing under infer/ -> the closure is honestly [] (the
@@ -198,7 +198,7 @@ def test_oracle_mismatch_rejected_and_not_set(tmp_path, monkeypatch):
     """A resolvable callable whose output does NOT match the oracle is
     the WRONG operator -> NOT written; placeholder stays; honest
     BLOCKED(no-verified-upstream-entrypoint: oracle-mismatch)."""
-    td = _make_task(tmp_path, "L1_04_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_04_op", _KERNEL_WITH_WRAPPER)
 
     def _oc(d, e):
         return (
@@ -224,7 +224,7 @@ def test_oracle_mismatch_rejected_and_not_set(tmp_path, monkeypatch):
 def test_oracle_ok_but_smoke_blocked_not_set(tmp_path, monkeypatch):
     """oracle-consistent but the REAL S2-smoke BLOCKS (severing/interpret
     mismatch) -> still NOT written; honest per-task BLOCKED reason."""
-    td = _make_task(tmp_path, "L1_05_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_05_op", _KERNEL_WITH_WRAPPER)
     monkeypatch.setattr(
         rue, "oracle_consistency_check", lambda d, e: (True, "✓", [])
     )
@@ -244,7 +244,7 @@ def test_no_candidate_leaves_placeholder(tmp_path, monkeypatch):
     """A bare-jit-only kernel whose only candidate fails verification
     keeps ::placeholder (kernel.py never touched)."""
     td = _make_task(
-        tmp_path, "L1_06_thing_kernel", _KERNEL_PLACEHOLDER_ONLY
+        tmp_path, "L1_06_thing", _KERNEL_PLACEHOLDER_ONLY
     )
     monkeypatch.setattr(
         rue, "oracle_consistency_check",
@@ -274,7 +274,7 @@ def test_already_set_entrypoint_reverified_under_current_anchor(
     skip-the-anchor short-circuit (the anchor stub below would never be
     called, so r.reason would lack the 're-verified under the CURRENT
     hardened anchor' provenance string)."""
-    td = _make_task(tmp_path, "L1_07_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_07_op", _KERNEL_WITH_WRAPPER)
     mp = td / "meta.yaml"
     mp.write_text(mp.read_text().replace("::placeholder", "::op_host"))
     meta_before = mp.read_text()
@@ -315,7 +315,7 @@ def test_already_set_entrypoint_failing_current_anchor_changes_verdict(
     verdict CHANGES to BLOCKED -- a stale pre-hardening pass is NEVER
     preserved just to keep the resolved count up. FAILS ON REVERT to the
     short-circuit (which would still report it resolved)."""
-    td = _make_task(tmp_path, "L1_08_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_08_op", _KERNEL_WITH_WRAPPER)
     mp = td / "meta.yaml"
     mp.write_text(mp.read_text().replace("::placeholder", "::op_host"))
     monkeypatch.setattr(
@@ -642,7 +642,7 @@ def test_write_resolver_cache_embeds_per_task_input_fp(tmp_path):
     """
     import json
 
-    real_task = "L1_26_merge_state_kernel"
+    real_task = "L1_26_merge_state"
     td = rue._task_dir_for(real_task)
     assert td is not None and td.is_dir(), td
 
@@ -699,7 +699,7 @@ def test_write_resolver_cache_embeds_upstream_fp_and_infer_state(
                 self.__dict__["upstream_fp"] = ufp
 
     cache = tmp_path / "resolve_all.json"
-    real = "L1_26_merge_state_kernel"
+    real = "L1_26_merge_state"
     real_ufp = "sha256:" + ("a" * 64)
     rue.write_resolver_cache(
         cache, [_R(real, real_ufp), _R("L9_99_no_fp_field")]
@@ -1068,7 +1068,7 @@ def test_hole3_s2_original_only_infer_import_is_in_upstream_fp(
     original = "MARKER = 'v1'\n"
     s2only.write_text(original)
 
-    td = _make_task(tmp_path, "L1_09_op_kernel", _KERNEL_WITH_WRAPPER)
+    td = _make_task(tmp_path, "L1_09_op", _KERNEL_WITH_WRAPPER)
 
     saved_roots = rue._INFER_ROOTS
     saved_vllm = rue.VLLM_ROOT

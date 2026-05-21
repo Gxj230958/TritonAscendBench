@@ -6,11 +6,11 @@ import pytest
 from triton_ascend_bench.dataset import iter_all_tasks, load_task
 
 POC_TASK_IDS = [
-    "L1_01_bias_kernel",
-    "L1_12_rms_norm_kernel",
+    "L1_01_bias",
+    "L1_12_rms_norm",
     "L1_16_silu_and_mul",
     "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd_kernel",
+    "L3_04_fwd",
 ]
 
 
@@ -65,7 +65,7 @@ def test_cost_model_missing_is_none():
 
 def test_cost_model_scalar_form_parsed():
     # L1_01 carries a hand-authored scalar-form cost_model (W1.2 sample).
-    task = load_task("L1_01_bias_kernel")
+    task = load_task("L1_01_bias")
     assert task.cost_model is not None
     assert task.cost_model.flops_scalar is True
     assert task.cost_model.bytes_scalar is True
@@ -78,7 +78,7 @@ def test_cost_model_scalar_form_parsed():
 
 def test_cost_model_map_form_parsed():
     # L1_12 carries a hand-authored map-form cost_model (W1.2 sample).
-    task = load_task("L1_12_rms_norm_kernel")
+    task = load_task("L1_12_rms_norm")
     assert task.cost_model is not None
     assert task.cost_model.flops_scalar is False
     assert task.cost_model.bytes_scalar is False
@@ -93,6 +93,6 @@ def test_iter_all_tasks_tolerates_missing_cost_model():
     assert len(tasks) > 0
     with_cm = [t for t in tasks if t.cost_model is not None]
     # at least the two W1.2 sample tasks carry one
-    assert {"L1_01_bias_kernel", "L1_12_rms_norm_kernel"} <= {
+    assert {"L1_01_bias", "L1_12_rms_norm"} <= {
         t.task_id for t in with_cm
     }

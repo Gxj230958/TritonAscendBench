@@ -1,0 +1,92 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L1_08_dequantize_k_cache_paged
+level: L1
+idx: 8
+name: _dequantize_k_cache_paged_kernel
+repo: SGLang
+dtype_class: VV
+category: attention
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/attention/`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: 8a754ceb7f53ba7f80016a8d49b1865834c242db1f66dc910b9da0c24c01e35f
+  function_hash: 8a754ceb7f53ba7f80016a8d49b1865834c242db1f66dc910b9da0c24c01e35f
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L1_08_dequantize_k_cache_paged_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: attention_flash
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L1-08
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged K-cache dequant: nope_q [C, D] with per-group scales nope_s [C, D/group_size] dequantised, rope [C, D] passed through, gathered via page_table [B, 2] (cache-block indices in [0, C)). group_size=8 ⇒ D % 8 == 0.
+param_constraints:
+  scaffold: false
+  dims:
+  - D % 8 == 0
+  - D >= 8
+  - C >= 1
+  - B >= 1
+  dtypes:
+    nope_q: float32
+    nope_s: float32
+    rope: float32
+    page_table: int64
+  dists:
+    nope_q:
+      kind: randn
+    nope_s:
+      kind: rand
+    rope:
+      kind: randn
+    page_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: C
+  scalars:
+    group_size: group_size == 8
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: page_table
+      value: C

@@ -11,7 +11,7 @@ Workflow:
 5. Commit (provider repo)
 
 Usage:
-    python scripts/freeze_source.py --task L1_12_rms_norm_kernel
+    python scripts/freeze_source.py --task L1_12_rms_norm
     python scripts/freeze_source.py --all
 """
 from __future__ import annotations

@@ -76,8 +76,8 @@ def test_no_gpu_verify_is_unrun_never_pass(tmp_path, monkeypatch):
     monkeypatch.setattr(pap, "_cuda_available", lambda: False)
 
     class A:
-        task = "L1_01_bias_kernel"
-        verify = "L1_01_bias_kernel"
+        task = "L1_01_bias"
+        verify = "L1_01_bias"
 
     rc = pap.cmd_verify(A())
     assert rc == 0  # UNRUN is not an error exit

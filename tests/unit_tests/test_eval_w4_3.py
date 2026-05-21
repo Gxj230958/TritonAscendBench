@@ -54,8 +54,8 @@ def static_pass(monkeypatch):
                         lambda *a, **k: static_checker.CheckReport())
 
 
-# --- L1_15_act_and_mul_kernel: a real upstream_oracle_required task. -----
-_UPSTREAM_TASK = "L1_15_act_and_mul_kernel"
+# --- L1_15_act_and_mul: a real upstream_oracle_required task. -----
+_UPSTREAM_TASK = "L1_15_act_and_mul"
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +279,7 @@ def test_evaluate_non_upstream_is_evaluated(tmp_path, static_pass):
 
 
 def test_real_upstream_task_self_reported_unsupported(tmp_path, static_pass):
-    """The real `L1_15_act_and_mul_kernel` (upstream_oracle_required) is
+    """The real `L1_15_act_and_mul` (upstream_oracle_required) is
     `unsupported` in self-reported mode — no synthetic fixture needed."""
     sol = tmp_path / "solution.py"
     sol.write_text(_SOLUTION_SRC)

@@ -450,7 +450,7 @@ KernelBench 每题是一个独立 Python 文件，包含 `class Model(nn.Module)
 ```
 docs/npu/tasks/
 ├── level1/
-│   ├── L1_01_bias_kernel.py
+│   ├── L1_01_bias.py
 │   ├── L1_02_compute_slot_mappings.py
 │   ├── ...
 │   └── L1_40_chunk_cumsum_fwd.py

@@ -11,7 +11,7 @@
 ## Mechanism
 
 `oracle_pytorch.py` is an identity (`run()` returns `logits` unchanged). The
-canary is bound via `source_task_id` to `L1_01_bias_kernel`; the runner reuses
+canary is bound via `source_task_id` to `L1_01_bias`; the runner reuses
 the submission's L1_01 `solution.py`.
 
 * Honest L1_01 kernel → genuinely applies the bias → output ≠ identity oracle

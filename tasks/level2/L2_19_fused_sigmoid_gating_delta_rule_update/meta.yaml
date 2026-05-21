@@ -1,0 +1,95 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_19_fused_sigmoid_gating_delta_rule_update
+level: L2
+idx: 19
+name: fused_sigmoid_gating_delta_rule_update_kernel
+repo: SGLang
+dtype_class: VV
+category: ssm
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/attention/fla/`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: 707df20d4443a61ce490ab3bea9d77e67bfe189b6fdb454536e7d0f106493c81
+  function_hash: 707df20d4443a61ce490ab3bea9d77e67bfe189b6fdb454536e7d0f106493c81
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_19_fused_sigmoid_gating_delta_rule_update_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: recurrent_chunk
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-19
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Fused sigmoid-gated delta-rule single-step update: gating A_log / a [B, H] + dt_bias [H]; attention q / k / v [B, H, D]; per-head beta [B, H]; carried state [B, H, D, D]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    A_log: float32
+    a: float32
+    dt_bias: float32
+    q: float32
+    k: float32
+    v: float32
+    beta: float32
+    state: float32
+  dists:
+    A_log:
+      kind: randn
+    a:
+      kind: randn
+    dt_bias:
+      kind: rand
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    beta:
+      kind: rand
+    state:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []

@@ -32,7 +32,7 @@ def test_tab_help_lists_all_subcommands():
 
 def test_init_solution_and_static_check_smoke(tmp_path):
     sol_dir = tmp_path / "sol"
-    r = _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    r = _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     assert r.returncode == 0
     assert (sol_dir / "solution.py").exists()
 
@@ -41,7 +41,7 @@ def test_init_solution_and_static_check_smoke(tmp_path):
     r = _run_tab(
         "static-check",
         "--solution", str(sol_dir / "solution.py"),
-        "--task-id", "L1_12_rms_norm_kernel",
+        "--task-id", "L1_12_rms_norm",
         "--out", str(out_path),
     )
     assert r.returncode == 1, f"skeleton must fail static-check: {r.stdout} {r.stderr}"
@@ -51,7 +51,7 @@ def test_init_solution_and_static_check_smoke(tmp_path):
 
 def test_package_and_validate_submission_smoke(tmp_path):
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
     r = _run_tab("package", str(sol_dir), "--out", str(pkg))
     assert r.returncode == 0
@@ -67,7 +67,7 @@ def test_package_and_validate_submission_smoke(tmp_path):
 
 def test_static_check_on_submission_unpacks(tmp_path):
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
     _run_tab("package", str(sol_dir), "--out", str(pkg))
 
@@ -189,7 +189,7 @@ def test_analyze_filters_to_catalogue(tmp_path):
 def test_validate_submission_rejects_missing_manifest(tmp_path):
     """codex round-3 R-P0-2: missing manifest.yaml must fail validation."""
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
     _run_tab("package", str(sol_dir), "--out", str(pkg))
 
@@ -206,7 +206,7 @@ def test_validate_submission_rejects_malformed_yaml(tmp_path):
     """codex round-3 R-P0-2: malformed manifest.yaml content must reject."""
     import tarfile
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     (sol_dir / "manifest.yaml").write_text("not: [valid")  # malformed
     pkg = tmp_path / "sub.tar.gz"
     with tarfile.open(pkg, "w:gz") as tf:
@@ -224,7 +224,7 @@ def test_validate_submission_rejects_empty_manifest(tmp_path):
     """codex round-4 REGRESSION-P0: empty manifest.yaml (yaml -> None) must reject."""
     import tarfile
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     (sol_dir / "manifest.yaml").write_text("")           # empty
     pkg = tmp_path / "sub.tar.gz"
     with tarfile.open(pkg, "w:gz") as tf:
@@ -241,7 +241,7 @@ def test_validate_submission_rejects_empty_manifest(tmp_path):
 def test_submit_refuses_invalid_package(tmp_path):
     """codex round-4 P1: submit must run validate-submission first."""
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
     _run_tab("package", str(sol_dir), "--out", str(pkg))
     # sol has no manifest.yaml so the package is invalid.
@@ -534,10 +534,10 @@ def test_validate_submission_accepts_well_formed(tmp_path):
     import yaml as _yaml
 
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     manifest = {
         "submission_id": "01HXXX",
-        "task_id": "L1_12_rms_norm_kernel",
+        "task_id": "L1_12_rms_norm",
         "submitter": {
             "org_identity": "sha256:abc",
             "contact": "alice@example.com",
@@ -561,12 +561,12 @@ def test_validate_submission_accepts_well_formed(tmp_path):
 def test_tab_run_does_not_crash_on_skeleton_solution(tmp_path):
     """codex round-2 N-P0-1 regression: `tab run` must not raise TypeError."""
     sol_dir = tmp_path / "sol"
-    _run_tab("init-solution", "L1_12_rms_norm_kernel", "--out", str(sol_dir))
+    _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     # Skeleton solution will fail static check but the CLI must exit
     # cleanly with rc=1, not crash with TypeError.
     out_path = tmp_path / "run.json"
     r = _run_tab(
-        "run", "L1_12_rms_norm_kernel",
+        "run", "L1_12_rms_norm",
         "--solution", str(sol_dir / "solution.py"),
         "--backend", "gpu",                                # avoid NPU import
         "--out", str(out_path),

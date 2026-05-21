@@ -184,10 +184,10 @@ def test_cost_model_bad_tol_reported(tmp_path):
 def test_sample_tasks_validate_clean_via_cli():
     # WA.4: a `scaffold: true` corpus task is now a `validate_tasks` error
     # (Phase A red — WB.1 reconciles every task to turn the full corpus
-    # green). `L1_12_rms_norm_kernel` is the fully-reconciled sample task
+    # green). `L1_12_rms_norm` is the fully-reconciled sample task
     # (`param_constraints.scaffold: false` AND a complete `cost_model`), so
     # it is the one that validates clean end-to-end pre-WB.1.
-    for task_id in ("L1_12_rms_norm_kernel",):
+    for task_id in ("L1_12_rms_norm",):
         proc = subprocess.run(
             [sys.executable, str(REPO / "scripts" / "validate_tasks.py"),
              "--task", task_id],

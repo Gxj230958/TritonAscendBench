@@ -10,7 +10,7 @@ from triton_ascend_bench.manifest import SolutionManifest
 def test_round_trip_dict():
     doc = {
         "submission_id": "01HXXX",
-        "task_id": "L1_12_rms_norm_kernel",
+        "task_id": "L1_12_rms_norm",
         "submitter": {
             "org_identity": "sha256:abc",
             "contact": "alice@example.com",
@@ -23,7 +23,7 @@ def test_round_trip_dict():
     }
     m = SolutionManifest.from_dict(doc)
     assert m.submission_id == "01HXXX"
-    assert m.task_id == "L1_12_rms_norm_kernel"
+    assert m.task_id == "L1_12_rms_norm"
     assert m.submitter_org == "sha256:abc"
     assert m.declared_mode == "self-reported"
 

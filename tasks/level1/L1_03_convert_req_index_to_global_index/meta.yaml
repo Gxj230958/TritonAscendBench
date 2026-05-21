@@ -1,0 +1,95 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L1_03_convert_req_index_to_global_index
+level: L1
+idx: 3
+name: _convert_req_index_to_global_index_kernel
+repo: vLLM
+dtype_class: VV
+category: convolution
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/v1/worker/`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: f38bd7ab1eeeb508e733880ae252c1490fb85c8507c2d36299a543f75f551b38
+  function_hash: f38bd7ab1eeeb508e733880ae252c1490fb85c8507c2d36299a543f75f551b38
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L1_03_convert_req_index_to_global_index_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: vector_reduce
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L1-03
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Converts per-request token indices to global KV indices: req_id [B] (request id in [0, E)), block_table [E, N], token_indices [E, L]. block_size is the KV page size.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - E >= 1
+  - N >= 1
+  - L >= 1
+  dtypes:
+    req_id: int64
+    block_table: int64
+    token_indices: int64
+  dists:
+    req_id:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    block_table:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+    token_indices:
+      kind: randint
+      args:
+        lo: '0'
+        hi: N
+  scalars:
+    block_size: block_size >= 1
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: req_id
+      value: E

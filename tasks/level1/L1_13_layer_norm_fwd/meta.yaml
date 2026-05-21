@@ -1,0 +1,79 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L1_13_layer_norm_fwd
+level: L1
+idx: 13
+name: layer_norm_fwd_kernel
+repo: vLLM
+dtype_class: VV
+category: normalization
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: vLLM
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: fb194853f5ad6a9f3ea28cb245c7c3fa3f0708458529c92936d8f95eedcd685a
+  function_hash: fb194853f5ad6a9f3ea28cb245c7c3fa3f0708458529c92936d8f95eedcd685a
+  license: Apache-2.0
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  vendored_snapshot: tasks/_vendored/L1_13_layer_norm_fwd_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: vector_reduce
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L1-13
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 2
+  - B >= 1
+  dtypes:
+    x: float32
+    weight: float32
+    bias: float32
+  dists:
+    x:
+      kind: randn
+    weight:
+      kind: randn
+    bias:
+      kind: randn
+  scalars:
+    eps: 0 < eps <= 1e-2
+  tensor_invariants: []

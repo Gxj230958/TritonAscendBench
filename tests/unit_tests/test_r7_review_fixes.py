@@ -301,7 +301,7 @@ def test_r7_4_analyze_counts_duplicate_and_runs_clean(tmp_path):
     below."""
     # A real catalogue, score-eligible task — the duplicate-merge block
     # only runs for tasks inside the scored denominator.
-    tid = "L1_01_bias_kernel"
+    tid = "L1_01_bias"
     verified = tmp_path / "suite.json"
     verified.write_text(json.dumps({
         "mode": "verified",

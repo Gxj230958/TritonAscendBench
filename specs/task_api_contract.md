@@ -11,7 +11,7 @@
 Every task is a directory under `tasks/level{1,2,3}/<task_id>/`:
 
 ```
-tasks/level1/L1_12_rms_norm_kernel/
+tasks/level1/L1_12_rms_norm/
 ├── kernel.py              # GPU triton reference (pure operator, no oracle/meta pollution)
 ├── oracle_pytorch.py      # PyTorch eager reference (runner-only, not mounted to candidate)
 ├── meta.yaml              # Structured metadata + runner_checks (source of truth)
@@ -70,7 +70,7 @@ The machine-readable schema is enforced by `scripts/validate_tasks.py` (`REQUIRE
 
 ```yaml
 schema_version: "1.0"
-task_id: "L1_12_rms_norm_kernel"
+task_id: "L1_12_rms_norm"
 level: "L1"  # enum: L1, L2, L3, appendix, canary
 idx: 12
 name: "_rms_norm_kernel"

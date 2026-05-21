@@ -1,0 +1,86 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_22_linear_attn_decode
+level: L2
+idx: 22
+name: _linear_attn_decode_kernel
+repo: vLLM
+dtype_class: VV
+category: attention
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/lightning_attn.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: db41e3623225b70333adf71553afb744192466d4c7b58816a0987dabccbce844
+  function_hash: db41e3623225b70333adf71553afb744192466d4c7b58816a0987dabccbce844
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_22_linear_attn_decode_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: attention_flash
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-22
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Linear-attention decode step: q/k/v [B, H, D] update the per-head kv_caches [B, H, D, D] with a per-head exponential decay slope_rate [H]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    kv_caches: float32
+    slope_rate: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    kv_caches:
+      kind: randn
+    slope_rate:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []

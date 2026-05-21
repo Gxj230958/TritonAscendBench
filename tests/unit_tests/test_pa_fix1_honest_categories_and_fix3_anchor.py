@@ -435,7 +435,7 @@ def test_stale_provenance_cache_is_never_silently_consumed(
                 },
                 "verdicts": [
                     {
-                        "task_id": "L1_01_bias_kernel",
+                        "task_id": "L1_01_bias",
                         "status": "UNRUN(needs-gpu)",
                         "reason": "STALE LIE -- overclaimed pass",
                     }
@@ -470,7 +470,7 @@ def test_stale_provenance_cache_is_never_silently_consumed(
     class _R:
         def __init__(self):
             self.__dict__ = {
-                "task_id": "L1_01_bias_kernel",
+                "task_id": "L1_01_bias",
                 "status": "BLOCKED(x)",
                 "reason": "r",
             }
@@ -479,7 +479,7 @@ def test_stale_provenance_cache_is_never_silently_consumed(
     monkeypatch.setattr(pap, "RESOLVE_CACHE", fresh)
     monkeypatch.setattr(pap, "_RESOLVER_CACHE_MEM", None)
     got = pap._load_resolver_verdicts()
-    assert got["L1_01_bias_kernel"]["status"] == "BLOCKED(x)", got
+    assert got["L1_01_bias"]["status"] == "BLOCKED(x)", got
     monkeypatch.setattr(pap, "_RESOLVER_CACHE_MEM", None)
 
 

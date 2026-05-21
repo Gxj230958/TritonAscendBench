@@ -26,10 +26,10 @@ from triton_ascend_bench import process_isolation as pi
 from triton_ascend_bench.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias_kernel"
+_TASK = "L1_01_bias"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
-# L1_01_bias_kernel ships 5 public (P1..P5) + 4 hidden (H1..H4) shapes.
+# L1_01_bias ships 5 public (P1..P5) + 4 hidden (H1..H4) shapes.
 _PUBLIC_IDS = {"P1", "P2", "P3", "P4", "P5"}
 _HIDDEN_IDS = {"H1", "H2", "H3", "H4"}
 

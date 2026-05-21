@@ -1,0 +1,80 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_21_causal_conv1d_fwd
+level: L2
+idx: 21
+name: _causal_conv1d_fwd_kernel
+repo: vLLM
+dtype_class: VV
+category: convolution
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: "\u540C\u4E0A"
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: c092a7202cf71a01b9f9bac99039628aba99038ac1c6ec31cc5a43edbc3c044b
+  function_hash: c092a7202cf71a01b9f9bac99039628aba99038ac1c6ec31cc5a43edbc3c044b
+  license: Apache-2.0
+  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  vendored_snapshot: tasks/_vendored/L2_21_causal_conv1d_fwd_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: vector_reduce
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-21
+param_constraints:
+  scaffold: false
+  dims:
+  - D >= 1
+  - L >= 1
+  - B >= 1
+  dtypes:
+    x: float32
+    weight: float32
+    bias: float32
+  dists:
+    x:
+      kind: randn
+    weight:
+      kind: randn
+    bias:
+      kind: randn
+  scalars:
+    activation: activation in ['silu', 'swish', 'none']
+  tensor_invariants: []

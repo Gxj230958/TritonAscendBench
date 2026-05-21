@@ -65,7 +65,7 @@ def test_validate_result_accepts_w1_4_schema(tmp_path):
     """validate-result accepts a round_result.json with the full W1.4
     producer schema for an evaluated task."""
     doc = {
-        "task_id": "L1_01_bias_kernel",
+        "task_id": "L1_01_bias",
         "static_checks_passed": True,
         "aggregate_score": 0.75,
         "correctness_status": "ok",
@@ -95,7 +95,7 @@ def test_validate_result_accepts_non_evaluated_with_null_perf(tmp_path):
     """For task_status != "evaluated" the perf fields may be null —
     validate-result must accept that (W1.4 null-field contract)."""
     doc = {
-        "task_id": "L3_04_flash_attn_kernel",
+        "task_id": "L3_04_flash_attn",
         "static_checks_passed": True,
         "aggregate_score": 0.0,
         "correctness_status": "ok",
@@ -124,7 +124,7 @@ def test_validate_result_accepts_non_evaluated_with_null_perf(tmp_path):
 
 def test_validate_result_rejects_bad_task_status(tmp_path):
     doc = {
-        "task_id": "L1_01_bias_kernel",
+        "task_id": "L1_01_bias",
         "static_checks_passed": True,
         "aggregate_score": 0.5,
         "correctness_status": "ok",
@@ -145,7 +145,7 @@ def test_validate_result_rejects_nan_s_t(tmp_path):
     """A non-finite s_t is a gaming vector — validate-result rejects it."""
     # JSON has no NaN literal; emit it via the Python encoder's allow_nan.
     doc_text = json.dumps({
-        "task_id": "L1_01_bias_kernel",
+        "task_id": "L1_01_bias",
         "static_checks_passed": True,
         "aggregate_score": 0.5,
         "correctness_status": "ok",
@@ -178,7 +178,7 @@ def test_analyze_consumes_real_s_t(tmp_path):
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
              "aggregate_score": 0.5, "s_t": 0.5, "task_status": "evaluated"},
-            {"task_id": "L1_12_rms_norm_kernel",
+            {"task_id": "L1_12_rms_norm",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -204,7 +204,7 @@ def test_analyze_skips_non_evaluated_tasks(tmp_path):
     formula — NOT counted as a failure, NOT influenced by the result's own
     reported `task_status`.
 
-    `L1_15_act_and_mul_kernel` is an `upstream_oracle_required` task; in
+    `L1_15_act_and_mul` is an `upstream_oracle_required` task; in
     self-reported mode it has no provider golden, so its result is dropped
     from `task_measurements` and the denominator regardless of what the
     result claims.
@@ -218,7 +218,7 @@ def test_analyze_skips_non_evaluated_tasks(tmp_path):
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
              "aggregate_score": 1.0, "s_t": 1.0, "task_status": "evaluated"},
-            {"task_id": "L1_15_act_and_mul_kernel",
+            {"task_id": "L1_15_act_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -250,7 +250,7 @@ def test_validate_result_back_compat_no_task_status(tmp_path):
     """A pre-W1.4 result.json without task_status still validates (the
     field defaults to "evaluated")."""
     doc = {
-        "task_id": "L1_01_bias_kernel",
+        "task_id": "L1_01_bias",
         "static_checks_passed": True,
         "aggregate_score": 0.5,
         "correctness_status": "ok",
