@@ -1,85 +1,89 @@
 # Scoring Specification
 
-> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+> Machine-facing detail of the scoring model. The authoritative model is `docs/DESIGN.md §9`; this spec must not diverge from it.
 
+This is a GPU-Triton → 910B NPU-Triton **migration** benchmark with a **two-objective** score: correctness coverage is the **ranking eligibility gate**; 910B Roofline-normalized performance efficiency is the **ranked metric**. Both use the fixed score-eligible set `S` (single source: `triton_ascend_bench/eligibility.py`); `|S|` is fixed and never reduced (no subset escape).
 
-> v0 — per v4.13 §5 + R12-P1-1/5 + R13-P1-1 + R16-P1 + R18-S5
+## Objective 1 — Correctness Gate
 
-## Primary Metric: `score_native_only(p)`
+Per task `t ∈ S`, each shape is compared via `tolerance.compare(candidate, golden, class)`; results aggregate into the status group (`correctness_status` / `runtime_status` / `performance_status` + `fallback_detected` + `performance_flags`). `fallback_detected` is normalized to a correctness failure before scoring, so the gate predicate is explicitly `correctness_status == ok ∧ ¬fallback_detected`.
 
-For each task `t` in `S_native` (the set of tasks with AscendC native baseline):
+$$\text{native\_coverage} = \frac{\big|\{t \in S:\ \text{correctness\_status}_t = \textsf{ok}\ \wedge\ \neg\,\text{fallback}_t\}\big|}{|S|},\qquad \text{ranking eligibility}:\ \text{native\_coverage} \ge 0.70$$
 
-$$s_t = \begin{cases}
-\max\left(\epsilon,\ \min\left(5,\ \dfrac{t_{ascendc}(t)}{t_{npu\_triton}(t)}\right)\right) & \text{if all 4 statuses = ok and no fallback} \\
-\epsilon = 0.01 & \text{otherwise}
-\end{cases}$$
+No ε on coverage; missing/failed tasks contribute 0 to the numerator but are **not** removed from `|S|`. Below 0.70 → `self-reported` board only, not `verified` ranking.
 
-The 4 statuses required:
-- `correctness_status == ok`
-- `runtime_status == ok`
-- `performance_status == ok`
-- `no fallback detected` (from §5b.4 artifact provenance check)
+## Objective 2 — Roofline-Normalized Performance (ranked metric)
+
+910B and the source GPU differ in peak capability, so absolute latency is not cross-hardware comparable; performance is normalized against the 910B Roofline. For task `t`, shape `s`:
+
+- `W_c(t,s)` = FLOPs of compute class `c`, `M_r(t,s)` = bytes of data resource `r` (HBM / inter-device comm) — from the per-task cost model, cross-validated against an instrumented GPU-Triton reference run (fail-closed; `task_api_contract.md §cost_model`);
+- `π_c` / `β_r` = 910B peak compute / bandwidth for that class / resource (`infra/` peak table);
+- **Roofline ideal latency** (standard Roofline lower bound; assumes ideal resource overlap → tightest theoretical floor; fully serialized non-overlap would instead be the sum):
+
+$$t_{ref}(t,s) = \max\!\Big(\max_c \tfrac{W_c}{\pi_c},\ \max_r \tfrac{M_r}{\beta_r}\Big)$$
+
+- measured NPU latency `t_npu(t,s)` (host-authoritative timing; `timing_arbitration.md`);
+- per-shape efficiency `e(t,s) = min(P_CAP, t_ref / t_npu)`, theoretically `∈ (0,1]` (`t_ref` is a lower bound); `> 1` arises only from cost-model underestimate / timing noise and is clamped by `P_CAP = 5.0` and flagged for review.
+
+$$s_t = \begin{cases}\big(\textstyle\prod_s e(t,s)\big)^{1/n_t} & \text{all three statuses ok and no fallback} \\ \epsilon = 0.01 & \text{otherwise}\end{cases}\qquad \text{capped\_geomean\_native} = \exp\!\Big(\tfrac{1}{|S|}\textstyle\sum_{t \in S}\log s_t\Big)$$
+
+The three statuses: `correctness_status == ok`, `runtime_status == ok`, `performance_status == ok`; plus `fallback_detected == false`. `baseline_ns = t_ref`, `measured_ns = t_npu`. ε-fill and the fixed `|S|` denominator apply to the performance metric exactly as to the gate — non-ok / fallback tasks score ε and are not removed from `|S|` (no subset escape).
 
 ### Headline indicators
 
-- `FastP_native@1.0` = fraction of `S_native` tasks where candidate beats AscendC native (speedup ≥ 1.0)
-- `FastP_native@1.5` = fraction within 1.5× of AscendC native
-- `capped_geomean_native` = $\exp\left(\dfrac{1}{|S_{native}|}\sum_t \log(s_t)\right)$
+- `native_coverage` — the ranking eligibility gate (correctness).
+- `capped_geomean_native` — the ranked metric (Roofline-efficiency geomean); `s_t ≈ 1` means the 910B Roofline is saturated.
+- `RooflineP@τ` (diagnostic only) = fraction of `S` with `e ≥ τ` (e.g. τ ∈ {0.5, 0.8}); not a ranking key.
 
-`p = ∞` (correctness-only) is **NOT a headline indicator** — too easy to game.
+Correctness-only (`p = ∞`) is **not** a headline indicator — it is the gate, not the rank.
 
-## Secondary Metrics (diagnostic)
-
-- `score_all` — denominator `|S_scored|` (all 100 scored tasks); $t_{denom}$ is AscendC if available, else torch eager.
-- `score_fallback_only` — for `S_fallback = S_scored \ S_native`, denominator is torch eager.
-
-**Warning**: `score_all` mixes denominators (AscendC vs torch eager) and is biased toward tasks without AscendC (where torch eager is slow). Use only for diagnostics, not ranking.
-
-## Status Fields (per v4.13)
+## Status Fields
 
 ```
 correctness_status ∈ {ok, fail, error}
 runtime_status     ∈ {ok, timeout, oom, compile_fail, invalid_timing}
 performance_status ∈ {ok, suspicious, quarantined}
-performance_flags  ∈ list of {low_performance, invalid_stream, measured_outputs_drift,
-                              suspected_buffer_reuse, thermal_throttle, high_variance, ...}
+performance_flags  ∈ list of {low_performance, roofline_exceeded, invalid_stream,
+                              measured_outputs_drift, suspected_buffer_reuse,
+                              thermal_throttle, high_variance, ...}
+fallback_detected  ∈ bool   # normalized to a correctness failure before scoring
 ```
 
-Note: `performance_flags` is a list, NOT in the enum, per R12-P1-1 / R13-P1-1.
+`performance_flags` is a list, not part of the enum.
 
-## Ranking Eligibility
+## Release Gate (S6)
 
-Per R12-P1-5, a submission qualifies for the native track ranking only if:
+A task is release-eligible only if `release_status == PASS`, where
 
-$$\text{native\_coverage} = \frac{|\{t \in S_{native}: \text{correctness\_status}_t = ok\}|}{|S_{native}|} \ge 0.70$$
+```
+release_status == PASS  ⟺  phase_a_prime.status == PASS  ∧  cost_model.status == PASS
+```
 
-Otherwise → submission lands on `self-reported` board only, not `verified` ranking.
+(reproducible freeze ∧ cost model GPU-cross-validated). Any score-eligible task with `release_status != PASS` blocks benchmark release (`validate_tasks.py --release-gate`). BLOCKED is hard and cannot be evaded by removing the task from `|S|`.
 
-Similarly for all-track ranking: `all_track_coverage = correct_in_S_scored / |S_scored| >= 0.70`.
-
-## Sanity Bounds (per §5b.6 + R11-P1-6 / R16-P1)
+## Sanity Bounds
 
 | Condition | Action |
 |-----------|--------|
 | `runtime_status = invalid_timing` (t_npu ≤ 0 / NaN / Inf) | hard fail |
-| Profiler captures 0 NPU kernel events | hard fail (likely CPU fallback / B5 / F4) |
-| `hardware_utilization > 100%` | hard fail (physically impossible) |
-| speedup > 10× vs AscendC native | quarantine + require profiler trace + memory lower bound proof + output dependency proof |
-| speedup < 0.1× vs AscendC native | **not a hard fail** — flag `performance_flags.append("low_performance")` (per R11-P1-6) |
-| host_ms vs event_ms diff > 10% | check stream list; if non-runner stream → `runtime_status=invalid_timing` + flag `invalid_stream` (R12-P1-2) |
-| Measured sampled output ≠ golden_meas_outputs | `performance_status=quarantined` + flag `measured_outputs_drift` (R16-P1) |
+| Profiler captures 0 NPU kernel events | hard fail (likely CPU fallback / empty kernel) |
+| `hardware_utilization > 100%` | physically impossible → same handling as `e > 1`: clamp + flag `roofline_exceeded` for mandatory review (cost-model / peak-table / measurement artifact), not a silent hard fail |
+| `e > 1` (t_npu < t_ref) | cost-model underestimate / noise → clamp at `P_CAP`, flag `roofline_exceeded` for review |
+| `e < 0.1` (far below Roofline) | **not** a hard fail — flag `low_performance` |
+| host vs event timing drift over threshold | per `timing_arbitration.md`: `runtime_status=invalid_timing` + flag `invalid_stream` |
+| Measured sampled output ≠ golden_meas_outputs | `performance_status=quarantined` + flag `measured_outputs_drift` |
 
 ## Hardware Utilization (auxiliary diagnostic)
 
-$$\text{hardware\_utilization} = \max\left(\frac{\text{achieved}_{HBM}}{1600\,\text{GB/s}} \times 100,\ \frac{\text{achieved}_{TFLOPS}}{256} \times 100\right)\,\%$$
+$$\text{hardware\_utilization} = \max\!\Big(\frac{\text{achieved}_{HBM}}{\beta_{HBM}} \times 100,\ \frac{\text{achieved}_{FLOPS}}{\pi_{class}} \times 100\Big)\,\%$$
 
-(910B specs: HBM 1.6 TB/s, FP16 peak 256 TFLOPS, INT8 peak 512 TOPS)
+910B peaks (`π_class`, `β`) are sourced from the `infra/` peak table (illustratively HBM ≈ 1.6 TB/s, FP16 cube ≈ 256 TFLOPS, INT8 ≈ 512 TOPS — authoritative values live in `infra/`). This is the empirical counterpart of the analytic `t_ref`; diagnostic, not a ranking key.
 
 ## Result JSON Schema (per task per run)
 
 ```json
 {
-  "task_id": "L1_12_rms_norm_kernel",
+  "task_id": "L1_12_rms_norm",
   "task_bundle_sha": "<frozen sha>",
   "solution_sha": "<submitter sha>",
   "runner_hash": "tab-0.1.0+<git sha>",
@@ -94,16 +98,20 @@ $$\text{hardware\_utilization} = \max\left(\frac{\text{achieved}_{HBM}}{1600\,\t
   "runtime_status": "ok",
   "performance_status": "ok",
   "performance_flags": [],
+  "fallback_detected": false,
 
   "per_shape": {
-    "small":  {"median_ms": 0.042, "p99_ms": 0.051, "cv": 0.03, "trials": 100},
-    "medium": {"median_ms": 0.318, "p99_ms": 0.389, "cv": 0.04, "trials": 100},
-    "large":  {"median_ms": 2.140, "p99_ms": 2.580, "cv": 0.05, "trials": 100}
+    "small":  {"median_ms": 0.042, "p99_ms": 0.051, "cv": 0.03, "trials": 100,
+               "t_ref_ns": 38000,   "roofline_efficiency": 0.90},
+    "medium": {"median_ms": 0.318, "p99_ms": 0.389, "cv": 0.04, "trials": 100,
+               "t_ref_ns": 290000,  "roofline_efficiency": 0.91},
+    "large":  {"median_ms": 2.140, "p99_ms": 2.580, "cv": 0.05, "trials": 100,
+               "t_ref_ns": 1950000, "roofline_efficiency": 0.91}
   },
   "runs": [
-    {"run_id": 1, "summary": {...}, "temp_c": 52, "freq_mhz": 1850},
-    {"run_id": 2, "summary": {...}, "temp_c": 53, "freq_mhz": 1850},
-    {"run_id": 3, "summary": {...}, "temp_c": 54, "freq_mhz": 1850}
+    {"run_id": 1, "summary": {}, "temp_c": 52, "freq_mhz": 1850},
+    {"run_id": 2, "summary": {}, "temp_c": 53, "freq_mhz": 1850},
+    {"run_id": 3, "summary": {}, "temp_c": 54, "freq_mhz": 1850}
   ],
 
   "adversarial": {
@@ -112,14 +120,14 @@ $$\text{hardware\_utilization} = \max\left(\frac{\text{achieved}_{HBM}}{1600\,\t
     "non_align_hidden": {"correctness": true, "ms": 0.345}
   },
 
-  "denominator_source": "ascendc_native",
-  "speedup_vs_ascendc": 0.82,
-  "s_t_value": 0.82,
-  "score_native_only_p1.0_pass": false,
-  "score_native_only_p1.5_pass": true,
-  "hardware_utilization_pct": 67.3,
+  "denominator_source": "roofline_ideal",
+  "baseline_ns": 290000,
+  "measured_ns": 318000,
+  "s_t_value": 0.91,
+  "cost_model_status": "PASS",
+  "release_status": "PASS",
+  "hardware_utilization_pct": 91.0,
 
-  "fallback_detected": false,
   "reward_hack_flags": []
 }
 ```

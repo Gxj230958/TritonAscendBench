@@ -60,4 +60,4 @@ NOT:
 
 ## Storage
 
-`infra/submitter_quotas.db` (SQLite or Postgres) — schema in `triton_ascend_bench/leaderboard_validator.py`.
+`infra/submitter_quotas.db` (SQLite or Postgres) — managed by the verified-runner leaderboard / broker infrastructure (`docs/DESIGN.md §11`).

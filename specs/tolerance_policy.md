@@ -1,12 +1,12 @@
 # Tolerance Policy
 
-> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+> Authoritative scoring model: `docs/DESIGN.md §9`. GPU-Triton → 910B NPU-Triton migration; no AscendC baseline. Tolerance classes here gate **correctness** only; S2 equivalence uses strict bit-exact, not these classes.
 
 
 > v0 — per v4.13 §10.2 + R18-S2
 > Machine-readable form: `triton_ascend_bench/tolerance_policy.yaml` (loaded by `eval.py`)
 
-Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for correctness check.
+Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for the correctness check. The table is illustrative; `triton_ascend_bench/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
 
 ## Tolerance Classes
 
@@ -17,7 +17,7 @@ Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner
 | `cube_matmul_fp16` | FP16/BF16 → FP32 acc | 5e-3 | 1e-3 | GEMM with FP32 accumulator |
 | `int8_w8a8` | INT8 → FP16 dequant | 5e-2 | 1e-2 | W8A8 INT8 matmul, expected quantization error |
 | `int4_w4a8` | INT4 → INT8 dequant | 5e-2 | 1e-2 | W4A8 grouped matmul |
-| `fp8_software_emulated` | FP8 ↔ FP16 cast | 1e-1 | 5e-2 | **Performance not in primary score** (910B has no FP8 cube) |
+| `fp8_software_emulated` | FP8 ↔ FP16 cast | 1e-1 | 5e-2 | 910B has no FP8 cube → modeled in the Roofline via vector compute + HBM (no FP8-cube π); score-eligibility is unaffected (defined solely by `eligibility.py`) |
 | `recurrent_chunk` | FP16/BF16 | 5e-3 | 5e-3 | Mamba / GDN / KDA chunk pipelines |
 | `sampling_rng` | int / float | 0 | 0 | Bit-exact required when seed matches |
 | `atomic_scatter` | FP32 | 1e-4 | 1e-4 | Non-deterministic; rerun 3x for consistency |
@@ -36,17 +36,16 @@ Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner
   - int16/32: corresponding MIN
   - bool: alternating mask `0xAA`
 
-- **Tolerance escalation** (per v4.13 §5b.27 cross-oracle drift):
-  if PyTorch / GPU triton / AscendC three-way diff fails at standard tolerance, task does NOT auto-escalate. Owner must investigate and decide whether to:
+- **Tolerance escalation** (cross-oracle drift):
+  if the PyTorch oracle vs frozen GPU-Triton kernel diff fails at standard tolerance, the task does NOT auto-escalate. The owner must investigate and decide whether to:
   1. Tighten/loosen tolerance (with documented justification in `contract.md`)
   2. Fix oracle / wrapper
-  3. Move task out of `S_native` (only score_all secondary)
-  4. Skip task entirely (`skip_registry.yaml`)
+  3. Mark the task `BLOCKED` — a hard release block; it stays in `|S|` and is **not** removed from the denominator (no subset escape, `docs/DESIGN.md §4.4`)
 
 ## Authority
 
 - Source of truth: `triton_ascend_bench/tolerance_policy.yaml` (this file's machine-readable counterpart).
-- Each task's `meta.yaml.tolerance_class` MUST be one of the keys above. New classes require:
+- Each task's `meta.yaml.tolerance_class` MUST be one of the keys in `triton_ascend_bench/tolerance_policy.yaml` (the complete authority). New classes require:
   1. Justification in PR description
   2. Code review from at least one Phase 2 owner
   3. Update to both this `.md` and the `.yaml`

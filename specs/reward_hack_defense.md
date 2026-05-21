@@ -17,7 +17,7 @@ Reward hacking defense must be **built into benchmark design**, not bolted on as
 | L5 Submission Policy | Throttle / canary / similarity / reproducibility | §5b.9–§5b.12 |
 | L6 Test-Set Design | Hidden sealed + rotation + 3-random generator | §5b.13 + R18-S5 |
 | L7 Cross-Cutting | Cache scrub / delayed disclosure / audit | §5b.14–§5b.16 |
-| **L8 v4.13 R18 Simplification Safety** | Safe CI fast-fail + L1 oracle tiers + cross-oracle drift + stdout out of verdict | §5b.25–§5b.29 |
+| **Addendum — R18 Simplification Safety** | Safe CI fast-fail + L1 oracle tiers + cross-oracle drift + stdout out of verdict | §5b.25–§5b.29 |
 
 ## 31-Category Attack Matrix
 

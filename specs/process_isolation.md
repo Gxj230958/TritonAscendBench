@@ -1,6 +1,6 @@
 # Process Isolation Architecture
 
-> **v3.2 ERRATA — AscendC removed.** This is a GPU-triton → NPU-triton *migration* benchmark; there is no AscendC native baseline, no `ascendc_baseline.yaml`, no `in_s_native`/`oracle.ascendc`. Correctness is the scored axis; performance is raw NPU latency (deferred to 910B). AscendC-specific text below is **superseded** and kept only as historical context.
+> Authoritative scoring model: `docs/DESIGN.md §9`; isolation architecture: `docs/DESIGN.md §3.3`. GPU-Triton → 910B NPU-Triton migration; no AscendC baseline.
 
 
 > v0 — per v4.13 §5b.1 + §5b.1a + §5b.2 + R11-P0-1/2 + R12-P0-1/2 + R15-P1-1/2
@@ -23,7 +23,7 @@
 │           inputs.safetensors                    │
 │  • NOT mount: oracle_pytorch.py                 │
 │  • NOT mount: golden_outputs (R11-P0-1!)        │
-│  • NOT mount: ascendc_baseline.yaml             │
+│  • NOT mount: cost-model GPU-measured baseline  │
 │  • cgroup: 32 GB mem, 16 core                   │
 │  • Trusted shim wraps solution.npu_triton_impl  │
 │  • Writes output.safetensors (NOT .pt — R12)    │
@@ -110,5 +110,5 @@ docker run --rm \
 - `dlopen` of `.so` without runner broker signature (R15-P1-1)
 - `torch.npu.Event` / `time.perf_counter` / `LD_PRELOAD`
 - Reading `/runner_shim/` (shim source)
-- Reading `oracle_pytorch.py` or `ascendc_baseline.yaml`
+- Reading `oracle_pytorch.py`, `golden_outputs`, or the cost-model GPU-measured baseline
 - Network egress to ANY endpoint (NO upload exception — runner does upload from outside sandbox)

@@ -108,7 +108,7 @@ Reject any source code containing these substrings (case-insensitive regex):
 ## Validator Workflow
 
 ```
-1. tab validate-solution <path-to-solution.py>
+1. tab static-check <path-to-solution.py>
 2. AST parse → walk all nodes
 3. Check each node type against AST_ALLOW (Layer B)
 4. For Call/Attribute nodes, check dotted path against Layers C/D
