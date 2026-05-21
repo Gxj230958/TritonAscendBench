@@ -1,25 +1,81 @@
-# TritonAscendBench — 设计方案
+# TritonAscendBench — 最终设计规范
 
-> **文档类型**：架构与模块设计方案（Design Specification）
-> **对象**：`triton-ascend-bench` —— GPU Triton → 昇腾 910B NPU Triton 迁移评测基准
-> **范围**：整体背景 → 整体架构 → 每个模块的设计初衷与设计细节，配架构图 / 数据时序图 / 数据流图
-> **格式参考**：`docs/npu/gpu_triton_to_npu_triton benchmark设计.pdf`（在其概念基础上重写、扩展、补全工程细节）
+> **对象**：`triton-ascend-bench` —— GPU Triton → 昇腾 910B NPU Triton **迁移**评测基准的架构与模块设计规范。
+
+## 一句话摘要
+
+TritonAscendBench 回答一个具体问题:
+
+> 已在 vLLM / SGLang 生产推理路径中运行的 GPU Triton 算子,迁移到昇腾 910B 的 `triton-ascend` 后端后,能否保持被冻结的上游真实语义,并在 910B 上达到可解释、可复现的性能?
+
+因此这是一个 **GPU Triton → NPU Triton 迁移基准**(不是"由算法描述生成新 kernel"),**双目标**评测:
+
+1. **迁移是否正确**:NPU 实现必须复现被可复现冻结的上游 GPU Triton kernel 行为;
+2. **迁移是否高效**:通过正确性资格门后,按 910B Roofline 理论上限归一化,比较 NPU 实测效率。
+
+**正确性是进入排名的资格门;性能是进入资格门后的排名指标。**
 
 ---
 
 ## 目录
 
+0. [核心概念](#0-核心概念)
 1. [背景与动机](#1-背景与动机)
-2. [设计目标与核心原则](#2-设计目标与核心原则)
+2. [设计目标、非目标与核心原则](#2-设计目标非目标与核心原则)
 3. [整体架构](#3-整体架构)
-4. [数据模型与契约](#4-数据模型与契约)
-5. [模块详细设计](#5-模块详细设计设计初衷--设计细节)
-6. [评测流程时序](#6-评测流程时序)
-7. [Reward Hacking 防御体系](#7-reward-hacking-防御体系)
-8. [评分体系数学定义](#8-评分体系数学定义)
-9. [关键工程决策与权衡](#9-关键工程决策与权衡)
-10. [演进路线](#10-演进路线)
-11. [附录](#11-附录)
+4. [可复现冻结 Provenance 链（核心）](#4-可复现冻结-provenance-链核心)
+5. [数据模型与契约](#5-数据模型与契约)
+6. [模块详细设计](#6-模块详细设计)
+7. [评测流程时序](#7-评测流程时序)
+8. [Reward Hacking 防御体系](#8-reward-hacking-防御体系)
+9. [评分体系数学定义](#9-评分体系数学定义)
+10. [关键工程决策与权衡](#10-关键工程决策与权衡)
+11. [系统构成层次](#11-系统构成层次)
+12. [附录](#12-附录)
+
+---
+
+## 0. 核心概念
+
+正式术语表（下一节）给精确定义;本节先用读者视角把整套设计讲清楚。
+
+**概念对照**（读者视角 → 本规范术语 / 标识 → 作用）：
+
+| 读者视角 | 本规范术语 / 标识 | 作用 |
+|----------|------------------|------|
+| 冻结上游真实行为 | 可复现冻结 / `severing` | 固定上游 GPU Triton kernel,使其行为不再随环境中 vLLM/SGLang 版本漂移 |
+| 证明冻结没改语义 | 等价与确定性校验 | 原始 vs 切断后 kernel 在 GPU 上严格 bit-exact;**唯一权威 PASS 来源是 GPU 实测**,CPU 形式只预检不判 PASS |
+| 入口选对了没有 | 入口双锚校验 | 写入 `meta.yaml` 前,用 ≥2 shape 的 oracle 一致性 + CPU 等价预检确认入口确为目标算子 |
+| 冻结后是否稳定 | 确定性校验(首跑 + 5 重跑) | 冻结候选多次重跑必须 bit-exact 一致 |
+| 题库能否发布 | 发布门 / `validate_tasks --release-gate` | 任一可计分任务未达 `release_status=PASS`（冻结 PASS ∧ cost-model PASS）⇒ 整套基准不可发布 |
+| 哪些任务进分母 | score-eligible 集 / `eligibility.py` | oracle 非 stub 且 shapes 非手工占位的任务,作为正确率与性能的固定分母 |
+| 性能分母是什么 | 910B Roofline $t_{ref}$ | 按 910B 峰值算力/带宽推导的理论最快时间,不拿 GPU 延迟当分母 |
+| 候选是否绕规则 | reward hacking 防御 | 静态检查 + 进程隔离 + 隐藏输入 + canary + 计时仲裁协同 |
+
+整套设计可归为**三条链**：
+
+1. **真值链**：上游 GPU kernel → 可复现冻结（severing + 等价与确定性校验）→ golden 输出。
+2. **评测链**：提交者 `solution.py` → 三进程隔离运行 → 正确性比对 → 910B 计时 → Roofline 效率。
+3. **治理链**：静态规则 + 进程隔离 + 发布门 + 固定分母 + 防作弊 + 双层榜单。
+
+三条链对应专家需要判断的三件事:**真值是否可信 · 候选是否真正完成迁移 · 性能分是否可复现且不可被选择性操纵。**
+
+## 术语表
+
+| 术语 | 定义 |
+|------|------|
+| **GPU Triton 算子** | vLLM/SGLang 现网推理路径中的 `@triton.jit` kernel，迁移的源对象 |
+| **`triton-ascend`** | Triton 面向昇腾 NPU 的编译后端（被测对象，`pip install triton-ascend`，版本见 `infra/version_matrix.toml`） |
+| **oracle / golden** | oracle = `oracle_pytorch.py::run`（PyTorch eager，经入口双锚对齐冻结上游语义，**非独立真值源**）；golden = 评测期参考输出——PyTorch 可对齐题由 oracle **现跑生成**，`upstream_oracle_required` 题由 provider **离线采自冻结上游 kernel**（§4 / §5.7） |
+| **可复现冻结** | 符号级切断 `kernel.py` 对运行时安装上游包的依赖（severing），并经**等价与确定性校验**证明"行为不变"后的 `kernel.py`（§4） |
+| **等价与确定性校验** | 原始上游 vs 切断后候选的**严格 bit-exact** 比对（等价）+ 首跑后 5 次重跑全一致（确定性）。GPU 实测是**唯一权威 PASS 来源**；CPU/`TRITON_INTERPRET=1` 形式做真实比对但**永不判 PASS**（无 GPU 记 `UNRUN(needs-gpu)`） |
+| **入口双锚校验** | 上游入口写入 `meta.yaml` 前的双重锚定：≥2 个 shape 的 oracle 输出一致 + 输出结构/dtype 匹配 + CPU 等价预检（§4.3） |
+| **发布门** | 任一 score-eligible 任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 基准不可发布；$\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}\wedge\text{cost\_model.status}{=}\textsf{PASS}$（§4.4） |
+| **score-eligible 集 $S$** | oracle 源非 stub（无 `raise NotImplementedError` 文本）且 `shapes.yaml` 非 `PHASE-C-MANUAL` 的任务集，由 `eligibility.py` 单一来源计算 |
+| **$t_{ref}$** | **910B Roofline 理论延迟** $\max\!\big(\max_c W_c/\pi_c,\,\max_r M_r/\beta_r\big)$（计算类 $c$、数据资源 $r$；单类单资源即 $\max(W/\pi,M/\beta)$）：由算子工作量与 910B 算力/带宽峰值推导的硬件归一化性能基线（§9） |
+| **Roofline 效率** | $\min(P_{cap},\,t_{ref}/t_{npu})$：候选达到 910B 屋脊的比例，理论 $\in(0,1]$（$t_{ref}$ 为下界）；$>1$ 仅源于 cost-model 低估或计时噪声，由 $P_{cap}{=}5.0$ 钳制并标记需复核。算子计算受限/带宽受限由操作强度 $W/M$ 与屋脊点 $\pi/\beta$ 的相对位置决定 |
+| **cost model** | 每任务按**计算类**声明 $\{c:W_c(\text{shape})\}$（FLOPs）、按**数据资源**声明 $\{r:M_r(\text{shape})\}$（HBM/通信字节）的解析公式（单类单资源退化为标量 $W/M$，与 $t_{ref}$ 公式同源），经插桩 GPU-Triton 参考实测交叉校验（fail-closed，§5.6）|
+| **size-knob shapes** | 以命名整型旋钮（B/L/D 等）的参数化公式表达张量维度的 `shapes.yaml` schema |
 
 ---
 
@@ -27,13 +83,18 @@
 
 ### 1.1 问题陈述
 
-vLLM / SGLang 等推理引擎已在 NVIDIA H100/A100 上沉淀了大量成熟的 **GPU Triton 算子**（采样、归一化、KV-cache、LoRA、MoE、Flash-Attention、Mamba 等）。要把这些推理栈迁移到华为昇腾 **Atlas 910B（A2 系列）**，需用 `triton-ascend` 后端把这些 GPU Triton kernel 一一移植，且**不能在语义上回退**。
+vLLM / SGLang 等推理引擎已在 NVIDIA H100/A100 上沉淀了大量成熟的 **GPU Triton 算子**（采样、归一化、KV-cache、LoRA、MoE、Flash-Attention、Mamba 等）。把推理栈迁移到华为昇腾 **Atlas 910B（A2 系列）** 需用 `triton-ascend` 后端把这些 kernel 一一移植，且**不能在语义上回退**。
 
-TritonAscendBench 要回答的核心问题：
+核心问题：
 
-> 一个 NPU `triton-ascend` 实现，能否在 910B 上**正确复现**被迁移的 GPU Triton 参考语义（计分轴），并报告其 NPU 运行性能？
+> 一个 NPU `triton-ascend` 实现，能否在 910B 上**正确复现被冻结的上游 GPU Triton 算子语义**，并在 910B 上**高效执行**？
 
-**正确性是计分轴**：以独立 PyTorch eager 实现为参考真值，按算子族分级容差判定迁移是否保真。**性能是报告维度**：在 910B 上测量 NPU 原始延迟并随结果披露；规范化的性能排名指标在演进路线中作为后续轴。
+本基准为**双目标**评测：
+
+- **正确性（排名资格门）**：以"被冻结、可复现的上游 kernel 语义"为真值参考，按算子族分级容差判定迁移是否保真；coverage 须 ≥ 0.70 方具排名资格。
+- **性能（排名指标）**：在 910B 上实测延迟，按 910B 算力/带宽峰值归一化为 **Roofline 效率**（达到 910B 理论上限的比例，硬件无关、绝对可复现）；入门提交按其 geomean 排名（§9）。
+
+迁移的实践目的是在 NPU 上**既正确又高效**——只测正确性会把"正确但低效（如回退到慢通用路径）"误判为成功，故性能为一等排名指标，正确性为其前置资格门。
 
 ### 1.2 为什么是 Migration Benchmark，不是 Generation Benchmark
 
@@ -41,56 +102,55 @@ TritonAscendBench 要回答的核心问题：
 |------|-------------|-------------|----------------------|
 | 任务 | PyTorch → CUDA 生成 | PyTorch → Triton 生成 | **GPU Triton → NPU Triton 迁移** |
 | 起点 | 算法描述 | 算法描述 | **现网生产 GPU Triton 源码** |
-| 考察 | "能否从零写 kernel" | 同左 | **"生产 kernel 能否无回退移植到 NPU"** |
-| 保真要求 | 功能等价即可 | 功能等价即可 | **必须忠于上游语义（含 stride / in-place / NaN 语义）** |
+| 真值定义 | 功能等价即可 | 功能等价即可 | **被冻结且可复现的上游 kernel 行为** |
+| 保真要求（与真值的语义匹配严格度）| 功能近似即可 | 功能近似即可 | **严格匹配上游语义：输出 stride 布局、in-place 原地修改语义、NaN/Inf 位置均须一致** |
+| 性能评分 | 原始加速比 | 原始加速比 | **910B Roofline 归一化效率（硬件无关，正确性门 + 性能排名）** |
 
-被测对象是 **`triton-ascend`**（Triton 的昇腾编译后端，`pip install triton-ascend`）。提交者写 NPU Triton kernel，由 `triton-ascend` 编译执行；基准以独立 PyTorch oracle 为参考真值判定正确性。
+被测对象是 **`triton-ascend`**（Triton 的昇腾编译后端，`pip install triton-ascend`）。提交者只写 NPU Triton `solution.py`，由 `triton-ascend` 编译执行。
 
-### 1.3 与参考 PDF 的关系（设计演进）
+### 1.3 真值从哪来：本基准最关键的科学问题
 
-参考 PDF 描述早期 **NPUKernelBench 三评测扩展**概念草案（`ascendc_migration` / `cuda_to_ascendc` / `gpu_triton_to_npu_triton`），文件结构为 `model.py` + `input_cases.json` + `gpu_triton_kernel/`。本设计是其中 **`gpu_triton_to_npu_triton` 这条线的完整工程化方案**：
+迁移基准的真值由**被迁移的上游 kernel 的实际计算行为**定义，而非该算子的解析参考实现：上游 kernel 常含 fp32 累加、fused epilogue、masking、有意近似，独立从数学定义重推的参考实现可能在数值上偏离上游 kernel 的真实行为。本设计将"真值可信"落为一条可执行、可证伪的主线：
 
-| PDF 草案 | 本设计 | 演进原因 |
-|----------|--------|---------|
-| 2 level、示例 1–2 算子 | **3 level、~100 真实任务**（L1 单算子 / L2 融合 / L3 子系统） | 覆盖 vLLM/SGLang 真实推理路径 |
-| `model.py`（PyTorch 标杆） | `oracle_pytorch.py` + **三档 oracle 分级** | 防 oracle 失真，不盲信 PyTorch |
-| `input_cases.json` | `shapes.yaml`（size-knob 公式）+ `inputs` 桥 + `meta.yaml`（单一真值源） | shape 可执行化、真值源单一化 |
-| `gpu_triton_kernel/kernel.py` | `kernel.py`（whole-file vendored + Apache 头 + SHA 锁定，**Phase A′ 再做 standalone-freeze + S2 等价验证**才是真冻结） | 保留上游许可与可哈希冻结 |
-| "增加代码检视 skill" 一句 | **Layer A–F 静态防御 + 7 层 reward-hack 防御 + canary 陷阱题** | 防作弊从口号变为可执行机制 |
-| 单一 `allclose(1e-3)` | **12 类 tolerance class + bit-exact + NaN/Inf 一致性** | 算子族数值特性差异巨大 |
-| 离线 GPU 双向交叉验证（概念） | Phase A 冻结 + **Phase A′ standalone-freeze + S2 等价 gate** + Phase B oracle + Phase C 文档生成 + schema 校验流水线 | 概念变为可复现的离线构建管线，A′ 让"冻结"在 provenance 层真正成立 |
+> **切断依赖 → 证明等价 → 得到可信冻结真值**
+
+1. **可复现冻结**：对 `kernel.py` 做**符号级依赖切断（severing）**，使其不再依赖运行时安装的上游包版本；并由 **GPU 权威的严格 bit-exact 等价校验**证明"切断后行为 ≡ 切断前上游行为"，从而使"基准真值 = 被冻结的上游 kernel"在来源（provenance）层得到可验证保证（§4）。
+2. **入口双锚校验**：每个任务的上游入口在写入 `meta.yaml` 前，必须同时通过"≥2 个 shape 的 oracle 输出一致性（算子族 `tolerance_class` 容差下的**错误算子过滤**，非精度认证，详见 §4.3）+ 输出结构/dtype 匹配 + 真实 CPU 等价预检"两道锚定校验；未通过校验的可调用对象一律不写入，不得为提升通过计数而纳入。
+3. **golden 来源分级（§5.7）**：score-eligible 集中 **≥80%** 的任务其 PyTorch oracle 经公式级对齐冻结上游语义，评测期**现跑生成 golden（零预存、训练循环零额外存储）**；其余 **≤20%** 不可约融合题（在线 softmax / chunk-recurrent 等）的 golden 由 provider 侧**离线在 GPU 上跑冻结上游 kernel 一次性采集**。两类真值均系冻结上游 kernel，均留在固定计分分母。
+
+> **保证强度**：双锚提供强经验保证（高置信度），非形式化完备性证明；等价校验的权威 PASS 仅由 GPU 实测判定（无 GPU 时记 `UNRUN(needs-gpu)`，不判 PASS）。
 
 ### 1.4 核心技术挑战
 
-1. **浮点加法不满足结合律**（$(a+b)+c \neq a+(b+c)$）：PyTorch oracle、GPU Triton 参考、NPU Triton 候选三者的分块 / SRAM 暂存 / 级联规约顺序不同，必然有微小数值漂移 → 需**分级 oracle + 分类容差**，且**绝不把 PyTorch 自动当作真值**而无脑放宽。
-2. **Reward Hacking 空间巨大**：提交者只交 `solution.py`，可通过 import oracle、identity 返回、hardcode 查表、buffer 复用、空 kernel、异步不同步、非默认 stream 计时、隐藏 shape 探测等 31 类手段刷分 → 防御必须**设计进基准本身**。
-3. **性能不可跨硬件直接比**：910B 与 GPU 峰值算力不同，绝对延迟无法跨硬件直接对比。本基准计分只用**正确性**；性能以 NPU 原始延迟报告，规范化的性能参考与比值指标作为演进路线中的独立轴。
-4. **JIT 编译干扰计时**：`triton-ascend` 是 Python 层 JIT，首次执行触发编译 → 计时必须 warmup 后剔除编译耗时，且每 trial 用新输入防 cache 命中。
+1. **浮点不可结合**（$(a+b)+c \neq a+(b+c)$）：oracle / 上游 GPU kernel / NPU 候选三方分块/规约顺序不同必有微小漂移 → 分级 oracle + 分类容差，**绝不**把 PyTorch 自动当真值放宽。
+2. **冻结陷阱**：whole-file vendoring 仍保留 live `from vllm…/sglang…` import，行为随运行时安装的包版本漂移 → 仅为文件快照、并非可复现冻结，必须经符号闭包 severing + 等价验证方能成立（§4）。
+3. **评分操纵（reward hacking）空间巨大**：提交者可通过 import oracle、恒等返回、硬编码查表、缓冲区复用、空 kernel、异步不同步、非默认 stream 计时、隐藏 shape 探测等多类手段操纵评分（完整攻击面分类见 `specs/reward_hack_defense.md`）→ 防御机制内建于基准设计本身。
+4. **跨硬件性能不可直接比 + JIT 干扰计时**：910B 与源 GPU 峰值不同，绝对延迟不可跨硬件直接比 → 性能按 910B 算力/带宽峰值归一化为 Roofline 效率 $\min(P_{cap},\,t_{ref}/t_{npu})$（$t_{ref}=\max(\max_c W_c/\pi_c,\max_r M_r/\beta_r)$，§9），分数为"达到 910B 自身理论上限的比例"，硬件代差在基线推导中被构造性消去，故性能可计分而非仅报告；`triton-ascend` Python 层 JIT 首次执行触发编译 → 计时须 warmup 剔编译、每 trial 新输入防 cache。
 
 ---
 
-## 2. 设计目标与核心原则
+## 2. 设计目标、非目标与核心原则
 
 ### 2.1 设计目标
-- 为 100+ 真实生产 GPU Triton 算子建立可复现的 NPU 迁移**正确性**评测；
-- 把 reward-hacking 防御做成基准的结构性属性；
-- 在 910B 上**报告** NPU 运行性能，并为规范化性能指标预留可插拔接口；
-- 提供 self-reported（迭代用）与 verified（公开排名用）双层榜单。
+- 为 100 个真实生产 GPU Triton 算子建立可复现的 NPU 迁移**正确性**评测；
+- 把"真值可信"与"防作弊"做成基准的**结构性、可执行**属性；
+- 在 910B 上以 Roofline 归一化效率对迁移性能计分排名（正确性资格门 + 性能排名指标）；
+- 提供 self-reported（迭代）与 verified（公开排名）双层榜单。
 
 ### 2.2 非目标
-**Provider-only 基准**：维护方维护题库 / 评测引擎 / 榜单，**不写** NPU kernel 实现（那是 submitter 的职责）；不做 PyTorch→Triton 生成；不以手写算子为性能分母做跨硬件竞速。
+**Provider-only 基准**：维护方维护题库 / 引擎 / 榜单，**不写** NPU kernel 实现；不做 PyTorch→Triton 生成；**不做 GPU↔NPU 绝对延迟竞速**——性能以 910B Roofline 归一化效率度量（硬件无关），不以手写算子做跨硬件分母。
 
 ### 2.3 核心设计原则
 
 | # | 原则 | 设计体现 |
 |---|------|---------|
-| P1 | **Migration fidelity 优先** | `kernel.py` 整文件冻结 + 上游 commit/SHA 锁定 + **Phase A′ standalone-freeze + S2 等价验证**（真冻结，非仅文件快照）+ 三档 oracle 分级 |
-| P2 | **Reward-hacking by design** | 进程隔离 / AST 正向白名单 / broker 产物签名 是结构，不是事后补丁 |
-| P3 | **Provider / Submitter 严格隔离** | oracle / golden / 隐藏 shape 永不进入 candidate 沙箱 |
-| P4 | **单一真值源** | `meta.yaml` 是机器可读权威；`contract.md` 只解释、不引入新事实 |
-| P5 | **正确性计分，性能报告** | 计分轴 = correctness coverage；NPU 延迟随结果披露 |
-| P6 | **失败贡献 ε 而非 0** | 固定分母 + 失败补 ε，防"少做几道难题反而抬高指标"的博弈 |
-| P7 | **增量交付（Two-tier）** | self-reported 先打通迭代闭环，再扩展到 verified 公开排名 |
+| P1 | **可复现冻结优先** | 整文件 vendoring → **符号闭包 severing + bit-exact 等价校验** 方构成可复现冻结 |
+| P2 | **真值来源需双重证据** | 入口须经双锚校验（≥2 shape + 结构/dtype + CPU 等价预检）后方可写入 meta；未通过则不写入 |
+| P3 | **防作弊内建** | 进程隔离 / AST 正向白名单 / broker 签名是结构，不是补丁 |
+| P4 | **单一真值源** | `meta.yaml` 机器可读权威；`contract.md` 只解释 |
+| P5 | **正确性门 + 性能 Roofline 排名** | correctness coverage≥0.70 为排名资格门；入门后按 910B Roofline 归一化效率 geomean 排名 |
+| P6 | **固定分母，不剔分母** | 资格门与性能指标共用固定分母 $|S|$；正确性失败计 0、性能非 ok/fallback 计 ε，BLOCKED 均不剔分母（防"少做难题反而抬指标"）|
+| P7 | **硬发布门** | 发布门：任一 score-eligible 任务 `release_status≠PASS`（`phase_a_prime.status=PASS ∧ cost_model.status=PASS`）⇒ benchmark 不可发布 |
 
 ---
 
@@ -98,35 +158,34 @@ TritonAscendBench 要回答的核心问题：
 
 ### 3.1 系统全景
 
-系统由五层构成，自上而下为一条 **离线构建 → 题库 → 提交 → 评测 → 隔离运行与榜单** 的流水线：
+五层流水线：**离线构建（含可复现冻结）→ 题库 → 提交 → 评测 → 隔离运行与榜单**。
 
 ```mermaid
 flowchart TB
     subgraph L0["① Provider 离线构建"]
         direction LR
-        US["上游源码<br/>vLLM · SGLang"] --> FRZ["抽取冻结<br/>commit/SHA"]
-        FRZ --> ORC["生成 oracle<br/>三档分级"]
-        ORC --> DOC["生成规格<br/>shapes/contract"]
-        DOC --> VLD["校验<br/>schema/语法"]
+        US["上游源码<br/>vLLM · SGLang"] --> FRZ["整文件 vendoring<br/>(冻结快照)"]
+        FRZ --> RES["入口双锚解析"]
+        RES --> PAP["依赖切断 severing<br/>+ 等价校验 + cost-model 交叉校验"]
+        PAP --> ORC["oracle/shapes/contract finalize<br/>（scaffold oracle 先于双锚，§6.10）"]
+        ORC --> GATE["schema 校验 + 发布门"]
     end
     subgraph L1["② Task Bundle 题库"]
         direction LR
         TASK["任务目录<br/>5 文件契约"]
-        CANARY["_canary<br/>反作弊题"]
+        DEP["_frozen_deps_pool<br/>_frozen_shim"]
+        CANARY["_canary 反作弊题"]
     end
     subgraph L2["③ Submitter"]
-        direction LR
-        SOL["solution.py<br/>manifest"]
+        SOL["solution.py + manifest"]
     end
     subgraph L3["④ Harness 评测引擎"]
         direction LR
         CLI["tab CLI"] --> DATA["dataset"]
-        DATA --> STAT["静态防御<br/>Layer A-F"]
+        DATA --> STAT["静态防御 A-F"]
         STAT --> RUN["eval 编排"]
         RUN --> INP["inputs"]
         RUN --> TOL["tolerance"]
-        RUN --> TMR["timing"]
-        RUN --> ADV["adversarial"]
         RUN --> SCR["scoring"]
     end
     subgraph L4["⑤ 隔离运行与榜单"]
@@ -135,9 +194,10 @@ flowchart TB
         BRK --> THR["限流/Sybil"]
         THR --> BOARD["双层榜单"]
     end
-    VLD --> TASK
+    GATE --> TASK
     TASK --> DATA
-    CANARY --> ADV
+    DEP --> RUN
+    CANARY --> RUN
     SOL --> CLI
     RUN --> ISO
     SCR --> BOARD
@@ -146,18 +206,12 @@ flowchart TB
     classDef submitter fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
     classDef harness fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
     classDef runtime fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
-    class US,FRZ,ORC,DOC,VLD provider;
-    class TASK,CANARY bundle;
+    class US,FRZ,RES,PAP,ORC,GATE provider;
+    class TASK,DEP,CANARY bundle;
     class SOL submitter;
-    class CLI,DATA,STAT,RUN,INP,TOL,TMR,ADV,SCR harness;
+    class CLI,DATA,STAT,RUN,INP,TOL,SCR harness;
     class ISO,BRK,THR,BOARD runtime;
 ```
-
-- **① Provider 离线构建**：从 vLLM/SGLang 抽取并冻结 GPU Triton kernel（Phase A whole-file vendoring → Phase A′ standalone-freeze + S2 等价验证才是真冻结），生成分级 oracle、shape 配置、契约文档，并通过 schema + 语法 + S6 release-gate 校验。
-- **② Task Bundle**：每个任务是一个 5 文件目录，只读且哈希锁定；`_canary/` 存放看似真题、实为陷阱的反作弊题。
-- **③ Submitter**：提交者只能写 `solution.py`，连同 manifest 打成 `submission.tar.gz`。
-- **④ Harness 评测引擎**：`tab` CLI 驱动 `dataset → static_checker → eval → (inputs / tolerance / timing / adversarial) → scoring`。
-- **⑤ 隔离运行时与榜单**：三进程隔离沙箱执行 candidate，broker 对编译产物签名，限流 / Sybil 防御后进入 self-reported / verified 双层榜单。
 
 ### 3.2 三角色与信任边界
 
@@ -165,9 +219,9 @@ flowchart TB
 flowchart LR
     subgraph TRUST["可信域"]
         direction TB
-        P["Provider"] --> TBND["Task Bundle<br/>只读/哈希锁"]
+        P["Provider"] --> TBND["Task Bundle<br/>可复现冻结 · 双哈希锁"]
         R["Verified Runner"]
-        V["Verdict/Score"]
+        V["Verdict / Score"]
     end
     subgraph UNTRUST["不可信域"]
         direction TB
@@ -177,7 +231,7 @@ flowchart LR
     PKG --> R
     R -->|"三进程隔离 + 防作弊"| V
     V --> BD["Leaderboard"]
-    P -->|"冻结题库 + golden"| TBND
+    P -->|"冻结题库（golden:现跑/离线采,§5.7）"| TBND
     S -->|"solution.py + manifest"| PKG
     classDef trust fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
     classDef untrust fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
@@ -187,22 +241,20 @@ flowchart LR
     class TBND,BD data;
 ```
 
-信任规则：`oracle_pytorch.py`、golden 输出、隐藏 shape **永不挂载**进 candidate 沙箱；submitter 提供的 `solution_artifacts.json` / `*.so` 在 verified 模式下一律视为不可信而忽略；`meta.yaml` 是单一真值源。计分集 = **score-eligible 集**（拥有可信、可评分 oracle 的任务，从可信上游 metadata 冻结，排除 stub / 手工占位），由 `tab analyze` 从 catalogue 权威确定，submitter 无法影响该集合的成员资格。
+信任规则：`oracle_pytorch.py`、golden、隐藏 shape **永不挂载** candidate 沙箱；submitter 的 `solution_artifacts.json`/`*.so` 在 verified 模式忽略；`meta.yaml` 单一真值。**score-eligible 集**由 `triton_ascend_bench/eligibility.py` 单一来源计算（cli 与 validate_tasks 共用，禁漂移），submitter 无法影响其成员资格。
 
 ### 3.3 进程隔离三进程模型
 
-reward-hacking 防御的物理基础：可信 Runner 在受限挂载下 fork 两个独立的 candidate 进程，正确性与计时**完全隔离**。
-
 ```mermaid
 flowchart TB
-    TR["Trusted Runner<br/>加载 oracle 与 scoring"] -->|"fork 受限挂载"| C1["Candidate #1<br/>正确性沙箱"]
+    TR["Trusted Runner<br/>加载 oracle/scoring"] -->|"fork 受限挂载"| C1["Candidate #1<br/>正确性沙箱"]
     C1 --> OUT["output.safetensors"]
-    OUT -->|"allclose/tolerance"| TR2["Trusted Runner<br/>判定正确性"]
+    OUT -->|"tolerance.compare"| TR2["Runner 判定正确性"]
     TR2 -->|"SIGKILL + 清 cache/显存"| C2["Candidate #2<br/>计时沙箱"]
-    C2 -->|"host_ns/event_ns"| TR3["Trusted Runner<br/>汇总 verdict"]
-    C1 -.-> C1M["挂载<br/>kernel/meta/shapes/inputs"]
-    C1 -.-> C1D["不挂载<br/>oracle/golden 真值"]
-    C2 -.-> C2M["fresh 输入<br/>warmup/measured"]
+    C2 -->|"host_ns/event_ns"| TR3["Runner 汇总 verdict"]
+    C1 -.-> C1M["净化挂载 kernel/meta/公开shape/已物化inputs"]
+    C1 -.-> C1D["剔除 oracle/contract/golden/hidden_shapes"]
+    C2 -.-> C2M["fresh 输入 · warmup/measured"]
     classDef trust fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
     classDef sandbox fill:#FFF3E0,stroke:#FFB74D,color:#E65100;
     classDef artifact fill:#FFF8E1,stroke:#FFCA28,color:#F57F17;
@@ -213,36 +265,88 @@ flowchart TB
     class C1M,C1D,C2M note;
 ```
 
-**为什么必须两个 candidate 进程**：若正确性 pass 与计时 pass 共享状态，candidate 可在正确性阶段预计算答案、缓存到 `/tmp` 或 device 显存，在计时阶段查表（measured trial 几乎 0 计算）。设计上以 **每阶段独立进程 + SIGKILL + 阶段间全量 cache 清除** 切断这条路径。
-
-### 3.4 仓库结构
-
-```
-triton-ascend-bench/
-├── triton_ascend_bench/          # Harness 评测引擎
-│   ├── cli.py                    # tab CLI（9 子命令）
-│   ├── dataset.py                # TaskDef 加载器
-│   ├── static_checker.py         # Layer A–F 静态防御（核心防御模块）
-│   ├── eval.py                   # 单次 (task, solution) 评测编排
-│   ├── inputs.py                 # shapes.yaml → 张量 dict 桥
-│   ├── tolerance.py + .yaml      # 12 类数值容差判定
-│   ├── timing.py + trusted_shim/ # host 权威计时
-│   ├── scoring.py                # 正确性 coverage + 可插拔性能槽位
-│   ├── adversarial.py            # canary + metamorphic 检测
-│   ├── manifest.py               # 提交清单 schema
-│   └── backends/                 # GPU / NPU 后端抽象
-├── tasks/                        # Task Bundle 题库（L1/L2/L3 + _canary + _vendored）
-├── specs/                        # 契约规范（设计真值源）
-├── scripts/                      # 离线构建流水线（Phase A/B/C + 校验）
-├── infra/                        # version_matrix.toml · Dockerfile · RFC
-└── docs/                         # 设计文档（本文件）
-```
+正确性 pass 与计时 pass **每阶段独立进程 + SIGKILL + 阶段间全量 cache 清除**，切断"正确性阶段预计算→计时阶段查表"路径。candidate 子进程仅获**净化挂载**——`kernel.py` + `meta.yaml` + 公开 shape 视图/已物化输入 + `solution.py`，**`oracle_pytorch.py`/`contract.md`/golden/`shapes.yaml` 的 hidden_shapes 段一律剔除**（非原样挂载整个任务目录）；输入由固定 seed 确定性物化、与 oracle 侧字节一致（公开 shape 候选侧可重建，hidden shape 由可信 runner 物化注入）；IPC 仅 safetensors（data-only，无 pickle RCE）；hung/超时由 timeout+SIGKILL 进程组终止。完整 Docker/seccomp/cgroup/NPU 设备白名单属 verified runner 的 GPU/NPU 部署层（规范 `specs/process_isolation.md`）。
 
 ---
 
-## 4. 数据模型与契约
+## 4. 可复现冻结 Provenance 链（核心）
 
-### 4.1 Task 目录布局（5 文件契约）
+> 本基准相对一般"benchmark 收题"的关键科学增量：让"真值 = 冻结上游 kernel"成为**可执行、可证伪**的保证。主线只有一条——**切断依赖 → 证明等价与确定性 → 得到可信冻结真值 → 发布门强制**。
+
+### 4.1 为什么 whole-file vendoring 不是可复现冻结
+
+第一步是**整文件 vendoring**（`scripts/phase_a_freeze.py`）：把整个上游文件原样 vendored 为 `kernel.py`（保留 Apache 头、锁定 commit/SHA）——实现简单、保留上游许可、与静态检查输入形式一致。但此时 `kernel.py` 仍保留 live `from vllm… / from sglang…` import，其行为**依赖运行时安装的包版本**，golden **不可复现**。因此它仅是文件快照，尚未构成可复现冻结。
+
+### 4.2 符号闭包 severing 与等价校验
+
+```mermaid
+flowchart TB
+    K["vendored kernel.py<br/>(含 live 上游 import)"] --> CLS["U1 符号级可达闭包分类<br/>每个外部符号 → 唯一类别"]
+    CLS --> POOL["A→content-addressed 依赖池<br/>_frozen_deps_pool/h_&lt;sha12&gt;"]
+    CLS --> SHIM["B→极窄默认拒绝 shim<br/>_frozen_shim"]
+    CLS --> BLK["unknown→BLOCKED-candidate<br/>(绝不静默丢符号)"]
+    POOL --> CAND["build-staged 候选<br/>(promote 前不动真 kernel.py)"]
+    SHIM --> CAND
+    CAND --> EQ["等价校验"]
+    EQ --> SMOKE["CPU 预检<br/>TRITON_INTERPRET<br/>真实比对 · 永不 PASS"]
+    EQ --> GPU["GPU 权威<br/>唯一 PASS 来源<br/>无 GPU→UNRUN(needs-gpu)"]
+    SMOKE --> AUDIT["severed 子进程 import 审计<br/>禁 vllm/sglang + 非允许集 site-pkg<br/>命中⇒exit3 BLOCKED"]
+    GPU --> AUDIT
+    AUDIT --> CMP["严格 bit-exact 对比<br/>原始上游 vs severed 候选"]
+    CMP --> DET["确定性校验<br/>首跑 + 5 重跑 bit-exact"]
+    DET -->|PASS| PROMOTE["atomic promote<br/>dual-hash:<br/>upstream.file_sha256 + standalone_sha256"]
+    DET -->|否则| BLOCKED["BLOCKED<br/>(硬阻塞，非剔分母)"]
+    classDef in fill:#FFF8E1,stroke:#FFCA28,color:#F57F17;
+    classDef proc fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
+    classDef pass fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
+    classDef bad fill:#FFEBEE,stroke:#E57373,color:#C62828;
+    class K,CAND in;
+    class CLS,POOL,SHIM,EQ,SMOKE,GPU,CMP,AUDIT,DET proc;
+    class PROMOTE pass;
+    class BLK,BLOCKED bad;
+```
+
+**符号分类（U1，不可静默丢任何符号——"doubtful → A/BLOCKED"）**：
+
+| 类 | 含义 | 处置 |
+|----|------|------|
+| **A** | 默认 / 不可证惰性 | vendor 进 content-addressed 依赖池 |
+| **B-rewrite-public** | `tl`/`triton` re-export | 改写为公开 `triton` import |
+| **B-inert-shim** | 可证惰性 | 进极窄默认拒绝 shim |
+| **C** | 可选加速 fork | 标注，按规则处理 |
+| **S** | env/device/file 驱动配置 | 标注（如 `vllm.envs`） |
+| **D** | 已 pin 稳定 PyPI（einops） | `version_matrix [gpu_capture].extra_pins`，不 vendor 不 shim |
+| **torch+triton** | stdlib/torch/triton | always-available，永不 severed |
+| 未知第三方 | 不在 D 白名单、非 stdlib | **BLOCKED-candidate**（surface，绝不静默） |
+
+**等价校验不变量（不可违反）**：
+- **严格 bit-exact**，**不用** `tolerance_class`、**无 ULP 逃逸**——severing 是同代码纯 import 改写，任何数值漂移即"未冻结副作用"证据，必须 BLOCKED+investigate 而非放宽容差；比对覆盖 dtype/shape/strides/alias/in-place/被 mutate 输入。
+- **唯一 PASS 来源是 GPU 权威实测**；CPU 预检（`TRITON_INTERPRET=1`）做真实比对但**永不** PASS；无 CUDA 时返回 `UNRUN(needs-gpu)`，**绝不**伪造 PASS。
+- **severed 侧 import 审计**：fresh 子进程，`infer/` 上游根**不在** `sys.path`，依赖池/shim 前置；severed 侧允许集仅 `{torch, triton, einops, numpy, yaml, safetensors, _yaml}`（Class-D + safetensors/yaml IPC 管道）。`sys.meta_path` finder 在 kernel 执行**前**安装 + 运行后 `sys.modules` 重扫，判定 leak 的两类：① **任何** `vllm`/`sglang` 模块（无论何时加载，恒为 leak）；② kernel 引入的、不在上述允许集的 site-packages 顶层模块。命中（import-time / runtime / post-run 任一）⇒ exit 3 ⇒ BLOCKED（防"等价过但干净盒子失败"）。
+- **PASS 才 atomic promote**，写双哈希：`upstream.file_sha256`（provenance）+ `phase_a_prime.standalone_sha256`（盘上 severed 产物）；`meta.yaml` 的 `phase_a_prime.*` 字段在 promote 时写入，是"已可复现冻结"的机器可读凭证。
+
+### 4.3 入口双锚校验（resolver）
+
+任务的真实上游入口由 `resolve_upstream_entrypoints.py` 解析。写入 `meta.yaml` **前**必须过**强双锚**：
+
+1. **CPU 等价预检锚**：CPU/`TRITON_INTERPRET=1` 的 staged-vs-original 比对必须过（`UNRUN(needs-gpu)` = 预检已过、仅缺 GPU）；
+2. **oracle 一致性锚**：用等价校验同款 by-name 签名适配器，在 **≥2 个不同 shape**（小+中）上跑入口，与 `oracle_pytorch.py::run` 同输入比对，且**输出 arity + 每张量 dtype 必须匹配**（同名键优先；键不同则按 shape/dtype 回退配对）；多出无法解释的输出张量 ⇒ 错误算子。
+
+可解析但与 oracle 不匹配的可调用对象判为**错误算子（与目标语义不符），不写入 `meta.yaml`**，记录 `BLOCKED(no-verified-upstream-entrypoint)`（含所有尝试过的候选及拒绝原因）。双锚提供强经验保证，非形式化完备性证明。
+
+> **锚 2 的定位 = "选对入口" 而非 "认证精度"**：值比对在该题算子族 `tolerance_class` 容差下进行（足以排除完全不同的错误算子，不据此认证数值精度）。对 `upstream_oracle_required` 题——其 PyTorch oracle 与冻结上游存在**已知数值偏离**（§5.7）——入口身份由 arity/dtype/输出结构 + 锚 1（staged-vs-original CPU 等价预检，与 oracle 无关）+ 族容差 sanity 共同确认即可通过；该类题的**精度真值由 §5.7 的 provider 离线冻结上游 golden 确立，不依赖 oracle 精度**。两类题真值始终系冻结上游 kernel，§4.3 与 §5.7 无冲突。
+
+**验证可复现性（fail-closed）**：resolver 每条 verdict 绑定 provenance——读路径权威校验字段为 `code_fingerprint`（解析逻辑本身）与全局 `infer_state`（`infer/` 上游的干净 pin 状态带）；每条 verdict 另记录 per-task `input_fp`（该任务输入构造）与 `upstream_fp`（该任务上游闭包 sha256），作为复算依据。**陈旧缓存在任何情况下都不被静默复用**：① `infer/` 上游为可验证干净 pin 检出时，`code_fingerprint`/`infer_state` 漂移（`fingerprint-mismatch` / `no-infer-state` / `infer-state-mismatch`）返回**可再生陈旧标记**，读路径在当前 code+upstream 下按 `input_fp`/`upstream_fp` 自动复算；② `infer/` 上游不可验证（脏树 / HEAD 漂移 / 无 pin），或自动复算失败/被抑制 ⇒ 抛 `StaleResolverCacheError`（附"pin 并清理"修复指引）。verdict 因此可在相同锚点下复现重算、不因脏环境静默漂移。
+
+### 4.4 发布门（硬门）
+
+`validate_tasks.py --release-gate`（与 schema/hash 模式**分离**）：score-eligible 集中任一任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 非零退出 + 阻塞清单，其中 $\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}\ \wedge\ \text{cost\_model.status}{=}\textsf{PASS}$（可复现冻结 ∧ cost-model 经 GPU 交叉校验，§5.6）。**非空泛守卫**：score-eligible 集与其期望计数同源于 `eligibility.py`；若该期望计数为 0、examined 集为空、或 examined 集与期望计数不一致，则硬失败——杜绝"无任务 ⇒ 无阻塞 ⇒ 可发布"的空泛通过，并捕获 catalogue 两次物化之间的不一致（生成器耗尽 / 迭代不确定）。可复现冻结 BLOCKED 与 cost-model BLOCKED 同为硬阻塞，不可通过从分母剔除该任务规避（对应原则 P6/P7）。
+
+---
+
+## 5. 数据模型与契约
+
+### 5.1 Task 目录布局（5 文件契约）
 
 ```mermaid
 flowchart TB
@@ -250,17 +354,17 @@ flowchart TB
         direction TB
         subgraph CODE["可执行参考"]
             direction LR
-            K["kernel.py<br/>GPU Triton"]
-            O["oracle_pytorch.py<br/>PyTorch 真值"]
+            K["kernel.py<br/>冻结上游 Triton"]
+            O["oracle_pytorch.py<br/>PyTorch oracle"]
         end
         subgraph SPEC["任务契约"]
             direction LR
             M["meta.yaml<br/>单一真值源"]
-            SH["shapes.yaml<br/>输入规格"]
+            SH["shapes.yaml<br/>size-knob 输入规格"]
             CT["contract.md<br/>语义契约"]
         end
     end
-    K -->|"file_sha256 锁定"| M
+    K -->|"dual-hash 锁定"| M
     M -.->|"权威覆盖"| CT
     SH -.->|"shape/seed 物化"| O
     classDef code fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
@@ -271,219 +375,148 @@ flowchart TB
 
 | 文件 | 职责 | 关键约束 |
 |------|------|---------|
-| `kernel.py` | 上游 GPU Triton 纯算子 | 至少一个 `@triton.jit`；导出算子函数；`file_sha256` 锁进 `meta` |
-| `oracle_pytorch.py` | 独立 PyTorch eager 真值 | 无 triton；device-agnostic；导出 `run(inputs)->dict`；**永不挂载 candidate** |
-| `meta.yaml` | 机器可读权威 | `interface.alias_map` / `tolerance_class` / `oracle_simplified` / `runner_checks` |
-| `shapes.yaml` | shape + 输入规格 | size-knob 公式（见 §4.3）；公开 shape 与隐藏 shape 分离 |
-| `contract.md` | 人读语义 | 不得引入 `meta.yaml` 没有的事实（P4） |
+| `kernel.py` | 冻结上游 GPU Triton 算子 | ≥1 `@triton.jit`；导出经双锚验证的真实入口；经 severing + 等价校验后双哈希 |
+| `oracle_pytorch.py` | PyTorch eager oracle（经双锚对齐冻结上游语义，非独立真值源）| 无 triton；导出 `run(inputs)->dict`；**永不挂载 candidate** |
+| `meta.yaml` | 机器可读权威 | `interface.alias_map`/`tolerance_class`/`oracle_simplified`/`runner_checks`；等价校验 PASS promote 后写入 `phase_a_prime.{status,standalone_sha256}` 作为可复现冻结凭证 |
+| `shapes.yaml` | size-knob 输入规格 | 公开/隐藏 shape 分离；缺必填无默认参数即拒绝（不静默 skip+shift） |
+| `contract.md` | 人读语义 | 不得引入 meta 没有的事实 |
 
-### 4.2 meta.yaml 关键字段
+辅助目录：`_frozen_deps_pool/`（content-addressed 依赖池）、`_frozen_shim/`（默认拒绝 shim）、`_canary/`（反作弊陷阱题）、`_vendored/`（整文件 vendoring 快照，不计分）。
 
-`interface.alias_map`（每个输入张量的可变性：`ro` / `rw_in_place` / `wo_candidate_allocated`）、`tolerance_class`（引用 §4.4 的 12 类之一）、`oracle_simplified`（三档：`simple_pytorch_ok` / `formula_exact_manual` / `upstream_oracle_required`，决定 oracle 的可信构造方式）、`runner_checks`（`expected_kernel_count_range` / `min_dram_bytes` / `min_flops` / `metamorphic_checks` / `static_checks`）。计分集由 `tab analyze` 从可信上游 metadata 冻结为 score-eligible 集，不由单任务 meta 自声明。
+### 5.2 size-knob 可执行 shapes
 
-### 4.3 shapes.yaml — size-knob 可执行 schema
-
-shape 不硬编码具体维度，而是**尺寸旋钮（size-knob）公式**，让"一个输入规格块覆盖所有 shape 行"：
+shape 不硬编码维度，而是**尺寸旋钮公式**，一个 `inputs` 块覆盖所有 shape 行：
 
 ```yaml
-size_knobs: {B: 2, L: 8, D: 16}              # 默认旋钮
-public_shapes:
-  - {id: P1, name: tiny,   knobs: {B: 1, L: 4,  D: 8}}
-  - {id: P3, name: medium, knobs: {B: 4, L: 32, D: 64}}
-hidden_shapes:
-  - {id: H1, name: h_odd,  knobs: {B: 3, L: 13, D: 40}}   # verified 模式才注入
+size_knobs: {B: 2, L: 8, D: 16}
+public_shapes: [{id: P1, name: tiny, knobs: {B: 1, L: 4, D: 8}}, ...]
+hidden_shapes: [{id: H1, name: h_odd, knobs: {B: 3, L: 13, D: 40}}]  # verified 模式注入
 inputs:
-  x:      {dims: [B, L, D], dtype: float32, dist: randn}
-  weight: {dims: [D],       dtype: float32, dist: ones}
-  eps:    {scalar: 1.0e-5}
-  idx:    {dims: [B], dtype: int64, dist: "randint:0:B"}
+  x: {dims: [B, L, D], dtype: float32, dist: randn}
+  eps: {scalar: 1.0e-5}
 ```
 
-`inputs.build_inputs(shapes_doc, shape_id, seed)` 按旋钮解析维度公式（支持 `2*D` / `L+1` 等简单算术）、按 `dist`（`randn`/`ones`/`eye`/`tril`/`randint:lo:hi`/`softmax_rows`/`offsets`/`arange` 等）+ **固定 seed** 物化张量，保证 oracle 与 candidate 见到完全相同的输入。
+`inputs.build_inputs(shapes_doc, shape_id, seed)` 解析维度公式（`2*D`/`L+1`）、按 `dist`（`randn/ones/eye/tril/randint:lo:hi/softmax_rows/offsets/arange`）+ **固定 seed** 物化张量，保证 oracle 与 candidate 见**字节一致**输入。
 
-### 4.4 数值容差 12 类（节选）
+### 5.3 数值容差（按算子族分类，节选；完整定义见 `tolerance_policy.yaml`）
 
-| Class | dtype | atol | rtol | 用途 |
-|-------|-------|------|------|------|
-| `elementwise` | FP16/BF16 | 1e-3 | 1e-3 | 逐点算子（silu/gelu/bias） |
-| `vector_reduce` | FP16/BF16 | 1e-3 | 1e-3 | RMSNorm/LayerNorm/softmax |
-| `cube_matmul_fp16` | FP16→FP32 acc | 5e-3 | 1e-3 | FP32 累加 GEMM |
-| `int8_w8a8` | INT8→FP16 | 5e-2 | 1e-2 | W8A8 量化 matmul |
-| `sampling_rng` | int/float | 0 | 0 | seed 一致时 bit-exact |
-| `attention_flash` | FP16/BF16 | 5e-3 | 1e-3 | online softmax + matmul 融合 |
-| `recurrent_chunk` | FP16/BF16 | 5e-3 | 5e-3 | Mamba/GDN/KDA chunk 流水线 |
+| Class | atol | rtol | 用途 |
+|-------|------|------|------|
+| `elementwise` | 1e-3 | 1e-3 | silu/gelu/bias |
+| `vector_reduce` | 1e-3 | 1e-3 | RMSNorm/LayerNorm/softmax |
+| `cube_matmul_fp16` | 5e-3 | 1e-3 | FP32 累加 GEMM |
+| `int8_w8a8` | 5e-2 | 1e-2 | W8A8 量化 matmul |
+| `sampling_rng` | 0 | 0 | seed 一致 bit-exact |
+| `attention_flash` | 5e-3 | 1e-3 | online softmax+matmul 融合 |
+| `recurrent_chunk` | 5e-3 | 5e-3 | Mamba/GDN/KDA chunk |
 
-### 4.5 solution.py 契约（submitter 唯一可写文件）
+> 等价校验**不用** tolerance_class（严格 bit-exact）；tolerance_class 只用于 candidate vs golden 的迁移正确性判定。
+
+### 5.4 solution.py 契约（submitter 唯一可写）
 
 ```python
 def npu_triton_impl(inputs: dict) -> dict:
-    """inputs 键来自 meta.interface.alias_map（张量在 NPU 上）
-       返回键匹配 oracle 输出 schema（candidate 自行分配输出）"""
+    """inputs 键来自 meta.interface.alias_map（NPU 张量）；返回键匹配 oracle 输出 schema"""
 ```
 
-`solution.py` **禁止**：import oracle/harness/tasks；高层 torch 算子（`F.*` / `@` / `Tensor.matmul`）；原生 AscendC 算子（`torch_npu.npu_*` / `sgl_kernel_npu.*`，否则就不是在测 triton-ascend 迁移）；代码执行（`exec`/`eval`/`compile`/`ctypes`/`cpp_extension`）；IPC/网络；计时 API（`*.Event` / `time.perf_counter` / `LD_PRELOAD`）；文件/线程——由 §5.4 的静态防御强制。
+禁止：import oracle/harness/tasks；高层 torch（`F.*`/`@`/`Tensor.matmul`）；原生 AscendC（`torch_npu.npu_*`/`sgl_kernel_npu.*`）；代码执行（`exec/eval/compile/ctypes/cpp_extension`）；IPC/网络；计时 API（`*.Event`/`time.perf_counter`/`LD_PRELOAD`）；文件/线程——由 §6.4 静态防御强制。
 
-### 4.6 端到端数据流
+### 5.5 score-eligible 集（单一来源）
 
-```mermaid
-flowchart LR
-    subgraph BUILD["离线构建"]
-        direction LR
-        RAW["上游 .py"] -->|"extract/freeze"| KP["kernel.py<br/>meta.sha"]
-        KP -->|"Phase B"| OR["oracle_pytorch.run"]
-        SH["shapes.yaml<br/>size-knob"] -->|"seed 物化"| IN["inputs dict"]
-    end
-    subgraph EXEC["评测执行"]
-        direction TB
-        IN --> OR
-        IN --> SOL["solution.py<br/>npu_triton_impl"]
-        OR --> GOLD["golden 输出"]
-        SOL --> OUT["candidate 输出"]
-        GOLD --> CMP["tolerance.compare"]
-        OUT --> CMP
-        CMP --> ST["四状态<br/>correctness 为计分轴"]
-        OUT -->|"host_ns"| TMR["timing.measure<br/>NPU 延迟报告"]
-    end
-    subgraph SCORE["计分与报告"]
-        direction LR
-        ST --> SCO["scoring<br/>coverage + s_t 槽位"]
-        TMR -->|"measured_ns"| SCO
-        SCO --> RR["round_result.json"]
-        RR -->|"run-suite"| SUI["suite_results.json"]
-        SUI -->|"tab analyze"| REP["score_report.json"]
-    end
-    classDef build fill:#ECEFF1,stroke:#90A4AE,color:#37474F;
-    classDef eval fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
-    classDef score fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
-    class RAW,KP,OR,SH,IN build;
-    class SOL,GOLD,OUT,CMP,ST,TMR eval;
-    class SCO,RR,SUI,REP score;
-```
+`eligibility.py`：任务 score-eligible **当且仅当** oracle 源非 stub（源码无 `raise NotImplementedError` 文本）**且** `shapes.yaml` 非 `PHASE-C-MANUAL`。stub/manual **排除出分母**（不计为失败，否则系统性压低有效提交）。纯函数、零 import-time I/O；cli 与 validate_tasks 共用此唯一来源（API parity，禁两处漂移）。
+
+### 5.6 性能 cost model（每任务 $W/M$ 契约）
+
+性能计分需硬件归一化的理论延迟基线（§9）。算子可混合多种计算类（cube fp16/bf16、int8、vector）与多种数据资源（HBM、跨设备通信），故**按资源分别建模、取约束最紧资源为下界**（标准 Roofline：假设各资源理想重叠，得最紧理论地板；若计算与访存完全串行不重叠则为 $\sum$ 即 $W/\pi+M/\beta$）：$t_{ref}=\max\!\big(\max_c W_c/\pi_c,\ \max_r M_r/\beta_r\big)$，$W_c$=第 $c$ 计算类 FLOPs、$\pi_c$=910B 该类峰值算力，$M_r$=第 $r$ 资源字节、$\beta_r$=该资源峰值带宽（单类/单资源时退化为 $\max(W/\pi,\,M/\beta)$）。各 $W_c$/$M_r$ 由每任务 cost model 提供：
+
+- **解析声明**：`meta.yaml.cost_model` 以 size-knob 公式（与 §5.2 shapes 同一参数化体系）按**计算类**给出 `flops`（$\{c:W_c(\text{knobs})\}$）、按**数据资源**给出 `bytes`（$\{r:M_r(\text{knobs})\}$），随 shape 确定取值；单计算类/单资源时退化为标量 `flops`/`bytes`（与 $t_{ref}$ 公式同源的退化形）；
+- **GPU 实测交叉校验（双锚，fail-closed）**：provider 侧 GPU 权威的 GPU-Triton 参考运行经插桩实测 FLOPs/字节，与解析声明逐 shape 比对；偏差超容差 ⇒ 该任务 cost-model `BLOCKED`（硬阻塞，进发布门，§4.4），绝不以未经校验的基线产出加速比；
+- **910B 峰值表**：`infra/` 维护 910B 各计算类/精度的 $\pi$（fp16/bf16 cube、int8、vector）与 $\beta$（HBM / 通信带宽）峰值，与 `version_matrix.toml` 同级锁定。
+
+此为正确性侧"双锚"在性能侧的同构镜像：解析模型 + 真实运行交叉证伪，杜绝错误基线静默扭曲性能分。
+
+### 5.7 oracle 保真度分级与 golden 来源
+
+`meta.yaml.oracle_simplified` 按"PyTorch oracle 能否忠实复现冻结上游语义"将每题分三级：
+
+| 分级 | 含义 | 评测期 golden 来源 |
+|------|------|-------------------|
+| `simple_pytorch_ok` | 朴素 PyTorch 实现即足够 | 现跑 PyTorch oracle |
+| `formula_exact_manual` | 手写公式级 oracle（匹配 fp32 累加序等）可落入算子族容差 | 现跑 PyTorch oracle |
+| `upstream_oracle_required` | 融合 / 在线 softmax / chunk-recurrent 等，PyTorch 必偏离真实上游 | provider 侧用冻结上游 kernel **离线 GPU 提前跑** 采集固定 golden |
+
+**策略**：score-eligible 集中 **≥80% 须为 PyTorch 可对齐档**（`simple_pytorch_ok` ∪ `formula_exact_manual`）——评测期 golden 由现跑 PyTorch oracle 生成，**零预存、训练循环零额外存储**；其余 **≤20%** `upstream_oracle_required` 题的 golden 由 provider 侧离线在 GPU 上跑冻结上游 kernel 一次性采集，覆盖该题**完整评测 shape 集（公开 + 密封 hidden）**（仅这 ≤20% 题，固定有界小数据集，不进训练循环；hidden golden 与 hidden shapes 同等密封）。该比例是验收准则,而非把难题从评测中拿掉。
+
+**不变量（no-subset-escape）**：三级题**全部留在计分分母 $|S|$**；`upstream_oracle_required` 仅表示"golden 系冻结上游而非 PyTorch 近似"，**不**从分母剔除、不放松其计分约束（§4.4 发布门、§9 固定分母同等适用）。这条与"≥2 shape 双锚 + 严格 bit-exact 等价校验"正交：双锚保的是"入口选对"，本分级定的是"golden 由谁生成"，真值始终是冻结上游 kernel。
 
 ---
 
-## 5. 模块详细设计（设计初衷 + 设计细节）
+## 6. 模块详细设计
 
-> 每个模块按 **设计初衷 → 设计与机制** 组织。
+> 每模块：**设计初衷 → 设计与机制**（描述系统应当如何工作）。
 
-### 5.1 `dataset.py` — Task 加载器
+### 6.1 `dataset.py` — Task 加载器
+**初衷**：把 5 文件目录解析成不可变 `TaskDef`，加载即算 `kernel.py` SHA-256 防篡改。
+**机制**：`load_task` 在 level1/2/3 定位，解析 meta/shapes/contract/kernel（`oracle_pytorch.py` 仅记录路径，由 verified runner 评测期加载、不在 loader 内执行——5 文件契约的第 5 个文件以路径形态纳入 `TaskDef`）；属性层对 `tolerance_class`/`oracle_simplified`（兼容 legacy `oracle_tier` 别名）做 schema 回退处理；`iter_all_tasks` 跳过 `_` 前缀目录。
 
-**设计初衷**：把磁盘上的任务目录解析成一个**不可变的 `TaskDef` 数据类**，作为评测引擎唯一的题库入口，并在加载时即计算 `kernel.py` 的 SHA-256 以支撑后续防篡改。
+### 6.2 `inputs.py` — shapes→张量桥
+**初衷**：让 shapes.yaml 真正可执行，oracle 与 candidate 同 seed 见字节一致输入。
+**机制**：`build_inputs` 合并 size_knobs+行 knobs，`_resolve_dims` 解维度公式，`_make_tensor` 按 dist 用固定 `torch.Generator(seed)` 物化 + 整数/fp8 后处理；`shape_ids` 返回 `(public, hidden)`，verified 才注入 hidden。
 
-**设计与机制**：`load_task(task_id)` 顺序在 `level1/2/3` 下定位任务目录，解析 `meta.yaml / shapes.yaml / contract.md / kernel.py`，构造 `TaskDef`，加载时立即算 `kernel_py_sha256`。属性访问层对 `tolerance_class` / `oracle_tier` 做 schema 兼容兜底（兼容顶层与嵌套写法）。`iter_all_tasks()` 跳过 `_` 前缀目录（`_vendored`/`_canary` 不计入计分集）。计分集成员资格不由单任务自声明，而由 `tab analyze` 从可信上游 metadata 统一冻结。
+### 6.3 `eval.py` — 评测编排
+**初衷**：编排一次 `(task, solution)` 评测，判定显式拆成**判定状态组**——三个状态枚举 `correctness_status` / `runtime_status` / `performance_status`，外加 `fallback_detected` 标志与 `performance_flags` 列表；下游评分仅依据这些字段，不从"静态检查通过"推断"输出正确"。
+**机制**：加载 → 静态检查（blocked 即 correctness=fail 短路）→ `inputs` 逐 shape 物化 → `process_isolation` 隔离 candidate 子进程跑 solution、可信进程取 golden（PyTorch 可对齐题现跑 oracle；`upstream_oracle_required` 题加载 provider 离线固定 golden，§5.7）→ 逐 shape `tolerance.compare` 得 correctness（缺输出/不符即 fail）→ Roofline 效率计算（$t_{ref}$ 见 §5.6/§9）→ `scoring` 汇总。`fallback_detected` 直接判 `correctness_status=fail`（正确但回退实现不得过资格门）；cost-model BLOCKED 任务性能计 ε。
 
-### 5.2 `inputs.py` — shapes → 张量桥
-
-**设计初衷**：让 `shapes.yaml` **真正可执行**——用尺寸旋钮公式而非硬编码维度，使一个 `inputs` 规格块覆盖任意 shape 行；并保证 oracle 与 candidate 在同一 seed 下看到字节一致的输入。
-
-**设计与机制**：`build_inputs(shapes_doc, shape_id, seed)` 合并 `size_knobs` 与该 shape 行的 `knobs`，`_resolve_dims` 解析维度公式，`_make_tensor` 按 `dist` 用固定 `torch.Generator(seed)` 物化张量并做整数/fp8 dtype 后处理；标量（`{scalar: v}`）原样透传；`shape_ids` 返回 `(public_ids, hidden_ids)`，verified 模式才注入 hidden。这是把"shape 配置"变成"可运行输入"的关键桥。
-
-### 5.3 `eval.py` — 评测编排
-
-**设计初衷**：编排一次 `(task, solution, backend)` 评测的完整流水线，并把判定拆成**四个显式状态**（`correctness / runtime / performance` + `performance_flags`），下游评分**只信状态字段**，绝不从"静态检查通过"推断"输出正确"。
-
-**设计与机制**：流水线为 加载任务 → 静态检查（`blocked` 即正确性判负并短路）→ 经 `inputs` 物化逐 shape 生成输入 → 在隔离 candidate 进程跑 solution、可信进程跑 oracle → `tolerance.compare` 逐 shape 比对得 correctness → `timing.measure` 取 NPU 延迟 → `scoring` 汇总 → 产出 `round_result.json`。四状态分离的设计意图：静态检查只证明代码合法，不证明输出正确，二者绝不能混为一谈。
-
-### 5.4 `static_checker.py` — Layer A–F 静态防御 ★
-
-**设计初衷**：在代码**运行之前**就拦住绝大多数 reward-hacking 与沙箱逃逸——import oracle、`exec`/`ctypes` 加载原生 so、调用高层 torch 算子绕开 Triton、字符串里藏 `oracle`/`golden`。策略是**正向 AST 白名单**（不在允许集内即拒），比黑名单严格。
+### 6.4 `static_checker.py` — Layer A–D/F 静态防御 + Layer E 运行时回退 ★
+**初衷**：在候选代码运行**前**拦截 `specs/ast_denylist.md` 中静态可判定的评分操纵与沙箱逃逸向量；策略为**正向 AST 白名单**（不在允许集内即拒绝），强于黑名单。
 
 ```mermaid
 flowchart TB
-    SRC["solution.py 源码"] --> F["Layer F<br/>字符串黑名单"]
+    SRC["solution.py 源码"] --> F["Layer F 字符串黑名单"]
     F --> P["ast.parse"]
-    P -->|"SyntaxError"| BLK["block"]
-    P --> B["Layer B<br/>AST 白名单"]
-    B --> A1["Pass 1a<br/>别名规范化"]
-    A1 --> A["Layer A<br/>import 黑白名单"]
-    A --> CD["Layer C/D<br/>Call/Attribute 检查"]
-    CD --> TAINT["跨函数污点传播"]
-    TAINT --> REP["CheckReport<br/>blocked 汇总"]
-    F -.-> KW["oracle/golden<br/>hidden_shape/answer/cheat"]
-    B -.-> MM["禁用 ast.MatMult"]
-    A1 -.-> WI["拒绝 wildcard import"]
-    classDef check fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
-    classDef block fill:#FFEBEE,stroke:#E57373,color:#C62828;
-    classDef note fill:#ECEFF1,stroke:#90A4AE,color:#37474F;
-    class SRC,F,P,B,A1,A,CD,TAINT,REP check;
-    class BLK block;
-    class KW,MM,WI note;
+    P -->|SyntaxError| BLK["block"]
+    P --> B["Layer B AST 白名单<br/>(ast.MatMult 移除)"]
+    B --> A1["Pass 1a 别名规范化<br/>(拒 wildcard import)"]
+    A1 --> A["Layer A import 黑/白名单"]
+    A --> CD["Layer C/D Call/Attribute<br/>+ 跨函数污点传播"]
+    CD --> REP["CheckReport blocked 汇总"]
+    classDef ck fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
+    classDef bad fill:#FFEBEE,stroke:#E57373,color:#C62828;
+    class SRC,F,P,B,A1,A,CD,REP ck;
+    class BLK bad;
 ```
 
-**设计与机制**：
-- **Layer F**（最先、最便宜）：源码字符串黑名单，命中 `oracle`/`golden`/`hidden_shape`/`answer`/`cheat` 即 block。
-- **Layer B**：AST 节点正向白名单，不在 `_AST_ALLOW` 即拒；`ast.MatMult`（`@`）被**显式移除**，与"禁高层 matmul"一致。
-- **Layer A**：import 黑名单（`functools.partial`/`importlib`/`ctypes`/`cpp_extension`/`os`/`time`/`*.Event`/`oracle_pytorch`/`tasks` …）+ 仅允许 `torch/torch_npu/triton/triton.language/math/typing/…` 的白名单（可由 `version_matrix.toml` 扩充）。
-- **Layer C/D + 别名/污点传播**：把 `f = open; f(...)`、`g = F.silu` 这类别名重绑定一路追踪，跨函数传播污点，dotted-path 命中黑名单即拒。
-- **Layer E**：运行时 `sys.addaudithook`，拦 `exec`/`compile`/`subprocess`/`open` 等审计事件，作为静态层的运行时兜底。
+**机制**：Layer F 源码字符串黑名单（`oracle/golden/hidden_shape/answer/cheat`，最先执行、开销最低）→ Layer B AST 节点白名单（`ast.MatMult` 即 `@` 显式移除）→ 别名规范化（拒绝 `import *`）→ Layer A import 黑/白名单（模块白名单 = `torch/torch_npu/triton` + `math/typing/dataclasses/functools/numbers/warnings/__future__`；符号级再禁 `functools.partial`/`functools.partialmethod`/`importlib`/`ctypes`/`cpp_extension`/`os`/`time`/`*.Event`/`oracle_pytorch`/`tasks`）→ Layer C/D dotted-path 检查 + **跨函数污点传播**（追踪 `f=open;f(...)`、`g=F.silu` 等别名重绑定）→ Layer E 运行时 `sys.addaudithook` 由 verified runner 侧安装，作为静态层的运行时回退防线。
 
-这是 7 层防御里**最关键也最便宜的第一道线**——31 类攻击约 1/3 是代码层（import oracle / 别名 / 反射 / so 加载），必须把别名与污点传播做透。
+### 6.5 `tolerance.py` + `tolerance_policy.yaml`
+**初衷**：浮点不可结合 → 漂移容许度按算子族而异；整数/采样 bit-exact；NaN/Inf 位置严格一致防"用 NaN 抹差"。
+**机制**：`compare` 三段——shape 不符直接 fail；整数/bool/`bit_exact` 走 `torch.equal`（绝不 float32 cast+allclose）；浮点先 inf/nan 掩码一致再有限元素 `allclose`。采样 fast-fail 不是终判（抽样过仍跑全量）。容差**不自动升级**，人工裁决。
 
-### 5.5 `tolerance.py` + `tolerance_policy.yaml` — 数值容差判定
+### 6.6 `process_isolation.py` + `timing.py` + `trusted_shim/`
+**初衷**：candidate 与 oracle/golden/计时物理隔离；host 计时权威（`Event.elapsed_time` 漏跨 stream，B2 攻击面）。
+**机制**：candidate 在受限子进程跑（无共享解释器状态、timeout+SIGKILL 进程组、子进程仅获净化挂载（kernel/meta/公开 shape/已物化输入/solution，剔除 oracle/contract/golden/hidden_shapes），输入固定 seed 确定性物化、与 oracle 字节一致），safetensors-only IPC（无 pickle）；`measure` = warmup 剔除 JIT 编译耗时 + n_repeat 次测量，在前后 `synchronize()` 包围的窗口内以 `CLOCK_MONOTONIC_RAW` 测 host 时长，NPU event 作次级交叉信号；二者偏差超过 `specs/timing_arbitration.md` 规定阈值即标 `invalid_timing`/`invalid_stream`（阈值以该规范为单一来源，本文不复述具体数值以免漂移）；NPU 延迟（median/p99/cv）随结果披露，并作为 §9 Roofline 效率计分输入。
 
-**设计初衷**：浮点不可结合 → NPU Triton 与 PyTorch 必然有数值漂移，但容许度因算子族而异（elementwise 与 INT8 matmul 完全不同）；整数/采样类必须 bit-exact；NaN/Inf 位置必须严格一致，防"用 NaN 抹平 diff"。
+### 6.7 `scoring.py` — 评分
+**初衷**：正确性为排名资格门，性能为排名指标——以 910B Roofline 归一化效率计分，硬件无关、绝对可复现。
+**机制（与 §9 一致）**：`analyze` 计算两项。**资格门**：`native_coverage = #{correctness=ok ∧ ¬fallback}/|S|`——固定分母、**无 ε**、失败/缺失计 0、`fallback_detected` 评分前归一为 correctness fail、`coverage≥0.70` 为排名资格；`eval.coverage_for_ranking` 仅为单任务本地 per-shape 诊断值。**排名指标**：`capped_geomean_native = exp((1/|S|)Σ log s_t)`，其中 per-shape 效率 $e=\min(P_{cap}{=}5.0,\ t_{ref}/t_{npu})$、$t_{ref}=\max(\max_c W_c/\pi_c,\ \max_r M_r/\beta_r)$（cost model，§5.6）；任务全状态 ok 且无 fallback 时 $s_t$ = 各 shape $e$ 的几何均值，否则 $s_t=\epsilon$。`baseline_ns`=$t_{ref}$、`measured_ns`=$t_{npu}$；ε-fill 与固定 $|S|$ 分母作用于性能指标、与资格门同源杜绝选择性规避。`scoring` 对重复 `TaskMeasurement` 抛错（`cli analyze` 已先按最坏值合并重复 result 行，§6.9）。`*_native` 指 **NPU-triton track**（非 AscendC）。
 
-**设计与机制**：`compare(actual, expected, cls)` 三段式——
-1. shape 不匹配直接 fail；
-2. 整数 / bool / `bit_exact` 类走 `torch.equal`（**绝不**走 float32 cast + allclose，否则 `int64(2^24+1)` 会被静默舍入到 `2^24`）；
-3. 浮点：先做 inf/nan 掩码一致性检查（位置必须逐元素一致），再对有限元素 `allclose(atol, rtol)`。
+### 6.8 `adversarial.py` — canary + metamorphic
+**初衷**：对静态检查与容差判定无法识别的语义级作弊（恒等返回 / 部分计算 / 硬编码查表），以变换检验（metamorphic）+ 陷阱任务（canary）作为最后一道拦截。
+**机制**：`run_metamorphic_checks` 按 meta 跑变换比对；`check_canaries` 比对 canary 结果与真值，`C1/C2/C3` 判 hard 其余 soft；canary 不计主指标，`canary_caught>0` ⇒ `suspicious` 人工 review。
 
-采样 fast-fail 不是终判：抽样 allclose 失败可早退，但抽样**通过**仍须跑全量 allclose，防止 NaN/Inf 或大漂移落在采样窗口外混过。容差**不自动升级**：oracle 与候选在标准容差下不一致时，由维护方人工裁决（收紧/修 oracle/调整任务），绝不自动把 PyTorch 当真值放宽。
+### 6.9 `manifest.py` / `backends/` / `cli.py`
+- **manifest.py**：submission tar.gz 清单，锁 `triton_ascend_version/cann_version/container_digest/org_identity`；缺键抛错。
+- **backends/**：`get_backend` 工厂；`NpuBackend.dtype_supported` 对 FP8 返 False（910B 无 FP8 cube）。
+- **cli.py**：9 子命令 `init-solution/run/run-suite/package/submit/validate-submission/validate-result/static-check/analyze`；`submit` 先 validate 失败拒发；解 tar 拒路径穿越/symlink/设备文件 + `filter="data"`；`analyze` 以 catalogue 权威冻结 score-eligible、统计伪造计数、对重复 task_id 的 result 行先按最坏值合并后交 `scoring`（`scoring` 再对残留重复 `TaskMeasurement` 抛错，§6.7）。
 
-### 5.6 `timing.py` + `trusted_shim/` — 权威计时
-
-**设计初衷**：`torch.npu.Event.elapsed_time` 只计当前 stream，会漏掉跨 stream 的工作（B2 攻击：把计算丢到非默认 stream 让 event 计不到）。故以 host `CLOCK_MONOTONIC_RAW` 为权威，event 仅作交叉校验。
-
-**设计与机制**：`measure(fn, n_warmup, n_repeat, sync)` = warmup 剔除 JIT 编译耗时 + n_repeat 次测量，每次在 `sync()` 夹住的窗口内用 `clock_gettime_ns(CLOCK_MONOTONIC_RAW)` 取 host 时长；同时记录 NPU event 作为次级信号，host 与 event 偏差超阈值（10%）即标 `invalid_timing` / `invalid_stream` 并排除该计时。`trusted_shim` 提供 runner 持有的 host 计时原语，candidate 无法篡改。计时产出 NPU 原始延迟（median/p99/cv）随结果披露。
-
-### 5.7 `scoring.py` — 评分指标
-
-**设计初衷**：**正确性**是计分轴——以固定的 score-eligible 集为分母，按任务是否在分级容差内复现 oracle 语义计 coverage；失败贡献 ε 而非 0，配合固定分母防"少做难题抬指标"的博弈。性能为报告维度，并预留一个**可插拔的归一化加速比槽位**，便于后续在 910B 延迟参考确立后接入而不改 schema。
-
-**设计与机制**：
-- **状态门**：`correctness / runtime / performance` 四状态非全 ok 或检出 fallback → 该任务计 ε(0.01)。
-- **正确性指标**：`coverage = #{t ∈ S : correctness=ok} / |S|`，$S$ 为固定 score-eligible 集；排名资格 `coverage ≥ 0.70`。
-- **性能槽位**：保留通用形式 `s_t = max(ε, min(P_CAP, t_ref/t_npu))`，`t_ref` 为性能参考；当性能参考未启用时 `perf_status=unavailable`，任务按正确性计分、性能仅作 NPU 原始延迟报告（不伪造分数）。
-- **几何均值**：`exp((1/|S|) Σ log s_t)`，缺失/失败任务补 ε；重复 task_id 抛错（否则会把 coverage 抬过 1.0）。
-- 仅"正确性单值"作为唯一头部数字会过于易刷，故以 coverage + 逐任务透明四状态替代单一可刷分数。`*_native` 等输出键名仅为 schema 稳定，指 **NPU-triton track**。
-
-### 5.8 `adversarial.py` — canary + metamorphic
-
-**设计初衷**：静态/容差挡不住的语义级作弊（identity 返回、partial compute、lookup table），用 **metamorphic 变换**（对输入做语义保持/破坏变换看输出是否合理变化，无法靠查表通过）和 **canary 陷阱题**（看似真题但 oracle 故意错/shape 不可能，过了就是作弊信号）兜底。
-
-**设计与机制**：`run_metamorphic_checks` 按 `meta.runner_checks.metamorphic_checks` 跑变换并比对；`check_canaries` 比对 canary 提交结果与真值，`C1/C2/C3` 前缀判 `hard`、其余 `soft`。canary 题（C1 identity / C2 zero-out / C3 cache-reuse / … / C10 alibi-attention）存放 `tasks/_canary/`，不计入主指标，但 `canary_caught > 0` → 提交标 `suspicious`，公开排名前需人工 review。
-
-### 5.9 `manifest.py` — 提交清单
-
-**设计初衷**：每个 submission 是 `tar.gz`（`manifest.yaml` + `solution.py` + 可选 runtime_env/notes），manifest 锁定 `triton_ascend_version` / `cann_version` / `container_digest` / `org_identity`，支撑版本一致性与限流/Sybil 防御。
-
-**设计与机制**：`SolutionManifest.from_dict/load/to_dict`，缺必填键即抛错并被 CLI 转成 schema 错误，使格式不合规的提交在打包/校验阶段就被拒。
-
-### 5.10 `backends/` — GPU/NPU 后端抽象
-
-**设计初衷**：oracle 跑在参考设备，candidate 跑在 NPU；用统一 `Backend` 接口（`.device` / `.synchronize()` / `.dtype_supported()`）隔离差异。
-
-**设计与机制**：`get_backend(name)` 工厂返回 `GpuBackend`/`NpuBackend`；`NpuBackend.dtype_supported` 对 FP8 返回 False（910B 无 FP8 cube 算术，仅软件模拟），与 `fp8_software_emulated` 容差类"只测正确性"呼应。
-
-### 5.11 `cli.py` — `tab` 命令行
-
-**设计初衷**：单一 `tab` 入口承载 submitter 全流程与 provider 的 analyze，所有不安全输入（tar 包、manifest、结果 JSON）在入口处即做严格 schema/安全校验。
-
-**设计与机制**：9 子命令 `init-solution / run / run-suite / package / submit / validate-submission / validate-result / static-check / analyze`。`submit` 先跑 `validate-submission`、失败即拒发；解包 tar 时拒绝路径穿越/符号链接/设备文件并以 `filter="data"` 二次防护；`analyze` 以题库 catalogue 为权威冻结 score-eligible 集、统计伪造计数、对重复 task_id 取最坏值传播——使提交 JSON 只是输入、不是权威。
-
-### 5.12 离线构建流水线（`scripts/`）
-
-`generate_task_scaffolds`（按选题表生成骨架）→ `extract_kernel`（从 vLLM/SGLang AST 抽取 kernel）→ `phase_a_freeze`（**whole-file vendoring**：原样保留 Apache 头、commit/SHA 锁定、`_vendored/` 快照）→ `phase_a_prime`（**standalone-freeze + S2 等价 gate**，见下）→ `phase_b_oracle`（按 kernel 签名生成 `oracle_pytorch.run`）→ `phase_c_docs`（生成 size-knob `shapes.yaml` + `contract.md`）→ `build_oracle_digest`（紧凑摘要供 review）→ `validate_tasks`（5 文件齐全 + meta schema + `ast.parse` 语法门禁 + kernel hash）→ `verify_version_matrix`（检测未冻结字段）。
-
-whole-file vendoring 是 Phase A 刻意的**第一步**（简单、保留上游许可、与静态检查输入形式一致），但它**本身不是真冻结**：Phase A′ 实测发现 87/101 vendored `kernel.py` 仍带 live `from vllm…/sglang…` import，行为依赖运行时装的包版本 → golden 不可复现。`phase_a_prime`（`scripts/phase_a_prime.py`）补上真冻结：符号级可达闭包分类（A/B/C/S/D，unknown→A，无符号被静默丢弃）→ content-addressed 依赖池 `tasks/_frozen_deps_pool/h_<sha12>/`（vendoring 传递闭包）+ 极窄默认拒绝 shim `tasks/_frozen_shim/`（仅可证惰性 B；`tl/triton` re-export 改写为公开 triton import）→ per-task 最小 `run(inputs)->dict` 的 build-staged 候选（promote 前不动真 kernel.py）→ **S2 等价 gate**：S2-smoke（CPU/`TRITON_INTERPRET=1`，真实比对，**永不** PASS）+ S2-gpu-authoritative（GPU，唯一 PASS 来源）严格 bit-exact（dtype/shape/strides/alias/in-place/被 mutate 输入；**不用** `tolerance_class`、无 ULP 逃逸）对比未改写的上游入口 vs severed 候选 + severed 子进程 import 审计（零 vllm/sglang/site 解析）+ S3 确定性 N=5 bit-exact。PASS 才 atomic promote（dual-hash：`upstream.file_sha256` provenance + `phase_a_prime.standalone_sha256` 盘上）；否则 BLOCKED。任一 score-eligible 任务 `phase_a_prime.status != PASS` ⇒ benchmark 不可发布（S6 硬发布 gate，强制于 `eligibility.py` + `validate_tasks.py --release-gate` + CI `phase-a-prime-gate`；BLOCKED 是硬阻塞器，**不是**剔分母逃逸）。
-
-**现状与诚实差距（[confirmed]，本机无 GPU 全量跑 101 题，逐题类别由 `scripts/resolve_upstream_entrypoints.py` 的真实 resolver verdict 机器派生，见 `docs/plans/phase_a_prime_status.md`；canonical resolver cache = `results/resolve_all.json`，由 `python3 scripts/resolve_upstream_entrypoints.py --refresh-cache` 在**当前 hardened anchor**下可复现重算，非 /tmp 临时件）**：**这是 POST-HARDENING 真实结果**——resolver 已对每个 meta 已设入口在**当前 ≥2 shape / structure / dtype** anchor 下重新核验（pre-hardening 的 `--apply` 不再保留陈旧 pass）。PASS **0** / BLOCKED(no-upstream-entrypoint) **0**（**0 题真正没有 callable**）/ BLOCKED(upstream-not-invocable-here) **78**（候选入口**存在**，但本 dev 环境缺可选依赖、vendored 上游文件无法 import：missing-dep pybase64 29/zmq 19/cbor2 10/msgspec 2/flashinfer 1=61，relative-import-packaging 12，assertion/precondition 3，triton-api-AttributeError 1，TypeError 1）/ BLOCKED(shapes-incomplete) **17**（含 L3_04 — 其 pre-hardening apply 在 hardened anchor 下命中 shapes-incomplete）/ BLOCKED(oracle-mismatch) **2**（L1_09 + L1_01——L1_01 的 hardened anchor 拒因是 STRUCTURE MISMATCH（候选多出 11 个无法解释的输出张量）⇒ 错算子，与 L1_09 同属"被正确拒绝的错算子"桶，绝非"环境限制"）/ BLOCKED(smoke-fail severing) **0** / BLOCKED(resolver-error) **0** / UNRUN(needs-gpu) **4**（L1_12/L1_16/L1_26/L2_10——均在 hardened anchor 下真实 2/2 shape 通过；L1_26 锚定 H2+H4 两 shape，output/output_lse 均在 elementwise 容差内、结构+dtype 匹配）。**注：相比早先 /tmp 陈旧 cache 的 78/5，真实 post-hardening 为 78/4——L1_01 的 pre-hardening apply 在真正 2-shape anchor 下不通过，且其拒因是结构不匹配（错算子），诚实归为 oracle-mismatch（不是更好看的"环境限制" upstream-not-invocable-here），绝不为保数字而留陈旧 pass、也绝不用更好看的标签掩盖错算子。** 对账 0+0+78+17+2+0+0+4=101。**主导事实不是"没有入口"——入口候选大多存在；主导阻塞器是本 dev 环境缺可选依赖（pybase64/zmq/cbor2/msgspec/flashinfer），vendored 上游文件在此无法 import，是 ENVIRONMENT 限制而非"无入口"**；另有 17 题 shapes.yaml 缺必填无默认参数、2 题为被正确拒绝的错算子。这些是**诚实的 benchmark 内容缺口 + dev 环境约束，不是 severing 缺陷（0 个真实 severing 缺陷）**；缺失依赖**有意未 pip 安装**（装上会掩盖真实 benchmark/env 状态）。Phase A′ 架构本身完备且已实现——它让"ground truth = 冻结上游 kernel"这条保证**真正成立**，同时**诚实暴露**当前题库绝大多数题在此 dep-poor 环境无法被 import/验证、是 Phase A′ S2 能验证这些题之前必须先补全的前置。在补全前 benchmark 按 S6 **不可发布**（0 score-eligible PASS），这是有意的硬门。
+### 6.10 离线构建流水线（`scripts/`）
+`generate_task_scaffolds`（建任务骨架，含 scaffold `oracle_pytorch.py::run`）→ `extract_kernel` → `phase_a_freeze`（whole-file vendor）→ **`resolve_upstream_entrypoints`（入口双锚校验，比对已存在的 scaffold/手工 `oracle_pytorch.py::run`）→ `phase_a_prime`（severing + 等价校验 + cost-model GPU 交叉校验 → 可复现冻结）** → `phase_b_oracle`（**升级/规范化**已存在的 `oracle_pytorch.py::run`）→ `phase_c_docs`（size-knob shapes+contract）→ `build_oracle_digest`（review 摘要）→ `validate_tasks`（5 文件+schema+`ast.parse`+hash，及独立 `--release-gate` 发布门）→ `verify_version_matrix`。等价校验子进程入口：`_pa_subproc_runner.py`（每侧 fresh 子进程 + import 审计）、`_pa_oracle_check_runner.py`（oracle 一致性锚）。
 
 ---
 
-## 6. 评测流程时序
+## 7. 评测流程时序
 
-### 6.1 Submitter 评测流程
+### 7.1 Submitter 评测
 
 ```mermaid
 sequenceDiagram
@@ -495,9 +528,8 @@ sequenceDiagram
     participant TOL as tolerance
     U->>CLI: tab init-solution L1_xx
     CLI-->>U: 生成 solution.py
-    U->>U: 实现 npu_triton_impl
     U->>CLI: tab run L1_xx
-    CLI->>EV: evaluate(task, solution, backend)
+    CLI->>EV: evaluate(task, solution)
     EV->>SC: check_solution(src)
     SC-->>EV: CheckReport
     alt blocked
@@ -506,235 +538,195 @@ sequenceDiagram
         EV->>IN: build_inputs(shape, seed)
         IN-->>EV: inputs dict
         par oracle
-            EV->>EV: 隔离运行 oracle
+            EV->>EV: 取 golden（现跑 oracle / 加载离线，§5.7）
         and candidate
-            EV->>EV: 隔离运行 candidate
+            EV->>EV: 隔离运行 solution → output
         end
-        EV->>TOL: compare(candidate, golden, cls)
+        EV->>TOL: compare(output, golden, cls)
         TOL-->>EV: ComparisonResult
-        EV-->>CLI: round_result + 四状态
+        EV->>EV: 计时沙箱 measure(warmup+trials)→ t_npu
+        EV->>EV: Roofline e=min(P_cap, t_ref/t_npu)（§9）
+        EV-->>CLI: round_result + 判定状态组 + 性能
     end
-    CLI-->>U: coverage + 延迟报告 + round_result.json
-    U->>CLI: package + validate-submission + submit
+    CLI-->>U: coverage + Roofline 效率 + round_result.json
 ```
 
-### 6.2 Verified Runner 三进程隔离时序
+### 7.2 Provider 可复现冻结 + 发布门
 
 ```mermaid
 sequenceDiagram
-    participant R as Trusted Runner
-    participant C1 as Candidate #1 正确性
-    participant C2 as Candidate #2 计时
-    participant SH as trusted_shim
-    R->>R: 加载 oracle 与 golden
-    R->>R: gen_inputs(shape, secret_seed)
-    R->>C1: fork 受限挂载
-    C1->>SH: 调用 npu_triton_impl(inputs)
-    SH->>SH: 校验输出 dtype/stride/data_ptr
-    SH-->>C1: 写 output.safetensors
-    C1-->>R: exit + SIGKILL
-    R->>R: 清 cache/显存
-    R->>R: tolerance.compare 得到 correctness
-    R->>C2: fork fresh 输入
-    loop warmup
-        C2->>SH: 运行 warmup
+    participant PA as 整文件 vendoring
+    participant RES as 入口双锚解析
+    participant PAP as 可复现冻结
+    participant EQ as 等价校验子进程对(原始/severed)
+    participant GATE as validate_tasks --release-gate
+    PA->>PA: whole-file vendor + commit/SHA
+    RES->>RES: 枚举候选入口
+    RES->>RES: 入口双锚(≥2 shape + 结构/dtype + CPU 等价预检)
+    alt 双锚未通过
+        RES-->>RES: 不写入口 · BLOCKED(no-verified-upstream-entrypoint)
+    else 锚过
+        RES->>PAP: 写已验证入口
+        PAP->>PAP: U1 符号闭包分类 A/B/C/S/D
+        PAP->>EQ: 原始侧(infer/ on path) + severed 侧(§4.2 允许集 + pool + shim)
+        EQ->>EQ: severed import 审计(零 vllm/sglang + 非允许集 site-packages)
+        EQ-->>PAP: 两侧 safetensors dump
+        PAP->>PAP: 严格 bit-exact 对比 + 首跑+5 重跑确定性校验
+        alt GPU 权威 PASS
+            PAP->>PAP: 实测 W/M 与 cost-model 交叉校验(失败⇒cost-model BLOCKED)
+            PAP->>PAP: atomic promote + dual-hash + 写 meta.phase_a_prime
+        else 无 GPU
+            PAP-->>PAP: UNRUN(needs-gpu)（无 GPU 不判 PASS）
+        else 漂移/泄漏
+            PAP-->>PAP: BLOCKED (硬阻塞)
+        end
     end
-    loop measured
-        C2->>SH: 计时运行
-    end
-    SH->>SH: host clock + device sync
-    C2-->>R: host_ns + event_ns + 采样输出
-    alt drift 超过 10%
-        R->>R: invalid_timing
-    else timing 有效
-        R->>R: 记录 NPU 延迟 + 汇总 score_report
-    end
+    GATE->>GATE: score-eligible ∩ {release_status≠PASS} 非空 ⇒ 不可发布
+    GATE->>GATE: 非空泛守卫(examined==0 或 ≠期望 ⇒ 硬失败)
 ```
 
-### 6.3 Provider 离线构建时序
-
-```mermaid
-flowchart LR
-    subgraph GEN["生成"]
-        direction LR
-        A["generate_task_scaffolds"] --> B["extract_kernel"]
-    end
-    subgraph FREEZE["冻结与补全"]
-        direction LR
-        B --> C["phase_a_freeze<br/>整文件 vendoring + SHA"]
-        C --> C2["phase_a_prime<br/>standalone-freeze + S2"]
-        C2 --> D["phase_b_oracle<br/>生成 oracle.run"]
-        D --> E["phase_c_docs<br/>shapes + contract"]
-    end
-    subgraph CHECK["校验与 CI"]
-        direction LR
-        E --> F["build_oracle_digest"]
-        F --> G["validate_tasks<br/>schema + 语法 + release-gate"]
-        G --> H["verify_version_matrix<br/>+ phase-a-prime-gate · CI"]
-    end
-    classDef provider fill:#ECEFF1,stroke:#90A4AE,color:#37474F;
-    classDef check fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
-    class A,B,C,C2,D,E provider;
-    class F,G,H check;
-```
+### 7.3 Verified Runner 三进程隔离
+见 §3.3：Runner 算 golden → fork C1 正确性沙箱（写 output.safetensors，SIGKILL+清 cache）→ tolerance 判定 → fork C2 计时沙箱（warmup/measured，host clock + event 交叉，偏差超 `specs/timing_arbitration.md` 阈值→invalid）→ 汇总 score_report。submitter 与评测期**不依赖 NVIDIA CUDA GPU**（CUDA GPU 仅 provider 侧离线 GPU 权威等价校验使用；verified 评测在 910B NPU 上运行）。
 
 ---
 
-## 7. Reward Hacking 防御体系
+## 8. Reward Hacking 防御体系
 
-### 7.1 7 层防御
-
-核心理念：**防御内建于基准设计，运行时检测只是兜底层**。
+核心理念：**防御内建于基准设计，运行时检测仅为回退防线**。
 
 ```mermaid
 flowchart TB
-    L1["L1 进程/沙箱隔离<br/>oracle 隔离 · 安全 ABI"]
-    L2["L2 代码强制<br/>AST 白名单 · provenance"]
-    L3["L3 正确性硬化<br/>input hash · sentinel · 差分"]
-    L4["L4 sanity/异常<br/>边界 · profiler · 遥测"]
-    L5["L5 提交策略<br/>限流 · canary · 复现"]
-    L6["L6 测试集设计<br/>隐藏密封 · 轮换 · 随机"]
-    L7["L7 横切治理<br/>cache 清除 · 延迟披露 · 审计"]
+    L1["L1 进程/沙箱隔离 · oracle 隔离 · 安全 ABI"]
+    L2["L2 代码强制 · AST 白名单 · provenance"]
+    L3["L3 正确性硬化 · input hash · sentinel · 差分"]
+    L4["L4 sanity/异常 · 边界 · profiler · 遥测"]
+    L5["L5 提交策略 · 限流 · canary · 复现"]
+    L6["L6 测试集设计 · 隐藏密封 · 轮换 · 随机"]
+    L7["L7 横切治理 · cache 清除 · 延迟披露 · 审计"]
     L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7
-    classDef isolation fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
-    classDef code fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
-    classDef data fill:#FFF8E1,stroke:#FFCA28,color:#F57F17;
-    classDef policy fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
-    classDef audit fill:#ECEFF1,stroke:#90A4AE,color:#37474F;
-    class L1 isolation;
-    class L2 code;
-    class L3,L4 data;
-    class L5,L6 policy;
-    class L7 audit;
+    classDef a fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
+    classDef b fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
+    classDef c fill:#FFF8E1,stroke:#FFCA28,color:#F57F17;
+    classDef d fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
+    classDef e fill:#ECEFF1,stroke:#90A4AE,color:#37474F;
+    class L1 a;
+    class L2 b;
+    class L3,L4 c;
+    class L5,L6 d;
+    class L7 e;
 ```
 
-### 7.2 攻击 → 缓解映射（节选）
+| 攻击 | 缓解 |
+|------|------|
+| A1 import oracle | oracle 永不挂载 + 静态 import 拦截 |
+| A3 identity / A4 查表 | differential 随机输入 + canary C1/C7 + runner-secret RNG（仅用于 canary/metamorphic 反作弊探针，**非计分输入**；计分输入恒为固定 seed 确定性物化）|
+| A5 buffer 复用 | 按 dtype byte-pattern sentinel |
+| B1 异步不同步 / B2 非默认 stream | trusted shim 强制 sync + host 权威，drift 超 `timing_arbitration.md` 阈值→invalid |
+| B5 空 kernel | profiler NPU kernel event 存在性 |
+| C2/C3 tar 攻击 | 路径穿越/symlink/设备文件拒绝 + `filter="data"` |
+| F1 oracle 进程污染 | candidate/oracle/比对 分进程 + severed import 审计 |
 
-| 攻击 | 缓解机制 |
-|------|---------|
-| A1 import oracle | oracle 永不挂载 candidate + 静态 import 拦截 |
-| A3 identity hack | differential 3 随机输入 + canary C1 |
-| A4 hardcode 查表 | runner-secret RNG 输入 + canary C7 |
-| A5 buffer 复用 | 按 dtype 的 byte-pattern sentinel 检测 |
-| B1 异步不同步 | trusted shim 强制 device-wide sync |
-| B2 非默认 stream | host_ms 权威 + event 交叉，drift>10% → invalid |
-| B5 空 kernel | profiler NPU kernel event 存在性检查 |
-| B7 shape routing | 隐藏 adversarial 集 + 3-随机生成 |
-| C2/C3 tar 攻击 | 路径穿越/symlink/设备文件拒绝 + filter="data" |
-| F1 oracle 进程污染 | candidate / oracle / 比对 分进程 |
-
-### 7.3 Canary 陷阱（C1–C10）
-
-`_canary/` 收录看似真题、实为陷阱的题（identity / zero-out / cache-reuse / non-default-stream / torch-fallback / shape-route / lookup-table / async-no-sync / partial-compute / alibi-attention）。canary 不计入主指标，`canary_caught` 计数 > 0 即触发 `suspicious` 审计标记。设计灵感来自 KernelBench 的对抗 kernel 测试，适配到 NPU triton-ascend。
+`_canary/` 定义 10 类陷阱题（identity / zero-out / cache-reuse / non-default-stream / torch-fallback / shape-route / lookup-table / async-no-sync / partial-compute / alibi-attention），不计入主指标，`canary_caught>0` 触发 `suspicious`；`adversarial.py` 提供 `run_metamorphic_checks` / `check_canaries` 判定原语。
 
 ---
 
-## 8. 评分体系数学定义
+## 9. 评分体系数学定义
 
-**计分轴 = 正确性。** 对 score-eligible 集 $S$（拥有可信、可评分 oracle 的固定任务集）中的每个任务 $t$：
+本基准为**双目标**：正确性是**排名资格门**，性能（910B Roofline 归一化效率）是**排名指标**。两者共用固定的 score-eligible 集 $S$（`eligibility.py` 单一来源）；分母 $|S|$ 固定，缺失/失败任务不从分母剔除（杜绝"选择性规避难题"的数学约束）。
 
-每个 shape 经 `tolerance.compare(candidate, golden, class)` 得 pass/fail，聚合为四状态。任务级指标：
-
-$$
-\text{coverage}=\frac{\big|\{\,t\in S:\ \text{correctness}_t=\textsf{ok}\,\}\big|}{|S|},\qquad \text{排名资格}:\ \text{coverage}\ge 0.70
-$$
-
-评分引擎保留一个**可插拔的归一化加速比槽位**，便于后续接入性能参考而不改 schema：
+**目标一·正确性资格门（无 ε，固定分母）**：$S$ 中每个任务 $t$ 的每个 shape 经 `tolerance.compare(candidate, golden, class)` 得 pass/fail，聚合为判定状态组（§6.3）。`fallback_detected` 在评分前归一为 correctness fail，故资格门计数谓词显式为 $\text{correctness}_t{=}\textsf{ok}\wedge\neg\text{fallback}_t$（正确但回退实现不得过门）：
 
 $$
-s_t=\begin{cases}\max\!\big(\epsilon,\ \min(P_{cap},\ t_{ref}/t_{npu})\big)&\text{四状态全 ok 且无 fallback 且 }t_{ref}\text{ 可用}\\[1mm] \epsilon=0.01&\text{否则}\end{cases}
-\qquad
-\text{geomean}=\exp\!\Big(\tfrac1{|S|}\textstyle\sum_{t\in S}\log s_t\Big)
+\text{coverage}=\frac{\big|\{t\in S:\ \text{correctness}_t=\textsf{ok}\ \wedge\ \neg\,\text{fallback}_t\}\big|}{|S|},\qquad \text{排名资格}:\ \text{coverage}\ge 0.70
 $$
 
-性能参考 $t_{ref}$ 未启用时 `perf_status=unavailable`，任务按正确性计分、NPU 原始延迟（median/p99/cv）仅作报告，**不伪造分数**。
+**目标二·Roofline 归一化性能（排名指标）**：910B 与源 GPU 峰值不同，绝对延迟不可跨硬件直接比，故按 910B 算力/带宽峰值归一化。对任务 $t$ 的每个 shape $s$：
 
-**关键设计**：$|S|$ 是**固定分母**，缺失/失败任务贡献 ε、不缩小分母——这是反"挑题博弈"的数学保证。"仅正确性"单一可刷分数被刻意避免，改用 coverage + 逐任务透明四状态。数据流：`run-suite` → `suite_results.json` → `tab analyze`（从 catalogue 冻结 $S$、过滤伪造）→ `score_report.json`。
+- 按资源分解：$W_c(t,s)$=第 $c$ 计算类 FLOPs、$M_r(t,s)$=第 $r$ 资源（HBM/通信）字节，均由 cost model 解析给出并经插桩 GPU-Triton 参考实测交叉校验（§5.6，fail-closed）；$\pi_c$/$\beta_r$=910B 对应峰值（`infra/` 峰值表）；
+- **Roofline 理论延迟** $t_{ref}(t,s)=\max\!\big(\max_c W_c/\pi_c,\ \max_r M_r/\beta_r\big)$（标准 Roofline 下界：各资源理想重叠，取约束最紧者）；实测 $t_{npu}(t,s)$（host 权威计时，§6.6）；per-shape 效率 $e(t,s)=\min\!\big(P_{cap},\ t_{ref}/t_{npu}\big)$，理论 $\in(0,1]$（$t_{ref}$ 为下界），$>1$ 仅源于 cost-model 低估/噪声并由 $P_{cap}{=}5.0$ 钳制。
+
+$$
+s_t=\begin{cases}\Big(\textstyle\prod_{s} e(t,s)\Big)^{1/n_t}&\text{全部状态 ok 且无 fallback}\\[1mm]\epsilon=0.01&\text{否则}\end{cases}\qquad \text{capped\_geomean\_native}=\exp\!\Big(\tfrac1{|S|}\textstyle\sum_{t\in S}\log s_t\Big)
+$$
+
+$s_t\!\approx\!1$ 表示打满 910B 屋脊。ε-fill 与固定 $|S|$ 分母作用于性能指标：非 ok / fallback 任务计 $\epsilon$ 而**不**从分母剔除——与资格门同源杜绝选择性规避（与 P6 一致）。
+
+**性能基线 provenance**：`baseline_ns`=$t_{ref}$（910B Roofline 理论延迟），`measured_ns`=$t_{npu}$（实测）。cost model 解析 $W/M$ 与插桩 GPU-Triton 参考实测不一致超容差 ⇒ 该任务 cost-model `BLOCKED`（硬阻塞，发布门，§4.4/§5.6），其性能计 $\epsilon$，绝不以错误基线产出加速比。
+
+数据流：`run-suite → suite_results.json → tab analyze（catalogue 冻结 S）→ score_report.json`。
 
 ---
 
-## 9. 关键工程决策与权衡
+## 10. 关键工程决策与权衡
 
-| 决策 | 选择 | 替代方案 | 理由 |
-|------|------|---------|------|
-| 计分轴 | 正确性 coverage（固定分母 + ε-fill） | 单一"加速比"头部数字 | 单值易刷；coverage + 逐任务四状态更抗博弈 |
-| 性能维度 | NPU 原始延迟报告 + 可插拔 $t_{ref}$ 槽位 | 强行用手写算子做跨硬件分母 | 跨硬件绝对延迟不可直接比，规范化参考独立演进 |
-| 计时权威源 | host `CLOCK_MONOTONIC_RAW` | `Event.elapsed_time` | event 只计当前 stream，漏跨 stream 工作（B2 攻击面） |
-| 输出序列化 | `safetensors` | `.pt`/`.pkl` | pickle 加载即任意代码执行，runner 读 candidate 输出会被攻击 |
-| candidate 进程数 | 2（正确性/计时分离） | 1 进程复用 | 防正确性阶段预计算缓存到计时阶段查表 |
-| 产物 provenance | broker 运行时签名 | 编译期 allowlist 枚举 | 隐藏 shape 的 JIT 在 build 期无法枚举，broker 运行时编译+签名解决 |
-| 上游冻结粒度 | Phase A whole-file vendoring + **Phase A′ 符号闭包 standalone-freeze** | per-function 抽取 | 仅 whole-file 仍留 live 上游 import（行为随安装版本漂移，非真冻结）；A′ 用符号级可达闭包 sever+池化后做真冻结 |
-| 冻结正确性保证 | **Phase A′ S2 等价 gate**（严格 bit-exact，不用 tolerance_class，无 ULP） | 信任 vendored 文件即冻结 | severing 是同代码纯 import 改写，任何数值漂移=未冻结副作用证据，必须 BLOCKED+investigate 而非放宽容差 |
-| 冻结发布门禁 | **S6 硬发布 gate**（eligible `status!=PASS` ⇒ 不可发布） | BLOCKED 剔出分母 | BLOCKED 必须有牙齿；剔分母会变成新的"挑题"逃逸口（[[feedback-baseline-no-subset-escape]]）|
-| oracle 分级 | 3 档 `oracle_simplified` | 单一 PyTorch oracle | 浮点漂移下不能盲信 PyTorch，按算子族分级 |
-| 容差升级 | 人工裁决，不自动 | 自动放宽 | 自动放宽给作弊留口子 |
-| `@` 运算符 | AST 层禁用 `ast.MatMult` | 仅黑名单 `Tensor.matmul` | 防 `@` 绕开高层算子禁令 |
-| shape 表达 | size-knob 公式 + seed | 列举具体维度 | 一个 inputs 块覆盖所有 shape 行，且可注入隐藏 shape |
+| 决策 | 选择 | 替代 | 理由 |
+|------|------|------|------|
+| 真值来源 | **冻结上游 kernel**（severing + 等价证明）| 独立从数学重推的 oracle | 迁移真值取决于上游 kernel 的实际计算行为，而非其解析参考实现 |
+| 冻结粒度 | whole-file vendor + **符号闭包 severing** | 仅 whole-file | 仅 whole-file 仍保留 live import，行为随安装版本漂移，不构成可复现冻结 |
+| 冻结正确性 | **严格 bit-exact 等价校验**（无 tolerance_class/无 ULP）| 信任 vendored 即冻结 | severing 是纯 import 改写，任何漂移=未冻结副作用，必须 BLOCKED |
+| 等价校验 PASS 来源 | **仅 GPU 权威实测** | CPU 预检也算 PASS | TRITON_INTERPRET ≠ 真实 GPU 数值；无 GPU 时记 UNRUN，不判 PASS |
+| 入口写入 | **双锚校验通过后才写** | 解析到即写 | 未验证入口不写入，避免引入与目标语义不符的算子 |
+| 发布门 | **硬门**（eligible 非 PASS ⇒ 不可发布）| BLOCKED 从分母剔除 | 从分母剔除会形成新的选择性规避通道；BLOCKED 必须具备强制力 |
+| 正确性角色 | **排名资格门**（coverage≥0.70，固定分母失败计 0）| 与性能加权成单一标量 | 加权标量易被操纵；门 + 独立性能指标更抗博弈、语义清晰 |
+| 性能计分 | **910B Roofline 归一化效率**（$t_{ref}=\max(\max_c W_c/\pi_c,\max_r M_r/\beta_r)$，正确性门 + 性能排名）| 仅报告 NPU 原始延迟、不计性能 | 迁移目标是 NPU 上既正确又高效；只测正确性会把"正确但低效/回退"误判为成功 |
+| 性能基线来源 | **910B Roofline 理论延迟**（cost model + GPU 实测交叉校验）| GPU 绝对延迟做分母 / 场内最优做分母 | Roofline 硬件归一化、绝对可复现、标准模型；GPU 绝对比混淆硬件代差，场内最优跨轮漂移不可复现 |
+| 计时源 | host `CLOCK_MONOTONIC_RAW` | `Event.elapsed_time` | event 漏跨 stream（B2） |
+| 输出序列化 | `safetensors` | `.pt`/`.pkl` | pickle 加载即 RCE |
+| `@` 运算符 | AST 禁 `ast.MatMult` | 仅黑名单 `Tensor.matmul` | 防 `@` 绕高层算子禁令 |
 
 ---
 
-## 10. 演进路线
+## 11. 系统构成层次
 
-按风险与依赖分阶段交付：
+系统按依赖顺序由以下能力层构成：
 
 ```mermaid
 flowchart LR
-    P0["Phase 0<br/>版本矩阵冻结<br/>scope 签字"]
-    P1["Phase 1<br/>题库构建<br/>extract/freeze + oracle/shapes"]
-    P1P["Phase 1′<br/>真冻结<br/>standalone-freeze + S2 + S6"]
-    P2["Phase 2<br/>评测引擎<br/>静态防御 + 三进程隔离"]
-    P3["Phase 3<br/>性能轴<br/>910B NPU 延迟测量"]
-    P4["Phase 4<br/>线上榜单<br/>verified runner + broker/限流"]
+    P0["版本基线<br/>GPU/NPU/deps 锁定"]
+    P1["题库构建<br/>extract/freeze + oracle/shapes"]
+    P1P["可复现冻结链<br/>severing + 等价校验 + 发布门"]
+    P2["评测引擎<br/>静态防御 + 三进程隔离"]
+    P3["性能轴<br/>Roofline 归一化效率计分"]
+    P4["线上榜单<br/>verified runner + broker/限流"]
     P0 --> P1 --> P1P --> P2 --> P3 --> P4
     classDef plan fill:#E3F2FD,stroke:#42A5F5,color:#1565C0;
     classDef build fill:#FFF8E1,stroke:#FFCA28,color:#F57F17;
-    classDef engine fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
-    classDef release fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
+    classDef eng fill:#E8F5E9,stroke:#66BB6A,color:#2E7D32;
+    classDef rel fill:#F3E5F5,stroke:#BA68C8,color:#6A1B9A;
     class P0 plan;
     class P1,P1P build;
-    class P2,P3 engine;
-    class P4 release;
+    class P2,P3 eng;
+    class P4 rel;
 ```
 
-| Phase | 目标产出 |
-|-------|---------|
-| 0 计划/冻结 | `version_matrix.toml` 锁定 GPU/NPU/deps 版本；scope RFC 签字 |
-| 1 题库 | 100+ 任务目录（kernel 冻结 + 分级 oracle + size-knob shapes + 契约） |
-| 1′ 真冻结 | **Phase A′**：符号闭包 standalone-freeze + S2 等价 gate + S6 硬发布门禁，使"ground truth = 冻结上游 kernel"在 provenance 层真正成立 |
-| 2 评测引擎 | 静态防御 + inputs 桥 + candidate 三进程隔离 + tolerance + 正确性计分 |
-| 3 性能轴 | 910B 上 NPU triton 原始延迟测量与报告；性能参考 $t_{ref}$ 与归一化指标设计 |
-| 4 榜单 | self-reported / verified 双层榜单 + verified runner + broker + 限流/Sybil |
-
-#### 现状与诚实差距（Honest status，[confirmed]）
-
-Phase A′ 架构已实现并经 codex 多轮对抗 review 收敛；但在真实 101 题上跑（开发机无 GPU）的**诚实结果**（逐题类别由 `scripts/resolve_upstream_entrypoints.py` 的真实 resolver verdict 机器派生，非 pre-resolver 短路；canonical cache=`results/resolve_all.json`，`--refresh-cache` 在当前 hardened anchor 下可复现重算）——**POST-HARDENING**（每个 meta 已设入口在当前 ≥2 shape/structure/dtype anchor 下重核，pre-hardening apply 不保留陈旧 pass）：**PASS 0 / BLOCKED(no-upstream-entrypoint) 0（0 题真正没有 callable）/ BLOCKED(upstream-not-invocable-here) 78（候选入口存在但本 dep-poor 环境无法 import：missing-dep pybase64 29/zmq 19/cbor2 10/msgspec 2/flashinfer 1=61，relative-import-packaging 12，assertion/precondition 3，triton-api-AttributeError 1，TypeError 1）/ BLOCKED(shapes-incomplete) 17（含 L3_04）/ BLOCKED(oracle-mismatch) 2（L1_09 + L1_01——L1_01 拒因为 STRUCTURE MISMATCH 多出 11 个输出张量 ⇒ 错算子，与 L1_09 同桶）/ BLOCKED(smoke-fail severing) 0 / BLOCKED(resolver-error) 0 / UNRUN(needs-gpu) 4（L1_12/L1_16/L1_26/L2_10，均 hardened 2/2-shape 真实通过）**。**相比早先 /tmp 陈旧 cache 的 78/5，真实 post-hardening 为 78/4——L1_01 的 pre-hardening apply 在真 2-shape anchor 下不过且拒因是结构不匹配（错算子），诚实归 oracle-mismatch（不是更好看的 upstream-not-invocable-here），绝不为保数字留陈旧 pass、也绝不用更好看的标签掩盖错算子。对账 0+0+78+17+2+0+0+4=101。** **真相与早先表述相反：入口候选大多存在；主导阻塞器是本 dev 环境缺可选依赖（pybase64/zmq/cbor2/msgspec/flashinfer），vendored 上游文件在此无法 import，是 ENVIRONMENT 限制而非"无入口"**；另 17 题 shapes.yaml 缺必填无默认参数、2 题为被正确拒绝的错算子。这些是**诚实的 benchmark 内容缺口 + dev 环境约束，不是 severing 缺陷（0 个真实 severing 缺陷）**；缺失依赖**有意未 pip 安装**（装上会掩盖真实状态）。即：Phase A′ 让"冻结上游 kernel 即 ground truth"这条保证**有了可执行的验证机制**，同时**诚实暴露**当前题库绝大多数题在此 dep-poor 环境无法被 import/验证——这是 S2（以及由此而来的 ground-truth 保证）能验证这些题之前 benchmark/环境必须先完成的前置。S6 据此判 benchmark **当前不可发布**（0 score-eligible PASS），这是有意的硬门，不靠缩 scope 回避（[[feedback-baseline-no-subset-escape]]）。机器生成的逐题状态见 `docs/plans/phase_a_prime_status.md`（勿手改）。
+| 能力层 | 内容 |
+|--------|------|
+| 版本基线 | `version_matrix.toml` 锁定 GPU/NPU/deps 版本 |
+| 题库构建 | 任务目录（kernel / oracle / size-knob shapes / contract）|
+| 可复现冻结链 | 符号 severing + 等价校验 + 发布门，使"基准真值 = 冻结上游 kernel"在 provenance 层成立 |
+| 评测引擎 | 静态防御 + inputs 桥 + 三进程隔离 + tolerance + 正确性计分 |
+| 性能轴 | 910B 实测延迟 + Roofline 理论延迟 $t_{ref}=\max(\max_c W_c/\pi_c,\max_r M_r/\beta_r)$ + 归一化效率 geomean 排名 |
+| 线上榜单 | self-reported / verified 双层榜单 + verified runner + broker + 限流/Sybil |
 
 ---
 
-## 11. 附录
+## 12. 附录
 
-### 11.1 specs/ 契约清单（设计真值源）
+### 12.1 specs/ 契约清单
+`scoring_spec`（评分契约）· `task_api_contract` · `tolerance_policy` · `process_isolation` · `reward_hack_defense` · `canary_task_design` · `timing_arbitration` · `ast_denylist` · `submission_throttling` · `artifact_provenance` · `extraction_failure_taxonomy`
 
-`scoring_spec` · `task_api_contract` · `tolerance_policy` · `process_isolation` · `reward_hack_defense` · `canary_task_design` · `timing_arbitration` · `ast_denylist` · `submission_throttling` · `artifact_provenance` · `extraction_failure_taxonomy`
-
-### 11.2 关键文件速查
+### 12.2 关键文件速查
 
 | 用途 | 文件 |
 |------|------|
-| 评测入口 | `triton_ascend_bench/cli.py`（`tab`） |
-| 单次评测编排 | `triton_ascend_bench/eval.py` |
-| 静态防御 | `triton_ascend_bench/static_checker.py` |
-| 容差策略 | `triton_ascend_bench/tolerance_policy.yaml` |
-| 评分实现 | `triton_ascend_bench/scoring.py` |
-| 版本矩阵 | `infra/version_matrix.toml` |
-| 离线构建 | `scripts/phase_{a,b,c}_*.py` · `scripts/validate_tasks.py` |
+| 可复现冻结 severing + 等价校验 | `scripts/phase_a_prime.py` · `scripts/_pa_subproc_runner.py` |
+| 入口双锚校验 | `scripts/resolve_upstream_entrypoints.py` · `scripts/_pa_oracle_check_runner.py` |
+| 发布门 | `scripts/validate_tasks.py --release-gate` |
+| score-eligible 单一来源 | `triton_ascend_bench/eligibility.py` |
+| 静态防御 / 评分 / 容差 | `static_checker.py` / `scoring.py` / `tolerance.py` |
+| 评测入口 / 编排 / 隔离 | `cli.py` / `eval.py` / `process_isolation.py` |
 
-### 11.3 设计参考
-
-- KernelBench（Apache 2.0）—— eval / timing 模式、对抗 kernel 测试灵感
-- vLLM / SGLang（Apache 2.0）—— 任务源 kernel
-- 参考 PDF `gpu_triton_to_npu_triton benchmark设计.pdf` —— 概念草案来源
+### 12.3 设计参考
+KernelBench（Apache 2.0，eval/timing/对抗 kernel 灵感）· vLLM / SGLang（Apache 2.0，任务源 kernel）· Roofline 模型（Williams, Waterman, Patterson, CACM 2009，硬件归一化性能分析）· 参考 PDF（概念草案来源）
 
 ---
-
-> **交付物**：`docs/DESIGN.md`（设计方案）。
