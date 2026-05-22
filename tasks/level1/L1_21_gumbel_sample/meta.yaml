@@ -60,11 +60,13 @@ provenance:
   source_md_id: L1-21
 cost_model:
   # PLACEHOLDER cost_model — non-real, NOT actual FLOPs/bytes.
-  # L1_21_gumbel_sample 的 oracle 是未实现 stub、shapes.yaml 为非 executable
-  # 占位(无 size_knobs),无 size-knob 符号可写真实 shape-依赖公式。此为常量
-  # 占位:使 validate_tasks 的 cost_model 维度通过;待该题补 oracle +
-  # executable shapes.yaml 后填真实公式。L1_21 non-score-eligible(stub-oracle),
-  # 占位 cost_model 不进评分分母、不影响评分。
+  # L1_21_gumbel_sample has an unimplemented stub oracle and a non-executable
+  # placeholder shapes.yaml (no size_knobs), so there is no size-knob symbol
+  # from which to write a real shape-dependent formula. These are constant
+  # placeholders that let the validate_tasks cost_model dimension pass; the
+  # real formulas are filled once this task gets an oracle plus an executable
+  # shapes.yaml. L1_21 is non-score-eligible (stub oracle), so the placeholder
+  # cost_model never enters the scored denominator and does not affect scoring.
   flops: '1'
   flops_class: vector
   bytes: '1'

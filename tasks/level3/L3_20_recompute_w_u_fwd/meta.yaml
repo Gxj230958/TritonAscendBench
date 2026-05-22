@@ -10,7 +10,7 @@ category: other
 npu_difficulty: high
 upstream:
   repo: vllm-project/vllm
-  path: 同上
+  path: '`vllm/model_executor/layers/fla/ops/kda.py`'
   commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
   file_sha256: 3f9aa27668ea03a4c68446f34d39898389c917932e6a41faf5b1fd1571c3c06d
   function_hash: 3f9aa27668ea03a4c68446f34d39898389c917932e6a41faf5b1fd1571c3c06d
@@ -31,10 +31,12 @@ tolerance_class: elementwise
 cost_model:
   # Symbol audit (approach §3.4). GDN/KDA W/U recompute: the kernel
   # produces u = A @ (beta*v) and w = A @ (beta*k*exp(g_cumsum)).
-  # cost_model 反映 kernel.py(冻结上游真值)的两个 tl.dot。已知 issue
-  # (out-of-scope follow-up):oracle_pytorch.py 当前对 w 漏了左乘 A
-  # (返回 beta*k*exp(g_cumsum)),与 kernel 语义不一致 —— 属 oracle/kernel
-  # provenance 一致性问题,不在 cost_model 填充范围;cost_model 按 kernel 填。
+  # cost_model reflects the two tl.dot's in kernel.py (the frozen upstream
+  # ground truth). Known issue (out-of-scope follow-up): oracle_pytorch.py
+  # currently omits the left-multiply by A for w (it returns
+  # beta*k*exp(g_cumsum)), which is inconsistent with the kernel semantics --
+  # an oracle/kernel provenance consistency issue, out of scope for the
+  # cost_model fill; cost_model is keyed to the kernel.
   # shapes.yaml binds: B -> n_chunks (k/v/beta/g_cumsum/A dim 0, the
   # oracle's leading `...` batch axis), L -> chunk length (k/v dim 1,
   # beta/g_cumsum dim 1, A dims 1&2; the kernel's BT tile axis, the
