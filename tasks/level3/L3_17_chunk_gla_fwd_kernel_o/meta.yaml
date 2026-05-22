@@ -28,6 +28,30 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). GLA chunk output: o = intra(A.v) +
+  # inter((q.exp(g)).h), with A the precomputed intra-chunk score matrix.
+  # shapes.yaml binds: B -> n_chunks (q/v/g/A/h dim 0, oracle einsum
+  # index `n`), L -> chunk length (q/v/g dim 1, A dims 1&2; the kernel's
+  # BT tile axis, oracle indices `l` & `s`), D -> key/query feature dim
+  # (q/g dim 2, h dim 1, the kernel K/BK axis), Dv -> value dim (v dim 2,
+  # h dim 2, the kernel V/BV axis).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
+  # tl.dot's for the output — intra = einsum("nls,nsd->nld", A, v) is per
+  # chunk [L,L]@[L,Dv] = 2*L*L*Dv; inter = einsum("nld,ndv->nlv",
+  # q*exp(g)*scale, h) is per chunk [L,D]@[D,Dv] = 2*L*D*Dv. Over B
+  # chunks -> 2*B*L*L*Dv + 2*B*L*D*Dv. float32 operands run on the 910B
+  # Cube unit, peak_table exposes no fp32 cube class so cube matmul is
+  # keyed to fp16_cube. FLOPs(vector): the gating q*exp(g)*scale is
+  # exp + 2 muls over B*L*D (~3*B*L*D); intra+inter add over B*L*Dv.
+  # bytes(hbm): read q/g [B,L,D] + v [B,L,Dv] + A [B,L,L] + h [B,D,Dv],
+  # write output [B,L,Dv]; all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 2*B*L*L*Dv + 2*B*L*D*Dv
+    vector: 3*B*L*D + B*L*Dv
+  bytes:
+    hbm: (2*B*L*D + 2*B*L*Dv + B*L*L + B*D*Dv) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

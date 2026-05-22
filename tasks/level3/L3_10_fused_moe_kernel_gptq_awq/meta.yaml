@@ -28,6 +28,42 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Grouped MoE expert GEMM (the GPTQ/AWQ
+  # variant): for each padded block of sorted tokens, multiply by that
+  # block's expert weight, then optionally scale by the token's routing
+  # weight. shapes.yaml binds: B -> n_tokens (a dim 0, oracle n_tok, only
+  # the gather domain — NOT the iterated extent), D -> hidden_dim K (a
+  # dim 1 == b dim 2, the kernel's K / GEMM contraction axis), E ->
+  # n_experts (b dim 0, expert_ids length; sorted_token_ids has E*4
+  # entries so with block_size=4 there are nblk = E*4/4 = E padded blocks
+  # of 4 rows each = E*4 padded rows), N -> expert output width (b dim 1,
+  # the kernel BLOCK_SIZE_N axis), APPW -> the `apply_weight` scalar_knob
+  # in [0,1]. block_size is the literal 4. This shapes config declares a
+  # and b as float32, so the oracle reference is a plain float32 grouped
+  # GEMM (no separate dequant scale tensors). The kernel iterates the E*4
+  # padded sorted-token rows, not the B real tokens, so token-side
+  # traffic uses the E*4 padded extent.
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel accumulates
+  # the block GEMM with accumulator = tl.dot(a, b). Per block y =
+  # a[rows] @ b[e].T is a [block_size,D]@[D,N] matmul = 2*4*N*D; over the
+  # E blocks -> 8*E*N*D (2 = multiply + accumulate). float32 operands run
+  # on the 910B Cube unit, peak_table exposes no fp32 cube class so cube
+  # matmul is keyed to fp16_cube. FLOPs(vector): the routing-weight
+  # epilogue y *= topk_weights runs ONLY when apply_weight is set — 1 mul
+  # per padded row * N -> APPW*4*E*N.
+  # bytes(hbm): read a's gathered rows [E*4,D] (padded-row extent, not
+  # [B,D]) + b [E,N,D], write output [E*4,N]; float32 primary family ->
+  # dtype_size. topk_weights [B,1] is gathered (one element per padded
+  # row) only when apply_weight is set -> APPW*4*E float32 reads.
+  # sorted_token_ids [E*4] and expert_ids [E] are int64 index tensors
+  # (non-primary, approach §3.2) -> literal *8.
+  flops:
+    fp16_cube: 8*E*N*D
+    vector: APPW*4*E*N
+  bytes:
+    hbm: (4*E*D + E*N*D + 4*E*N + APPW*4*E)*dtype_size + (4*E + E)*8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

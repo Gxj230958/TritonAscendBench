@@ -58,6 +58,18 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-21
+cost_model:
+  # PLACEHOLDER cost_model — non-real, NOT actual FLOPs/bytes.
+  # L1_21_gumbel_sample 的 oracle 是未实现 stub、shapes.yaml 为非 executable
+  # 占位(无 size_knobs),无 size-knob 符号可写真实 shape-依赖公式。此为常量
+  # 占位:使 validate_tasks 的 cost_model 维度通过;待该题补 oracle +
+  # executable shapes.yaml 后填真实公式。L1_21 non-score-eligible(stub-oracle),
+  # 占位 cost_model 不进评分分母、不影响评分。
+  flops: '1'
+  flops_class: vector
+  bytes: '1'
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 param_constraints:
   scaffold: true
   dims: []

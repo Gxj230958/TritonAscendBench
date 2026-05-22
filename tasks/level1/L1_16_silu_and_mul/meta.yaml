@@ -39,6 +39,21 @@ tolerance_class: elementwise
 # takes a single [B, 2*D] tensor: the kernel splits it into halves x1 / x3 on
 # the last axis, so the inner dim must be even (2*D is even by construction).
 # Hand-reconciled WA.1 sample task.
+cost_model:
+  # Symbol audit (approach §3.4). silu_and_mul_kernel launches one program per
+  # row (grid = bs = B) and each program processes hidden_dim = D output
+  # columns. Symbol map: B -> bs (grid extent, hidden_states dim 0),
+  # D -> hidden_dim (output dim 1 == half of the input's 2*D inner axis).
+  # FLOPs (vector): elementwise over B*D output elements; per element
+  # silu(x1)=x1*sigmoid(x1) costs ~1 sigmoid (neg+exp+add+recip ~= 4) + 1 mul,
+  # then the gate `* x3` is 1 mul -> ~6 ops -> 6*B*D.
+  # bytes (hbm): read hidden_states [B, 2*D] (2*B*D) + write output [B, D]
+  # (B*D) -> 3*B*D; single float32 primary family -> dtype_size.
+  flops: 6*B*D
+  flops_class: vector
+  bytes: 3*B*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 param_constraints:
   scaffold: false
   dims:

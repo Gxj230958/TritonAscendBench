@@ -28,6 +28,22 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2 inter-chunk state passing recurrence:
+  # S_c = exp(dA_cumsum_c) * S_{c-1} + states_c, sequentially over the chunk
+  # axis. Symbol map: C -> n_chunks (states dim 0 == dA_cumsum length, the
+  # sequential recurrence extent), D -> state matrix side (states dims 1 and 2
+  # are both D, so each chunk state is D*D wide).
+  # FLOPs (vector): per chunk one exp of the scalar decay (~1) plus the
+  # elementwise decay*prev + states over the D*D state -> 2 ops per element ->
+  # 2*C*D*D + C.
+  # bytes (hbm): read states[C,D,D] + dA_cumsum[C], write output[C,D,D] ->
+  # (2*C*D*D + C) elements; all float32 primary family -> dtype_size.
+  flops: 2*C*D*D + C
+  flops_class: vector
+  bytes: (2*C*D*D + C) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,37 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). MoE router: logits = x @ W^T (+softcap
+  # +bias), softmax, top-k. shapes.yaml binds: B -> num_tokens (x dim 0,
+  # the kernel's BLOCK_SIZE_M token-tile axis), D -> hidden_dim (x dim 1
+  # == router_weight dim 1, the kernel K constexpr / GEMM contraction
+  # axis). The expert count is the literal 8 (router_weight is declared
+  # [8, D]) and topk=2.
+  # Mixed compute -> map form. This is the tensorcore variant: the kernel
+  # computes the routing GEMM with acc += tl.dot(a, b) over the K loop, so
+  # the [B,D]@[D,8] matmul runs on the 910B Cube unit.
+  # FLOPs(fp16_cube): logits GEMM = 2*B*D*8 (M=B tokens, K=D, N=8 experts;
+  # 2 = multiply + accumulate). float32 operands run on the Cube unit,
+  # peak_table exposes no fp32 cube class so it is keyed to fp16_cube.
+  # FLOPs(vector): bias add over B*8, softmax (max/exp/sum/div) ~4 ops over
+  # B*8, topk-2 select + renorm a few ops over B*8 -> ~7*B*8 always-on. The
+  # softcap c*tanh(l/c) (~5 ops over B*8) is NOT always-on: the kernel
+  # guards it with `if moe_softcapping == 0` (kernel.py L230) and the oracle
+  # with `if moe_softcapping > 0`, so it runs ONLY when the SOFTCAP knob is
+  # non-zero. SOFTCAP is in {0, 30} across the shape grid, so min(SOFTCAP,
+  # 1) is an exact 0/1 truth gate on that branch ->
+  # 7*B*8 + 5*B*8*min(SOFTCAP, 1).
+  # bytes(hbm): read x [B,D] + router_weight [8,D] + correction_bias [8],
+  # write topk_weights [B,2] + topk_ids [B,2]; x/router_weight/bias are
+  # float32 primary family -> dtype_size; topk_ids is int32 (non-primary,
+  # approach §3.2) -> literal *4.
+  flops:
+    fp16_cube: 2*B*D*8
+    vector: 7*B*8 + 5*B*8*min(SOFTCAP, 1)
+  bytes:
+    hbm: (B*D + 8*D + 8 + 2*B) * dtype_size + 2*B*4
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

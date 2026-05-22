@@ -28,6 +28,26 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). FlashInfer paged KV index construction:
+  # indptr is the cumsum of per-request page counts ceil(seq_lens[r]/page_size)
+  # and indices concatenates the used block ids per request. Symbol map: E ->
+  # n_reqs (seq_lens / block_table rows, kernel grid extent), N -> block_table
+  # dim 1 (max pages per request, the per-request copy ceiling). page_size is
+  # a scalar literal.
+  # FLOPs (vector): per request a ceil-div (~2) plus the cumsum accumulate
+  # (~1) -> ~3*E integer ops; no floating-point work. Dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (seq_lens declared first) -> dtype_size=8 for the int64 reads seq_lens[E]
+  # + up to E*N block_table source entries -> (E + E*N)*dtype_size. The kernel
+  # writes are int32 (oracle returns indptr / indices as .to(int32),
+  # non-primary dtype): indices up to E*N + indptr[E+1] -> literal byte width
+  # *4 -> + (E*N + E + 1)*4.
+  flops: 3*E
+  flops_class: vector
+  bytes: (E + E*N)*dtype_size + (E*N + E + 1)*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

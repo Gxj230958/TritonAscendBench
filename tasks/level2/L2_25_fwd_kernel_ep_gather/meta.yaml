@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Expert-parallel token gather: out[i] =
+  # input_tensor[input_index[i]] — a local row gather (no cross-rank traffic,
+  # so bytes_resource is hbm per approach §3.2). Symbol map: B -> token rows
+  # (input_tensor / input_index dim 0, kernel grid extent), D ->
+  # input_tensor dim 1 (the per-row copy width).
+  # FLOPs (vector): pure gather/copy, no arithmetic at all -> reported as the
+  # small constant B (one address computation per token). Dominant cost is
+  # bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 input_tensor -> dtype_size; read input_tensor + write output [B,D]
+  # -> 2*B*D. The int64 input_index[B] uses literal *8 -> 8*B.
+  flops: B
+  flops_class: vector
+  bytes: 2*B*D*dtype_size + 8*B
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

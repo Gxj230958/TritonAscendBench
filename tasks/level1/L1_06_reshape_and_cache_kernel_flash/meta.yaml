@@ -28,6 +28,26 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Scatter K/V into the paged flash cache by
+  # slot_mapping: kc.view(-1,H,D)[slot] = key. One program per token, copying
+  # its [H, D] key and value vectors into the cache. Symbol map: B -> n_tokens
+  # (key/value dim 0, slot_mapping length, kernel grid extent), H -> n_kv_heads
+  # (key/value/cache dim -2), D -> head_size (key/value/cache last dim), C/T ->
+  # cache n_blocks / block_size (cache shape, not iterated per call).
+  # FLOPs (vector): pure scatter/copy, the only arithmetic is the per-token
+  # slot decode (block*bs + offset) -> reported as the small constant 2*B int
+  # ops; no floating-point work.
+  # bytes (hbm): read key + value [B,H,D] (2*B*H*D) + write 2*B*H*D cache
+  # elements -> 4*B*H*D key/value/cache float32 primary-family elements ->
+  # dtype_size. slot_mapping[B] is an int64 index tensor (non-primary,
+  # approach §3.2) -> literal *8, billed separately from the float32
+  # dtype_size rather than folded into it.
+  flops: 2*B
+  flops_class: vector
+  bytes: 4*B*H*D*dtype_size + B*8
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). Constrained decoding: gather the grammar
+  # bitmask row for each token, then mask logits whose bit is 0 to -inf. One
+  # program per token row. Symbol map: B -> n_tokens (logits dim 0, kernel grid
+  # extent), N -> vocab size (logits dim 1, the per-row mask extent), E ->
+  # n_grammar_rows (bitmask dim 0, indexed by logits_indices). bitmask dim 1 is
+  # ceil(N/32)+1 packed int words.
+  # FLOPs (vector): the operator is pure bit extraction (shift, and) and -inf
+  # masking — no floating-point arithmetic. Reported as the small constant 2*B
+  # (per-row word/bit index setup); the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 logits -> dtype_size; read+write logits[B,N] -> 2*B*N. The int64
+  # logits_indices[B] uses literal *8 -> 8*B; the int64 bitmask gathered to
+  # B*(N/32+1) words uses literal *8 -> 8*B*(N/32+1).
+  flops: 2*B
+  flops_class: vector
+  bytes: 2*B*N*dtype_size + 8*B + 8*B*(N/32+1)
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

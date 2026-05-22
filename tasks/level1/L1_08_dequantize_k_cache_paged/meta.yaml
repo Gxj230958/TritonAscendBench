@@ -28,6 +28,27 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Paged MLA K-cache dequant: gathers physical
+  # pages via page_table[B,2] (flattened to 2*B rows), then the same per-group
+  # dequant as L1_07 (deq[g] = nope_q[g]*nope_s[g//gs]) plus rope passthrough.
+  # Symbol map: B -> page_table dim 0 (request count); page_table dim 1 is the
+  # literal 2 (pages per request) -> 2*B gathered rows; C -> nope_q/nope_s/rope
+  # dim 0 (physical page count); D -> DIM_NOPE == DIM_ROPE (last dim).
+  # group_size is a scalar literal; nope_s has D//group_size scale columns.
+  # FLOPs (vector): one multiply per nope element over the 2*B gathered rows ->
+  # 2*B*D; rope half is a pure copy. The per-row gather index math is O(1).
+  # bytes (hbm): gather 2*B rows of nope_q[..,D] + rope[..,D] +
+  # nope_s[..,D//8], write output[2*B,2*D] -> (8*B*D + 2*B*D/8) float32
+  # K-cache primary-family elements -> dtype_size. page_table[B,2] is an
+  # int64 index tensor (non-primary, approach §3.2): 2*B int64 elements ->
+  # literal *8, billed separately rather than folded into the float32
+  # dtype_size.
+  flops: 2*B*D
+  flops_class: vector
+  bytes: (8*B*D + 2*B*D/8)*dtype_size + 2*B*8
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,27 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Masked SiLU·mul followed by per-group FP8
+  # quant (DeepGEMM MoE path): z = silu(gate)*up over valid tokens, then
+  # block-wise quant. Symbol map: E -> n_experts (y dim 0, tokens_per_expert
+  # length), T -> tokens per expert (y dim 1), D -> hidden h (y last dim is
+  # 2*D, split into gate/up halves). group_size / fp8_max are scalar literals;
+  # the output scale has D//group_size columns.
+  # FLOPs (vector): per output element silu(gate)*up ~= 6 ops (silu ~5 + mul)
+  # plus the valid-mask multiply (~1) plus the per-group quant ~= 4 (abs,
+  # amax, divide, clamp) -> ~11 ops over E*T*D -> 11*E*T*D.
+  # bytes (hbm): float32 primary family (y declared first) -> dtype_size=4.
+  # fp32-width terms: read y[E,T,2*D] (2*E*T*D) + write scale[E,T,D//8] fp32
+  # -> (2*E*T*D + E*T*D/8)*dtype_size. output[E,T,D] is the float8_e4m3fn
+  # quant output (non-primary dtype, approach §3.2) -> literal byte width *1
+  # -> + E*T*D. tokens_per_expert[E] is an int64 index tensor -> literal *8
+  # -> + E*8.
+  flops: 11*E*T*D
+  flops_class: vector
+  bytes: (2*E*T*D + E*T*D/8)*dtype_size + E*T*D + E*8
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

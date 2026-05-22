@@ -28,6 +28,32 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Persistent-tiled GEMM with optional
+  # bias epilogue (oracle _matmul, kernel matmul_kernel_persistent):
+  # C = a @ b (+ bias). 'persistent' is only a tile-scheduling strategy;
+  # numerically a plain GEMM. shapes.yaml: a is [B, D], b is [D, N],
+  # bias is [N], output C is [B, N]. GEMM dims: M = B (a rows = C rows),
+  # K = D (a cols = b rows = contracted dim), N = N (b cols = C cols).
+  # Symbol map: B -> GEMM M, D -> contracted dim (GEMM K), N -> GEMM N.
+  # FLOPs split into two compute classes (map form, approach §3.1):
+  #  - fp16_cube: the matmul a @ b -> 2*B*D*N (2 = multiply +
+  #    accumulate). float32 operands; the 910B Cube unit has no fp32
+  #    cube class, so keyed to fp16_cube (Unit 1 paradigm). This
+  #    matches the upstream kernel's own _matmul_launch_metadata:
+  #    flops = 2.0*m*n*k.
+  #  - vector: the bias epilogue accumulator += bias, one add per
+  #    output element over C [B,N] -> B*N. Runs on the Vector unit.
+  # bytes (hbm): read a [B,D] + b [D,N] + bias [N], write C [B,N];
+  # all float32 primary family -> dtype_size. Matches the upstream
+  # _matmul_launch_metadata bytes = bytes_per_elem*(m*k + n*k + m*n),
+  # plus the [N] bias vector.
+  flops:
+    fp16_cube: 2*B*D*N
+    vector: B*N
+  bytes: (B*D + D*N + N + B*N) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

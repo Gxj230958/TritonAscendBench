@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Block-wise FP8 activation quant: per
+  # contiguous block of block_size elements s = amax(|blk|)/fp8_max; q = blk/s
+  # cast to fp8. One program per row. Symbol map: B -> x rows (x dim 0, kernel
+  # grid extent), D -> N (x last dim, divisible by block_size). block_size is a
+  # scalar literal; the output scale has D//block_size columns.
+  # FLOPs (vector): per element ~ abs + block-amax reduction + divide + clamp
+  # ~= 4 ops -> ~4*B*D.
+  # bytes (hbm): float32 primary family (x) -> dtype_size=4. fp32-width terms:
+  # read x[B,D] + write scale[B,D//8] fp32 -> (B*D + B*D/8)*dtype_size. q[B,D]
+  # is the float8_e4m3fn quant output (non-primary dtype, approach §3.2) ->
+  # literal byte width *1 -> + B*D.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: (B*D + B*D/8)*dtype_size + B*D
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

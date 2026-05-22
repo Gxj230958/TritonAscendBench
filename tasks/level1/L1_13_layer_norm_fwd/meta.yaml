@@ -28,6 +28,22 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). LayerNorm forward: per row mean/var over the
+  # last dim, normalise, then affine weight/bias. The kernel runs one program
+  # per row. Symbol map: B -> x rows (x dim 0, kernel grid extent), D ->
+  # hidden size (x dim 1 == weight/bias length, per-row reduction extent). eps
+  # is a scalar literal.
+  # FLOPs (vector): per element ~8 ops — mean reduction (~1), centred-square
+  # for var (sub + mul, ~2), rsqrt+eps amortised (~1), normalise mul (~1),
+  # weight mul (~1), bias add (~1) -> ~8*B*D (LayerNorm ~8 ops/element).
+  # bytes (hbm): read x[B,D] + weight[D] + bias[D], write output[B,D] ->
+  # (2*B*D + 2*D) elements; all float32 primary family -> dtype_size.
+  flops: 8*B*D
+  flops_class: vector
+  bytes: (2*B*D + 2*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). SiLU·mul gate followed by static per-tensor
+  # INT8 quant: z = silu(gate)*up, q = round(z/scale) clamped to [-128,127].
+  # One program per row. Symbol map: B -> input rows (input dim 0, kernel grid
+  # extent), D -> input dim 1 (full inner axis); the output is [B, D//2] since
+  # the gate splits D in half. scale is a 1-element static tensor.
+  # FLOPs (vector): per output element silu(gate)*up ~= 6 ops (silu ~5 + mul)
+  # plus the static quant divide + round + clamp ~= 3 -> ~9 ops over B*(D//2)
+  # output elements -> 9*B*D/2.
+  # bytes (hbm): float32 primary family (input declared first) -> dtype_size=4.
+  # fp32-width terms: read input[B,D] + read scale[1] fp32 -> (B*D + 1)*
+  # dtype_size. output[B,D//2] is the int8 quant output (non-primary dtype,
+  # approach §3.2) -> literal byte width *1 -> + B*D/2.
+  flops: 9*B*D/2
+  flops_class: vector
+  bytes: (B*D + 1)*dtype_size + B*D/2
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,34 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). FLA block-lower-triangular inverse merge: the
+  # 32x32 inverse of a block-tri matrix from its two diagonal-block inverses
+  # plus the off-diagonal term -A22^-1 @ A21 @ A11^-1. Symbol map: B -> A dim
+  # 0 (batch of matrices, kernel grid extent), D -> A dims 1 and 2 (the square
+  # matrix side; param_constraints pin D == 32, the 16 in the kernel name is a
+  # fixed sub-tile).
+  # Mixed compute -> map form. The vendored merge_16x16_to_32x32_inverse_kernel
+  # is NOT vector-only: it does (a) two 16x16 forward-substitution triangular
+  # inversions for A11/A22 (the `for i in range(...)` loops with tl.sum
+  # reductions, kernel.py L181-189) — vector-unit work; and (b) the chained
+  # off-diagonal term b_Ai_21 = -tl.dot(tl.dot(b_Ai_22, b_A_21), b_Ai_11)
+  # (kernel.py L199-203) — two 16x16 matmuls on the Cube unit.
+  # FLOPs(vector): two 16x16 triangular inversions, each a forward-substitution
+  # over the strictly lower triangle accumulating length-up-to-16 dots — order
+  # 16^3/6 per inverse. With D == 32 the two-inverse total is ~B*D*D*D/6.
+  # FLOPs(fp16_cube): two 16x16x16 matmuls, 2*16^3 each (multiply+accumulate).
+  # With D == 32 the two-matmul total is exactly B*D*D*D/2 (2*2*16^3 == 32^3/2).
+  # float32 operands run on the 910B Cube unit; peak_table exposes no fp32 cube
+  # class so the matmul is keyed to fp16_cube.
+  # bytes (hbm): read A[B,D,D], write output[B,D,D] -> 2*B*D*D elements; all
+  # float32 primary family -> dtype_size.
+  flops:
+    vector: B*D*D*D/6
+    fp16_cube: B*D*D*D/2
+  bytes: 2*B*D*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,30 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). GDN/KDA KKT chunk core:
+  # A_{ij} = beta_i * (k_i.k_j) * exp(g_i - g_j), strictly lower-
+  # triangular. shapes.yaml binds: C -> n_chunks (k/g/beta dim 0,
+  # oracle's leading `...` batch axis), L -> chunk length (k dim 1,
+  # g/beta dim 1; the kernel's BT tile axis, oracle indices `i` & `j`),
+  # D -> feature dim (k dim 2, the kernel K/BK contraction axis).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues
+  # b_A += tl.dot(b_kb, trans(b_k)) — kk = einsum("...id,...jd->...ij")
+  # is per chunk a [L,D]@[D,L] matmul = 2*L*L*D; over C chunks ->
+  # 2*C*L*L*D (dense analytic upper bound; the strict-lower-triangular
+  # mask zeros ~half). float32 operands run on the 910B Cube unit,
+  # peak_table exposes no fp32 cube class so cube matmul is keyed to
+  # fp16_cube. FLOPs(vector): decay = exp(g_i - g_j) is sub+exp over the
+  # [L,L] chunk grid, A = beta*kk*decay is 2 muls, the triangular mask is
+  # 1 mul -> ~5 ops over C*L*L.
+  # bytes(hbm): read k [C,L,D] + g [C,L] + beta [C,L], write output
+  # [C,L,L]; all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 2*C*L*L*D
+    vector: 5*C*L*L
+  bytes:
+    hbm: (C*L*D + 2*C*L + C*L*L) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

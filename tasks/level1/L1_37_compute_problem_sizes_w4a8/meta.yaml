@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Cutlass grouped-GEMM problem-size metadata:
+  # for each expert emit (m,n,k) and (m,k,n) triples where m = masked_m[e].
+  # Symbol map: E -> num_experts (masked_m length == kernel grid extent). n / k
+  # are scalar literals (the fixed GEMM N/K dims).
+  # FLOPs (vector): pure integer bookkeeping (copying m and the n/k constants
+  # into triples) — no arithmetic at all. Reported as the small constant E
+  # (one write group per expert); the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (masked_m) -> dtype_size=8 for the read masked_m[E] -> E*dtype_size.
+  # problem_sizes1[E,3] + problem_sizes2[E,3] are int32 (oracle stacks
+  # torch.int32, non-primary dtype) -> literal byte width *4 -> + 6*E*4.
+  flops: E
+  flops_class: vector
+  bytes: E*dtype_size + 6*E*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

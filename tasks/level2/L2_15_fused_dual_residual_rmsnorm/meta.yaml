@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Pre-RMSNorm dual-residual fuse: summed =
+  # x + residual_a + residual_b, then RMSNorm(summed) with a weight. One
+  # program per row. Symbol map: B -> x rows (x/residual_a/residual_b dim 0,
+  # kernel grid extent), D -> hidden size (x dim 1 == weight length, the
+  # per-row reduction extent). eps is a scalar literal.
+  # FLOPs (vector): per element two residual adds (~2), the centred-square +
+  # mean for the RMS (~2), rsqrt amortised (~1), the normalise mul (~1), the
+  # weight mul (~1) -> ~7*B*D.
+  # bytes (hbm): read x + residual_a + residual_b [B,D] (3*B*D) + weight[D],
+  # write output[B,D] + hidden[B,D] (2*B*D) -> (5*B*D + D) elements; all
+  # float32 primary family -> dtype_size.
+  flops: 7*B*D
+  flops_class: vector
+  bytes: (5*B*D + D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). GeGLU fused gate: split the last dim into
+  # gate/up halves, output = gelu(gate) * up. One program per row. Symbol map:
+  # B -> x rows (x dim 0, kernel grid extent), D -> x dim 1 (full inner axis);
+  # the output is [B, D//2] since the gate splits D in half. approximate is a
+  # scalar literal ('tanh').
+  # FLOPs (vector): per output element tanh-approx gelu = 0.5*g*(1 +
+  # tanh(c*(g + 0.044715*g^3))) — the cubic + tanh(~6) + the affine wrap ~= 11
+  # ops, plus the `* up` mul -> ~12 ops; over B*(D//2) output elements ->
+  # 12*B*(D//2) = 6*B*D.
+  # bytes (hbm): read x[B,D], write output[B,D//2] -> 3*B*D/2 elements;
+  # float32 primary family -> dtype_size.
+  flops: 6*B*D
+  flops_class: vector
+  bytes: 3*B*D/2 * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

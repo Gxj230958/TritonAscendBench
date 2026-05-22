@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). min-p filter: per row softmax over the vocab,
+  # find max prob, then mask positions whose prob < min_p*max_prob to -inf. One
+  # program per token row. Symbol map: B -> n_tokens (logits dim 0, kernel grid
+  # extent), N -> vocab size (logits dim 1, the per-row softmax-reduction
+  # extent), E -> n_reqs (min_p length, indexed by expanded_idx_mapping).
+  # FLOPs (vector): softmax over the vocab ~ max + (sub+exp) + sum + div ~= 5
+  # ops/element, then a per-row max-prob reduction (~1) and the threshold
+  # compare (~1) -> ~7*B*N.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 logits -> dtype_size; read+write logits[B,N] -> 2*B*N. The int64
+  # expanded_idx_mapping[B] uses literal *8 -> 8*B; the float32 min_p[E] uses
+  # literal *4 -> 4*E.
+  flops: 7*B*N
+  flops_class: vector
+  bytes: 2*B*N*dtype_size + 8*B + 4*E
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

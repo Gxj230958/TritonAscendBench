@@ -28,6 +28,26 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). Pack a [n_tokens, n_experts] expert-selection
+  # matrix into int32 bitwords (bit e set => token routed to expert e). One
+  # program per token row. Symbol map: B -> n_tokens (topk_ids dim 0, kernel
+  # grid extent), D -> topk per token (topk_ids dim 1, the per-row loop
+  # extent). num_experts is a scalar literal; the output has ceil(num_experts
+  # /32) words per row.
+  # FLOPs (vector): pure bit packing (shift, or) — no floating-point
+  # arithmetic. Reported as the small constant 2*B*D (~2 int ops per selection
+  # entry); the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (topk_ids) -> dtype_size=8 for the read topk_ids[B,D] -> B*D*dtype_size.
+  # bitmatrix[B,ceil(num_experts/32)] (one word per row at the test sizes) is
+  # int32 (oracle returns int32, non-primary dtype) -> literal byte width *4
+  # -> + B*4.
+  flops: 2*B*D
+  flops_class: vector
+  bytes: B*D*dtype_size + B*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

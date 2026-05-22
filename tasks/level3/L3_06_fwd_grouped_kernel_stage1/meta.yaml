@@ -28,6 +28,32 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). DeepSeek MLA decode stage-1 attention:
+  # sc = q.k^T * scale, softmax, context = p.v. shapes.yaml binds:
+  # B -> n_tokens (q dim 0, oracle index `n`), H -> q head count (q dim 1,
+  # the kernel BLOCK_H axis), D -> head/latent dim (q dim 2 ==
+  # k_buffer/v_buffer dim 1, the kernel feature axis), C -> n_ctx cached
+  # KV positions (k_buffer/v_buffer dim 0, the kernel's BLOCK_N context
+  # loop extent, oracle index `c`). k_buffer/v_buffer are MLA latent KV
+  # shared across heads.
+  # Single compute class -> scalar form. This task's kernel-under-test is
+  # _fwd_grouped_kernel_stage1 (NOT the _rope/stage2 variant): it does the
+  # [D]x[C,D] score and the [C]x[C,D] context with tl.sum over an
+  # elementwise product (qk = tl.sum(q[None,:]*k,1); acc += tl.sum(
+  # p[:,None]*v,0)) — NOT tl.dot — so both contractions run on the 910B
+  # Vector unit; flops_class is vector.
+  # FLOPs(vector) per (n,h): score qk = sum_D(q*k) over C positions is
+  # mul+sum over C*D (~2*C*D); online softmax over the [C] score row
+  # (max, exp, sum, rescale ~8 ops/element) -> 8*C; context acc =
+  # sum_C(p*v) is mul+sum over C*D (~2*C*D). Over B*H -> B*H*(4*C*D + 8*C).
+  # bytes(hbm): read q [B,H,D] + k_buffer [C,D] + v_buffer [C,D], write
+  # output [B,H,D]; all float32 primary family -> dtype_size.
+  flops: B*H*(4*C*D + 8*C)
+  flops_class: vector
+  bytes: (2*B*H*D + 2*C*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

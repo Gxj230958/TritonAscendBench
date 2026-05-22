@@ -28,6 +28,31 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Per-expert batched GEMM (the moe_mmk
+  # matmul-K inner kernel): out[e,:m] = a[e,:m] @ b[e]^T with
+  # m = expert_num_tokens[e]. shapes.yaml binds: E -> n_experts (a/b
+  # dim 0, expert_num_tokens length, the oracle's `for e in range(E)`
+  # loop), T -> max_tok (a dim 1, the GEMM M rows; expert_num_tokens is
+  # randint:0:T so the valid token count m<=T, T is the dense bound),
+  # D -> hidden_dim K (a dim 2 == b dim 2, the kernel's K / GEMM
+  # contraction axis), N -> expert output width (b dim 1, the kernel
+  # BLOCK_N axis).
+  # Single compute class -> scalar form. The kernel accumulates the GEMM
+  # with accumulator = tl.dot(a, b) over the K loop; this is a plain
+  # per-expert matmul with no epilogue, so flops is single-class cube.
+  # FLOPs(fp16_cube): per expert a[e,:T]@b[e].T = [T,D]@[D,N] = 2*T*N*D
+  # (2 = multiply + accumulate, T dense bound); over E experts ->
+  # 2*E*T*N*D. float32 operands run on the 910B Cube unit, peak_table
+  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
+  # bytes(hbm): read a [E,T,D] + b [E,N,D], write output [E,T,N];
+  # float32 primary family -> dtype_size. expert_num_tokens [E] is an
+  # int64 index tensor (non-primary, approach §3.2) -> literal *8.
+  flops: 2*E*T*N*D
+  flops_class: fp16_cube
+  bytes: (E*T*D + E*N*D + E*T*N) * dtype_size + E*8
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

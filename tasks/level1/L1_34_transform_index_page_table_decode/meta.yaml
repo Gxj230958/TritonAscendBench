@@ -28,6 +28,26 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). DeepSeek decode page-table transform: map
+  # each selected token index t to a physical KV slot result =
+  # page_table[i, t//ps]*ps + t%ps (negative t -> -1 padding). Symbol map:
+  # B -> page_table/topk_indices dim 0 (request rows, kernel grid extent),
+  # D -> page_table/topk_indices dim 1 (per-row index count). page_size is a
+  # scalar literal.
+  # FLOPs (vector): pure integer index arithmetic (floor-div, mod, mul, add,
+  # where) — no floating-point work. Reported as the small constant 5*B*D
+  # (~5 int ops per entry); the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (page_table declared first) -> dtype_size=8 for the int64 reads
+  # page_table[B,D] + topk_indices[B,D] -> 2*B*D*dtype_size. result[B,D] is
+  # int32 (oracle returns .to(int32), non-primary dtype) -> literal byte width
+  # *4 -> + B*D*4.
+  flops: 5*B*D
+  flops_class: vector
+  bytes: 2*B*D*dtype_size + B*D*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Cutlass-MoE post-reorder: scatter-combine the
+  # grouped-GEMM output back to token order with topk weighting, out[i] =
+  # sum_j down_output[src2dst[i,j]] * topk_weights[i,j] — a local gather +
+  # weighted reduce (no cross-rank traffic, bytes_resource is hbm per approach
+  # §3.2). Symbol map: B -> n_tokens (topk_weights dim 0, kernel grid extent),
+  # D -> down_output dim 1 (the per-row width); topk is a scalar literal (2),
+  # so down_output has B*topk = B*2 rows and src2dst has B*2 entries.
+  # FLOPs (vector): per output element topk=2 contributions, each a mul + an
+  # accumulate add -> ~4 ops -> 4*B*D.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 down_output -> dtype_size; read down_output[B*2,D] (2*B*D) + write
+  # output[B,D] (B*D) -> 3*B*D. The int64 src2dst[B*2] uses literal *8 ->
+  # 16*B; the float32 topk_weights[B,2] uses literal *4 -> 8*B.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: 3*B*D*dtype_size + 16*B + 8*B
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). EAGLE draft input prep: next position =
+  # clamp(last_token_indices + num_sampled - num_rejected, >= 0), a pure
+  # elementwise integer map. Symbol map: B -> input rows (last_token_indices
+  # dim 0, kernel grid extent), D -> input dim 1 (the per-row elementwise
+  # extent). All three inputs share the [B,D] shape.
+  # FLOPs (vector): per element add + subtract + clamp ~= 3 integer ops -> no
+  # floating-point arithmetic; reported as the small constant 3*B*D.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (last_token_indices declared first) -> dtype_size=8 for the int64 reads
+  # last_token_indices + num_sampled + num_rejected [B,D] -> 3*B*D*dtype_size.
+  # next_input_indices[B,D] is int32 (oracle returns .to(int32), non-primary
+  # dtype) -> literal byte width *4 -> + B*D*4.
+  flops: 3*B*D
+  flops_class: vector
+  bytes: 3*B*D*dtype_size + B*D*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

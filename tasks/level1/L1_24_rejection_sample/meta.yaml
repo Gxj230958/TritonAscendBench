@@ -28,6 +28,32 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). Speculative-decoding rejection sampler: one
+  # program per request walks its draft tokens, accepting token x while
+  # U < min(1, p(x)/q(x)) and emitting a recovered/bonus token otherwise.
+  # Symbol map: E -> n_reqs (cu_num_draft_tokens / bonus / is_greedy length,
+  # kernel grid extent); the flattened token axis is E*2 (draft_token_ids /
+  # *_probs dim 0, since max_spec_len = 2 draft tokens per request). N -> vocab
+  # size (draft_probs/target_probs dim 1). max_spec_len is a scalar literal.
+  # FLOPs (vector): per draft token the kernel reads single probability
+  # elements and does ratio = min(1, p/q) + a compare ~= 3 float ops over the
+  # E*2 tokens -> 6*E; the probs tables are point-indexed, not row-reduced.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): the corpus declares this
+  # task with mixed dtypes — int64 id/index tensors and float32 probability
+  # tensors — so the formula must NOT bill the float32 traffic at the int64
+  # representative dtype_size. int64 family (-> literal *8): draft_token_ids
+  # (E*2) + recovered_token_ids (E*2) + cu_num_draft_tokens (E) +
+  # bonus_token_ids (E) + is_greedy (E) + the [E,3] output (3*E) = 10*E
+  # int64 elements. float32 family (-> literal *4): uniform_probs (E*2) plus
+  # one point-indexed element each from draft_probs / target_probs (2*E*2)
+  # = 6*E float32 elements. The probs tables are read by single-element
+  # gather, not row-reduced.
+  flops: 6*E
+  flops_class: vector
+  bytes: 10*E*8 + 6*E*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

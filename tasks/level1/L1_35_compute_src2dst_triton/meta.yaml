@@ -28,6 +28,21 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Inverse permutation for MoE token reorder:
+  # src2dst[reorder_ids[i]] = i — a pure scatter. Symbol map: B -> n_tokens
+  # (reorder_ids length == num_toks scalar_knob == kernel grid extent).
+  # FLOPs (vector): pure scatter, no arithmetic at all -> reported as the small
+  # constant B (one address computation per token). Dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (reorder_ids) -> dtype_size=8 for the read reorder_ids[B] -> B*dtype_size.
+  # src2dst[B] is int32 (oracle allocs torch.int32, non-primary dtype) ->
+  # literal byte width *4 -> + B*4.
+  flops: B
+  flops_class: vector
+  bytes: B*dtype_size + B*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

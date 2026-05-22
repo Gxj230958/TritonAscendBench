@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). DeepSeek-V3 MHA K assembly: concat(k_nope,
+  # k_rope) along the head dim then cast to the cache dtype. One program per
+  # row. Symbol map: B -> row count (k_nope/k_rope dim 0, kernel grid extent),
+  # D -> their dim 1 (the per-row width); the output is [B, 2*D]. out_dtype is
+  # a scalar literal selecting the cast target.
+  # FLOPs (vector): pure copy + dtype cast — no floating-point arithmetic.
+  # Reported as the small constant 2*B*D (one cast op per output element);
+  # the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): float32 primary family
+  # (k_nope declared first) -> dtype_size=4 for the reads k_nope[B,D] +
+  # k_rope[B,D] -> 2*B*D*dtype_size. The output k[B,2*D] is cast to the
+  # out_dtype scalar (bf16, non-primary dtype) -> literal byte width *2 ->
+  # + 2*B*D*2.
+  flops: 2*B*D
+  flops_class: vector
+  bytes: 2*B*D*dtype_size + 2*B*D*2
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

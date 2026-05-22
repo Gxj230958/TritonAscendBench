@@ -28,6 +28,31 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Lower-triangular block inverse (FLA
+  # chunk path): Ai @ A = I via forward substitution. shapes.yaml binds:
+  # T -> the triangular block dimension (A is declared [T,T]). This task
+  # is constrained T <= 16 (see the input-contract comment and
+  # param_constraints): the kernel-under-test solve_tril_16x16_kernel is
+  # the BT==16 branch and inverts ONE single [T,T] diagonal tile per
+  # program — there is no T/16 multi-block tiling, the matrix always fits
+  # one tile. The cost is therefore a single-block cubic in T, NOT
+  # linear in T.
+  # Single compute class -> scalar form. The kernel does the base-case
+  # forward substitution entirely with tl.sum over an elementwise product
+  # (b_a + tl.sum(b_a[:,None]*b_A, 0)) — NOT tl.dot — so it runs on the
+  # 910B Vector unit; flops_class is vector.
+  # FLOPs(vector): inverting one [T,T] lower-triangular block by forward
+  # substitution costs ~T^3/3 multiply-accumulate ops -> ~2*T^3/3 FLOPs
+  # (2 = multiply + accumulate). This matches the kernel's TxT
+  # substitution loop and the oracle's full TxT triangular solve.
+  # bytes(hbm): read A [T,T], write the inverse [T,T]; all float32
+  # primary family -> dtype_size.
+  flops: 2*T*T*T/3
+  flops_class: vector
+  bytes: 2*T*T*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

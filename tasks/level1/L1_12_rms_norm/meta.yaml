@@ -43,10 +43,20 @@ oracle:
   gpu_triton: kernel.py::rms_norm
 tolerance_class: vector_reduce
 cost_model:
+  # Symbol audit (approach §3.4). kernel.py reshapes input to [n_rows, n_cols]
+  # = [B, D] and runs one program per row over n_cols=D columns; oracle does
+  # the same reshape(-1, D). The corrected formulas drop the spurious `L` the
+  # earlier draft carried — input/weight/output are 2-D [B,D]/[D]/[B,D] with
+  # no sequence axis. Symbol map: B -> n_rows (program grid extent),
+  # D -> n_cols (per-row loop extent, == weight length).
+  # FLOPs (vector): per row ~4*D — pass 1 x*x + accumulate (2*D), pass 2
+  # vals*inv_rms*weight (2*D); the per-row scalar mean/sqrt/eps is O(1).
+  # bytes (hbm): read input [B,D] + weight [D], write output [B,D]; all
+  # float32 primary family -> dtype_size.
   flops:
-    vector: 4*B*L*D
+    vector: 4*B*D
   bytes:
-    hbm: (2*B*L*D + D) * dtype_size
+    hbm: (2*B*D + D) * dtype_size
   gpu_xcheck_tol: 0.05
 param_constraints:
   scaffold: false

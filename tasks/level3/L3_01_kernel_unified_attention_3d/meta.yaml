@@ -28,6 +28,42 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). vLLM unified varlen flash attention:
+  # per-sequence SDPA with GQA. shapes.yaml binds: E -> sequence count
+  # (cu_seqlens_q has E+1 entries, seqused_k has E, the oracle's outer
+  # `for i in range(len(cu)-1)` loop), L -> per-sequence length
+  # (cu_seqlens_q is offsets:to=E*L so q/k/v dim 0 = E*L packs E sequences
+  # of length L; seqused_k is randint:1:L so KV length <= L), H -> head
+  # count (q/k/v dim 1; here Hq == Hk so GQA group g=1, no FLOPs change),
+  # D -> head_dim (q/k/v dim 2, the kernel BLOCK_DMODEL / dot contraction
+  # axis), CAUSAL -> the `causal` scalar_knob in [0,1].
+  # The formula is rebased to the benchmark-active path: shapes.yaml
+  # materialises only q/k/v/cu_seqlens_q/seqused_k plus the scale and
+  # causal scalars — alibi_slopes and softcap are NOT bound, so their
+  # additive-bias / tanh work is not exercised and is not billed here.
+  # Mixed compute -> map form. The score matrix per (sequence,head) is
+  # [L,L] non-causal but the causal lower-triangle keeps only
+  # L*(L+1)/2 entries; the active score-entry count is therefore
+  # (L*L - CAUSAL*L*(L-1)/2) and the work scales with it.
+  # FLOPs(fp16_cube): per (sequence,head) S = tl.dot(Q,K) [QK^T contracts
+  # D] and acc = tl.dot(P,V) [P@V contracts the score axis] -> per active
+  # score entry 4*D fused mul-add FLOPs; over E*H ->
+  # 4*E*H*D*(L*L - CAUSAL*L*(L-1)/2). float32 operands run on the 910B
+  # Cube unit; peak_table exposes no fp32 cube class so cube matmul is
+  # keyed to fp16_cube. FLOPs(vector): online softmax over the active
+  # score entries (scale, max-reduce, exp, sum-reduce, rescale ~8
+  # ops/entry) -> 8*E*H*(L*L - CAUSAL*L*(L-1)/2).
+  # bytes(hbm): read q/k/v [E*L,H,D] + write output [E*L,H,D] ->
+  # 4*E*L*H*D, all float32 primary family -> dtype_size. cu_seqlens_q
+  # [E+1] and seqused_k [E] are int64 index tensors (non-primary,
+  # approach §3.2) -> literal *8.
+  flops:
+    fp16_cube: 4*E*H*D*(L*L - CAUSAL*L*(L-1)/2)
+    vector: 8*E*H*(L*L - CAUSAL*L*(L-1)/2)
+  bytes:
+    hbm: 4*E*L*H*D*dtype_size + (2*E + 1)*8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

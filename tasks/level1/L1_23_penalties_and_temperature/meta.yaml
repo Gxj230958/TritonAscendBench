@@ -28,6 +28,27 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). Repetition + frequency + presence penalties:
+  # per (token, vocab) gather the request's counts/prompt-mask, apply the
+  # repetition scale (logit/rp or logit*rp), then subtract additive frequency
+  # and presence terms. One program per token row. Symbol map: B -> n_tokens
+  # (logits dim 0, kernel grid extent), N -> vocab size (logits dim 1, the
+  # per-row elementwise extent), E -> n_reqs (counts/mask/penalty rows).
+  # FLOPs (vector): per element ~ seen test (~1), repetition where(div, mul)
+  # (~3), frequency `- fp*counts` (~2), presence `- pp*(counts>0)` (~2) ->
+  # ~8*B*N.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 logits -> dtype_size; read+write logits[B,N] -> 2*B*N, gather
+  # output_token_counts to [B,N] -> +B*N float32 at dtype_size -> 3*B*N. The
+  # int64 prompt_bin_mask gathered to [B,N] uses literal *8 -> 8*B*N; the int64
+  # expanded_idx_mapping[B] -> 8*B; the three float32 penalty vectors[E] ->
+  # literal *4 -> 12*E.
+  flops: 8*B*N
+  flops_class: vector
+  bytes: 3*B*N*dtype_size + 8*B*N + 8*B + 12*E
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

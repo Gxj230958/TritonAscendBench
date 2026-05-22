@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::merge_state_triton
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). Same FlashAttention split-KV LSE merge as
+  # L1_25 (online-softmax recombination of two partial states). One program per
+  # (token, head). Symbol map: B -> n_tokens (prefix_output dim 0, kernel grid
+  # extent), H -> n_heads (prefix_output dim 1 == lse dim 1), D -> head_size
+  # (prefix_output last dim, the per-(token,head) elementwise extent).
+  # FLOPs (vector): per (token,head) LSE prologue (max, two exp, denom, log) is
+  # O(1); the dominant work is the per-element merge (po*p_w + so*s_w)/denom
+  # ~ 3 ops over B*H*D output elements -> ~3*B*H*D, plus ~6*B*H prologue.
+  # bytes (hbm): read prefix_output + suffix_output [B,H,D] (2*B*H*D) +
+  # prefix_lse + suffix_lse [B,H] (2*B*H), write output[B,H,D] + output_lse
+  # [B,H] -> (3*B*H*D + 3*B*H) elements; all float32 primary family ->
+  # dtype_size.
+  flops: 3*B*H*D + 6*B*H
+  flops_class: vector
+  bytes: (3*B*H*D + 3*B*H) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

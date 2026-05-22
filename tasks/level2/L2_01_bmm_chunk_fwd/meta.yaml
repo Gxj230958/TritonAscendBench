@@ -28,6 +28,42 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2/SSD chunked BMM (oracle
+  # _bmm_chunk_fwd, kernel _bmm_chunk_fwd_kernel). Inputs a, b are
+  # [C*4, H, D] (shapes.yaml: token dim = C*4, group/head dim = H,
+  # feature dim = D). Tokens are split into n_chunks chunks of
+  # chunk_size = 4 each (chunk_size scalar = 4, cu_chunk_seqlens has
+  # C+1 entries -> n_chunks = C). Per chunk per group the kernel does
+  # a_chunk @ b_chunk^T = [4, D] @ [D, 4] -> [4, 4]. GEMM dims per tile:
+  # M = 4 (chunk_size), N = 4 (chunk_size), K = D (contracted feature).
+  # Symbol map: C -> n_chunks, H -> ngroups (a/b dim 1, out dim 1),
+  # D -> GEMM K (a/b dim 2), literal 4 -> chunk_size (M and N),
+  # CAUSAL -> the `causal` scalar_knob in [0,1].
+  # The kernel's causal early-return is block-granular
+  # (pid_n*BLOCK_N >= (pid_m+1)*BLOCK_M); at chunk_size = 4 the [4,4]
+  # tile is a single block, so the early-return never fires and the
+  # cube GEMM is dense regardless of CAUSAL. Causality only adds the
+  # oracle's lower-triangular mask multiply over the [4,4] tile, billed
+  # as a CAUSAL-gated vector term.
+  # FLOPs (fp16_cube): per (chunk, group) tile 2*4*4*D (2 = multiply +
+  # accumulate); over C chunks and H groups -> 2*C*H*16*D.
+  # flops_class: operands are float32; the 910B Cube unit has no
+  # separate fp32 cube class in peak_table_910b.toml, so cube matmul is
+  # keyed to fp16_cube (Unit 1 paradigm). W4.2 GPU cross-check owns
+  # numeric accuracy. FLOPs (vector): the causal lower-triangular mask
+  # is 1 multiply per [4,4] tile element, exercised ONLY when causal is
+  # set -> CAUSAL*C*H*16.
+  # bytes (hbm): read a [C*4,H,D] + b [C*4,H,D], write out
+  # [C,H,4,4]; all float32 primary family -> dtype_size. The int64
+  # cu_chunk_seqlens vector ([C+1]) is a tiny auxiliary index tensor
+  # counted at its literal 8-byte width.
+  flops:
+    fp16_cube: 2*C*H*16*D
+    vector: CAUSAL*C*H*16
+  bytes:
+    hbm: (C*4*H*D + C*4*H*D + C*H*16) * dtype_size + (C+1) * 8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

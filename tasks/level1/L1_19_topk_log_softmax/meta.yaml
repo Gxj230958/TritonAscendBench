@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). Token log-probs: log_softmax of the logits
+  # row over the vocab, then gather k token ids. One program per token row.
+  # Symbol map: B -> n_tokens (logits/token_ids dim 0, kernel grid extent),
+  # N -> vocab size (logits dim 1, the per-row softmax-reduction extent),
+  # D -> k (token_ids dim 1, the per-row gather count).
+  # FLOPs (vector): log_softmax over the vocab row ~ max reduction + (sub+exp)
+  # + sum reduction + log + final sub ~= 4 ops/element -> 4*B*N; the gather of
+  # D ids per row is integer addressing (no float work).
+  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
+  # float32 logits -> dtype_size; read logits[B,N] (B*N). token_ids[B,D] is
+  # int64 -> literal *8 -> 8*B*D; logprobs output [B,D] is float32 -> literal
+  # *4 -> 4*B*D.
+  flops: 4*B*N
+  flops_class: vector
+  bytes: B*N*dtype_size + 8*B*D + 4*B*D
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

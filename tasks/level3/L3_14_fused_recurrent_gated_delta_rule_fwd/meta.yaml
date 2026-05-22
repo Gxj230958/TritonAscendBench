@@ -28,6 +28,33 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Gated DeltaNet recurrent fwd (token-by-
+  # token): S_t = exp(g_t)*S_{t-1} + beta_t*k_t^T(v_t - k_t*S_{t-1});
+  # o_t = scale*q_t*S_t. shapes.yaml binds: B -> batch (q/k/v/g/beta
+  # dim 0), T -> sequence length (q/k/v dim 1, g/beta dim 1, the kernel's
+  # `for i_t in range(0,T)` loop), H -> head count (q/k/v dim 2, g/beta
+  # dim 2), D -> head dim (q/k/v dim 3; the oracle's state S is
+  # [B,H,D,Dv] with Dv = v.shape[-1] = D, so both state axes are the D
+  # knob).
+  # Single compute class -> scalar form. The kernel does the [D]x[D,D]
+  # state matvecs with tl.sum over an elementwise product
+  # (b_v -= tl.sum(b_h*b_k[None,:],1); b_o = tl.sum(b_h*b_q[None,:],1)) —
+  # NOT tl.dot — so the contractions run on the 910B Vector unit;
+  # flops_class is vector.
+  # FLOPs(vector) per (b,t,h): kS = k_t*S contraction = mul+sum over D*D
+  # (~2*D*D); state update = outer k_t(x)delta + decay*S mul + add over
+  # D*D (~3*D*D); o = q_t*S contraction = mul+sum over D*D (~2*D*D) ->
+  # ~7*D*D; plus decay = exp(g_t) (~1 op) and delta = (v_t-kS)*beta_t
+  # (~2 ops over D). Over B*T*H -> B*T*H*(7*D*D + 2*D + 1).
+  # bytes(hbm): read q/k/v [B,T,H,D] + g/beta [B,T,H], write output
+  # [B,T,H,D] + final_state [B,H,D,D]; all float32 primary family ->
+  # dtype_size.
+  flops: B*T*H*(7*D*D + 2*D + 1)
+  flops_class: vector
+  bytes: (4*B*T*H*D + 2*B*T*H + B*H*D*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

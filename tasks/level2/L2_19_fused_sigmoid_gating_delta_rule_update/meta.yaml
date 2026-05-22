@@ -28,6 +28,29 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Gated DeltaNet single-step update:
+  # g = exp(-exp(A_log)*softplus(a+dt_bias)); S' = g*S + beta*k(x)(v-k*S);
+  # out = q*S'. shapes.yaml binds: B -> batch (A_log/a/q/k/v/beta/state
+  # dim 0), H -> heads (those tensors dim 1, kernel H/HV axis),
+  # D -> head_dim (q/k/v last axis = kernel K/V, state dims 2&3).
+  # Single compute class -> scalar form. The kernel does the state
+  # contractions with tl.sum over an elementwise product (b_h*b_k[:,None],
+  # b_h*b_q[:,None]) — NOT tl.dot — so the [D]x[D,D] matvecs run on the
+  # 910B Vector unit, not the Cube unit; flops_class is vector.
+  # FLOPs(vector) per (b,h): k*S contraction = mul+sum over D*D (~2*D*D);
+  # state update = outer k(x)delta + g*S mul + add over D*D (~3*D*D);
+  # q*S' contraction = mul+sum over D*D (~2*D*D) -> ~7*D*D; plus the
+  # gating sp/g (~10 ops over the [B,H] scalars) and delta=(v-kS)*beta
+  # (~2 ops over D). Over B*H -> B*H*(7*D*D + 2*D + 10).
+  # bytes(hbm): read A_log/a/beta [B,H] + dt_bias [H] + q/k/v [B,H,D]
+  # + state [B,H,D,D], write output [B,H,D] + state [B,H,D,D]; all
+  # float32 primary family -> dtype_size.
+  flops: B*H*(7*D*D + 2*D + 10)
+  flops_class: vector
+  bytes: (3*B*H + H + 4*B*H*D + 2*B*H*D*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

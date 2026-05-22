@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Pure row gather: output =
+  # block_table[idx_mapping] — copies B selected rows of an [E, N] table.
+  # Symbol map: B -> idx_mapping length (gathered row count, output dim 0,
+  # kernel grid extent), E -> block_table rows (request states), N ->
+  # block_table dim 1 (row width == per-row copy extent).
+  # FLOPs (vector): pure gather/copy, no arithmetic at all -> reported as the
+  # tiny constant B (one address computation per gathered row). Dominant cost
+  # is bytes.
+  # bytes (hbm): read idx_mapping[B], read B*N source entries from block_table,
+  # write output[B,N] -> (B + 2*B*N) elements; all int64 -> dtype_size
+  # (primary family is int64).
+  flops: B
+  flops_class: vector
+  bytes: (B + 2*B*N) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

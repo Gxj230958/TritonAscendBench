@@ -28,6 +28,27 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Lightning/linear-attention single-step
+  # decode: S' = exp(-slope)*S + k(x)v; out = q*S'. shapes.yaml binds:
+  # B -> batch (q/k/v/kv_caches dim 0, kernel program_id(0)), H -> n_heads
+  # (q/k/v dim 1, kv_caches dim 1, kernel program_id(1)), D -> head dim
+  # (q/k/v last axis, kv_caches dims 2&3 — the kernel D constexpr).
+  # Single compute class -> scalar form. The _linear_attn_decode_kernel
+  # does the [D]x[D,D] matvec with k[:,None]*v[None,:] outer products and
+  # q[:,None]*kv then tl.sum(axis=0) — NOT tl.dot — so it runs on the
+  # 910B Vector unit; flops_class is vector.
+  # FLOPs(vector) per (b,h): outer product kv = k(x)v over D*D; decay
+  # apply exp(-ratio)*kv_cache + kv is ~2 ops over D*D; output q*kv then
+  # sum over D*D is ~2 ops -> ~5*D*D. Over B*H -> 5*B*H*D*D.
+  # bytes(hbm): read q/k/v [B,H,D] + kv_caches [B,H,D,D] + slope_rate [H],
+  # write output [B,H,D] + kv_cache [B,H,D,D]; all float32 primary
+  # family -> dtype_size.
+  flops: 5*B*H*D*D
+  flops_class: vector
+  bytes: (4*B*H*D + H + 2*B*H*D*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

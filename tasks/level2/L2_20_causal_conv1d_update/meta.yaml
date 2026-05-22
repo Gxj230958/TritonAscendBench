@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Single-step decode causal conv1d state
+  # update: roll the [batch,dim,state_len] window, append the new token, then
+  # conv = sum(window*weight) + bias and optional SiLU. Symbol map: B -> batch
+  # (x/conv_state/bias dim 0, kernel grid extent), D -> dim AND state_len ==
+  # KERNEL_WIDTH (conv_state is [B,D,D] and weight is [D,D]; both the channel
+  # axis and the conv window are the D knob). activation is a scalar literal.
+  # FLOPs (vector): per (batch,dim) output a length-D window dot product ~
+  # 2*D mul-adds, plus the bias add and SiLU (~6) -> B*D*(2*D + 6); this is
+  # an elementwise/reduce depthwise conv, not a cube matmul.
+  # bytes (hbm): read x[B,D] + conv_state[B,D,D] + weight[D,D] + bias[B,D],
+  # write output[B,D] + conv_state[B,D,D] -> (2*B*D*D + D*D + 3*B*D) elements;
+  # all float32 primary family -> dtype_size.
+  flops: B*D*(2*D + 6)
+  flops_class: vector
+  bytes: (2*B*D*D + D*D + 3*B*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

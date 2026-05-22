@@ -40,6 +40,41 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::context_attention_fwd
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). FlashAttention-style prefill attention.
+  # q/k/v/o are [B*L, H, D] (total_tokens=B*L packed sequences, H heads,
+  # head_dim=D); b_seq_len is `full:L` so every sequence has length L.
+  # The kernel grid is (batch, head, M-tiles): per (batch, head) it streams
+  # tl.dot(q,k) [QK^T] then tl.dot(p,v) [P@V] over the sequence. Symbol map:
+  # B -> batch (b_seq_len length, sequence count), L -> per-sequence length
+  # (b_seq_len value == seqlen the kernel loops over, == q/k/v dim-0 stride
+  #  block per sequence), H -> head count (q/k/v dim 1, grid axis 1),
+  # D -> head_dim (q/k/v dim 2, BLOCK_DMODEL). kv heads == H here so
+  # kv_group_num = 1, no GQA expansion of the FLOPs count.
+  # CAUSAL -> the `is_causal` scalar_knob in [0,1]; the kernel/oracle mask
+  # the upper triangle when set, computing strictly less work, so the
+  # formula is conditioned on it rather than always billing the dense
+  # estimate. The score matrix per (batch,head) is [L,L] non-causal but the
+  # causal lower-triangle keeps only L*(L+1)/2 entries; the active
+  # score-entry count is (L*L - CAUSAL*L*(L-1)/2).
+  # Mixed compute -> map form. FLOPs(fp16_cube): per (batch,head) QK^T
+  # contracts D and P@V contracts the score axis -> 4*D fused mul-add
+  # FLOPs per active score entry; over B*H ->
+  # 4*B*H*D*(L*L - CAUSAL*L*(L-1)/2). flops_class fp16_cube: float32
+  # operands run on the 910B Cube unit and peak_table_910b.toml exposes no
+  # fp32 cube class; cube matmul is keyed to fp16_cube (fp16/bf16 cube
+  # share 256 TFLOPS). FLOPs(vector): online softmax over the active score
+  # entries per (batch,head) — scale, max-reduce, exp, sum-reduce, p/acc
+  # rescale ~8 ops/entry -> 8*B*H*(L*L - CAUSAL*L*(L-1)/2).
+  # bytes (hbm): read q,k,v [B*L,H,D] + write o [B*L,H,D] -> 4*B*L*H*D, all
+  # float32 primary family -> dtype_size. b_start_loc [B+1] and b_seq_len [B]
+  # are int64 index tensors (non-primary, approach §3.2) -> literal *8.
+  flops:
+    fp16_cube: 4*B*H*D*(L*L - CAUSAL*L*(L-1)/2)
+    vector: 8*B*H*(L*L - CAUSAL*L*(L-1)/2)
+  bytes:
+    hbm: 4*B*L*H*D*dtype_size + (2*B + 1)*8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

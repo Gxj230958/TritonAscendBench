@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). FLA/GDN gated norm: residual add -> LayerNorm
+  # (mean/var normalise + affine w/b) -> SiLU gate `* silu(g)`. One program per
+  # row. Symbol map: B -> x rows (x/g/residual dim 0, kernel grid extent), D ->
+  # hidden size (x dim 1 == w/b length, the per-row reduction extent). eps is a
+  # scalar literal.
+  # FLOPs (vector): per element residual add (~1) + the ~8-op LayerNorm body
+  # (mean, centred-square var, rsqrt, normalise, weight mul, bias add) + SiLU
+  # of the gate (~5: neg, exp, add, recip, plus the gate mul ~1) -> ~16*B*D.
+  # bytes (hbm): read x + g + residual [B,D] (3*B*D) + w[D] + b[D], write
+  # output[B,D] -> (4*B*D + 2*D) elements; all float32 primary family ->
+  # dtype_size.
+  flops: 16*B*D
+  flops_class: vector
+  bytes: (4*B*D + 2*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

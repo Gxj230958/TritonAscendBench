@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Inverse of L1_07: per-group symmetric FP8
+  # quant of the nope part — s = amax(|group|)/fp8_max; q = clamp(group/s) cast
+  # to fp8; rope passthrough. Symbol map: B -> token rows (k_nope/k_rope dim 0,
+  # kernel grid extent), D -> DIM_NOPE == DIM_ROPE (k_nope/k_rope last dim).
+  # group_size / fp8_max are scalar literals; output nope_s has D//group_size
+  # columns.
+  # FLOPs (vector): per nope element ~ abs + group-amax reduction + divide +
+  # clamp ~= 4 ops -> ~4*B*D; the rope half is a pure copy.
+  # bytes (hbm): float32 primary family (k_nope declared first) -> dtype_size=4.
+  # fp32-width terms: read k_nope[B,D] + k_rope[B,D] + write nope_s[B,D//8] fp32
+  # scale + write rope[B,D] fp32 passthrough -> (3*B*D + B*D/8)*dtype_size.
+  # nope_q[B,D] is the float8_e4m3fn quant output (non-primary dtype, approach
+  # §3.2) -> literal byte width *1 -> + B*D.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: (3*B*D + B*D/8)*dtype_size + B*D
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,26 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Pure integer index conversion: for each of
+  # E*L token entries the oracle does r = req_id[t]; local =
+  # token_indices[r,k]; global = block_table[r, local//bs]*bs + local%bs.
+  # Symbol map: B -> req_id length (request count), E -> block_table/
+  # token_indices rows (request states), L -> token_indices dim 1 (per-request
+  # token slots == output inner extent). block_size is a scalar literal.
+  # FLOPs (vector): integer index arithmetic only (floor-div, mod, mul, add) —
+  # no floating-point work. Reported as the tiny constant 4*E*L (4 int ops per
+  # output entry); dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (req_id declared first) -> dtype_size=8 for the int64 reads: req_id[B] +
+  # gather token_indices[E,L] + gather block_table entries[E,L] ->
+  # (B + 2*E*L)*dtype_size. out[E,L] is int32 (oracle returns .to(int32),
+  # non-primary dtype) -> literal byte width *4 -> + E*L*4.
+  flops: 4*E*L
+  flops_class: vector
+  bytes: (B + 2*E*L)*dtype_size + E*L*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

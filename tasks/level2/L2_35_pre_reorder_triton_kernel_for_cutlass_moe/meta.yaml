@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Cutlass-MoE pre-reorder: gather tokens into
+  # per-expert contiguous order, gateup_input[src2dst[i*topk+j]] = x[i] — a
+  # local tensor reorder (no cross-rank traffic, bytes_resource is hbm per
+  # approach §3.2). Symbol map: B -> n_tokens (input dim 0, kernel grid
+  # extent), D -> input dim 1 (the per-row copy width); topk is a scalar
+  # literal (2), so src2dst has B*topk = B*2 entries and the output is
+  # [B*2, D].
+  # FLOPs (vector): pure scatter/copy, no arithmetic at all -> reported as the
+  # small constant 2*B (one address computation per replicated slot).
+  # bytes (hbm): read input[B,D] (B*D), write the replicated output[B*2,D]
+  # (2*B*D) -> 3*B*D float32 at dtype_size; the int64 src2dst[B*2] uses
+  # literal *8 -> 16*B.
+  flops: 2*B
+  flops_class: vector
+  bytes: 3*B*D*dtype_size + 16*B
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

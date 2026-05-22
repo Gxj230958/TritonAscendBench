@@ -28,6 +28,36 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). AWQ 4-bit weight-only quantised GEMM
+  # (oracle _awq_gemm, kernel awq_gemm_kernel): C = a @ dequant(qweight)
+  # where dequant(qweight) = (w4 - z4) * scale[group]. shapes.yaml:
+  # input is [B, N] float32, qweight is [N, E] packed (8 4-bit lanes
+  # per column -> dequantised weight is [N, E*8]), scales is
+  # [N//8, E*8], qzeros is [N//8, E], output C is [B, E*8].
+  # GEMM dims: M = B (input rows = C rows), K = N (input cols =
+  # qweight rows = contracted dim), GEMM-N = E*8 (dequantised weight
+  # cols = C cols). Symbol map: B -> token rows (GEMM M), N -> input
+  # feature dim / qweight rows (GEMM K), E -> packed weight columns
+  # (E*8 = dequantised output dim = GEMM N). qweight/qzeros stored as
+  # int64 packed integers; scales float32.
+  # FLOPs split into two compute classes (map form, approach §3.1):
+  #  - fp16_cube: the matmul a @ B_dequant -> 2*B*N*(E*8) (2 = multiply
+  #    + accumulate). float32 operands; no fp32 cube class on the 910B
+  #    Cube unit, so keyed to fp16_cube (Unit 1 paradigm).
+  #  - vector: the on-the-fly weight dequant (w4 - z4) * scale, ~2 ops
+  #    per dequantised weight element over the [N, E*8] weight ->
+  #    2*N*E*8. This is a Vector-unit elementwise epilogue on B.
+  # bytes (hbm): read input [B,N] float32 -> dtype_size; write output
+  # C [B,E*8] float32 -> dtype_size. Non-primary quantised tensors at
+  # literal widths: qweight [N,E] int64 *8, qzeros [N//8,E] int64 *8,
+  # scales [N//8,E*8] float32 *4.
+  flops:
+    fp16_cube: 2*B*N*E*8
+    vector: 2*N*E*8
+  bytes: (B*N + B*E*8) * dtype_size + N*E*8 + (N//8)*E*8 + (N//8)*E*8*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

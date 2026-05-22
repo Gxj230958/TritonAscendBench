@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Symmetric per-(token,group) INT8 quant: per
+  # contiguous group of group_size elements s = amax(|g|)/127; q = round(g/s)
+  # clamped to [-128,127]. Symbol map: B -> token rows (x dim 0, kernel grid
+  # extent), D -> N (x last dim, divisible by group_size). group_size / eps are
+  # scalar literals; output scale has D//group_size columns.
+  # FLOPs (vector): per element ~ abs + group-amax reduction + divide + round
+  # ~= 4 ops -> ~4*B*D.
+  # bytes (hbm): float32 primary family (x) -> dtype_size=4. fp32-width terms:
+  # read x[B,D] + write scale[B,D//8] fp32 -> (B*D + B*D/8)*dtype_size. q[B,D]
+  # is the int8 quant output (non-primary dtype, approach §3.2) -> literal byte
+  # width *1 -> + B*D.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: (B*D + B*D/8)*dtype_size + B*D
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

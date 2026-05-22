@@ -1,8 +1,12 @@
 """Unit tests for triton_ascend_bench.dataset."""
 from __future__ import annotations
 
-import pytest
+import shutil
 
+import pytest
+import yaml
+
+from triton_ascend_bench import dataset as dataset_mod
 from triton_ascend_bench.dataset import iter_all_tasks, load_task
 
 POC_TASK_IDS = [
@@ -55,10 +59,23 @@ def test_tolerance_class_exists_in_policy(task_id):
 
 # --- W1.2: cost_model parsing on TaskDef -----------------------------------
 
-def test_cost_model_missing_is_none():
+def test_cost_model_missing_is_none(tmp_path, monkeypatch):
     # Backward compat: a task whose meta.yaml has no `cost_model` block
-    # loads fine with `TaskDef.cost_model = None` — pre-W3.1 most of the
-    # 100 tasks have no cost_model and shared loader paths must not break.
+    # loads fine with `TaskDef.cost_model = None` — the loader must never
+    # crash on an absent block. With the W3.1 cost_model fill every live
+    # corpus task now carries a cost_model, so this loader contract is
+    # exercised against a synthetic task dir (a real task dir copied with
+    # its `cost_model` block stripped) rather than a live task.
+    src = dataset_mod.TASKS_ROOT / "level1" / "L1_16_silu_and_mul"
+    fake_root = tmp_path / "tasks"
+    dst = fake_root / "level1" / "L1_16_silu_and_mul"
+    dst.parent.mkdir(parents=True)
+    shutil.copytree(src, dst)
+    meta = yaml.safe_load((dst / "meta.yaml").read_text())
+    meta.pop("cost_model", None)
+    (dst / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
+    monkeypatch.setattr(dataset_mod, "TASKS_ROOT", fake_root)
+
     task = load_task("L1_16_silu_and_mul")
     assert task.cost_model is None
 

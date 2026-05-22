@@ -28,6 +28,24 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Depthwise causal 1-D conv (Mamba prefill):
+  # output[d,t] = sum_j x[d, t-K+1+j]*w[d,j] (+bias), optional SiLU. Symbol
+  # map: D -> dim (x dim 0 == weight dim 0, the channel axis), L -> seqlen
+  # (x dim 1, the per-channel sequence extent); weight dim 1 is KERNEL_WIDTH ==
+  # the D knob (weight is [D,D]); B -> bias dim 0 (per-batch bias rows).
+  # activation is a scalar literal.
+  # FLOPs (vector): per (dim,seq) output a length-KW=D window dot product ~
+  # 2*D mul-adds, plus the bias add and SiLU (~6) over D*L outputs ->
+  # D*L*(2*D + 6); this is a depthwise (grouped) conv, vector/reduce work, not
+  # a cube matmul.
+  # bytes (hbm): read x[D,L] + weight[D,D] + bias[B,D], write output[D,L] ->
+  # (2*D*L + D*D + B*D) elements; all float32 primary family -> dtype_size.
+  flops: D*L*(2*D + 6)
+  flops_class: vector
+  bytes: (2*D*L + D*D + B*D) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

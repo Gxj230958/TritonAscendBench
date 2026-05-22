@@ -28,6 +28,46 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Paged decode SDPA: one query token per
+  # sequence, KV gathered from a paged block_table. shapes.yaml binds:
+  # B -> n_tokens / n_seqs (query dim 0, block_table/seq_lens dim 0, the
+  # oracle's `for i in range(n_tokens)` loop), H -> head count (query
+  # dim 1, key_cache/value_cache dim 2; here n_qh == n_kvh so GQA group
+  # g=1, no FLOPs change), D -> head_size (query dim 2, key/value_cache
+  # dim 3, the dot contraction axis), T -> block_size (key/value_cache
+  # dim 1; seq_lens is randint:1:T so the per-sequence KV length L <= T,
+  # the kernel's BLOCK_N context loop bound). C -> n_blocks and
+  # N -> max_blocks_per_seq index the paged cache but are not arithmetic
+  # extents of the attention math.
+  # Mixed compute -> map form. FLOPs(fp16_cube): per (token,head) the
+  # kernel issues qk = tl.dot(Q,K) [QK = [1,D]@[D,L] over the L<=T KV
+  # positions = 2*T*D dense bound] and acc += tl.dot(p,V) [P@V = 2*T*D].
+  # Over B*H -> 4*B*H*T*D. float32 operands run on the 910B Cube unit,
+  # peak_table exposes no fp32 cube class so cube matmul is keyed to
+  # fp16_cube. FLOPs(vector): per (token,head) online softmax over the
+  # [T] score row (max, exp, sum, rescale ~8 ops/element) -> ~8*B*H*T. The
+  # oracle also supports an ALiBi additive bias, but this shapes.yaml does
+  # NOT materialise an `alibi_slopes` input (the `inputs` block declares
+  # only query/key_cache/value_cache/block_table/seq_lens/scale), so the
+  # oracle runs with `alibi_slopes=None` and the ALiBi branch never
+  # executes — its FLOPs are not charged (approach §3.4 unmaterialised-
+  # feature rule).
+  # bytes(hbm): float32 primary family (query declared first) -> dtype_size=4.
+  # The kernel/oracle gather K/V from the paged cache through block_table:
+  # per sequence per head only the first seq_lens[i] (<= T) KV positions are
+  # touched, so the dense KV-touch bound is per-seq T positions over B
+  # sequences and H heads, NOT the whole resident cache 2*C*T*H*D. fp32-width
+  # terms: read query[B,H,D] + write output[B,H,D] (2*B*H*D) + gather K/V the
+  # kernel touches (2*B*T*H*D) -> (2*B*H*D + 2*B*T*H*D)*dtype_size.
+  # block_table[B,N] and seq_lens[B] are int64 index tensors (non-primary,
+  # approach §3.2) -> literal *8 -> (B*N + B)*8.
+  flops:
+    fp16_cube: 4*B*H*T*D
+    vector: 8*B*H*T
+  bytes:
+    hbm: (2*B*H*D + 2*B*T*H*D)*dtype_size + (B*N + B)*8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

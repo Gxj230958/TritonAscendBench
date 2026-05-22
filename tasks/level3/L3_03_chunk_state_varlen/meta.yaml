@@ -28,6 +28,33 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2 SSD var-length intra-chunk state:
+  # per sequence span, state = sum_t exp(dA_last - dA_t)*dt_t * B_t (x) x_t.
+  # shapes.yaml binds: B -> sequence count (cu_seqlens has B+1 entries,
+  # the oracle's `for i in range(len(cu)-1)` loop), L -> per-sequence
+  # length (cu_seqlens is offsets:to=B*L so B/x dim 0 = B*L packs B
+  # sequences of length L, the kernel's contracted chunk axis),
+  # H -> head count (B/x/dt/dA_cumsum dim 1; here groups G==H so the
+  # GQA rep=1, no FLOPs change), N -> dstate (B dim 2, the einsum index
+  # `n`), Dv -> headdim P (x dim 2, the einsum index `p`).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel reduces the
+  # chunk with acc += tl.dot(x, b) — st = einsum("lhp,lhn,lh->hpn") is
+  # per (sequence,head) a [Dv,L]@[L,N] matmul = 2*L*Dv*N; over B*H ->
+  # 2*B*H*L*Dv*N. float32 operands run on the 910B Cube unit, peak_table
+  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
+  # FLOPs(vector): decay = exp(dA_last - dA_t) is sub+exp and w = decay*dt
+  # is 1 mul over the [B*L,H] grid -> ~3*B*L*H.
+  # bytes(hbm): read B [B*L,H,N] + x [B*L,H,Dv] + dt [B*L,H] + dA_cumsum
+  # [B*L,H], write states [B,H,Dv,N]; float32 primary family ->
+  # dtype_size. cu_seqlens [B+1] is an int64 index tensor (non-primary,
+  # approach §3.2) -> literal *8.
+  flops:
+    fp16_cube: 2*B*H*L*Dv*N
+    vector: 3*B*L*H
+  bytes:
+    hbm: (B*L*H*N + B*L*H*Dv + 2*B*L*H + B*H*Dv*N)*dtype_size + (B + 1)*8
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

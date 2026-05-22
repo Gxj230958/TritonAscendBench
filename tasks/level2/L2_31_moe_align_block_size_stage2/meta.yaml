@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). MoE block-size alignment: sort the flattened
+  # topk_ids by expert, then pad each expert's run up to a block_size multiple.
+  # Symbol map: B -> topk_ids dim 0 (token rows), D -> topk_ids dim 1 (topk
+  # per token); the operator sorts the B*D flattened selection entries.
+  # num_experts / block_size are scalar literals (4 / 4).
+  # FLOPs (vector): the sort/argsort + per-expert padding is integer
+  # bookkeeping — no floating-point arithmetic. Reported as the small constant
+  # 4*B*D (~argsort comparison budget on B*D keys); the dominant cost is bytes.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
+  # (topk_ids) -> dtype_size=8 for the read topk_ids[B,D] -> B*D*dtype_size.
+  # sorted_token_ids (~B*D padded entries) + the small expert_ids /
+  # num_tokens_post_pad tail are int32 (oracle builds torch.int32, non-primary
+  # dtype) -> literal byte width *4 -> + (B*D + 8)*4.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: B*D*dtype_size + (B*D + 8)*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

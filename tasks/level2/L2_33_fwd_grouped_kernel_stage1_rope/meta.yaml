@@ -28,6 +28,38 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). DeepSeek MLA decode stage-1 attention:
+  # optional q-side RoPE, then sc = q.k^T * scale, softmax, context = p.v.
+  # shapes.yaml binds: B -> n_tokens (q dim 0, oracle index `n`),
+  # H -> q head count (q dim 1, the kernel q_head_num / BLOCK_H axis),
+  # D -> head/latent dim (q dim 2 == k_buffer/v_buffer dim 1, the kernel
+  # kv_lora_rank+rope feature axis), C -> n_ctx cached KV positions
+  # (k_buffer/v_buffer dim 0, the kernel's BLOCK_N context loop extent,
+  # oracle index `c`). k_buffer/v_buffer are MLA latent KV shared across
+  # heads (kv_group_num path). This shapes.yaml does NOT materialise the
+  # q-side RoPE inputs: the `inputs` block declares only q/k_buffer/
+  # v_buffer/scale, no `cos`/`sin`/`rope_dim`. The oracle's RoPE branch is
+  # guarded by `if cos is not None and sin is not None and rope_dim > 0`,
+  # so with those inputs absent it never executes — the q-rope FLOPs are
+  # not charged (approach §3.4 unmaterialised-feature rule).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues three
+  # tl.dot's — qk = tl.dot(q_pe,k_pe) and qk += tl.dot(q,kv) together form
+  # sc = einsum("nhd,cd->nhc") = per (n,h) an [D]x[C,D] product = 2*C*D;
+  # acc = tl.dot(p,v) forms context = einsum("nhc,cd->nhd") = 2*C*D.
+  # Over B*H -> 4*B*H*C*D. float32 operands run on the 910B Cube unit,
+  # peak_table exposes no fp32 cube class so cube matmul is keyed to
+  # fp16_cube. FLOPs(vector): online softmax over the [C] score row per
+  # (n,h) — scale, max-reduce, exp, sum-reduce, rescale ~8 ops/element ->
+  # 8*B*H*C.
+  # bytes(hbm): read q [B,H,D] + k_buffer [C,D] + v_buffer [C,D], write
+  # output [B,H,D]; all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 4*B*H*C*D
+    vector: 8*B*H*C
+  bytes:
+    hbm: (2*B*H*D + 2*C*D) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

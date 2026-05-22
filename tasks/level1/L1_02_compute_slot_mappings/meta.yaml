@@ -28,6 +28,25 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Pure integer index computation: per token the
+  # oracle does slot = block_table[req, pos//bs]*bs + pos%bs. The kernel grid
+  # iterates over the batch (one program per request, inner loop over its
+  # tokens). Symbol map: B -> num_tokens (idx_mapping/positions length, kernel
+  # grid extent), E -> num request states (block_table rows), N -> blocks per
+  # request (block_table dim 1). block_size is a scalar literal, not a knob.
+  # FLOPs (vector): the operator is integer index arithmetic (floor-div, mod,
+  # mul, add) — no floating-point work. Reported as a tiny constant 4*B
+  # (4 int ops per token); flops_class vector since it routes to the vector
+  # unit, but the dominant cost is bytes.
+  # bytes (hbm): read idx_mapping[B] + positions[B], gather B entries from
+  # block_table, write slot_mapping[B] -> 4*B elements; all int64 -> dtype_size
+  # (primary family is int64, the first declared input).
+  flops: 4*B
+  flops_class: vector
+  bytes: 4*B*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

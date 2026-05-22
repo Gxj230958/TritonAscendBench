@@ -28,6 +28,34 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2 chunk-scan forward: per chunk it
+  # computes out = intra + inter, then optional D skip and silu(z) gating.
+  # shapes.yaml binds the operator axes as: B -> nchunks (cb/x/C/states/z
+  # dim 0, oracle einsum index `n`), L -> chunk_size (cb dim 1&2, x/C dim 1,
+  # the kernel's BLOCK_SIZE_M tile axis), Dv -> headdim P (x/states/z/D
+  # last axis, oracle index `p`, kernel BLOCK_SIZE_N), and the dstate axis
+  # N is itself dimensioned with the B knob (C is [B,L,B], states is
+  # [B,B,Dv]) so the inter contraction extent is B.
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
+  # tl.dot's. inter = tl.dot(C,prev_states): per chunk [L,N]@[N,Dv] with
+  # N=B -> 2*L*B*Dv; intra = tl.dot(cb,x): per chunk causal [L,L]@[L,Dv]
+  # -> 2*L*L*Dv (dense analytic upper bound; causal computes ~half).
+  # Over B chunks -> 2*B*L*L*Dv + 2*B*L*B*Dv. float32 operands run on the
+  # 910B Cube unit; peak_table exposes no fp32 cube class so cube matmul is
+  # keyed to fp16_cube. FLOPs(vector): seg = exp(dA_m-dA_k)*causal ~3 ops
+  # over B*L*L, cb*=seg and cb*=dt are 2 muls over B*L*L (~5*B*L*L);
+  # Cf*exp(dAc) over B*L*B; intra+inter add, D*x skip (~3 ops) and
+  # silu(z) gate (z*sigmoid(z) ~6 ops) over B*L*Dv (~9*B*L*Dv).
+  # bytes(hbm): read cb [B,L,L] + x [B,L,Dv] + dt [B,L] + dA_cumsum [B,L]
+  # + C [B,L,B] + states [B,B,Dv] + D [Dv] + z [B,L,Dv], write out
+  # [B,L,Dv]; all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 2*B*L*L*Dv + 2*B*L*B*Dv
+    vector: 5*B*L*L + B*L*B + 9*B*L*Dv
+  bytes:
+    hbm: (B*L*L + 3*B*L*Dv + 2*B*L + B*L*B + B*B*Dv + Dv) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

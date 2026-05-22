@@ -28,6 +28,21 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
+cost_model:
+  # Symbol audit (approach §3.4). Residual combine of the MoE and shared-MLP
+  # branch outputs: output = moe_hidden + mlp_hidden — a pure elementwise add.
+  # One program per row. Symbol map: B -> row count (moe/mlp_hidden_states
+  # dim 0, kernel grid extent), D -> their dim 1 (the per-row elementwise
+  # extent).
+  # FLOPs (vector): one add per element -> B*D.
+  # bytes (hbm): read moe_hidden_states + mlp_hidden_states [B,D] (2*B*D),
+  # write output[B,D] -> 3*B*D elements; all float32 primary family ->
+  # dtype_size.
+  flops: B*D
+  flops_class: vector
+  bytes: 3*B*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

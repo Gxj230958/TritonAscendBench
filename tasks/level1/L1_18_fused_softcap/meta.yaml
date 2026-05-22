@@ -28,6 +28,20 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). Logit softcap: output = cap * tanh(x / cap),
+  # a pure elementwise map. One program per row. Symbol map: B -> x rows (x
+  # dim 0, kernel grid extent), D -> x dim 1 (per-row elementwise extent). cap
+  # is a scalar literal.
+  # FLOPs (vector): per element divide + tanh (~6 ops) + multiply -> ~8 ops ->
+  # 8*B*D.
+  # bytes (hbm): read x[B,D], write output[B,D] -> 2*B*D elements; float32
+  # primary family -> dtype_size.
+  flops: 8*B*D
+  flops_class: vector
+  bytes: 2*B*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

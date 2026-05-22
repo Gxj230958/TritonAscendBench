@@ -28,6 +28,22 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). Fused activation-and-multiply gate: split the
+  # last dim into gate/up halves, output = act(gate) * up. One program per row.
+  # Symbol map: B -> x rows (x dim 0, kernel grid extent), D -> x dim 1 (full
+  # inner axis); the output is [B, D//2] since the gate splits D in half. act
+  # is a scalar literal selecting silu (default).
+  # FLOPs (vector): per output element silu(gate) = gate/(1+exp(-gate)) ~ neg +
+  # exp + add + recip + mul ~= 5, then the gate `* up` is 1 mul -> ~6 ops; over
+  # B*(D//2) output elements -> 6*B*(D//2) = 3*B*D.
+  # bytes (hbm): read x[B,D], write output[B,D//2] -> (B*D + B*D/2) =
+  # 3*B*D/2 elements; float32 primary family -> dtype_size.
+  flops: 3*B*D
+  flops_class: vector
+  bytes: 3*B*D/2 * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:

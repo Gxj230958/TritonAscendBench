@@ -28,6 +28,22 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). GDN gating: g = -exp(A_log) *
+  # softplus(beta*(a + dt_bias))/beta — a pure elementwise map. One program per
+  # row. Symbol map: B -> A_log/a/dt_bias dim 0 (row count, kernel grid
+  # extent), D -> their dim 1 (the per-row elementwise extent). beta /
+  # threshold are scalar literals.
+  # FLOPs (vector): per element add a+dt_bias + beta scale (~2), softplus
+  # (~5: exp, add, log, branch), exp(A_log) + negate + final mul (~3) ->
+  # ~10*B*D.
+  # bytes (hbm): read A_log + a + dt_bias [B,D] (3*B*D), write output[B,D] ->
+  # 4*B*D elements; all float32 primary family -> dtype_size.
+  flops: 10*B*D
+  flops_class: vector
+  bytes: 4*B*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

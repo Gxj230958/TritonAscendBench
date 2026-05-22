@@ -28,6 +28,21 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). FLA per-chunk local cumulative sum along the
+  # sequence axis: out = cumsum(g, dim=-2) (reverse => suffix cumsum). Symbol
+  # map: L -> g dim -2 (the sequence axis the cumsum runs over), D -> g dim -1
+  # (the per-position feature width, parallel across the cumsum). reverse is a
+  # scalar_knob (REV).
+  # FLOPs (vector): one accumulate add per element along the prefix sum ->
+  # L*D.
+  # bytes (hbm): read g[L,D], write output[L,D] -> 2*L*D elements; float32
+  # primary family -> dtype_size.
+  flops: L*D
+  flops_class: vector
+  bytes: 2*L*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

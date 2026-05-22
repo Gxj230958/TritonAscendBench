@@ -28,6 +28,39 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Lightning-attention prefill (decay-weighted
+  # linear attention): o[t] = sum_{s<=t} decay^(t-s) (q_t.k_s) v_s. The
+  # graded operator is oracle_pytorch._lightning_kv's full prefill output
+  # [B,H,L,D]; this task's kernel-under-test _fwd_kv_reduce is the
+  # cross-block prefix-sum reduce stage (block_decay*kv_pre + kv_cur). The
+  # cost model states the full operator the task benchmarks. shapes.yaml
+  # binds: B -> batch (q/k/v dim 0), H -> n_heads (q/k/v dim 1, slope dim 0),
+  # L -> sequence length (q/k/v dim 2, oracle indices l & s), D -> head dim
+  # (q/k/v dim 3, the kernel d/e feature axes).
+  # Causal faithfulness: this operator is ALWAYS causal-prefix — there is
+  # no CAUSAL knob in shapes.yaml. The oracle accumulates only s <= t
+  # (mask = t[:,None] >= t[None,:]) and the kernel's diagonal stage loops
+  # `for j in range(i+1)` (causal-prefix sub-blocks only), so the score
+  # work is the inclusive causal lower triangle, NOT the dense [L,L]
+  # grid. The active score-entry count per (b,h) is therefore the
+  # triangular sum L*(L+1)/2 (t >= s), not L*L.
+  # Mixed compute -> map form. FLOPs(fp16_cube): sc = einsum("bhld,bhsd->
+  # bhls", q, k) contracts D and out = einsum("bhls,bhsd->bhld",
+  # sc*decay, v) contracts the score axis -> per active causal score
+  # entry 4*D fused mul-add FLOPs; over B*H -> 4*B*H*D*L*(L+1)/2.
+  # float32 operands run on the 910B Cube unit, peak_table exposes no
+  # fp32 cube class so cube matmul is keyed to fp16_cube.
+  # FLOPs(vector): decay = exp(-slope*dist) is ~3 ops over the causal
+  # score entries, sc*decay is 1 mul -> 4*B*H*L*(L+1)/2.
+  # bytes(hbm): read q/k/v [B,H,L,D] + slope [H], write output [B,H,L,D];
+  # all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 4*B*H*D*L*(L+1)/2
+    vector: 4*B*H*L*(L+1)/2
+  bytes:
+    hbm: (4*B*H*L*D + H) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

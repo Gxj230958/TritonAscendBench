@@ -28,6 +28,20 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: sampling_rng
+cost_model:
+  # Symbol audit (approach §3.4). Numerically-stable log_softmax over the last
+  # dim. One program per row. Symbol map: B -> input rows (input dim 0, kernel
+  # grid extent), D -> input dim 1 (the per-row softmax-reduction extent). dim
+  # is a scalar literal (-1, the last axis).
+  # FLOPs (vector): per element ~ max reduction + (sub+exp) + sum reduction +
+  # log + final sub ~= 4 ops -> 4*B*D.
+  # bytes (hbm): read input[B,D], write output[B,D] -> 2*B*D elements;
+  # float32 primary family -> dtype_size.
+  flops: 4*B*D
+  flops_class: vector
+  bytes: 2*B*D*dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: simple_pytorch_ok
 runner_checks:
   expected_kernel_count_range:

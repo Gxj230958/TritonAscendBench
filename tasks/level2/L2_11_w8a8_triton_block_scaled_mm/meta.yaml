@@ -28,6 +28,33 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). Block-scaled W8A8 INT8 GEMM (oracle
+  # _w8a8_block_scaled_mm, kernel _w8a8_triton_block_scaled_mm):
+  # C[m,n] = sum_k A[m,k]*B[k,n]*As[m,k//gk]*Bs[k//gk,n//gn], fp32 acc.
+  # shapes.yaml: A is [B, D], B is [D, N], output C is [B, N]. The GEMM
+  # is [B, D] @ [D, N] in standard (non-transposed) layout. GEMM dims:
+  # M = B (A rows = C rows), K = D (contracted dim = A dim 1 = B dim 0),
+  # N = N (B dim 1 = C cols). Symbol map: B -> token rows (GEMM M),
+  # D -> contracted feature dim (GEMM K), N -> output dim (GEMM N).
+  # As is [B, D//8], Bs is [D//8, N//8].
+  # FLOPs (cube): 2*B*N*D (2 = multiply + accumulate). The per-K-block
+  # scale multiply is a small vector op vs the matmul, folded into cube.
+  # flops_class: int8 — A and B carry int8-range quantised values
+  # (dist randint:0:8); the operation is a W8A8 quantised GEMM, so it
+  # runs on the 910B Cube unit's int8 pipe (approach §3.1 decision
+  # table). The shapes.yaml int64 storage dtype is the test container,
+  # not the arithmetic class.
+  # bytes (hbm): read A [B,D] + B [D,N]; shapes.yaml declares them
+  # int64, so the int64-sized primary family -> dtype_size (= 8). The
+  # float32 scale tensors As [B,D//8] and Bs [D//8,N//8] are
+  # non-primary dtype, counted at the literal 4-byte width. Output C
+  # [B,N] is written in the fp16 default output dtype, literal 2 bytes.
+  flops: 2*B*N*D
+  flops_class: int8
+  bytes: (B*D + D*N) * dtype_size + B*(D//8)*4 + (D//8)*(N//8)*4 + B*N*2
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

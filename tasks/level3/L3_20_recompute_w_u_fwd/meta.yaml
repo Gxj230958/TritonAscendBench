@@ -28,6 +28,35 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
+cost_model:
+  # Symbol audit (approach §3.4). GDN/KDA W/U recompute: the kernel
+  # produces u = A @ (beta*v) and w = A @ (beta*k*exp(g_cumsum)).
+  # cost_model 反映 kernel.py(冻结上游真值)的两个 tl.dot。已知 issue
+  # (out-of-scope follow-up):oracle_pytorch.py 当前对 w 漏了左乘 A
+  # (返回 beta*k*exp(g_cumsum)),与 kernel 语义不一致 —— 属 oracle/kernel
+  # provenance 一致性问题,不在 cost_model 填充范围;cost_model 按 kernel 填。
+  # shapes.yaml binds: B -> n_chunks (k/v/beta/g_cumsum/A dim 0, the
+  # oracle's leading `...` batch axis), L -> chunk length (k/v dim 1,
+  # beta/g_cumsum dim 1, A dims 1&2; the kernel's BT tile axis, the
+  # einsum indices `l` & `s`), D -> feature dim (k/v dim 2; the kernel
+  # K/BK and V/BV axes — k and v share the D knob here).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
+  # tl.dot's — b_u = tl.dot(b_A, b_vb) and b_w = tl.dot(b_A, b_kb), each
+  # per chunk an [L,L]@[L,D] matmul = 2*L*L*D; over B chunks ->
+  # 4*B*L*L*D. float32 operands run on the 910B Cube unit, peak_table
+  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
+  # FLOPs(vector): the GEMM operands are pre-scaled — beta*v and
+  # beta*k*exp(g_cumsum) — ~3 ops over B*L*D (exp(g) + the beta muls)
+  # -> 3*B*L*D.
+  # bytes(hbm): read k/v [B,L,D] + beta [B,L] + g_cumsum [B,L] + A
+  # [B,L,L], write w [B,L,D] + u [B,L,D]; all float32 primary family ->
+  # dtype_size.
+  flops:
+    fp16_cube: 4*B*L*L*D
+    vector: 3*B*L*D
+  bytes:
+    hbm: (4*B*L*D + 2*B*L + B*L*L) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

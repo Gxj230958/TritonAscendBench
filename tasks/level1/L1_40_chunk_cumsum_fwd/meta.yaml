@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2 chunk cumsum: dt' = softplus(dt) then
+  # dA_cumsum = cumsum(A * dt') along the sequence axis. Symbol map: B -> dt
+  # dim 0 (per-head rows == A length, kernel grid extent), L -> dt dim 1 (the
+  # per-row sequence / cumsum extent), DTSP -> the `dt_softplus` scalar_knob
+  # in [0,1]; dt_bias / dt_limit are absent at the bound shapes.
+  # FLOPs (vector): the A*dt' multiply (~1) + the cumsum accumulate (~1) are
+  # always done -> 2*B*L. The softplus pre-transform (~5 ops/element: exp,
+  # add, log, plus the overflow-safe branch) runs ONLY when dt_softplus is
+  # set, so it is gated on DTSP -> +5*DTSP*B*L. Total 2*B*L + 5*DTSP*B*L.
+  # bytes (hbm): read dt[B,L] + A[B], write dt_out[B,L] + dA_cumsum[B,L] ->
+  # (3*B*L + B) elements; all float32 primary family -> dtype_size.
+  flops: 2*B*L + 5*DTSP*B*L
+  flops_class: vector
+  bytes: (3*B*L + B) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

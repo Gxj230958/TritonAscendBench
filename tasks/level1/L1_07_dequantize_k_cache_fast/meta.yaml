@@ -28,6 +28,23 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
+cost_model:
+  # Symbol audit (approach §3.4). MLA K-cache dequant: nope part is per-group
+  # dequantised dequant_nope[g] = nope_q[g] * nope_s[g//gs]; rope part is a
+  # passthrough; output = concat(dequant_nope, rope). Symbol map: B -> token
+  # rows (nope_q/nope_s/rope dim 0, kernel grid extent), D -> DIM_NOPE ==
+  # DIM_ROPE (nope_q/rope last dim). group_size is a scalar literal; nope_s has
+  # D//group_size scale columns.
+  # FLOPs (vector): one multiply per nope element -> B*D; the rope half is a
+  # pure copy (0 ops).
+  # bytes (hbm): read nope_q[B,D] + rope[B,D] + nope_s[B,D//8], write
+  # output[B,2*D] -> (4*B*D + B*D/8) elements; all float32 primary family ->
+  # dtype_size.
+  flops: B*D
+  flops_class: vector
+  bytes: (4*B*D + B*D/8) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:

@@ -28,6 +28,28 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
+cost_model:
+  # Symbol audit (approach §3.4). Mamba2 intra-chunk state:
+  # states = sum_t exp(dA_last - dA_t)*dt_t * B_t (x) x_t. shapes.yaml binds
+  # the operator axes as: C -> nchunks (B/x/dt/dA_cumsum dim 0, oracle
+  # einsum index `c`), L -> chunk_size (B/x dim 1, dt/dA dim 1, the kernel's
+  # contracted reduction axis), N -> dstate (B dim 2, oracle index `n`),
+  # D -> headdim P (x dim 2, oracle index `p`).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel reduces the
+  # chunk with tl.dot — states = einsum("cln,clp->cnp", B*w, x) is per
+  # chunk an [N,L]@[L,D] matmul = 2*N*L*D; over C chunks -> 2*C*L*N*D.
+  # float32 operands run on the 910B Cube unit; peak_table exposes no fp32
+  # cube class so cube matmul is keyed to fp16_cube. FLOPs(vector):
+  # decay = exp(dA_last - dA_t) is sub+exp over C*L, w = decay*dt is 1 mul
+  # over C*L (~3*C*L); B*w is a broadcast mul over C*L*N.
+  # bytes(hbm): read B [C,L,N] + x [C,L,D] + dt [C,L] + dA_cumsum [C,L],
+  # write states [C,N,D]; all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 2*C*L*N*D
+    vector: 3*C*L + C*L*N
+  bytes:
+    hbm: (C*L*N + C*L*D + 2*C*L + C*N*D) * dtype_size
+  gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
