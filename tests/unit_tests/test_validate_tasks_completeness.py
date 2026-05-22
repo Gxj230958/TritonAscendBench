@@ -53,6 +53,7 @@ def _write_task(
     phase_a_prime: dict | None = None,
     oracle_simplified: str = "simple_pytorch_ok",
     metamorphic_checks: list | None = None,
+    param_constraints: dict | None = None,
 ) -> None:
     """Materialise a minimal schema-valid task dir under ``td``."""
     (td / "kernel.py").write_text(kernel_src)
@@ -98,9 +99,9 @@ def _write_task(
         # semantic subsections (empty containers here). These fixtures are
         # not testing param_constraints itself — its own checks live in
         # test_validate_tasks_param_constraints.py and the WA.4 suite.
-        "param_constraints": {"scaffold": False, "dims": [], "dtypes": {},
-                              "dists": {}, "scalars": {},
-                              "tensor_invariants": []},
+        "param_constraints": param_constraints if param_constraints is not None
+        else {"scaffold": False, "dims": [], "dtypes": {},
+              "dists": {}, "scalars": {}, "tensor_invariants": []},
     }
     if phase_a_prime is not None:
         meta["phase_a_prime"] = phase_a_prime
@@ -519,6 +520,67 @@ def test_golden_not_checked_for_non_upstream_tier(tmp_path):
 
 
 # --------------------------------------------------------------------------
+# golden gate is exempt for NON-score-eligible upstream tasks
+# --------------------------------------------------------------------------
+
+_STUB_ORACLE = "def run(i):\n    raise NotImplementedError\n"
+
+
+def test_golden_not_required_for_non_score_eligible_upstream_task(tmp_path):
+    # A non-score-eligible upstream_oracle_required task (stub oracle —
+    # `raise NotImplementedError`) has a placeholder kernel and can never
+    # reach a promoted state, so no offline golden can ever be captured
+    # for it. It is an acknowledged special case and must NOT be held RED
+    # by the golden completeness gate (which would keep --release-gate
+    # permanently red). No golden/ dir, no error.
+    _write_task(
+        tmp_path,
+        oracle_src=_STUB_ORACLE,
+        oracle_simplified="upstream_oracle_required",
+    )
+    errs = _run(tmp_path)
+    assert not any("golden/ directory" in e for e in errs), errs
+
+
+def test_golden_not_required_for_phase_c_manual_upstream_task(tmp_path):
+    # The other non-score-eligible path: a PHASE-C-MANUAL shapes.yaml is
+    # likewise exempt from the golden gate. The size_knobs are kept so
+    # the unrelated cost_model formula check still passes (this test
+    # isolates the golden dimension).
+    _write_task(
+        tmp_path,
+        oracle_simplified="upstream_oracle_required",
+    )
+    (tmp_path / "shapes.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "comment": "PHASE-C-MANUAL",
+                "size_knobs": {"B": 2, "N": 4},
+                "public_shapes": [],
+                "hidden_shapes": [],
+            }
+        )
+    )
+    errs = _run(tmp_path)
+    assert not any("golden/ directory" in e for e in errs), errs
+
+
+def test_golden_still_required_for_score_eligible_upstream_task(tmp_path):
+    # Guard: the exemption is strictly scoped to non-score-eligible
+    # tasks. A SCORE-eligible upstream_oracle_required task (real oracle,
+    # non-PHASE-C-MANUAL shapes) still REQUIRES a complete golden/ set —
+    # the exemption must not silently weaken the gate for the 18
+    # score-eligible upstream tasks.
+    _write_task(
+        tmp_path,
+        oracle_src=_DEF_ORACLE,  # real `run`, not a stub
+        oracle_simplified="upstream_oracle_required",
+    )
+    errs = _run(tmp_path)
+    assert any("no golden/ directory" in e for e in errs), errs
+
+
+# --------------------------------------------------------------------------
 # metamorphic check name registry
 # --------------------------------------------------------------------------
 
@@ -555,3 +617,44 @@ def test_empty_metamorphic_checks_passes(tmp_path):
     _write_task(tmp_path, metamorphic_checks=[])
     errs = _run(tmp_path)
     assert not any("metamorphic" in e for e in errs), errs
+
+
+# --------------------------------------------------------------------------
+# param_constraints scaffold exemption for non-score-eligible tasks
+# --------------------------------------------------------------------------
+
+_SCAFFOLD_BLOCK = {
+    "scaffold": True, "dims": [], "dtypes": {},
+    "dists": {}, "scalars": {}, "tensor_invariants": [],
+}
+
+
+def test_scaffold_not_reported_for_non_score_eligible_task(tmp_path):
+    # A non-score-eligible task (stub oracle -- `raise NotImplementedError`)
+    # with `param_constraints.scaffold: true` is an acknowledged special
+    # case (L1_21_gumbel_sample). The
+    # `_validate_param_constraints_semantic` scaffold gate must exempt it --
+    # SAME `is_score_eligible` predicate as the golden exemption -- so
+    # the task keeps `scaffold: true` honestly (genuinely un-reconciled)
+    # without holding `--release-gate` permanently RED.
+    _write_task(
+        tmp_path,
+        oracle_src=_STUB_ORACLE,
+        param_constraints=_SCAFFOLD_BLOCK,
+    )
+    errs = _run(tmp_path)
+    assert not any("scaffold" in e for e in errs), errs
+
+
+def test_scaffold_still_reported_for_score_eligible_task(tmp_path):
+    # Guard: the exemption is strictly scoped to non-score-eligible
+    # tasks. A SCORE-eligible task (real `run` oracle) carrying
+    # `scaffold: true` is still reported -- the exemption must not silently
+    # let real, scored tasks ship un-reconciled `param_constraints`.
+    _write_task(
+        tmp_path,
+        oracle_src=_DEF_ORACLE,  # real `run` -> score-eligible
+        param_constraints=_SCAFFOLD_BLOCK,
+    )
+    errs = _run(tmp_path)
+    assert any("scaffold" in e for e in errs), errs

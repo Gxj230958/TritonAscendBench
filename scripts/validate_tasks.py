@@ -29,6 +29,7 @@ import hashlib
 import logging
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
 
@@ -51,6 +52,7 @@ from triton_ascend_bench.cost_model import (  # noqa: E402
 )
 from triton_ascend_bench.eligibility import (  # noqa: E402
     golden_artifact_usable,
+    is_score_eligible,
 )
 
 REQUIRED_FILES = {
@@ -302,6 +304,16 @@ def _validate_param_constraints_semantic(
     raw = meta.get("param_constraints")
     if not isinstance(raw, dict):
         # Missing / non-mapping: reported elsewhere — do not double-report.
+        return []
+    # A non-score-eligible task (stub oracle / PHASE-C-MANUAL, e.g.
+    # L1_21_gumbel_sample) is an acknowledged special case excluded from the
+    # scored denominator. Exempt it from the scaffold / semantic gate — the
+    # SAME `is_score_eligible` predicate `_validate_golden`, `eval`, and
+    # `eligibility` consult. L1_21 keeps `param_constraints.scaffold: true`
+    # (honest — genuinely un-reconciled, kernel is a stub) without
+    # permanently blocking `--release-gate`.
+    task_like = SimpleNamespace(task_id=tid, task_dir=task_dir, meta=meta)
+    if not is_score_eligible(task_like):
         return []
     shapes_doc: dict | None = None
     shapes_path = task_dir / "shapes.yaml"
@@ -594,10 +606,33 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
     corpus is expected RED on this check until W4.3 Phase 4 collects the
     artifacts; the validator layer carries that red→green transition.
 
+    The golden requirement applies ONLY to **score-eligible**
+    `upstream_oracle_required` tasks. A non-score-eligible task (stub
+    oracle / `PHASE-C-MANUAL` shapes — `L1_21_gumbel_sample` today) has a
+    placeholder kernel and an unimplemented oracle stub: it can never
+    reach a promoted state, so an offline golden can never be captured
+    for it. Enforcing the golden gate on such a task would keep
+    `--release-gate` permanently RED on a task that is, by design, an
+    acknowledged non-score-eligible special case excluded from the
+    scored denominator. The exemption uses the SAME
+    `eligibility.is_score_eligible` predicate `eval` / `cli analyze` /
+    `phase_b_golden_capture` consult — so the static validator and the
+    runtime eligibility logic cannot drift. Score-eligible
+    `upstream_oracle_required` tasks (18 today) still require a complete
+    `golden/` set, unchanged.
+
     This is a `validate_tasks` schema-mode check -- it does NOT alter the
     binary `release_status` predicate (DESIGN §4.4).
     """
     if meta.get("oracle_simplified") != "upstream_oracle_required":
+        return []
+
+    # A non-score-eligible upstream_oracle_required task (stub oracle /
+    # PHASE-C-MANUAL) has no capturable offline golden — exempt it from
+    # the golden completeness gate, same predicate eval / eligibility /
+    # phase_b_golden_capture use.
+    task_like = SimpleNamespace(task_id=tid, task_dir=task_dir, meta=meta)
+    if not is_score_eligible(task_like):
         return []
 
     errs: list[str] = []
@@ -936,8 +971,10 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # PHASE-AWARE -- format-only while gpu_triton is still the placeholder.
     errs.extend(_validate_kernel_export(tid, meta, task_dir))
 
-    # Step 7e: golden/ layout completeness for upstream_oracle_required
-    # tasks (W2.3), PHASE-AWARE -- only enforced once a golden/ dir exists.
+    # Step 7e: golden/ layout completeness for SCORE-ELIGIBLE
+    # upstream_oracle_required tasks (W2.3). A non-score-eligible
+    # upstream_oracle_required task (stub oracle / PHASE-C-MANUAL) has no
+    # capturable offline golden and is exempt.
     errs.extend(_validate_golden(tid, meta, task_dir))
 
     # Step 7f: metamorphic_checks names must be in the known-check registry
