@@ -1,0 +1,44 @@
+# Release boundary rules for triton-ascend-bench.
+#
+# `export-ignore` removes the path from `git archive` output (release
+# tarball). The bench release artifact MUST NOT contain INTERNAL
+# automation, internal plans, internal release docs, or internal test
+# files. The same set of patterns is mirrored in `.dockerignore` (Docker
+# build context) and in `.github/workflows/ci.yml` (CI release-tarball
+# smoke check + bench-core single-direction grep).
+#
+# Pattern style: directories use a trailing `/`, files use globbing.
+# CI verifies the boundary by `git archive | tar t | grep` -- if any new
+# INTERNAL artifact lands without an `export-ignore` rule, CI fails.
+
+# INTERNAL orchestrator + GPFS runtime dir
+scripts/automation/                              export-ignore
+tab_automation/                                  export-ignore
+
+# INTERNAL plan documents (design doc + impl plan)
+docs/plans/2026-05-23-001-*.md                   export-ignore
+docs/plans/2026-05-23-002-*.md                   export-ignore
+
+# INTERNAL release / triage docs (spike, acceptance, M1-M4 reports, ...)
+docs/release/internal-*.md                       export-ignore
+docs/triage_backlog/                             export-ignore
+
+# INTERNAL tests covering the automation orchestrator + its libraries
+tests/unit_tests/test_lib_*.py                   export-ignore
+tests/unit_tests/test_*automation*.py            export-ignore
+tests/unit_tests/test_fix_orchestrator*.py       export-ignore
+tests/unit_tests/test_tier1_reverify*.py         export-ignore
+tests/unit_tests/test_extract_verdict*.py        export-ignore
+tests/unit_tests/test_llm_client*.py             export-ignore
+tests/unit_tests/test_file_blocks*.py            export-ignore
+tests/unit_tests/test_queue_lib*.py              export-ignore
+tests/unit_tests/test_gpfs_lock*.py              export-ignore
+tests/unit_tests/test_ssh_tunnel*.py             export-ignore
+tests/unit_tests/test_release_boundary.py        export-ignore
+tests/unit_tests/test_prompt_*.py                export-ignore
+tests/unit_tests/test_e2e_*.py                   export-ignore
+tests/unit_tests/test_backlog_report.py          export-ignore
+tests/unit_tests/test_summary_metrics.py         export-ignore
+tests/unit_tests/test_bench_evaluator_daemon.py  export-ignore
+tests/unit_tests/test_fix_orchestrator_tier2.py  export-ignore
+tests/unit_tests/test_fix_orchestrator_m2.py     export-ignore

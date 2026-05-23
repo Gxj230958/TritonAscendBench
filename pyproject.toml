@@ -51,6 +51,11 @@ npu = [
 gpu = [
     # triton — already in core deps
 ]
+automation = [
+    # INTERNAL bench-team automation orchestrator runtime (scripts/automation/).
+    # Not part of the bench release artifact; install with `pip install -e ".[automation]"`.
+    "requests>=2.31",
+]
 
 [project.scripts]
 tab = "triton_ascend_bench.cli:main"

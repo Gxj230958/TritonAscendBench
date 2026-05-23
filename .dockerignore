@@ -1,0 +1,52 @@
+# Docker build context exclusion. Mirrors `.gitattributes` (Docker
+# does NOT read git index attributes, so this list must be maintained
+# independently).
+#
+# Same rationale as `.gitattributes`: the bench Docker image MUST NOT
+# carry INTERNAL automation, plans, release docs, or internal tests.
+
+# INTERNAL orchestrator + GPFS runtime dir
+scripts/automation/
+tab_automation/
+
+# INTERNAL plan documents (design doc + impl plan)
+docs/plans/2026-05-23-001-*.md
+docs/plans/2026-05-23-002-*.md
+
+# INTERNAL release / triage docs
+docs/release/internal-*.md
+docs/triage_backlog/
+
+# INTERNAL tests covering the automation orchestrator + its libraries
+tests/unit_tests/test_lib_*.py
+tests/unit_tests/test_*automation*.py
+tests/unit_tests/test_fix_orchestrator*.py
+tests/unit_tests/test_tier1_reverify*.py
+tests/unit_tests/test_extract_verdict*.py
+tests/unit_tests/test_llm_client*.py
+tests/unit_tests/test_file_blocks*.py
+tests/unit_tests/test_queue_lib*.py
+tests/unit_tests/test_gpfs_lock*.py
+tests/unit_tests/test_ssh_tunnel*.py
+tests/unit_tests/test_release_boundary.py
+tests/unit_tests/test_prompt_*.py
+tests/unit_tests/test_e2e_*.py
+tests/unit_tests/test_backlog_report.py
+tests/unit_tests/test_summary_metrics.py
+tests/unit_tests/test_bench_evaluator_daemon.py
+tests/unit_tests/test_fix_orchestrator_tier2.py
+tests/unit_tests/test_fix_orchestrator_m2.py
+
+# Build / cache noise (standard, copied from .gitignore parity)
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.git/
