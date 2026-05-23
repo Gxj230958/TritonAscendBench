@@ -229,7 +229,7 @@ def _classify_module_member(module: str, name: str) -> tuple[str, str]:
 
     # ── Class D: stable third-party (einops only). ──────────────────
     if _module_top(module) in CLASS_D_PKGS:
-        return CLASS_D, f"{module} is a pinned Class-D PyPI package (einops); pinned in version_matrix [gpu_capture].extra_pins"
+        return CLASS_D, f"{module} is a Class-D stable PyPI package (einops); declared in pyproject.toml [project].dependencies"
 
     # ── B-rewrite-public: tl/triton re-export. ──────────────────────
     if name in _TRITON_REEXPORT_NAMES and module in _TRITON_REEXPORT_MODULES:
@@ -307,7 +307,7 @@ def _classify_non_severable(module: str, name: str) -> tuple[str, str, bool]:
         (handled, always-available, never severed -- explicit
         category, never silently ignored).
       * Class-D allowlisted stable PyPI (einops) -> ``CLASS_D`` + proof,
-        pinned in ``version_matrix [gpu_capture].extra_pins``.
+        declared in ``pyproject.toml [project].dependencies``.
       * anything else (an unknown non-vllm/sglang package we cannot
         prove stable+pinned) -> ``CLASS_D`` *candidate* but flagged as
         a BLOCKED-candidate so it surfaces (NEVER silently ignored;
@@ -337,8 +337,8 @@ def _classify_non_severable(module: str, name: str) -> tuple[str, str, bool]:
     if top in CLASS_D_PKGS:
         return (
             CLASS_D,
-            f"{full} is a pinned Class-D stable PyPI package ({top}); "
-            f"pinned in version_matrix [gpu_capture].extra_pins (NOT "
+            f"{full} is a Class-D stable PyPI package ({top}); "
+            f"declared in pyproject.toml [project].dependencies (NOT "
             f"vendored, NOT shimmed)",
             False,
         )
@@ -350,7 +350,7 @@ def _classify_non_severable(module: str, name: str) -> tuple[str, str, bool]:
         CLASS_D,
         f"unaudited third-party package {top!r} (not on the Class-D "
         f"allowlist, not stdlib/torch/triton) -> BLOCKED-candidate: "
-        f"either add to version_matrix extra_pins with a proof or "
+        f"either add to pyproject.toml dependencies with a proof or "
         f"vendor it; never silently ignored",
         True,
     )

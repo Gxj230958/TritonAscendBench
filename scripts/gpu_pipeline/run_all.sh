@@ -6,7 +6,7 @@
 # produces one consolidated summary at the end.
 #
 # Order (see DESIGN.md §6.10 offline build pipeline):
-#   00_setup_env.sh        environment + frozen-stack install   [ready]
+#   00_setup_env.sh        environment + host-stack install     [ready]
 #   10_phase_a_prime.sh    resolve entrypoints -> S2-gpu verify
 #                          -> promote phase_a_prime.status      [ready]
 #   20_cost_model_xcheck.sh  cost-model GPU cross-check          [ready]

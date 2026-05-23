@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """verify_version_matrix.py — sanity-check infra/version_matrix.toml.
 
-Per specs/process_isolation.md + v4.13 §infra. Catches:
-- Missing required pinned versions
+Per specs/process_isolation.md. Catches:
+- Missing required recorded-stack fields
 - Unparseable TOML
-- Non-frozen placeholder values (`<TBD>`, `<frozen-...>`, etc.)
+- Unresolved placeholder values (`<TBD>`, `<frozen-...>`, etc.)
 """
 from __future__ import annotations
 
@@ -24,8 +24,23 @@ REQUIRED_KEYS = [
     ("npu", "cann"),
     ("npu", "torch_npu"),
     ("npu", "triton_ascend"),
+    ("gpu", "cuda"),
+    ("gpu", "python"),
     ("gpu", "torch"),
     ("gpu", "triton"),
+    ("gpu_capture", "cuda"),
+    ("gpu_capture", "torch"),
+    ("gpu_capture", "triton"),
+    ("gpu_capture", "python"),
+    ("gpu_capture", "device_identity"),
+    ("gpu_capture", "compute_capability"),
+    ("gpu_capture", "fp8_semantics"),
+    ("gpu_capture", "extra_pins"),
+    ("python_deps", "numpy"),
+    ("python_deps", "pyyaml"),
+    ("python_deps", "safetensors"),
+    ("python_deps", "click"),
+    ("python_deps", "rich"),
     ("hardware", "910b"),
     ("protocol",),
 ]

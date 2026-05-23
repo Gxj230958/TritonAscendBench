@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies (CPU-only)
         run: |
@@ -44,7 +44,7 @@ jobs:
         run: |
           python scripts/validate_tasks.py --strict
 
-      - name: Verify version matrix matches frozen pins
+      - name: Verify version matrix
         run: |
           python scripts/verify_version_matrix.py
 
@@ -67,6 +67,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.11
+        # Pinned to 3.11 (the requires-python>=3.11 lower bound) so CI keeps
+        # exercising the minimum supported interpreter; unit-tests runs 3.12.
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -86,7 +88,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build GPU Docker image
-        run: docker build -f infra/Dockerfile.gpu -t tab-gpu:ci .
+        # Dockerfile.gpu has no default BASE_IMAGE. The self-hosted GPU
+        # runner must define a TAB_GPU_BASE_IMAGE repository variable
+        # pointing at an image with torch>=2.9 / triton>=3.5 / CUDA 12.6.
+        run: docker build -f infra/Dockerfile.gpu --build-arg BASE_IMAGE=${{ vars.TAB_GPU_BASE_IMAGE }} -t tab-gpu:ci .
       - name: Run 5-task PoC smoke
         run: |
           docker run --rm --gpus all -v $(pwd)/results:/workspace/results tab-gpu:ci \

@@ -2,11 +2,12 @@
 
 Covers: all required fields present, reuses [gpu] cuda/torch/triton/py,
 pending placeholder allowed by schema but means NOT release-PASS,
-einops Class-D pin present.
+einops declared in pyproject.toml so extra_pins is empty.
 """
 from __future__ import annotations
 
-import tomllib  # Python >= 3.11 (pinned in infra/version_matrix.toml)
+import re
+import tomllib  # Python >= 3.11 stdlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
@@ -54,6 +55,20 @@ def test_pending_means_not_release_pass():
     assert "NOT release-PASS" in raw or "not release-PASS" in raw
 
 
-def test_class_d_einops_pin_present():
+def test_einops_declared_in_pyproject_not_extra_pins():
+    """einops is a bench runtime dependency: it belongs in pyproject.toml
+    [project].dependencies (installed by `pip install -e .`), not pinned
+    in [gpu_capture].extra_pins. extra_pins is empty as a result."""
     gc = _matrix()["gpu_capture"]
-    assert any(p.startswith("einops==") for p in gc["extra_pins"])
+    assert gc["extra_pins"] == [], (
+        f"extra_pins must be empty (einops moved to pyproject.toml); "
+        f"got {gc['extra_pins']!r}"
+    )
+    pyproject = tomllib.loads((REPO / "pyproject.toml").read_text())
+    deps = pyproject["project"]["dependencies"]
+    dep_names = {
+        re.split(r"[<>=~!;\s\[]", d, maxsplit=1)[0].strip().lower() for d in deps
+    }
+    assert "einops" in dep_names, (
+        f"einops must be in [project].dependencies; got {sorted(dep_names)}"
+    )

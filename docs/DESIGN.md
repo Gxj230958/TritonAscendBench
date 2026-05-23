@@ -315,7 +315,7 @@ flowchart TB
 | **B-inert-shim** | 可证惰性 | 进极窄默认拒绝 shim |
 | **C** | 可选加速 fork | 标注，按规则处理 |
 | **S** | env/device/file 驱动配置 | 标注（如 `vllm.envs`） |
-| **D** | 已 pin 稳定 PyPI（einops） | `version_matrix [gpu_capture].extra_pins`，不 vendor 不 shim |
+| **D** | 已声明稳定 PyPI 依赖（einops） | `pyproject.toml [project].dependencies`，不 vendor 不 shim |
 | **torch+triton** | stdlib/torch/triton | always-available，永不 severed |
 | 未知第三方 | 不在 D 白名单、非 stdlib | **BLOCKED-candidate**（surface，绝不静默） |
 
@@ -682,7 +682,7 @@ $s_t\!\approx\!1$ 表示打满 910B 屋脊。ε-fill 与固定 $|S|$ 分母作�
 
 ```mermaid
 flowchart LR
-    P0["版本基线<br/>GPU/NPU/deps 锁定"]
+    P0["版本基线<br/>GPU/NPU/deps 栈记录"]
     P1["题库构建<br/>extract/freeze + oracle/shapes"]
     P1P["可复现冻结链<br/>severing + 等价校验 + 发布门"]
     P2["评测引擎<br/>静态防御 + 三进程隔离"]
@@ -701,7 +701,7 @@ flowchart LR
 
 | 能力层 | 内容 |
 |--------|------|
-| 版本基线 | `version_matrix.toml` 锁定 GPU/NPU/deps 版本 |
+| 版本基线 | `version_matrix.toml` 记录 GPU/NPU/deps 栈版本 |
 | 题库构建 | 任务目录（kernel / oracle / size-knob shapes / contract）|
 | 可复现冻结链 | 符号 severing + 等价校验 + 发布门，使"基准真值 = 冻结上游 kernel"在 provenance 层成立 |
 | 评测引擎 | 静态防御 + inputs 桥 + 三进程隔离 + tolerance + 正确性计分 |

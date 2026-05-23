@@ -11,8 +11,8 @@
 #      cost_model.status == PASS. A non-empty blocking set => non-zero
 #      exit + a blocking task list.
 #
-# Also runs verify_version_matrix.py so the frozen version pins are
-# checked against infra/version_matrix.toml.
+# Also runs verify_version_matrix.py so infra/version_matrix.toml is
+# checked for missing keys / unresolved placeholders.
 #
 # This step is EXPECTED to fail (non-zero) until every upstream GPU
 # step (10 Phase A' freeze, 20 cost-model cross-check, 30 golden
@@ -20,8 +20,9 @@
 # meta.yaml -- that is the gate doing its job, not a script bug. It is
 # always run so the operator gets the authoritative blocking list.
 #
-# Exit code: non-zero if EITHER the schema/hash check OR the release
-# gate failed (a schema failure must never be masked by a 0 gate rc).
+# Exit code: non-zero if ANY of the three checks failed -- the version
+# matrix check, the schema/hash check, or the release gate (no failure
+# may be masked by another check's 0 rc).
 #
 # Usage:
 #   bash scripts/gpu_pipeline/40_release_gate.sh
@@ -34,6 +35,9 @@ source "${_HERE}/lib_common.sh"
 VT="${REPO_ROOT}/scripts/validate_tasks.py"
 VVM="${REPO_ROOT}/scripts/verify_version_matrix.py"
 [ -f "${VT}" ] || die "missing ${VT}"
+# VVM is part of the release gate (its rc feeds the exit code below); a
+# missing script must hard-fail, never silently leave VVM_RC at 0.
+[ -f "${VVM}" ] || die "missing ${VVM}"
 
 step_banner "D" "release-readiness gate"
 
@@ -43,13 +47,16 @@ require_python
 # other step has created PIPELINE_STATE_DIR.
 mkdir -p "${PIPELINE_STATE_DIR}"
 
-# --- 1. version matrix check (non-fatal: report only) -----------------------
+# --- 1. version matrix check ------------------------------------------------
+VVM_RC=0
 if [ -f "${VVM}" ]; then
     step_banner "D.1" "verify version matrix"
-    if python3 "${VVM}" 2>&1 | tee "${PIPELINE_STATE_DIR}/version_matrix.log"; then
+    python3 "${VVM}" 2>&1 | tee "${PIPELINE_STATE_DIR}/version_matrix.log" \
+        || VVM_RC="${PIPESTATUS[0]}"
+    if [ "${VVM_RC}" = "0" ]; then
         log_ok "version matrix consistent"
     else
-        log_warn "version matrix check reported issues (see log above)"
+        log_warn "version matrix check FAILED (rc=${VVM_RC}) -- see log above"
     fi
 fi
 
@@ -71,13 +78,14 @@ python3 "${VT}" --release-gate 2>&1 \
     | tee "${PIPELINE_STATE_DIR}/release_gate.log" || GATE_RC="${PIPESTATUS[0]}"
 
 echo
-if [ "${GATE_RC}" = "0" ] && [ "${SCHEMA_RC}" = "0" ]; then
+if [ "${GATE_RC}" = "0" ] && [ "${SCHEMA_RC}" = "0" ] && [ "${VVM_RC}" = "0" ]; then
     log_ok "RELEASE GATE: PASS -- all score-eligible tasks are release-ready."
     mark_done "release_gate"
     exit 0
 fi
 
 log_err "RELEASE GATE: NOT PASS."
+log_err "  version-matrix rc = ${VVM_RC}"
 log_err "  schema/hash rc = ${SCHEMA_RC}"
 log_err "  release-gate rc = ${GATE_RC}"
 log_err ""
@@ -86,12 +94,16 @@ log_err "  20 cost-model cross-check, 30 golden capture) has actually run on"
 log_err "  a GPU host -- the gate is correctly blocking, not a script bug."
 log_err "  The blocking task list is in ${PIPELINE_STATE_DIR}/release_gate.log"
 
-# Exit non-zero if EITHER stage failed. A schema/hash failure with a
-# 0 release-gate rc must NOT exit 0 -- that would let run_all.sh record
-# step 40 as PASS (a false green). Prefer the release-gate rc when it is
-# itself non-zero so the operator sees the gate's own status code.
+# Exit non-zero if ANY stage failed. A version-matrix or schema/hash
+# failure with a 0 release-gate rc must NOT exit 0 -- that would let
+# run_all.sh record step 40 as PASS (a false green). Prefer the
+# release-gate rc when it is itself non-zero so the operator sees the
+# gate's own status code; otherwise surface whichever check failed.
 if [ "${GATE_RC}" != "0" ]; then
     exit "${GATE_RC}"
 fi
-# GATE_RC is 0 here, so SCHEMA_RC must be the non-zero one.
-exit "${SCHEMA_RC:-1}"
+if [ "${SCHEMA_RC}" != "0" ]; then
+    exit "${SCHEMA_RC}"
+fi
+# GATE_RC and SCHEMA_RC are 0 here, so VVM_RC must be the non-zero one.
+exit "${VVM_RC:-1}"

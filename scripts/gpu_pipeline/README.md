@@ -14,7 +14,8 @@ backfill) — that needs a 910B host, out of scope here.
 git clone <triton-ascend-bench repo>          # or: git pull
 cd triton-ascend-bench
 
-# 1. one-time environment setup (frozen torch/triton stack + the bench)
+# 1. one-time environment setup (installs the bench on the host's
+#    existing torch/triton stack -- no frozen environment is pinned)
 bash scripts/gpu_pipeline/00_setup_env.sh
 
 # 2. run the whole pipeline
@@ -59,7 +60,7 @@ PASS). `ncu` may also need profiling permissions (`--cap-add` /
 
 | # | Script | Does | Needs GPU | Status |
 |---|--------|------|-----------|--------|
-| 00 | `00_setup_env.sh` | python/CUDA precheck; install the complete frozen pin set (`torch/triton/numpy/pyyaml/safetensors/click/rich/einops`) + `pip install -e .[dev]`; CUDA smoke check | driver only | ready |
+| 00 | `00_setup_env.sh` | python/CUDA precheck; `pip install -e .[dev]` (installs the bench plus any missing deps on the host's existing torch/triton stack); compare host stack vs `version_matrix.toml`; CUDA smoke check | driver only | ready |
 | 10 | `10_phase_a_prime.sh` | resolve upstream entrypoints (`--apply`) → S2-gpu-authoritative verify + N=5 determinism → atomic-promote `kernel.py` + write `meta.phase_a_prime.status` → status report | yes | ready |
 | 20 | `20_cost_model_xcheck.sh` | cost-model GPU cross-check → write `meta.cost_model.status` | yes (+ `ncu`) | ready |
 | 30 | `30_golden_capture.sh` | capture offline golden for `upstream_oracle_required` tasks → `tasks/.../golden/<shape>.safetensors` | yes | ready |

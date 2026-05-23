@@ -1,6 +1,14 @@
-# GPU baseline runner — H100 / A100 (CUDA 13.0)
-# Used for: Phase 3.1 GPU triton baseline collection
-FROM nvcr.io/nvidia/pytorch:24.10-py3
+# GPU baseline runner -- H100 / A100
+# Used for: Phase 3.1 GPU triton baseline collection.
+#
+# The bench runs on the host stack recorded in infra/version_matrix.toml
+# [gpu] (torch 2.9.1 / triton 3.5.1 / CUDA 12.6, python 3.12). BASE_IMAGE
+# has NO default on purpose: a missing --build-arg makes `docker build`
+# fail loudly instead of silently producing an image on the wrong stack.
+# Supply a base image that already provides that stack, e.g.:
+#   docker build --build-arg BASE_IMAGE=<your torch>=2.9 image> ...
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
 
 WORKDIR /workspace
 COPY pyproject.toml /workspace/
@@ -8,16 +16,10 @@ COPY triton_ascend_bench /workspace/triton_ascend_bench
 COPY tasks /workspace/tasks
 COPY scripts /workspace/scripts
 
-# Frozen versions per infra/version_matrix.toml
-RUN pip install --no-cache-dir \
-    "torch==2.5.1" \
-    "triton==3.2.0" \
-    "numpy==1.26.0" \
-    "pyyaml==6.0" \
-    "safetensors==0.4.5" \
-    "click==8.1.7" \
-    "rich==13.7"
-
+# The bench declares only >= lower-bound deps in pyproject.toml; it does
+# not pin an exact numerics stack. This installs the bench plus any
+# missing dependency and leaves the base image's torch / triton
+# untouched.
 RUN pip install --no-cache-dir -e ".[dev,gpu]"
 
 # Lock down /tmp at runtime for sandbox tests

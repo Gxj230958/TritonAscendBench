@@ -6,19 +6,18 @@
 #
 # What it does:
 #   1. Verifies python3 >= 3.11 and a CUDA driver / nvidia-smi.
-#   2. Installs the COMPLETE frozen dependency set pinned in
-#      infra/version_matrix.toml + infra/Dockerfile.gpu: torch / triton /
-#      numpy from [gpu], pyyaml / safetensors / click / rich from
-#      [python_deps], and einops from [gpu_capture].extra_pins.
-#   3. Installs the bench itself in editable mode with the [dev] extra
-#      (the only extra pyproject.toml declares -- the GPU numerics stack
-#      is pinned explicitly in step 2, not via a pyproject extra).
-#   4. Checks for the frozen upstream vllm/sglang checkouts that the
+#   2. Installs the bench in editable mode with the [dev] extra. The
+#      bench declares only >= lower-bound deps in pyproject.toml
+#      [project].dependencies; it does NOT pin an exact GPU numerics
+#      stack. pip installs the bench plus any MISSING dependency and
+#      leaves versions the host already satisfies untouched -- the
+#      bench runs on whatever torch / triton the host already has.
+#   3. Checks for the frozen upstream vllm/sglang checkouts that the
 #      Phase A' resolver needs at <repo>/../infer/{vllm,sglang}; if they
 #      are missing it prints exactly what to clone (it does NOT guess a
 #      commit -- the per-task commit SHAs live in tasks/*/meta.yaml and
 #      the checkout must be pinned to a clean state by the operator).
-#   5. Runs a CUDA smoke check via torch.
+#   4. Runs a CUDA smoke check via torch.
 #
 # It deliberately does NOT install torch_npu / triton-ascend (NPU-only).
 #
@@ -33,24 +32,6 @@ source "${_HERE}/lib_common.sh"
 
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
-
-# Frozen pins -- the COMPLETE set the bench is verified against. Single
-# source of truth is infra/version_matrix.toml + infra/Dockerfile.gpu;
-# duplicated here as explicit literals so `pip install` does not depend on
-# a TOML parser. verify_version_matrix.py cross-checks the toml at the end
-# of the pipeline -- if these drift the operator will be told.
-#
-# Keep this list IN SYNC with infra/Dockerfile.gpu's pip install block.
-FROZEN_PINS=(
-    "torch==2.5.1"          # version_matrix [gpu].torch
-    "triton==3.2.0"         # version_matrix [gpu].triton
-    "numpy==1.26.0"         # version_matrix [python_deps].numpy
-    "pyyaml==6.0"           # version_matrix [python_deps].pyyaml
-    "safetensors==0.4.5"    # version_matrix [python_deps].safetensors
-    "click==8.1.7"          # version_matrix [python_deps].click
-    "rich==13.7"            # version_matrix [python_deps].rich
-    "einops==0.8.0"         # version_matrix [gpu_capture].extra_pins
-)
 
 step_banner "0" "GPU environment setup"
 
@@ -121,23 +102,127 @@ if [ "${CHECK_ONLY}" = "1" ]; then
     exit 0
 fi
 
-# --- 3. install the frozen GPU stack ----------------------------------------
+# --- 3. install the bench (compatible with the host GPU stack) --------------
 if is_done "setup_pip"; then
     log_skip "pip install already completed (marker present; FORCE=1 to redo)"
 else
-    step_banner "0.1" "pip install (complete frozen stack + bench)"
-    log_info "installing the ${#FROZEN_PINS[@]} pinned dependencies ..."
-    for pin in "${FROZEN_PINS[@]}"; do
-        log_info "  - ${pin}"
-    done
-    python3 -m pip install --no-cache-dir "${FROZEN_PINS[@]}"
-    # The bench's only declared extra is [dev]; the GPU-side numerics
-    # stack is pinned explicitly above (FROZEN_PINS) rather than via a
-    # pyproject extra, so the editable install uses [dev].
+    step_banner "0.1" "install the bench (host-compatible)"
+    log_info "host GPU stack vs infra/version_matrix.toml:"
+    # Compare the host's actual torch/triton/python/cuda + Python deps
+    # against what version_matrix.toml records. A mismatch is a WARNING,
+    # not a hard fail: the bench runs on the host stack by design. The
+    # operator must still be told so a baseline captured on this host is
+    # accompanied by a version_matrix.toml update reflecting the real
+    # stack. tomllib is stdlib on python>=3.11; no third-party dep.
+    VM_REPORT="$(python3 - "${REPO_ROOT}/infra/version_matrix.toml" <<'PY'
+import importlib
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover -- python<3.11
+    print("STATUS warn version_matrix comparison skipped (no tomllib)")
+    sys.exit(0)
+
+matrix_path = Path(sys.argv[1])
+try:
+    matrix = tomllib.loads(matrix_path.read_text())
+except (OSError, tomllib.TOMLDecodeError) as exc:
+    print(f"STATUS warn cannot read {matrix_path}: {exc}")
+    sys.exit(0)
+
+gpu = matrix.get("gpu", {})
+python_deps = matrix.get("python_deps", {})
+
+
+def host_version(module_name):
+    try:
+        mod = importlib.import_module(module_name)
+    except Exception:  # noqa: BLE001 -- a probe import must never abort setup
+        return None
+    return getattr(mod, "__version__", "?")
+
+
+# (label, host value, matrix-expected value)
+checks = []
+
+py_host = ".".join(str(x) for x in sys.version_info[:3])
+checks.append(("python", py_host, gpu.get("python", "")))
+
+torch_host = host_version("torch")
+checks.append(("torch", torch_host, gpu.get("torch", "")))
+
+triton_host = host_version("triton")
+checks.append(("triton", triton_host, gpu.get("triton", "")))
+
+cuda_host = None
+try:
+    import torch as _torch
+
+    cuda_host = _torch.version.cuda
+except Exception:  # noqa: BLE001 -- torch missing or no cuda build
+    cuda_host = None
+checks.append(("cuda", cuda_host, gpu.get("cuda", "")))
+
+# numpy / pyyaml / safetensors / click from [python_deps]
+for label, module_name, key in (
+    ("numpy", "numpy", "numpy"),
+    ("pyyaml", "yaml", "pyyaml"),
+    ("safetensors", "safetensors", "safetensors"),
+    ("click", "click", "click"),
+):
+    checks.append((label, host_version(module_name), python_deps.get(key, "")))
+
+mismatches = 0
+for label, host_val, expected in checks:
+    host_disp = host_val if host_val else "(missing)"
+    if not expected:
+        # No recorded expectation -- print for visibility only.
+        print(f"LINE info     {label:13s}host={host_disp}  matrix=(unset)")
+        continue
+    # python: compare only major.minor against the matrix value.
+    host_cmp = host_val
+    if label == "python" and host_val:
+        host_cmp = ".".join(host_val.split(".")[:2])
+    if host_cmp == expected:
+        print(f"LINE ok       {label:13s}host={host_disp}  matrix={expected}")
+    else:
+        mismatches += 1
+        print(f"LINE warn     {label:13s}host={host_disp}  matrix={expected}  MISMATCH")
+
+if mismatches:
+    print(f"STATUS warn {mismatches} version(s) differ from version_matrix.toml")
+else:
+    print("STATUS ok host stack matches version_matrix.toml")
+PY
+)"
+    while IFS= read -r vline; do
+        case "${vline}" in
+            "LINE ok "*)    log_ok   "${vline#LINE ok }" ;;
+            "LINE warn "*)  log_warn "${vline#LINE warn }" ;;
+            "LINE info "*)  log_info "${vline#LINE info }" ;;
+            "STATUS ok "*)  log_ok   "${vline#STATUS ok }" ;;
+            "STATUS warn "*)
+                log_warn "${vline#STATUS warn }"
+                log_warn "  the bench runs on the host stack by design -- this is"
+                log_warn "  not fatal, but any baseline captured on this host must"
+                log_warn "  be accompanied by a version_matrix.toml update that"
+                log_warn "  records the actual host versions."
+                ;;
+            "") ;;
+            *)              log_info "${vline}" ;;
+        esac
+    done <<< "${VM_REPORT}"
+    # The bench declares only >= lower-bound deps (pyproject.toml); it
+    # does NOT pin an exact numerics stack. `pip install -e .[dev]`
+    # installs the bench plus any missing dependency and leaves an
+    # already-satisfied torch / triton untouched -- the bench runs on
+    # whatever GPU stack the host already has.
     log_info "installing the bench in editable mode (.[dev]) ..."
     python3 -m pip install --no-cache-dir -e "${REPO_ROOT}[dev]"
     mark_done "setup_pip"
-    log_ok "pip install complete"
+    log_ok "bench installed"
 fi
 
 # --- 4. CUDA smoke check ----------------------------------------------------
