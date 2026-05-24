@@ -683,3 +683,246 @@ def test_tab_quickstart_md_references_conf_example_path():
         "quickstart.md must reference scripts/automation/runners/"
         "tab_quickstart.conf.example so operators know where to copy from"
     )
+
+
+# ---------------------------------------------------------------------------
+# 13. Config file resolution priority
+# ---------------------------------------------------------------------------
+# The wrapper resolves the config file from three sources (high to low):
+#   1. $TAB_CONFIG env var (explicit override)
+#   2. <repo-root>/tab_quickstart.conf  (recommended; gitignored)
+#   3. ~/.tab-quickstart.conf            (legacy fallback)
+# REPO_ROOT inside the wrapper is derived as $SCRIPT_DIR/../../.., so for
+# the priority tests we must mirror the real three-level layout
+#   <fake_repo>/scripts/automation/runners/tab_quickstart.sh
+# under each test's tmp_path. That way the wrapper's REPO_ROOT resolves
+# back into the per-test tmp_path -- not into the pytest shared tmp dir
+# (which would let parallel runs/leftover repo-local conf files step on
+# each other).
+def _make_fake_bench_repo(tmp_path: Path) -> Path:
+    """Build a fake bench-repo layout that mirrors the real
+    ``<repo>/scripts/automation/runners/`` location so the wrapper's
+    ``REPO_ROOT="$SCRIPT_DIR/../../.."`` resolves to ``tmp_path``.
+
+    Stubs ``setup_machine_a_gpu.sh`` and ``run_acceptance_gate.sh`` are
+    also dropped beside the script so delegated subcommands have a
+    no-op target if a test ever exercises them. The priority tests
+    themselves only call ``status``, which does not delegate.
+
+    Returns the fake repo root (== ``tmp_path``).
+    """
+    runners_dir = tmp_path / "scripts" / "automation" / "runners"
+    runners_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy(_REAL_SCRIPT, runners_dir / "tab_quickstart.sh")
+    _make_executable(runners_dir / "tab_quickstart.sh")
+    for runner in ("setup_machine_a_gpu.sh", "run_acceptance_gate.sh"):
+        stub = runners_dir / runner
+        stub.write_text(
+            "#!/usr/bin/env bash\n"
+            "echo \"[stub] $0 $*\"\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        _make_executable(stub)
+    return tmp_path
+
+
+def _fake_repo_script(fake_repo: Path) -> Path:
+    """Return the tab_quickstart.sh path inside the fake-layout repo."""
+    return fake_repo / "scripts" / "automation" / "runners" / "tab_quickstart.sh"
+
+
+def _make_fake_home(tmp_path: Path) -> Path:
+    """Sibling tmp dir for HOME so home/repo are independent.
+
+    Living under ``tmp_path.parent`` keeps it inside the pytest tmpdir
+    tree (auto-cleaned) while keeping HOME outside the fake repo root.
+    """
+    fake_home = tmp_path.parent / f"{tmp_path.name}_home"
+    fake_home.mkdir(exist_ok=True)
+    return fake_home
+
+
+def _run_fake_repo(
+    fake_repo: Path,
+    fake_home: Path,
+    *args: str,
+    env_extra: dict | None = None,
+) -> subprocess.CompletedProcess:
+    """Invoke tab_quickstart.sh inside a fake-layout repo.
+
+    Builds a minimal env (HOME + PATH + optional overrides) and -- unless
+    the caller explicitly sets TAB_CONFIG via env_extra -- leaves
+    TAB_CONFIG unset so the wrapper's repo-local / home fallback chain
+    is exercised.
+    """
+    env = {
+        "HOME": str(fake_home),
+        "PATH": os.environ.get("PATH", ""),
+    }
+    if env_extra:
+        env.update(env_extra)
+    return subprocess.run(
+        [_bash(), str(_fake_repo_script(fake_repo)), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        env=env,
+    )
+
+
+def test_fake_bench_repo_layout_resolves_repo_root_correctly(tmp_path):
+    """Sanity: fake-layout REPO_ROOT must resolve to tmp_path, not the
+    pytest shared tmp dir (regression guard for the priority tests).
+    """
+    fake_repo = _make_fake_bench_repo(tmp_path)
+    fake_home = _make_fake_home(tmp_path)
+    (fake_repo / "tab_quickstart.conf").write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/x"
+            TAB_C_HOST="user@host"
+            TAB_C_CLI_CMD='cli {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    proc = _run_fake_repo(fake_repo, fake_home, "status")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    # CONFIG_FILE must point inside fake_repo (per-test tmp), not pytest's
+    # shared /tmp/pytest-of-* root.
+    expected = str(fake_repo / "tab_quickstart.conf")
+    assert expected in proc.stdout, proc.stdout
+    assert "[repo-local]" in proc.stdout, proc.stdout
+
+
+def test_config_priority_env_overrides_repo_local(tmp_path):
+    """$TAB_CONFIG env wins over <repo-root>/tab_quickstart.conf."""
+    fake_repo = _make_fake_bench_repo(tmp_path)
+    fake_home = _make_fake_home(tmp_path)
+    repo_local = fake_repo / "tab_quickstart.conf"
+    repo_local.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/from-repo"
+            TAB_C_HOST="user@repo-host"
+            TAB_C_CLI_CMD='repo-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    env_conf = tmp_path / "env.conf"
+    env_conf.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/from-env"
+            TAB_C_HOST="user@env-host"
+            TAB_C_CLI_CMD='env-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    proc = _run_fake_repo(
+        fake_repo,
+        fake_home,
+        "status",
+        env_extra={"TAB_CONFIG": str(env_conf)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    config_block = proc.stdout.split("== state ==", 1)[0]
+    assert "/from-env" in config_block, config_block
+    assert "/from-repo" not in config_block, config_block
+    assert "[TAB_CONFIG env]" in config_block, config_block
+
+
+def test_config_priority_repo_local_overrides_home(tmp_path):
+    """<repo-root>/tab_quickstart.conf wins over ~/.tab-quickstart.conf."""
+    fake_repo = _make_fake_bench_repo(tmp_path)
+    fake_home = _make_fake_home(tmp_path)
+    repo_local = fake_repo / "tab_quickstart.conf"
+    repo_local.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/from-repo"
+            TAB_C_HOST="user@repo-host"
+            TAB_C_CLI_CMD='repo-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    home_conf = fake_home / ".tab-quickstart.conf"
+    home_conf.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/from-home"
+            TAB_C_HOST="user@home-host"
+            TAB_C_CLI_CMD='home-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    proc = _run_fake_repo(fake_repo, fake_home, "status")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    config_block = proc.stdout.split("== state ==", 1)[0]
+    assert "/from-repo" in config_block, config_block
+    assert "/from-home" not in config_block, config_block
+    assert "[repo-local]" in config_block, config_block
+
+
+def test_config_source_indicator_repo_local(tmp_path):
+    """Status output surfaces the [repo-local] source tag."""
+    fake_repo = _make_fake_bench_repo(tmp_path)
+    fake_home = _make_fake_home(tmp_path)
+    repo_local = fake_repo / "tab_quickstart.conf"
+    repo_local.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/fake-gpfs"
+            TAB_C_HOST="user@stub-host"
+            TAB_C_CLI_CMD='stub-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    proc = _run_fake_repo(fake_repo, fake_home, "status")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "[repo-local]" in proc.stdout, proc.stdout
+    assert "(loaded)" in proc.stdout, proc.stdout
+
+
+def test_config_source_indicator_home_legacy(tmp_path):
+    """Status surfaces '[home (legacy fallback)]' when only home conf exists."""
+    fake_repo = _make_fake_bench_repo(tmp_path)
+    fake_home = _make_fake_home(tmp_path)
+    # Per-test fake_repo is unique, so no leftover repo-local conf can leak.
+    assert not (fake_repo / "tab_quickstart.conf").exists()
+    home_conf = fake_home / ".tab-quickstart.conf"
+    home_conf.write_text(
+        textwrap.dedent(
+            """\
+            TAB_GPFS_ROOT="/fake-gpfs"
+            TAB_C_HOST="user@stub-host"
+            TAB_C_CLI_CMD='stub-cli --print {prompt}'
+            """
+        ),
+        encoding="utf-8",
+    )
+    proc = _run_fake_repo(fake_repo, fake_home, "status")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "[home (legacy fallback)]" in proc.stdout, proc.stdout
+
+
+def test_gitignore_contains_tab_quickstart_conf_rules():
+    """Repo .gitignore must list both tab_quickstart conf patterns."""
+    gitignore = (_REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    lines = gitignore.splitlines()
+    # Match exact rule lines (the leading slash on the first entry pins
+    # the match to repo root; the second entry covers the legacy name
+    # anywhere it might be accidentally placed).
+    assert "/tab_quickstart.conf" in lines, (
+        ".gitignore must list '/tab_quickstart.conf' (repo-root-only)"
+    )
+    assert ".tab-quickstart.conf" in lines, (
+        ".gitignore must list '.tab-quickstart.conf' (legacy name, any dir)"
+    )

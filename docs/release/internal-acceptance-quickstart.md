@@ -12,9 +12,9 @@
 然后一条命令一个子命令:
 
 ```bash
-# 1. 一次性配置(只填一遍)
-cp scripts/automation/runners/tab_quickstart.conf.example ~/.tab-quickstart.conf
-$EDITOR ~/.tab-quickstart.conf
+# 1. 一次性配置(只填一遍,gitignored 防意外 commit)
+cp scripts/automation/runners/tab_quickstart.conf.example ./tab_quickstart.conf
+$EDITOR ./tab_quickstart.conf
 # 改 TAB_GPFS_ROOT / TAB_C_HOST / TAB_C_CLI_CMD 三个必填变量为你的实际值
 
 # 2. 跑各步(每条独立可重跑;子命令名见 `bash ... help`)
@@ -29,6 +29,8 @@ bash scripts/automation/runners/tab_quickstart.sh clean       # 重新跑前清�
 
 变量优先级 `env > conf file > defaults`,也可以临时 `TAB_GPFS_ROOT=/x bash ... status` 覆盖。
 封装内部走的就是下面"手动逐 step"章节里同样的 5 个 runner 脚本,只是把参数收敛到一处。
+
+> conf 路径优先级:`$TAB_CONFIG` env > `./tab_quickstart.conf`(repo-local,**推荐**)> `~/.tab-quickstart.conf`(老路径,fallback)
 
 > 如需自定义每条命令的细节(`--c-port` / `--health-path` / Tier 2 daemon 等),
 > 看下面的"手动逐 step"章节,直接调用 `run_acceptance_gate.sh` / `run_machine_a_daemon.sh` 等。

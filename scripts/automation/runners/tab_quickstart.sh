@@ -13,14 +13,30 @@
 # export-ignore pattern in .gitattributes / .dockerignore).
 #
 # Variable precedence: env > conf file > script defaults.
-# Conf file path: ${TAB_CONFIG:-$HOME/.tab-quickstart.conf}.
+# Conf file resolution (high to low):
+#   1. $TAB_CONFIG env var (explicit override)
+#   2. <repo-root>/tab_quickstart.conf  (recommended; gitignored)
+#   3. ~/.tab-quickstart.conf            (legacy fallback)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNNERS_DIR="$SCRIPT_DIR"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-CONFIG_FILE="${TAB_CONFIG:-$HOME/.tab-quickstart.conf}"
+# Resolve config file (priority: $TAB_CONFIG env > repo-local > home > none).
+if [[ -n "${TAB_CONFIG:-}" ]]; then
+  CONFIG_FILE="$TAB_CONFIG"
+  CONFIG_SOURCE="TAB_CONFIG env"
+elif [[ -f "$REPO_ROOT/tab_quickstart.conf" ]]; then
+  CONFIG_FILE="$REPO_ROOT/tab_quickstart.conf"
+  CONFIG_SOURCE="repo-local"
+elif [[ -f "$HOME/.tab-quickstart.conf" ]]; then
+  CONFIG_FILE="$HOME/.tab-quickstart.conf"
+  CONFIG_SOURCE="home (legacy fallback)"
+else
+  CONFIG_FILE=""
+  CONFIG_SOURCE="(none -- required vars must come from env)"
+fi
 EXAMPLE_CONF_PATH="scripts/automation/runners/tab_quickstart.conf.example"
 
 # ---------------------------------------------------------------------------
@@ -72,8 +88,13 @@ Subcommands:
   help        Show this message.
 
 Config sources (priority: env > conf file > defaults):
-  CONFIG_FILE: ${CONFIG_FILE}
+  CONFIG_FILE: ${CONFIG_FILE:-<none>}  [${CONFIG_SOURCE}]
   EXAMPLE:     ${EXAMPLE_CONF_PATH}
+
+Conf file resolution (high to low):
+  1. \$TAB_CONFIG env var (explicit override)
+  2. <repo-root>/tab_quickstart.conf  (recommended; gitignored)
+  3. ~/.tab-quickstart.conf            (legacy fallback)
 
 Required variables (set in conf file or env):
   TAB_GPFS_ROOT    Working / shared directory for state, queue, results, logs.
@@ -124,7 +145,7 @@ for _var in TAB_GPFS_ROOT TAB_C_HOST TAB_C_CLI_CMD TAB_BENCH_REPO \
 done
 unset _var
 
-if [[ -f "$CONFIG_FILE" ]]; then
+if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$CONFIG_FILE"
 fi
@@ -141,7 +162,8 @@ unset _var
 _require() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
-    echo "[fatal] $name not set; configure in $CONFIG_FILE or export env" >&2
+    local hint="${CONFIG_FILE:-$REPO_ROOT/tab_quickstart.conf (create from example)}"
+    echo "[fatal] $name not set; configure in $hint or export env" >&2
     echo "[fatal] example conf: $EXAMPLE_CONF_PATH" >&2
     exit 2
   fi
@@ -315,10 +337,12 @@ cmd_full() {
 # ---------------------------------------------------------------------------
 cmd_status() {
   echo "== config =="
-  if [[ -f "$CONFIG_FILE" ]]; then
-    echo "  CONFIG_FILE:       $CONFIG_FILE (loaded)"
+  if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
+    echo "  CONFIG_FILE:       $CONFIG_FILE (loaded) [${CONFIG_SOURCE}]"
+  elif [[ -n "$CONFIG_FILE" ]]; then
+    echo "  CONFIG_FILE:       $CONFIG_FILE (missing) [${CONFIG_SOURCE}]"
   else
-    echo "  CONFIG_FILE:       $CONFIG_FILE (missing)"
+    echo "  CONFIG_FILE:       <none> [${CONFIG_SOURCE}]"
   fi
   echo "  TAB_GPFS_ROOT:     $TAB_GPFS_ROOT"
   echo "  TAB_C_HOST:        $TAB_C_HOST"

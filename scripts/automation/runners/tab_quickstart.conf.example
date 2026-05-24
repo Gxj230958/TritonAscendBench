@@ -1,9 +1,15 @@
 # tab_quickstart.sh configuration
 #
-# Copy to ~/.tab-quickstart.conf (or any path pointed to by TAB_CONFIG)
-# and edit values for your environment. All variables are bash-style
-# KEY="value"; this file is `source`d by tab_quickstart.sh before
-# subcommand dispatch. Comments must start with '#'.
+# Copy to <repo-root>/tab_quickstart.conf (gitignored by default) and edit
+# values for your environment.
+#
+# Config file resolution priority (high to low):
+#   1. $TAB_CONFIG env var (explicit override)
+#   2. <repo-root>/tab_quickstart.conf  (recommended; gitignored)
+#   3. ~/.tab-quickstart.conf            (legacy fallback)
+#
+# All variables are bash-style KEY="value"; sourced before subcommand
+# dispatch. Comments must start with '#'.
 
 # === REQUIRED ===
 
