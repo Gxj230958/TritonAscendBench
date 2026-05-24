@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Runs on: A-machine (GPU host). One-time environment validation + automation extras install.
+#
 # Machine A (GPU host) one-time setup.
 #
 # Verifies the local GPU host can run:
@@ -18,6 +20,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
+Runs on: A-machine (GPU host).
 Usage: setup_machine_a_gpu.sh --gpfs-root PATH [--skip-install]
 
 Options:

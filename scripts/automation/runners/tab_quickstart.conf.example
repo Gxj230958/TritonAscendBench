@@ -8,6 +8,11 @@
 #   2. <repo-root>/tab_quickstart.conf  (recommended; gitignored)
 #   3. ~/.tab-quickstart.conf            (legacy fallback)
 #
+# Machine deployment:
+#   single-machine (A=B same host): run all subcommands on the single GPU host
+#   three-machine separated:        A=GPU bench, B=CPU orchestrator, C=LLM CLI host
+# See tab_quickstart.sh help for per-subcommand "Runs on" target.
+#
 # All variables are bash-style KEY="value"; sourced before subcommand
 # dispatch. Comments must start with '#'.
 
@@ -23,13 +28,55 @@ TAB_GPFS_ROOT="/tmp/tab-shared"
 # alias. BatchMode key auth must work (no password prompts).
 TAB_C_HOST="user@c-host"
 
-# CLI command template invoked via SSH on the LLM host. MUST contain
-# the literal '{prompt}' placeholder (no surrounding quotes around it --
-# the bench wraps the actual prompt with shlex.quote before substituting).
-# Examples (CLI name is just a placeholder -- bench is CLI-agnostic):
-#   TAB_C_CLI_CMD='my-cli --print {prompt}'
-#   TAB_C_CLI_CMD='my-cli exec {prompt}'
-#   TAB_C_CLI_CMD='env LANG=C my-cli --json {prompt}'
+# === TAB_C_CLI_CMD (REQUIRED) ===
+#
+# What it does:
+#   The bench invokes the LLM CLI on the C host via SSH. For every LLM
+#   request, the bench takes the prompt, runs shlex.quote() on it, then
+#   substitutes it for the literal token '{prompt}' inside this template
+#   to produce a fully resolved shell command. The bench then runs
+#   `ssh <c-host> '<resolved command>'` and reads stdout as the reply.
+#
+# How to fill it:
+#   - The template must contain the literal token '{prompt}' exactly once.
+#   - Do NOT add quotes around '{prompt}' -- the bench wraps the actual
+#     prompt with shlex.quote automatically. Manual quotes here would
+#     deliver a quoted-string-as-prompt to the CLI.
+#   - The template may contain shell variables (e.g. ${HOME}) or literal
+#     JSON ({"k":"v"}); the bench uses plain .replace() and does not
+#     parse the template with Python str.format.
+#
+# === Common CLI templates (pick the one that matches the CLI on C) ===
+#
+# Claude Code CLI (already logged in on C, using your Claude account quota):
+#   TAB_C_CLI_CMD='claude --print {prompt}'
+#
+# OpenAI Codex CLI (already logged in on C, using your Codex account quota):
+#   TAB_C_CLI_CMD='codex exec {prompt}'
+#
+# Any other CLI (anything that takes the prompt as part of argv and prints
+# the reply on stdout):
+#   TAB_C_CLI_CMD='<your-cli> <subcommand> {prompt}'
+#
+# Advanced (change locale, add flags):
+#   TAB_C_CLI_CMD='env LANG=C claude --print --output-format text {prompt}'
+#   TAB_C_CLI_CMD='codex exec --json {prompt}'
+#
+# === Common mistakes (all are rejected at startup with rc=2) ===
+#
+# Wrong: quotes wrapped around the placeholder (CLI would see a quoted prompt)
+#   TAB_C_CLI_CMD='claude --print "{prompt}"'   # fatal: do NOT wrap
+#   TAB_C_CLI_CMD="codex exec '{prompt}'"       # fatal: do NOT wrap
+#
+# Wrong: placeholder missing
+#   TAB_C_CLI_CMD='claude --print'              # fatal: must contain {prompt}
+#
+# Wrong: placeholder repeated
+#   TAB_C_CLI_CMD='my-cli {prompt} {prompt}'    # fatal: exactly once
+#
+# Wrong: placeholder inside an outer quoted span
+#   TAB_C_CLI_CMD='my-cli exec "prefix {prompt} suffix"'   # fatal: do NOT wrap
+
 TAB_C_CLI_CMD='my-cli --print {prompt}'
 
 # === OPTIONAL (have defaults) ===

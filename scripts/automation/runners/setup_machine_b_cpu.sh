@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Runs on: B-machine (CPU orchestrator host). One-time SSH reachability + automation install probe.
+#
 # Machine B (CPU orchestrator host) one-time setup.
 #
 # Machine B does NOT run bench scripts. It runs:
@@ -17,6 +19,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
+Runs on: B-machine (CPU orchestrator host).
 Usage: setup_machine_b_cpu.sh --gpfs-root PATH --a-host SSH --c-host SSH
                               [--llm-transport MODE] [--llm-cli-cmd TPL]
                               [--skip-install]

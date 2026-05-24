@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Runs on: B-machine (CPU orchestrator host). Drives acceptance gate phases for the three-machine automation stack.
+#
 # Acceptance gate driver for the three-machine automation stack.
 #
 # Runs the four acceptance phases in order (or one selected phase) and
@@ -46,6 +48,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
+Runs on: B-machine (CPU orchestrator host).
 Usage: run_acceptance_gate.sh --gpfs-root PATH --resolve-log PATH
                               [http: --c-host SSH ...]
                               [ssh-cli: --llm-ssh-host SSH

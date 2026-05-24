@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Runs on: A-machine (GPU host). Long-lived GPFS evaluator daemon (Tier 2 mode).
+#
 # Machine A runner: launch bench_evaluator_daemon in long-running mode.
 #
 # Single-daemon-per-host is enforced by an exclusive ``flock`` on a
@@ -21,6 +23,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
+Runs on: A-machine (GPU host).
 Usage: run_machine_a_daemon.sh --gpfs-root PATH [options]
 
 Required:

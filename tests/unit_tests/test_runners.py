@@ -810,6 +810,80 @@ def test_setup_b_ssh_cli_probe_substitutes_prompt_placeholder():
     assert '[[ "$LLM_TRANSPORT" == "ssh-cli" ]]' in text
 
 
+# ---------------------------------------------------------------------------
+# Machine-target annotations -- every runner's top comment and --help output
+# must declare the target machine so operators see it before reading docs.
+# ---------------------------------------------------------------------------
+
+_RUNNER_TARGETS = {
+    "setup_machine_a_gpu.sh": "Runs on: A",
+    "setup_machine_b_cpu.sh": "Runs on: B",
+    "run_machine_a_daemon.sh": "Runs on: A",
+    "run_machine_b_orchestrator.sh": "Runs on: B",
+    "run_acceptance_gate.sh": "Runs on: B",
+}
+
+
+def test_setup_machine_a_gpu_help_declares_runs_on_a():
+    proc = _run_help(_RUNNERS_DIR / "setup_machine_a_gpu.sh")
+    assert proc.returncode == 0, proc.stderr
+    assert "Runs on: A" in proc.stdout, (
+        f"setup_machine_a_gpu.sh --help must declare 'Runs on: A'; got:\n{proc.stdout}"
+    )
+
+
+def test_setup_machine_b_cpu_help_declares_runs_on_b():
+    proc = _run_help(_RUNNERS_DIR / "setup_machine_b_cpu.sh")
+    assert proc.returncode == 0, proc.stderr
+    assert "Runs on: B" in proc.stdout, (
+        f"setup_machine_b_cpu.sh --help must declare 'Runs on: B'; got:\n{proc.stdout}"
+    )
+
+
+def test_run_machine_a_daemon_help_declares_runs_on_a():
+    proc = _run_help(_RUNNERS_DIR / "run_machine_a_daemon.sh")
+    assert proc.returncode == 0, proc.stderr
+    assert "Runs on: A" in proc.stdout, (
+        f"run_machine_a_daemon.sh --help must declare 'Runs on: A'; got:\n{proc.stdout}"
+    )
+
+
+def test_run_machine_b_orchestrator_help_declares_runs_on_b():
+    proc = _run_help(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    assert proc.returncode == 0, proc.stderr
+    assert "Runs on: B" in proc.stdout, (
+        f"run_machine_b_orchestrator.sh --help must declare 'Runs on: B'; "
+        f"got:\n{proc.stdout}"
+    )
+
+
+def test_run_acceptance_gate_help_declares_runs_on_b():
+    proc = _run_help(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    assert proc.returncode == 0, proc.stderr
+    assert "Runs on: B" in proc.stdout, (
+        f"run_acceptance_gate.sh --help must declare 'Runs on: B'; got:\n{proc.stdout}"
+    )
+
+
+@pytest.mark.parametrize(
+    "script_name,expected",
+    list(_RUNNER_TARGETS.items()),
+    ids=list(_RUNNER_TARGETS),
+)
+def test_all_5_runner_scripts_have_runs_on_header_comment(
+    script_name: str, expected: str
+):
+    """Every runner's top comment block (within first 5 lines) must contain
+    the canonical 'Runs on: <target>' marker so reviewers see the target
+    without invoking --help."""
+    path = _RUNNERS_DIR / script_name
+    head = "".join(path.read_text(encoding="utf-8").splitlines(keepends=True)[:5])
+    assert expected in head, (
+        f"{script_name} header (first 5 lines) must declare '{expected}'; "
+        f"got:\n{head}"
+    )
+
+
 def test_runbook_documents_actual_runner_behaviour():
     """The runbook sections 3.3, 5, 6, 7 must reflect the actual
     implementation, not aspirational behaviour. We check for the
@@ -838,3 +912,114 @@ def test_runbook_documents_actual_runner_behaviour():
         "5+5+(up to 5)",
     ):
         assert needle in text, f"runbook missing acceptance-criteria detail: {needle}"
+
+
+# ---------------------------------------------------------------------------
+# Doc contract: TAB_C_CLI_CMD configuration guidance
+#
+# These tests assert that the operator-facing quickstart md and the
+# tab_quickstart.conf.example actually document how to fill in the
+# TAB_C_CLI_CMD template for the two CLIs operators most often have on
+# the C host. The literal CLI tokens that appear in the assertions below
+# (e.g. "claude --print {prompt}", "codex exec {prompt}") are
+# documentation sample strings -- they are NOT a violation of the
+# CLI-agnostic guarantee enforced by
+# test_tab_quickstart_script_has_no_hardcoded_cli_names, which scans
+# tab_quickstart.sh only. The bench code itself remains CLI-agnostic;
+# these strings live exclusively in docs and the conf example so
+# operators can see canonical templates instead of guessing.
+# ---------------------------------------------------------------------------
+
+_QUICKSTART_MD = (
+    _REPO_ROOT / "docs" / "release" / "internal-acceptance-quickstart.md"
+)
+_CONF_EXAMPLE = (
+    _RUNNERS_DIR / "tab_quickstart.conf.example"
+)
+
+
+def test_quickstart_md_has_cli_cmd_config_section():
+    """Quickstart md must include a dedicated 'TAB_C_CLI_CMD' config section
+    so operators are not left guessing how to fill the template."""
+    assert _QUICKSTART_MD.is_file(), f"missing quickstart md: {_QUICKSTART_MD}"
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    assert "TAB_C_CLI_CMD" in text, "quickstart md must mention TAB_C_CLI_CMD"
+    # The section is anchored by a top-level '## TAB_C_CLI_CMD ...' heading
+    # so operators can locate the config guidance from the md table of
+    # contents.
+    heading_lines = [
+        ln for ln in text.splitlines()
+        if ln.startswith("## ") and "TAB_C_CLI_CMD" in ln
+    ]
+    assert heading_lines, (
+        "quickstart md must contain a dedicated '## TAB_C_CLI_CMD ...' "
+        "section so operators can locate the config guidance"
+    )
+
+
+def test_quickstart_md_lists_claude_and_codex_cli_examples():
+    """Quickstart md must show canonical TAB_C_CLI_CMD templates for the
+    two CLIs operators most often have on the C host."""
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    # The exact template strings operators copy-paste. These are doc
+    # samples, not hardcoded references in code -- see the section
+    # comment above.
+    assert "claude --print {prompt}" in text, (
+        "quickstart md must document the Claude Code CLI template"
+    )
+    assert "codex exec {prompt}" in text, (
+        "quickstart md must document the OpenAI Codex CLI template"
+    )
+
+
+def test_quickstart_md_documents_prompt_placeholder_rules():
+    """Quickstart md must document the {prompt} placeholder rules:
+    exactly once, no surrounding quotes (including outer quotes)."""
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    # Must mention the placeholder at least a few times across rules,
+    # advanced usage, and the validator's fatal error message.
+    placeholder_hits = text.count("{prompt}")
+    assert placeholder_hits >= 5, (
+        f"quickstart md must reference {{prompt}} placeholder repeatedly "
+        f"(rules, examples, errors); got {placeholder_hits} occurrence(s)"
+    )
+    # Must document the "exactly once" rule. The FATAL error sample
+    # block embeds this phrase verbatim.
+    assert "exactly once" in text, (
+        "quickstart md must document the 'exactly once' placeholder rule"
+    )
+    # Must document the "no surrounding quotes" rule and explain that
+    # the bench wraps with shlex.quote on its own. The FATAL sample block
+    # contains "do NOT wrap" verbatim.
+    assert "shlex.quote" in text, (
+        "quickstart md must explain that bench wraps with shlex.quote"
+    )
+    assert "do NOT wrap" in text, (
+        "quickstart md must document the 'do NOT wrap' rule"
+    )
+    # Must call out the outer-quote-span trap explicitly. The FATAL
+    # sample block uses the phrase "even outer ones".
+    assert "outer" in text.lower(), (
+        "quickstart md must call out the outer-quote-span placeholder trap"
+    )
+
+
+def test_conf_example_has_cli_cmd_compare_table():
+    """tab_quickstart.conf.example must enumerate canonical templates for
+    Claude Code CLI and OpenAI Codex CLI so operators can copy-paste."""
+    assert _CONF_EXAMPLE.is_file(), f"missing conf example: {_CONF_EXAMPLE}"
+    text = _CONF_EXAMPLE.read_text(encoding="utf-8")
+    # The doc-sample template strings.
+    assert "claude --print {prompt}" in text, (
+        "conf example must show the Claude Code CLI template"
+    )
+    assert "codex exec {prompt}" in text, (
+        "conf example must show the OpenAI Codex CLI template"
+    )
+    # The header that labels the comparison block.
+    assert "Common CLI templates" in text or "Common CLI" in text, (
+        "conf example must include a labelled comparison block for the "
+        "common CLI templates"
+    )
+    # And the placeholder must be documented as a required token.
+    assert "{prompt}" in text

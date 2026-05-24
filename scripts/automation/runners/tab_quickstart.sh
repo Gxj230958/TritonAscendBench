@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Operator-facing quickstart wrapper for the acceptance gate.
+# Operator wrapper for bench acceptance gate.
+# Machine targets: 'setup'/'resolve' run on A; 'verify-c'/'smoke'/'full' run on B;
+# 'status'/'clean'/'help' run on either. In single-machine mode (A=B), all on one host.
 #
 # Wraps the five lower-level runner scripts (setup_machine_a_gpu.sh,
 # run_acceptance_gate.sh, ...) and the resolver entrypoint into a small
@@ -75,17 +77,19 @@ usage() {
   cat <<EOF
 Usage: bash $(basename "${BASH_SOURCE[0]}") <subcommand> [--force]
 
-Subcommands:
-  setup       Verify A-machine environment (torch / triton / CUDA / GPFS / pip).
-  verify-c    Probe C-machine SSH reachability + CLI version.
-  resolve     Produce resolver classification log (\$TAB_RESOLVE_LOG).
-              Pass --force to overwrite an existing log without prompt.
-  smoke       Phase 1 smoke (3 shapes-incomplete tasks, ~15-30 min).
-  full        Phase all (acceptance gate Phase 1+2+3+4, ~2-4 hr).
-  status      Show config + state file summary + latest report + recent logs.
-  clean       Remove state/, queue/, results/, .phase4-worktree/.
-              Pass --force to skip confirmation prompt.
-  help        Show this message.
+Subcommands (Runs on = which machine to execute from in three-machine deploy;
+                       single-machine mode -- A=B same host -- run all on one host):
+
+  setup        Runs on: A      Verify A-machine env (GPU / torch / triton / GPFS / pip).
+  verify-c     Runs on: B      Probe C-machine SSH reachability + CLI version.
+  resolve      Runs on: A      Produce resolver classification log (uses GPU).
+                               Pass --force to overwrite an existing log without prompt.
+  smoke        Runs on: B      Phase 1 smoke (orchestrator on B, bench on A via daemon, LLM on C).
+  full         Runs on: B      Phase all (acceptance gate Phase 1+2+3+4, ~2-4 hr).
+  status       Runs on: either Show config + state + report + logs.
+  clean        Runs on: either Remove state / queue / results / .phase4-worktree.
+                               Pass --force to skip confirmation prompt.
+  help         Runs on: either Show this message.
 
 Config sources (priority: env > conf file > defaults):
   CONFIG_FILE: ${CONFIG_FILE:-<none>}  [${CONFIG_SOURCE}]
@@ -336,6 +340,7 @@ cmd_full() {
 # Subcommand: status -- read-only summary, never invokes SSH or runners.
 # ---------------------------------------------------------------------------
 cmd_status() {
+  echo "[runs from: $(hostname)]"
   echo "== config =="
   if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
     echo "  CONFIG_FILE:       $CONFIG_FILE (loaded) [${CONFIG_SOURCE}]"

@@ -12,19 +12,27 @@
 然后一条命令一个子命令:
 
 ```bash
-# 1. 一次性配置(只填一遍,gitignored 防意外 commit)
+# 1. 一次性配置(在 A 机本地编辑;repo 内 gitignored 防意外 commit)
 cp scripts/automation/runners/tab_quickstart.conf.example ./tab_quickstart.conf
 $EDITOR ./tab_quickstart.conf
 # 改 TAB_GPFS_ROOT / TAB_C_HOST / TAB_C_CLI_CMD 三个必填变量为你的实际值
+#
+# 例如(替成你的实际值):
+#   TAB_GPFS_ROOT="/inspire/.../tritonbench"     # 共享存储 / 本地工作目录
+#   TAB_C_HOST="exp2@ai-infra"                   # C 机 SSH 目标
+#   TAB_C_CLI_CMD='claude --print {prompt}'      # 用 Claude Code CLI
+#   # 或:TAB_C_CLI_CMD='codex exec {prompt}'   # 用 OpenAI Codex CLI
+#
+# 详见下面 "TAB_C_CLI_CMD 怎么填" 章节。
 
-# 2. 跑各步(每条独立可重跑;子命令名见 `bash ... help`)
-bash scripts/automation/runners/tab_quickstart.sh setup       # 验环境
-bash scripts/automation/runners/tab_quickstart.sh verify-c    # 验 C 机 SSH + CLI
-bash scripts/automation/runners/tab_quickstart.sh resolve     # 产 resolve log
-bash scripts/automation/runners/tab_quickstart.sh smoke       # Phase 1 (~30 min)
-bash scripts/automation/runners/tab_quickstart.sh full        # Phase all (~2-4 hr)
-bash scripts/automation/runners/tab_quickstart.sh status      # 看进度 + 报告
-bash scripts/automation/runners/tab_quickstart.sh clean       # 重新跑前清理
+# 2. 跑各步(每条标注 runs-on;单机模式 A=B 全在同一台跑)
+bash scripts/automation/runners/tab_quickstart.sh setup       # [A] 验环境
+bash scripts/automation/runners/tab_quickstart.sh verify-c    # [B] 验 C 机 SSH + CLI
+bash scripts/automation/runners/tab_quickstart.sh resolve     # [A] 产 resolve log
+bash scripts/automation/runners/tab_quickstart.sh smoke       # [B] Phase 1 (~30 min)
+bash scripts/automation/runners/tab_quickstart.sh full        # [B] Phase all (~2-4 hr)
+bash scripts/automation/runners/tab_quickstart.sh status      # [A or B] 看进度
+bash scripts/automation/runners/tab_quickstart.sh clean       # [A or B] 重跑前清
 ```
 
 变量优先级 `env > conf file > defaults`,也可以临时 `TAB_GPFS_ROOT=/x bash ... status` 覆盖。
@@ -45,6 +53,91 @@ bash scripts/automation/runners/tab_quickstart.sh clean       # 重新跑前清�
 
 > 如果只有 1 台 GPU 机(没单独 CPU 机),把 A 和 B 合并:
 > orchestrator 在 GPU 机本地跑,SSH 到 C 拿 LLM。
+
+## 哪条命令在哪台机器跑
+
+| 命令 / 脚本 | A(GPU 机) | B(CPU,orchestrator) | C(LLM) |
+|---|:---:|:---:|:---:|
+| `tab_quickstart.sh setup` | ✓ | — | — |
+| `tab_quickstart.sh verify-c` | — | ✓(从 B ssh 到 C 验)| — |
+| `tab_quickstart.sh resolve` | ✓(GPU 解析) | — | — |
+| `tab_quickstart.sh smoke / full` | — | ✓(orchestrator)| — |
+| `tab_quickstart.sh status / clean / help` | 任意 | 任意 | — |
+| `setup_machine_a_gpu.sh` | ✓ | — | — |
+| `setup_machine_b_cpu.sh` | — | ✓ | — |
+| `run_machine_a_daemon.sh`(Tier 2)| ✓ | — | — |
+| `run_machine_b_orchestrator.sh` | — | ✓ | — |
+| `run_acceptance_gate.sh` | — | ✓ | — |
+| C 机要做什么 | — | — | CLI 已登 + SSH 通即可,**0 部署** |
+
+**两种部署模式**:
+
+- **单机模式(A=B 同机,推荐快速验证)**:所有子命令在**同一台 GPU 机**上跑。orchestrator 主进程跑在该机,通过 SSH 调 C 机 LLM,通过本地 subprocess 调 GPU bench job。
+- **三机分离(A/B/C 独立机)**:按上表分配,需要 A+B 共享 GPFS,B→A+B→C SSH 通。
+
+不确定属于哪种?跑 `bash scripts/automation/runners/tab_quickstart.sh status`,顶部 `[runs from: <hostname>]` 提示当前主机。
+
+## TAB_C_CLI_CMD 怎么填(关键配置)
+
+bench 通过 SSH 在 C 机跑你的 LLM CLI,`TAB_C_CLI_CMD` 是 CLI 命令模板;
+bench 把每次 LLM 请求的 prompt 自动 `shlex.quote()` 后**替换**模板里的字面
+`{prompt}`,得到完整 shell 命令,然后 `ssh <c-host> '<resolved>'` 远程执行,
+把 stdout 当 LLM 回答。
+
+### 常用 CLI 对照(选一个,跟 C 机装的对应)
+
+| C 机 CLI | TAB_C_CLI_CMD 填法 | 验证命令 |
+|---|---|---|
+| **Claude Code CLI**(已登 Claude 账号) | `'claude --print {prompt}'` | `ssh <c-host> 'claude --version'` |
+| **OpenAI Codex CLI**(已登 Codex 账号) | `'codex exec {prompt}'` | `ssh <c-host> 'codex --version'` |
+| 通用 CLI(任意接 prompt argv + 返 stdout 的) | `'<your-cli> <subcommand> {prompt}'` | `ssh <c-host> '<your-cli> --version'` |
+
+### `{prompt}` placeholder 规则
+
+| 规则 | 例子 |
+|---|---|
+| **必须含字面 `{prompt}`,且恰好 1 次** | 正确:`'claude --print {prompt}'` |
+| **不要在 `{prompt}` 周围加引号**(bench 自动 shlex.quote) | 错误:`'claude --print "{prompt}"'` |
+| **不要在外层 quote 内**(即使前后字符不是 quote) | 错误:`'cli exec "prefix {prompt} suffix"'` |
+| **不要重复**(只能 1 个) | 错误:`'cli {prompt} {prompt}'` |
+| 可以含 shell 变量 / JSON 字面 | 正确:`'env LANG=C codex exec --json {prompt}'` |
+
+### 启动时校验(早失败)
+
+bench 在每次跑 `tab_quickstart.sh` 时先校验 `TAB_C_CLI_CMD`,违反规则**立即** `exit 2` + 输出 FATAL,绝不会等到 phase 中调 LLM 才失败:
+
+```
+[fatal] TAB_C_CLI_CMD must contain literal '{prompt}' placeholder exactly once; got 0 occurrence(s) in: claude --print
+```
+
+```
+[fatal] TAB_C_CLI_CMD: do NOT wrap {prompt} in shell quotes (even outer ones); bench wraps via shlex automatically. Got: claude --print "{prompt}"
+```
+
+### 高级用法
+
+```bash
+# 改 locale 避免 CLI 在非 UTF-8 环境出问题:
+TAB_C_CLI_CMD='env LANG=C claude --print {prompt}'
+
+# Codex JSON 输出格式(bench 取 stdout 整段当 reply,JSON 解析不影响):
+TAB_C_CLI_CMD='codex exec --json {prompt}'
+
+# 调试:加 timing prefix(stdout 仍是 LLM 回答):
+TAB_C_CLI_CMD='time claude --print {prompt}'   # 注意:stderr 会有 time 输出
+```
+
+### 单次 smoke 试 CLI 通不通(跑 bench 前的最快验证)
+
+```bash
+# 测 Claude Code CLI:
+ssh <c-host> 'claude --print "write one-line python add"'
+
+# 测 Codex CLI:
+ssh <c-host> 'codex exec "write one-line python add"'
+```
+
+应输出几行代码。若返空 / 报错,先在 C 机交互式登录 CLI(`claude` / `codex login`),登好再试。
 
 ## LLM transport 两种模式(选一个)
 
@@ -82,7 +175,7 @@ ssh-copy-id <c-host>
 ssh -o BatchMode=yes -o ConnectTimeout=5 <c-host> 'echo OK'
 ```
 
-## Step 1:pull 最新 main(在 A 机)
+## Step 1 [A]:pull 最新 main(在 A 机)
 
 ```bash
 cd /data1/code/agentic-rl/kernel/triton-ascend-bench
@@ -104,7 +197,7 @@ docs: add three-machine automation design + impl plan
 > 实际 hash 会变;只要看到 **"SSH subprocess transport"** 出现就说明拉到最新自动化栈
 > 自检命令:`git log --oneline | grep -cE "SSH subprocess|three-machine|verdict pipelines|fix_orchestrator|M0 automation|automation design"` 应输出 ≥ 6
 
-## Step 2:setup A 机环境(一次性)
+## Step 2 [A]:setup A 机环境(一次性)
 
 ```bash
 bash scripts/automation/runners/setup_machine_a_gpu.sh \
@@ -126,7 +219,7 @@ bash scripts/automation/runners/setup_machine_a_gpu.sh \
 | `GPFS not writable` | `--gpfs-root` 改成可写路径(本地 `/tmp/tab-shared` 最简) |
 | `pip install` 网络问题 | 加 `--skip-install` 跳过(假设 deps 已装) |
 
-## Step 3:配 LLM transport(http 或 ssh-cli)
+## Step 3 [B]:配 LLM transport(http 或 ssh-cli)
 
 ### 选项 A:http 模式(C 机起 HTTP 服务)
 
@@ -181,7 +274,7 @@ ssh -o BatchMode=yes -o ConnectTimeout=5 <c-host> '<your-cli> --version'
 | `'<your-cli> exec "{prompt}"'` | 错误(双重引号 = 把内层引号当字面字符) |
 | `'<your-cli> exec'` | 错误(缺 `{prompt}` placeholder) |
 
-## Step 4:产 resolve log(BLOCKED 分类,~5-10 分钟)
+## Step 4 [A]:产 resolve log(BLOCKED 分类,~5-10 分钟)
 
 如果之前没跑过 resolver,或 `pa_resolve.log` 太旧:
 
@@ -201,7 +294,7 @@ grep -c upstream-not-invocable /tmp/pa_resolve.log  # 应该 ~2
 
 如果分布偏太大,看 `/tmp/pa_resolve.log` 头尾(`head -30 /tmp/pa_resolve.log` + `tail -30 /tmp/pa_resolve.log`)排查环境问题。
 
-## Step 5:Phase 1 smoke(3 个 shapes-incomplete,~15-30 分钟)
+## Step 5 [B]:Phase 1 smoke(3 个 shapes-incomplete,~15-30 分钟)
 
 ### 选项 A 命令(http 模式,接 Step 3 选项 A)
 
@@ -259,7 +352,7 @@ bash scripts/automation/runners/run_acceptance_gate.sh \
 | 所有 task `UNFIXABLE_BY_LLM` | LLM 太弱 / prompt 走偏;看 `/tmp/tab-shared/logs/orchestrator-*.log` 里 LLM 返回原文 |
 | GPU 报错 OOM | 单独跑 `python3 scripts/phase_a_prime.py --verify --task <t>` 复现 + 减 BLOCK_SIZE |
 
-## Step 6:Phase 2-4 全跑(Phase 1 PASS 后,~2-4 小时)
+## Step 6 [B]:Phase 2-4 全跑(Phase 1 PASS 后,~2-4 小时)
 
 ### 选项 A 命令(http 模式)
 
@@ -305,7 +398,7 @@ bash scripts/automation/runners/run_acceptance_gate.sh \
 - `docs/triage_backlog/summary-metrics-<YYYYMMDD>.{md,json}`
   4 个独立 metric:reverify_nonblocked / phase_a_promoted / golden_ready / manual_backlog
 
-## Step 7:cleanup
+## Step 7 [A or B]:cleanup
 
 ```bash
 # runner 退出时自动清理 SSH tunnel,无需手动 kill。

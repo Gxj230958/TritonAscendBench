@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Runs on: B-machine (CPU orchestrator host). Long-lived orchestrator main loop + SSH tunnel/CLI to C-machine LLM.
+#
 # Machine B runner: launch fix_orchestrator (Tier 2) talking to the LLM
 # machine (C) via one of two transports.
 #
@@ -45,6 +47,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
+Runs on: B-machine (CPU orchestrator host).
 Usage: run_machine_b_orchestrator.sh --gpfs-root PATH --resolve-log PATH
                                      [http: --c-host SSH ...]
                                      [ssh-cli: --llm-ssh-host SSH

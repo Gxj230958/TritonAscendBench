@@ -676,6 +676,46 @@ def test_tab_quickstart_md_lists_all_7_subcommands():
         )
 
 
+def test_tab_quickstart_help_lists_runs_on_per_subcommand(harness):
+    """`help` output must show a 'Runs on:' marker for each of the 7 subcommands."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    # At least 7 lines (one per subcommand) must contain the 'Runs on:' marker.
+    runs_on_lines = [ln for ln in proc.stdout.splitlines() if "Runs on:" in ln]
+    assert len(runs_on_lines) >= 7, (
+        f"help must annotate each of the 7 subcommands with 'Runs on:'; "
+        f"got {len(runs_on_lines)} occurrence(s):\n" + "\n".join(runs_on_lines)
+    )
+    # Each subcommand must appear on a 'Runs on:' line so the mapping is
+    # explicit rather than positional.
+    for cmd in ("setup", "verify-c", "resolve", "smoke", "full", "status", "clean"):
+        assert any(cmd in ln for ln in runs_on_lines), (
+            f"subcommand '{cmd}' has no 'Runs on:' annotation in help"
+        )
+
+
+def test_tab_quickstart_help_explains_single_machine_mode(harness):
+    """help text must mention the single-machine (A=B) deployment mode."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    text = proc.stdout
+    assert ("single-machine" in text) or ("A=B" in text), (
+        "help must explain that single-machine mode (A=B) runs all subcommands "
+        f"on one host; got:\n{text}"
+    )
+
+
+def test_tab_quickstart_md_has_machine_target_table():
+    """Quickstart md must include the per-command machine target table."""
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    assert "哪条命令在哪台机器跑" in text, (
+        "quickstart.md must contain the '哪条命令在哪台机器跑' section heading"
+    )
+    # The table header must enumerate all three machines.
+    assert "A(GPU 机)" in text, "machine target table must label A column"
+    assert "B(CPU" in text, "machine target table must label B column"
+
+
 def test_tab_quickstart_md_references_conf_example_path():
     """Quickstart md must point operators at the conf example file."""
     text = _QUICKSTART_MD.read_text(encoding="utf-8")
