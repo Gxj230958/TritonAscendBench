@@ -1549,6 +1549,39 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--max-attempts", type=int, default=3)
     p.add_argument("--llm-endpoint", required=False, default=None)
+    # ---- LLM transport selection --------------------------------------
+    # Two transports are supported:
+    #   http    -- POST to an OpenAI-compatible endpoint (default;
+    #              requires --llm-endpoint, the historical layout).
+    #   ssh-cli -- SSH to a remote host and run a CLI that takes the
+    #              prompt as an argument. The remote CLI command is
+    #              fully user-supplied via --llm-cli-cmd; the bench
+    #              never hardcodes a specific CLI name.
+    p.add_argument(
+        "--llm-transport",
+        choices=("http", "ssh-cli"),
+        default="http",
+        help="LLM transport: 'http' (OpenAI-compatible; default) or "
+             "'ssh-cli' (SSH to a remote CLI on --llm-ssh-host).",
+    )
+    p.add_argument(
+        "--llm-ssh-host", default=None,
+        help="SSH target for --llm-transport ssh-cli (e.g. user@host).",
+    )
+    p.add_argument(
+        "--llm-cli-cmd", default=None,
+        help="CLI command template for --llm-transport ssh-cli. MUST "
+             "contain the literal placeholder '{prompt}' WITHOUT "
+             "surrounding quotes -- the orchestrator wraps the prompt "
+             "with shlex.quote() automatically. "
+             "Example: '<your-cli> exec {prompt}'.",
+    )
+    p.add_argument(
+        "--llm-timeout-seconds", type=int, default=600,
+        help="Per-call transport timeout in seconds (default 600). For "
+             "ssh-cli this is the subprocess timeout for one CLI call; "
+             "for http this is the per-request connect+read timeout.",
+    )
     p.add_argument("--reverify-results", required=True, type=Path)
     p.add_argument("--repo-root", type=Path, default=_REPO_ROOT)
     p.add_argument("--state-root", type=Path, default=None)
@@ -1669,16 +1702,48 @@ def main(argv: list[str] | None = None) -> int:
             allowed_enqueue=allowed_enqueue,
         )
 
-        # Runtime requires an llm endpoint; tests pass None + bypass via
-        # drive_task_once + their own mock.
-        if not args.llm_endpoint:
-            print("FATAL: --llm-endpoint is required for runtime use",
-                  file=sys.stderr)
+        # Runtime requires a configured LLM transport; tests pass
+        # transport='http' + endpoint=None and bypass via drive_task_once
+        # + their own mock chat callable.
+        from automation.llm_client import create_llm_client
+
+        if args.llm_transport == "http":
+            if not args.llm_endpoint:
+                print("FATAL: --llm-endpoint is required for "
+                      "--llm-transport http",
+                      file=sys.stderr)
+                return 2
+        else:  # ssh-cli
+            if not args.llm_ssh_host:
+                print("FATAL: --llm-ssh-host is required for "
+                      "--llm-transport ssh-cli",
+                      file=sys.stderr)
+                return 2
+            if not args.llm_cli_cmd:
+                print("FATAL: --llm-cli-cmd is required for "
+                      "--llm-transport ssh-cli",
+                      file=sys.stderr)
+                return 2
+
+        # Surface SSHCLIClient.__init__ template-validation errors (and
+        # any other create_llm_client ValueError) the same way the
+        # surrounding required-arg validation reports config errors:
+        # FATAL: <msg> on stderr + rc=2, no Python traceback.
+        try:
+            client = create_llm_client(
+                transport=args.llm_transport,
+                endpoint=args.llm_endpoint,
+                ssh_host=args.llm_ssh_host,
+                cli_cmd_template=args.llm_cli_cmd,
+                timeout_seconds=args.llm_timeout_seconds,
+            )
+        except ValueError as exc:
+            print(
+                f"FATAL: invalid LLM client configuration: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
             return 2
-
-        from automation.llm_client import LLMClient
-
-        client = LLMClient(args.llm_endpoint, api_style="openai")
 
         def _chat(messages):
             return client.chat(messages)
@@ -1733,10 +1798,16 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 budget_path = Path(budget_out)
                 budget_path.parent.mkdir(parents=True, exist_ok=True)
+                # ``wall_time_seconds`` is non-zero only for transports
+                # that don't expose token counts (e.g. ssh-cli); HTTP
+                # transports keep it 0.0 and rely on token fields.
                 payload = {
                     "total_calls": int(client.budget.total_calls),
                     "prompt_tokens": int(client.budget.prompt_tokens),
                     "completion_tokens": int(client.budget.completion_tokens),
+                    "wall_time_seconds": float(
+                        getattr(client.budget, "wall_time_seconds", 0.0)
+                    ),
                     "estimated_cost_usd": float(client.budget.estimated_cost_usd),
                 }
                 budget_path.write_text(

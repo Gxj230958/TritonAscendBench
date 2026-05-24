@@ -624,6 +624,192 @@ def test_run_orchestrator_tail_pid_cleanup():
     )
 
 
+# ---------------------------------------------------------------------------
+# LLM transport behaviour (--llm-transport http | ssh-cli)
+# ---------------------------------------------------------------------------
+
+def test_orchestrator_runner_declares_transport_flags():
+    """run_machine_b_orchestrator.sh must accept --llm-transport /
+    --llm-ssh-host / --llm-cli-cmd CLI flags."""
+    text = _read(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    assert "--llm-transport" in text
+    assert "--llm-ssh-host" in text
+    assert "--llm-cli-cmd" in text
+    # http is the back-compat default; existing call sites omit the flag.
+    assert 'LLM_TRANSPORT="http"' in text
+
+
+def test_orchestrator_runner_ssh_cli_branch_skips_tunnel():
+    """ssh-cli mode opens NO ssh -L tunnel and runs NO curl probe.
+
+    The transport guard `if [[ "$LLM_TRANSPORT" == "http" ]]` must wrap
+    the `start_tunnel` call and the curl /v1/models probe block, so an
+    ssh-cli invocation does not consume a local port or depend on
+    curl(1).
+    """
+    text = _read(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    # Transport guard around start_tunnel.
+    assert 'if [[ "$LLM_TRANSPORT" == "http" ]]; then' in text, (
+        "orchestrator runner must guard tunnel + curl on transport=http"
+    )
+    # The curl probe must live inside that branch (we check ordering:
+    # the guard appears before the curl line).
+    guard_idx = text.find('if [[ "$LLM_TRANSPORT" == "http" ]]; then')
+    probe_idx = text.find('"$LLM_ENDPOINT$HEALTH_PATH"')
+    assert 0 < guard_idx < probe_idx, (
+        "curl /v1/models probe must live inside the http guard"
+    )
+    # ssh-cli branch probes via `ssh ... 'echo CLI_OK'`, not curl.
+    assert "echo CLI_OK" in text, (
+        "ssh-cli branch must do a plain ssh reachability probe"
+    )
+
+
+def test_orchestrator_runner_passes_transport_flags_to_orchestrator():
+    """The orchestrator argv must include --llm-transport and the
+    transport-specific flags (--llm-endpoint OR --llm-ssh-host+--llm-cli-cmd).
+    """
+    text = _read(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    assert '--llm-transport "$LLM_TRANSPORT"' in text
+    assert '--llm-endpoint "$LLM_ENDPOINT"' in text
+    assert '--llm-ssh-host "$LLM_SSH_HOST"' in text
+    assert '--llm-cli-cmd "$LLM_CLI_CMD"' in text
+    assert '--llm-timeout-seconds "$LLM_TIMEOUT_SECONDS"' in text
+
+
+def test_orchestrator_runner_validates_prompt_placeholder():
+    """ssh-cli mode must reject a template without the literal '{prompt}'."""
+    text = _read(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    assert '{prompt}' in text, (
+        "runner must validate the {prompt} placeholder in --llm-cli-cmd"
+    )
+    assert 'must contain literal' in text
+
+
+def test_orchestrator_runner_supervisor_loop_is_transport_aware():
+    """In ssh-cli mode the supervisor watches ORCH_PID only (no TUNNEL_PID)."""
+    text = _read(_RUNNERS_DIR / "run_machine_b_orchestrator.sh")
+    # http branch retains the dual-PID supervisor.
+    assert ('while kill -0 "$ORCH_PID" 2>/dev/null '
+            '&& kill -0 "$TUNNEL_PID" 2>/dev/null') in text
+    # ssh-cli branch supervises ORCH_PID only.
+    assert 'while kill -0 "$ORCH_PID" 2>/dev/null; do' in text
+
+
+def test_acceptance_gate_declares_transport_flags():
+    text = _read(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    assert "--llm-transport" in text
+    assert "--llm-ssh-host" in text
+    assert "--llm-cli-cmd" in text
+    assert 'LLM_TRANSPORT="http"' in text
+
+
+def test_acceptance_gate_start_tunnel_is_transport_aware():
+    """The single start_tunnel definition must early-return in ssh-cli
+    mode (no port forward, no curl probe). Test invariant: invoked
+    exactly once from main (matches the existing single-tunnel test).
+    """
+    text = _read(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    # The helper still exists, still called exactly once from main, but
+    # branches internally on $LLM_TRANSPORT.
+    assert 'if [[ "$LLM_TRANSPORT" == "ssh-cli" ]]; then' in text, (
+        "start_tunnel must early-return on transport=ssh-cli"
+    )
+    # ssh-cli branch does ssh reachability probe, not curl.
+    assert "echo CLI_OK" in text
+    # The four phase command builders must NOT hardcode the http-only
+    # --llm-endpoint flag; only the append_llm_args helper is allowed to
+    # emit it (and only in the http branch). We assert exactly one
+    # occurrence in the file, inside the helper.
+    count = text.count('--llm-endpoint "$LLM_ENDPOINT"')
+    assert count == 1, (
+        f"--llm-endpoint must appear exactly once (inside the "
+        f"append_llm_args helper); got {count} occurrences"
+    )
+    helper_start = text.find("append_llm_args() {")
+    helper_end = text.find("\n}\n", helper_start)
+    assert helper_start > 0 and helper_end > helper_start
+    helper_body = text[helper_start:helper_end]
+    assert '--llm-endpoint "$LLM_ENDPOINT"' in helper_body, (
+        "the sole --llm-endpoint reference must live inside append_llm_args"
+    )
+
+
+def test_acceptance_gate_append_llm_args_helper_used_per_phase():
+    """append_llm_args must be called from every phase command
+    builder so all 4 phases honour the transport flags consistently.
+    """
+    text = _read(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    # 5 invocations total: phase1 cmd, phase2 cmd, phase3 cmd, phase4
+    # tier1 cmd, phase4 tier2 cmd.
+    count = text.count("append_llm_args ")
+    assert count >= 5, (
+        f"append_llm_args must be invoked at least 5 times (one per "
+        f"orchestrator argv); got {count}"
+    )
+
+
+def test_acceptance_gate_5xx_probe_block_is_http_only():
+    """The 500-rejection curl probe block runs only when transport=http.
+
+    In ssh-cli mode there is no curl probe at all, so the
+    `code >= 200 && code < 500` filter does not apply. We verify the
+    probe lives inside an http-mode branch in start_tunnel.
+    """
+    text = _read(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    # The probe loop body is still present and still rejects 5xx.
+    assert "code >= 200 && code < 500" in text
+    # Locate the start_tunnel body and confirm the curl call sits AFTER
+    # the ssh-cli early-return so it never runs in ssh-cli mode.
+    start_tunnel_idx = text.find("start_tunnel() {")
+    cli_branch_idx = text.find('if [[ "$LLM_TRANSPORT" == "ssh-cli" ]]; then',
+                                start_tunnel_idx)
+    curl_idx = text.find("curl -s -o /dev/null -w '%{http_code}'",
+                          start_tunnel_idx)
+    assert 0 < start_tunnel_idx < cli_branch_idx < curl_idx, (
+        "the ssh-cli early-return must precede the curl probe in start_tunnel"
+    )
+
+
+def test_setup_b_declares_transport_flag():
+    """setup_machine_b_cpu.sh must accept --llm-transport (and
+    optionally --llm-cli-cmd for the probe).
+    """
+    text = _read(_RUNNERS_DIR / "setup_machine_b_cpu.sh")
+    assert "--llm-transport" in text
+    assert "--llm-cli-cmd" in text
+    assert 'LLM_TRANSPORT="http"' in text
+
+
+def test_setup_b_imports_use_correct_class_names():
+    """setup_machine_b_cpu.sh must import classes that actually exist.
+
+    A historical typo imported a non-existent OpenAIChatClient symbol;
+    the canonical exports are LLMClient + SSHCLIClient + create_llm_client.
+    """
+    text = _read(_RUNNERS_DIR / "setup_machine_b_cpu.sh")
+    # No reference to the non-existent symbol.
+    assert "OpenAIChatClient" not in text, (
+        "setup_machine_b_cpu.sh must not import a non-existent class"
+    )
+    # The smoke import line must reference real exports.
+    assert "from automation.llm_client import" in text
+    for needed in ("LLMClient", "SSHCLIClient", "create_llm_client"):
+        assert needed in text, f"setup smoke import missing {needed}"
+
+
+def test_setup_b_ssh_cli_probe_substitutes_prompt_placeholder():
+    """In ssh-cli mode the CLI probe substitutes '{prompt}' with
+    '--version' to test the CLI without sending a real prompt."""
+    text = _read(_RUNNERS_DIR / "setup_machine_b_cpu.sh")
+    # The probe substitution is bash-native (no python helper).
+    assert '${LLM_CLI_CMD//\\{prompt\\}/--version}' in text, (
+        "setup must substitute {prompt} with --version for the probe"
+    )
+    # And the probe runs only when transport == ssh-cli AND cli-cmd is set.
+    assert '[[ "$LLM_TRANSPORT" == "ssh-cli" ]]' in text
+
+
 def test_runbook_documents_actual_runner_behaviour():
     """The runbook sections 3.3, 5, 6, 7 must reflect the actual
     implementation, not aspirational behaviour. We check for the

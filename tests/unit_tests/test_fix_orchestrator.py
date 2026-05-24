@@ -654,6 +654,192 @@ def test_cli_apply_and_dry_run_are_mutually_exclusive():
         parser.parse_args([*base, "--apply", "--dry-run"])
 
 
+# ---------------------------------------------------------------------------
+# LLM transport CLI flags (--llm-transport / --llm-ssh-host / --llm-cli-cmd)
+# ---------------------------------------------------------------------------
+
+def test_cli_llm_transport_default_http():
+    """Omitting --llm-transport defaults to 'http' for back-compat."""
+    from automation.fix_orchestrator import _build_arg_parser
+
+    parser = _build_arg_parser()
+    args = parser.parse_args([
+        "--resolve-log", "x.log",
+        "--reverify-results", "/tmp/r",
+    ])
+    assert args.llm_transport == "http"
+    # ssh-cli specific flags default to None.
+    assert args.llm_ssh_host is None
+    assert args.llm_cli_cmd is None
+    # Per-call timeout has a sensible default.
+    assert args.llm_timeout_seconds == 600
+
+
+def test_cli_llm_transport_accepts_ssh_cli():
+    """--llm-transport ssh-cli + --llm-ssh-host + --llm-cli-cmd round-trip."""
+    from automation.fix_orchestrator import _build_arg_parser
+
+    parser = _build_arg_parser()
+    args = parser.parse_args([
+        "--resolve-log", "x.log",
+        "--reverify-results", "/tmp/r",
+        "--llm-transport", "ssh-cli",
+        "--llm-ssh-host", "user@c-host",
+        "--llm-cli-cmd", "some-cli exec {prompt}",
+    ])
+    assert args.llm_transport == "ssh-cli"
+    assert args.llm_ssh_host == "user@c-host"
+    assert args.llm_cli_cmd == "some-cli exec {prompt}"
+
+
+def test_cli_llm_transport_rejects_unknown_value():
+    """argparse choices=('http','ssh-cli') rejects anything else."""
+    from automation.fix_orchestrator import _build_arg_parser
+
+    parser = _build_arg_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args([
+            "--resolve-log", "x.log",
+            "--reverify-results", "/tmp/r",
+            "--llm-transport", "bogus",
+        ])
+
+
+def test_cli_llm_timeout_seconds_round_trip():
+    from automation.fix_orchestrator import _build_arg_parser
+
+    parser = _build_arg_parser()
+    args = parser.parse_args([
+        "--resolve-log", "x.log",
+        "--reverify-results", "/tmp/r",
+        "--llm-timeout-seconds", "1200",
+    ])
+    assert args.llm_timeout_seconds == 1200
+
+
+def test_main_ssh_cli_missing_host_fails_loud(tmp_path, capsys):
+    """transport=ssh-cli + missing --llm-ssh-host -> rc=2 + FATAL line."""
+    from automation.fix_orchestrator import main
+
+    state_root = tmp_path / "state"
+    resolve_log = tmp_path / "resolve.log"
+    resolve_log.write_text("[T1] BLOCKED - :: shapes-incomplete\n",
+                           encoding="utf-8")
+    rc = main([
+        "--resolve-log", str(resolve_log),
+        "--reverify-results", str(tmp_path / "results"),
+        "--state-root", str(state_root),
+        "--init-empty-state",
+        "--llm-transport", "ssh-cli",
+        # deliberately omit --llm-ssh-host
+        "--llm-cli-cmd", "some-cli exec {prompt}",
+    ])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FATAL" in captured.err
+    assert "llm-ssh-host" in captured.err
+
+
+def test_main_ssh_cli_missing_cli_cmd_fails_loud(tmp_path, capsys):
+    """transport=ssh-cli + missing --llm-cli-cmd -> rc=2 + FATAL line."""
+    from automation.fix_orchestrator import main
+
+    state_root = tmp_path / "state"
+    resolve_log = tmp_path / "resolve.log"
+    resolve_log.write_text("[T1] BLOCKED - :: shapes-incomplete\n",
+                           encoding="utf-8")
+    rc = main([
+        "--resolve-log", str(resolve_log),
+        "--reverify-results", str(tmp_path / "results"),
+        "--state-root", str(state_root),
+        "--init-empty-state",
+        "--llm-transport", "ssh-cli",
+        "--llm-ssh-host", "user@c-host",
+        # deliberately omit --llm-cli-cmd
+    ])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FATAL" in captured.err
+    assert "llm-cli-cmd" in captured.err
+
+
+def test_main_http_missing_endpoint_still_fails_loud(tmp_path, capsys):
+    """Back-compat: transport=http + missing --llm-endpoint -> rc=2."""
+    from automation.fix_orchestrator import main
+
+    state_root = tmp_path / "state"
+    resolve_log = tmp_path / "resolve.log"
+    resolve_log.write_text("[T1] BLOCKED - :: shapes-incomplete\n",
+                           encoding="utf-8")
+    rc = main([
+        "--resolve-log", str(resolve_log),
+        "--reverify-results", str(tmp_path / "results"),
+        "--state-root", str(state_root),
+        "--init-empty-state",
+        # Default transport=http; no --llm-endpoint supplied.
+    ])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FATAL" in captured.err
+    assert "llm-endpoint" in captured.err
+
+
+def test_main_catches_value_error_from_factory(tmp_path):
+    """Bad ssh-cli template -> rc=2 + FATAL line, NO Python traceback.
+
+    Runs ``fix_orchestrator`` as a subprocess so we can observe the
+    full stderr that an operator would see. A missing try/except
+    around ``create_llm_client(...)`` would let
+    ``SSHCLIClient.__init__`` ValueError propagate out of main(), and
+    Python's default ``sys.excepthook`` would print
+    ``Traceback (most recent call last):`` followed by the stack. The
+    fix wraps the factory call so the same misconfiguration surfaces
+    as ``FATAL: invalid LLM client configuration: ...`` on stderr
+    with rc=2, matching the existing required-arg validation style.
+    """
+    import subprocess
+
+    state_root = tmp_path / "state"
+    resolve_log = tmp_path / "resolve.log"
+    resolve_log.write_text("[T1] BLOCKED - :: shapes-incomplete\n",
+                           encoding="utf-8")
+    # Outer double quotes around {prompt} -- rejected by the
+    # quote-depth check in SSHCLIClient.__init__.
+    bad_template = 'cli exec "prefix {prompt} suffix"'
+    proc = subprocess.run(
+        [
+            sys.executable, "-m", "automation.fix_orchestrator",
+            "--resolve-log", str(resolve_log),
+            "--reverify-results", str(tmp_path / "results"),
+            "--state-root", str(state_root),
+            "--init-empty-state",
+            "--llm-transport", "ssh-cli",
+            "--llm-ssh-host", "user@c-host",
+            "--llm-cli-cmd", bad_template,
+        ],
+        env={
+            "PYTHONPATH": str(_SCRIPTS),
+            "PATH": __import__("os").environ.get("PATH", ""),
+        },
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert proc.returncode == 2, (
+        f"expected rc=2, got {proc.returncode}; "
+        f"stdout={proc.stdout!r} stderr={proc.stderr!r}"
+    )
+    assert "FATAL" in proc.stderr, proc.stderr
+    assert (
+        "invalid LLM client configuration" in proc.stderr
+        or "do NOT wrap" in proc.stderr
+    ), proc.stderr
+    # The whole point of the fix: no raw Python traceback leaks to
+    # the operator. ``main()`` must catch ValueError and translate
+    # it into the FATAL line.
+    assert "Traceback (most recent call last)" not in proc.stderr, proc.stderr
+
+
 def test_preview_path_without_apply_does_not_modify_task_dir(tmp_path):
     """When ctx.apply is False the orchestrator must NOT snapshot the
     task_dir, MUST NOT advance past PATCH_VALIDATING, and MUST leave

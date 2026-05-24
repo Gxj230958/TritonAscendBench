@@ -46,22 +46,37 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: run_acceptance_gate.sh --gpfs-root PATH --c-host SSH --resolve-log PATH
+Usage: run_acceptance_gate.sh --gpfs-root PATH --resolve-log PATH
+                              [http: --c-host SSH ...]
+                              [ssh-cli: --llm-ssh-host SSH
+                                        --llm-cli-cmd TPL ...]
                               [options]
 
 Required:
   --gpfs-root PATH        Shared GPFS root.
-  --c-host SSH            SSH target for the LLM machine.
   --resolve-log PATH      Resolver classification log (jsonl).
 
-Options:
+Transport selection:
+  --llm-transport MODE    'http' (default) or 'ssh-cli'.
+
+Required when --llm-transport http:
+  --c-host SSH            SSH target for the LLM machine.
+
+Required when --llm-transport ssh-cli:
+  --llm-ssh-host SSH      SSH target for the remote CLI host.
+  --llm-cli-cmd TPL       CLI command template with literal '{prompt}'.
+
+Options (http mode):
   --c-port INT            LLM remote port (default 8000).
   --local-port INT        Local tunnel port (default 8080).
+  --health-path PATH      HTTP path to probe for tunnel liveness
+                          (default: /v1/models -- OpenAI-compatible).
+
+Options (both modes):
   --state-path PATH       Override the report-side triage state file
                           path (the per-phase state roots are always
                           derived from --gpfs-root).
-  --health-path PATH      HTTP path to probe for tunnel liveness
-                          (default: /v1/models -- OpenAI-compatible).
+  --llm-timeout-seconds N Per-call transport timeout (default 600).
   --phase MODE            1|2|3|4|all  (default: all).
   -h, --help              Show this help and exit 0.
 EOF
@@ -75,6 +90,10 @@ RESOLVE_LOG=""
 STATE_PATH=""
 HEALTH_PATH="/v1/models"
 PHASE="all"
+LLM_TRANSPORT="http"
+LLM_SSH_HOST=""
+LLM_CLI_CMD=""
+LLM_TIMEOUT_SECONDS="600"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -86,6 +105,10 @@ while [[ $# -gt 0 ]]; do
     --state-path)  STATE_PATH="${2:-}";  shift 2 ;;
     --health-path) HEALTH_PATH="${2:-}"; shift 2 ;;
     --phase)       PHASE="${2:-}";       shift 2 ;;
+    --llm-transport)        LLM_TRANSPORT="${2:-}";        shift 2 ;;
+    --llm-ssh-host)         LLM_SSH_HOST="${2:-}";         shift 2 ;;
+    --llm-cli-cmd)          LLM_CLI_CMD="${2:-}";          shift 2 ;;
+    --llm-timeout-seconds)  LLM_TIMEOUT_SECONDS="${2:-}";  shift 2 ;;
     -h|--help)     usage; exit 0 ;;
     *)
       echo "[fail] unknown argument: $1" >&2
@@ -95,13 +118,45 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-for var in GPFS_ROOT C_HOST RESOLVE_LOG; do
+# Universal required args.
+for var in GPFS_ROOT RESOLVE_LOG; do
   if [[ -z "${!var}" ]]; then
     echo "[fail] --${var//_/-} (lowercase) is required" >&2
     usage >&2
     exit 2
   fi
 done
+
+# Transport-specific required args.
+case "$LLM_TRANSPORT" in
+  http)
+    if [[ -z "$C_HOST" ]]; then
+      echo "[fail] --c-host is required for --llm-transport http" >&2
+      usage >&2
+      exit 2
+    fi
+    ;;
+  ssh-cli)
+    if [[ -z "$LLM_SSH_HOST" ]]; then
+      echo "[fail] --llm-ssh-host is required for --llm-transport ssh-cli" >&2
+      usage >&2
+      exit 2
+    fi
+    if [[ -z "$LLM_CLI_CMD" ]]; then
+      echo "[fail] --llm-cli-cmd is required for --llm-transport ssh-cli" >&2
+      usage >&2
+      exit 2
+    fi
+    if [[ "$LLM_CLI_CMD" != *"{prompt}"* ]]; then
+      echo "[fail] --llm-cli-cmd must contain literal '{prompt}' placeholder" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "[fail] --llm-transport must be 'http' or 'ssh-cli'" >&2
+    exit 2
+    ;;
+esac
 
 case "$PHASE" in
   1|2|3|4|all) ;;
@@ -162,6 +217,29 @@ cleanup() {
 trap cleanup SIGTERM SIGINT EXIT
 
 start_tunnel() {
+  # Transport-aware liveness setup.
+  #
+  # http mode: open one long-lived SSH local-port-forward and probe it
+  # with curl against --health-path (default /v1/models). Any HTTP
+  # response in [200, 500) counts as alive (4xx like 401/404 still
+  # proves the tunnel forwarded to a live HTTP server). 5xx and
+  # connection refused / timeout (code 000) count as down.
+  #
+  # ssh-cli mode: no tunnel is opened (TUNNEL_PID stays empty and the
+  # EXIT trap simply skips the kill). We confirm SSH reachability with
+  # a single `echo CLI_OK` non-interactive ssh, mirroring
+  # setup_machine_b_cpu.sh's reachability probe.
+  if [[ "$LLM_TRANSPORT" == "ssh-cli" ]]; then
+    echo "[step] probing SSH to LLM CLI host $LLM_SSH_HOST (no tunnel)"
+    if ! ssh -o BatchMode=yes -o ConnectTimeout=5 \
+           "$LLM_SSH_HOST" 'echo CLI_OK' 2>/dev/null \
+           | grep -q '^CLI_OK$'; then
+      echo "[fail] ssh $LLM_SSH_HOST not reachable (BatchMode key auth required)" >&2
+      return 7
+    fi
+    echo "[ok] ssh $LLM_SSH_HOST reachable"
+    return 0
+  fi
   echo "[step] opening SSH tunnel: localhost:$LOCAL_PORT -> $C_HOST:$C_PORT"
   ssh -N -L "$LOCAL_PORT:localhost:$C_PORT" \
       -o ServerAliveInterval=30 \
@@ -172,10 +250,6 @@ start_tunnel() {
   for i in $(seq 1 10); do
     code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 \
               "$LLM_ENDPOINT$HEALTH_PATH" 2>/dev/null || echo 000)"
-    # Accept any HTTP response in [200, 500). 4xx (e.g. 401 / 404) still
-    # proves the tunnel forwarded the request to a live HTTP server.
-    # 5xx and connection refused / timeout (code 000) count as down --
-    # matches run_machine_b_orchestrator.sh and the runbook.
     if [[ "$code" != "000" ]] && (( code >= 200 && code < 500 )); then
       echo "[ok] LLM endpoint reachable (attempt $i, http=$code)"
       return 0
@@ -184,6 +258,23 @@ start_tunnel() {
   done
   echo "[fail] LLM endpoint not reachable at $LLM_ENDPOINT$HEALTH_PATH" >&2
   return 7
+}
+
+# Append the transport-specific LLM args to an orchestrator argv array.
+# Usage: append_llm_args ARRAY_NAME
+# In http mode this adds --llm-endpoint pointing at the local forward
+# (LLM_ENDPOINT). In ssh-cli mode it adds --llm-ssh-host + --llm-cli-cmd
+# so the orchestrator skips the http endpoint requirement.
+append_llm_args() {
+  local -n _arr=$1
+  _arr+=(--llm-transport "$LLM_TRANSPORT"
+         --llm-timeout-seconds "$LLM_TIMEOUT_SECONDS")
+  if [[ "$LLM_TRANSPORT" == "http" ]]; then
+    _arr+=(--llm-endpoint "$LLM_ENDPOINT")
+  else
+    _arr+=(--llm-ssh-host "$LLM_SSH_HOST"
+           --llm-cli-cmd "$LLM_CLI_CMD")
+  fi
 }
 
 record_phase() {
@@ -279,12 +370,12 @@ phase1() {
     --resolve-log "$RESOLVE_LOG"
     --reverify-results "$RESULTS_ROOT/phase1"
     --state-root "$state_root"
-    --llm-endpoint "$LLM_ENDPOINT"
     --verdict-class shapes-incomplete
     --init-empty-state
     --max-tasks 3
     --apply
   )
+  append_llm_args cmd
   local rc=0
   BENCH_AUTOMATION_BUDGET_JSON="$budget_json" \
     "${cmd[@]}" > "$log" 2>&1 || rc=$?
@@ -382,13 +473,13 @@ PY
     --resolve-log "$RESOLVE_LOG"
     --reverify-results "$RESULTS_ROOT/phase2"
     --state-root "$state_root"
-    --llm-endpoint "$LLM_ENDPOINT"
     --verdict-class all
     --init-empty-state
     --max-tasks "$id_count"
     --task-ids "$task_ids"
     --apply
   )
+  append_llm_args cmd
   local rc=0
   BENCH_AUTOMATION_BUDGET_JSON="$budget_json" \
     "${cmd[@]}" > "$log" 2>&1 || rc=$?
@@ -423,12 +514,12 @@ phase3() {
     --resolve-log "$RESOLVE_LOG"
     --reverify-results "$RESULTS_ROOT/phase3"
     --state-root "$state_root"
-    --llm-endpoint "$LLM_ENDPOINT"
     --verdict-class all
     --init-empty-state
     --max-tasks 1000
     --apply
   )
+  append_llm_args cmd
   local rc=0
   BENCH_AUTOMATION_BUDGET_JSON="$budget_json" \
     "${cmd[@]}" > "$log" 2>&1 || rc=$?
@@ -506,12 +597,12 @@ phase4() {
     --resolve-log "$RESOLVE_LOG"
     --reverify-results "$results_t1"
     --state-root "$state_root_t1"
-    --llm-endpoint "$LLM_ENDPOINT"
     --verdict-class all
     --init-empty-state
     --max-tasks 5
     --apply
   )
+  append_llm_args t1_cmd
   local t1_rc=0
   BENCH_AUTOMATION_BUDGET_JSON="$budget_t1" \
     "${t1_cmd[@]}" > "$tier1_log" 2>&1 || t1_rc=$?
@@ -537,12 +628,12 @@ phase4() {
     --state-root "$state_root_t2"
     --queue-root "$QUEUE_ROOT"
     --repo-root "$PHASE4_WORKTREE"
-    --llm-endpoint "$LLM_ENDPOINT"
     --verdict-class all
     --init-empty-state
     --max-tasks 5
     --apply
   )
+  append_llm_args t2_cmd
   local t2_rc=0
   BENCH_AUTOMATION_BUDGET_JSON="$budget_t2" \
     "${t2_cmd[@]}" >> "$tier2_log" 2>&1 || t2_rc=$?
