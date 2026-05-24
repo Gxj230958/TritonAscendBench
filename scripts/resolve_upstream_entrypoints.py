@@ -71,6 +71,17 @@ VLLM_ROOT = INFER_ROOT / "vllm"
 SGLANG_ROOT = INFER_ROOT / "sglang" / "python"
 _ORACLE_CHECK_RUNNER = SCRIPTS_DIR / "_pa_oracle_check_runner.py"
 
+# Hard per-call timeout for the oracle-consistency subprocess. Without it,
+# one hung candidate (CUDA init deadlock, infinite loop, vllm cold-import
+# hang, kernel.py runaway) blocks the entire sweep indefinitely -- and
+# parallel workers amplify the damage (one hung worker holds its slot).
+# 180s is generous: real cases finish in <30s; the timeout protects
+# against pathological hangs, not normal slow imports. A timeout maps
+# to upstream-not-invocable-here in the worst-news-first classifier
+# (the "timeout" substring matches neither _is_shapes_incomplete nor
+# _is_numeric_mismatch, so the fallback bucket is correctly chosen).
+_ORACLE_TIMEOUT_S = 180
+
 # MUST-FIX 1 (codex r2 [confirmed]): the resolver-verdict cache must be
 # a DETERMINISTIC, REPRODUCIBLE in-repo artifact -- NOT a stray /tmp
 # file whose freshness/provenance cannot be trusted. The status
@@ -1203,10 +1214,19 @@ def oracle_consistency_check(
     }
     spec_f = work / "spec.json"
     spec_f.write_text(json.dumps(spec))
-    proc = subprocess.run(
-        [sys.executable, str(_ORACLE_CHECK_RUNNER), "--spec", str(spec_f)],
-        capture_output=True, text=True,
-    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(_ORACLE_CHECK_RUNNER), "--spec", str(spec_f)],
+            capture_output=True, text=True,
+            timeout=_ORACLE_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return False, (
+            f"oracle-check subprocess timeout after {_ORACLE_TIMEOUT_S}s "
+            f"(per-candidate hard limit -- a hung subprocess would "
+            f"otherwise stall the whole sweep). Treated as "
+            f"upstream-not-invocable-here."
+        ), []
     out_f = work / "out.json"
     if not out_f.is_file():
         # No result file -> the subprocess crashed before it could
@@ -1548,19 +1568,40 @@ def run_resolver(
     apply: bool,
     checkpoint_dir: Path | None = None,
     resume: bool = False,
+    workers: int = 1,
 ) -> list[Resolution]:
     """Resolve every (or one) task. ``checkpoint_dir`` persists ONE
     JSON per task as it finishes so a long sweep that is interrupted
     keeps every completed verdict (anti-mechanization: never lose real
-    work; ``--resume`` skips tasks already checkpointed)."""
+    work; ``--resume`` skips tasks already checkpointed).
+
+    ``workers``: thread count. ``workers <= 1`` keeps the sequential
+    semantics byte-identical. ``workers >= 2`` runs ``resolve_task``
+    calls concurrently in a ``ThreadPoolExecutor`` -- chosen over a
+    ProcessPool because every per-task call spends almost all its
+    wall-clock inside ``subprocess.run()`` (oracle_check + S2 smoke
+    runners), and ``subprocess.run`` releases the GIL while blocking
+    on the child. Threads therefore give the same wall-clock parallelism
+    as processes here without pickling the ``pap`` module or paying
+    fork cost; each task's subprocesses are already isolated (unique
+    tempdir per call, no shared mutable state in the runners). Peak
+    memory scales ~linearly with ``workers`` because each in-flight
+    task holds at least one vllm-importing oracle subprocess
+    (~1-2 GB RSS each)."""
     pap = _load_pap()
     dirs = _iter_task_dirs(only if not do_all else None)
-    res: list[Resolution] = []
     if checkpoint_dir is not None:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    for td in dirs:
-        if not (td / "kernel.py").is_file() or not (td / "meta.yaml").is_file():
-            continue
+
+    # Pre-filter to dirs that have the two files resolve_task actually
+    # reads (kernel.py + meta.yaml). Keeps the parallel branch's
+    # work-unit list identical to the sequential branch's.
+    valid = [
+        td for td in dirs
+        if (td / "kernel.py").is_file() and (td / "meta.yaml").is_file()
+    ]
+
+    def _process_one(td: Path) -> Resolution:
         cp = (
             checkpoint_dir / f"{td.name}.json"
             if checkpoint_dir is not None
@@ -1569,13 +1610,11 @@ def run_resolver(
         if resume and cp is not None and cp.is_file():
             try:
                 d = json.loads(cp.read_text())
-                res.append(Resolution(**d))
                 print(f"[{td.name}] (resumed from checkpoint)", flush=True)
-                continue
+                return Resolution(**d)
             except (OSError, ValueError, TypeError):
                 pass  # corrupt checkpoint -> recompute
         r = resolve_task(td, pap, apply)
-        res.append(r)
         if cp is not None:
             cp.write_text(json.dumps(r.__dict__, indent=2))
         print(
@@ -1583,7 +1622,22 @@ def run_resolver(
             f"{r.entrypoint or '-'} :: {r.status}",
             flush=True,
         )
-    return res
+        return r
+
+    if workers <= 1:
+        return [_process_one(td) for td in valid]
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    by_name: dict[str, Resolution] = {}
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futs = {ex.submit(_process_one, td): td for td in valid}
+        for fut in as_completed(futs):
+            td = futs[fut]
+            by_name[td.name] = fut.result()
+    # Return in the canonical (sorted-by-task) iteration order so the
+    # downstream JSON cache + any stable-diff comparison is insensitive
+    # to scheduling. Print order interleaves freely (no consumer cares).
+    return [by_name[td.name] for td in valid]
 
 
 def write_resolver_cache(path: Path, res: list) -> None:
@@ -1929,6 +1983,14 @@ def main(argv: list[str] | None = None) -> int:
         help="skip tasks already present in --checkpoint-dir",
     )
     ap.add_argument(
+        "--workers", type=int, default=1, metavar="N",
+        help="parallel worker threads (default 1=sequential). Each "
+        "in-flight task holds at least one vllm-importing oracle "
+        "subprocess (~1-2 GB RSS), so peak memory scales ~linearly. "
+        "4-8 is a good range on a 32+ GB machine; higher hits "
+        "diminishing returns once cold-import cache saturates.",
+    )
+    ap.add_argument(
         "--refresh-cache", action="store_true",
         help="MUST-FIX 1 (codex r2 [confirmed]): regenerate the "
         "DETERMINISTIC canonical resolver-verdict cache "
@@ -1952,6 +2014,7 @@ def main(argv: list[str] | None = None) -> int:
         args.apply,
         Path(args.checkpoint_dir) if args.checkpoint_dir else None,
         args.resume,
+        workers=args.workers,
     )
     n_res = sum(1 for r in res if r.resolved and r.status != "ALREADY-RESOLVED")
     n_already = sum(1 for r in res if r.status == "ALREADY-RESOLVED")

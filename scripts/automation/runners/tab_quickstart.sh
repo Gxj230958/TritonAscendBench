@@ -109,6 +109,13 @@ Required variables (set in conf file or env):
 Optional variables:
   TAB_BENCH_REPO              default: \$(git rev-parse --show-toplevel)
   TAB_RESOLVE_LOG             default: \$TAB_GPFS_ROOT/pa_resolve.log
+  TAB_RESOLVE_CHECKPOINT_DIR  default: \$TAB_GPFS_ROOT/resolve_ckpt
+                              Per-task verdict JSON for crash-resume; auto-passed
+                              to resolver as --checkpoint-dir + --resume.
+                              Cleared by 'resolve --force' and by 'clean'.
+  TAB_RESOLVE_WORKERS         default: 1
+                              Parallel resolver threads (1 = sequential).
+                              4-8 is a sweet spot on a 32+ GB machine.
   TAB_STATE_PATH              default: \$TAB_GPFS_ROOT/state/triage_state.json
   TAB_LLM_TIMEOUT_SECONDS     default: 600
   TAB_SETUP_SKIP_INSTALL      set to '1' to skip pip install in 'setup'
@@ -140,7 +147,8 @@ esac
 # ---------------------------------------------------------------------------
 declare -A _ENV_PRESENCE _ENV_VALUE
 for _var in TAB_GPFS_ROOT TAB_C_HOST TAB_C_CLI_CMD TAB_BENCH_REPO \
-            TAB_RESOLVE_LOG TAB_STATE_PATH TAB_LLM_TIMEOUT_SECONDS \
+            TAB_RESOLVE_LOG TAB_RESOLVE_CHECKPOINT_DIR TAB_RESOLVE_WORKERS \
+            TAB_STATE_PATH TAB_LLM_TIMEOUT_SECONDS \
             TAB_SETUP_SKIP_INSTALL TAB_VERBOSE; do
   if [[ -n "${!_var+x}" ]]; then
     _ENV_PRESENCE[$_var]=1
@@ -216,6 +224,8 @@ _validate_cli_cmd_template "$TAB_C_CLI_CMD"
 # ---------------------------------------------------------------------------
 TAB_BENCH_REPO="${TAB_BENCH_REPO:-$REPO_ROOT}"
 TAB_RESOLVE_LOG="${TAB_RESOLVE_LOG:-$TAB_GPFS_ROOT/pa_resolve.log}"
+TAB_RESOLVE_CHECKPOINT_DIR="${TAB_RESOLVE_CHECKPOINT_DIR:-$TAB_GPFS_ROOT/resolve_ckpt}"
+TAB_RESOLVE_WORKERS="${TAB_RESOLVE_WORKERS:-1}"
 TAB_STATE_PATH="${TAB_STATE_PATH:-$TAB_GPFS_ROOT/state/triage_state.json}"
 TAB_LLM_TIMEOUT_SECONDS="${TAB_LLM_TIMEOUT_SECONDS:-600}"
 TAB_SETUP_SKIP_INSTALL="${TAB_SETUP_SKIP_INSTALL:-}"
@@ -284,14 +294,32 @@ cmd_resolve() {
       "$force_flag" \
       || return 1
   fi
+  if [[ "$force_flag" == "--force" ]]; then
+    # --force = full re-decide from scratch: clear the per-task ckpt
+    # dir so --resume below does not silently skip tasks the user
+    # specifically wanted re-run. The default (no --force) preserves
+    # the ckpt so an interrupted sweep picks up where it stopped.
+    rm -rf "$TAB_RESOLVE_CHECKPOINT_DIR"
+  fi
   mkdir -p "$(dirname "$TAB_RESOLVE_LOG")"
-  step "running resolver -> $TAB_RESOLVE_LOG"
-  # --refresh-cache: also write the structured per-task verdict cache to
-  # results/resolve_all.json (provenance stamp + reason + reject_notes +
-  # input_fp + upstream_fp per task). Without it the log only carries
-  # the bare status header, so fix_orchestrator and any debugging have
-  # no per-task evidence to consume.
-  (cd "$TAB_BENCH_REPO" && python3 scripts/resolve_upstream_entrypoints.py --refresh-cache 2>&1) \
+  mkdir -p "$TAB_RESOLVE_CHECKPOINT_DIR"
+  step "running resolver -> $TAB_RESOLVE_LOG (workers=$TAB_RESOLVE_WORKERS, ckpt=$TAB_RESOLVE_CHECKPOINT_DIR)"
+  # --refresh-cache: also write the structured per-task verdict cache
+  # to results/resolve_all.json (provenance + reason + reject_notes +
+  # input_fp + upstream_fp per task) so fix_orchestrator and any
+  # debugging have real evidence, not just the bare status header.
+  # --checkpoint-dir + --resume: persist one JSON per task as it
+  # finishes -- an OOM/SIGKILL/network glitch mid-sweep no longer
+  # discards every completed verdict; the next invocation resumes
+  # exactly where it stopped. --workers parallelises across N threads
+  # (peak memory scales ~linearly with N because each in-flight task
+  # holds at least one vllm-importing oracle subprocess).
+  (cd "$TAB_BENCH_REPO" && python3 scripts/resolve_upstream_entrypoints.py \
+        --refresh-cache \
+        --checkpoint-dir "$TAB_RESOLVE_CHECKPOINT_DIR" \
+        --resume \
+        --workers "$TAB_RESOLVE_WORKERS" \
+        2>&1) \
     | tee "$TAB_RESOLVE_LOG"
   ok "resolve log produced"
   step "verdict distribution:"
@@ -429,15 +457,17 @@ cmd_clean() {
   echo "  $TAB_GPFS_ROOT/queue"
   echo "  $TAB_GPFS_ROOT/results"
   echo "  $TAB_GPFS_ROOT/.phase4-worktree"
+  echo "  $TAB_RESOLVE_CHECKPOINT_DIR"
   _confirm_or_abort \
-    "will delete state/queue/results/.phase4-worktree under $TAB_GPFS_ROOT" \
+    "will delete state/queue/results/.phase4-worktree/resolve_ckpt under $TAB_GPFS_ROOT" \
     "$force_flag" \
     || return 1
   rm -rf \
     "$TAB_GPFS_ROOT/state" \
     "$TAB_GPFS_ROOT/queue" \
     "$TAB_GPFS_ROOT/results" \
-    "$TAB_GPFS_ROOT/.phase4-worktree"
+    "$TAB_GPFS_ROOT/.phase4-worktree" \
+    "$TAB_RESOLVE_CHECKPOINT_DIR"
   ok "cleaned (logs/ + pa_resolve.log preserved)"
 }
 
