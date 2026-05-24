@@ -286,7 +286,12 @@ cmd_resolve() {
   fi
   mkdir -p "$(dirname "$TAB_RESOLVE_LOG")"
   step "running resolver -> $TAB_RESOLVE_LOG"
-  (cd "$TAB_BENCH_REPO" && python3 scripts/resolve_upstream_entrypoints.py 2>&1) \
+  # --refresh-cache: also write the structured per-task verdict cache to
+  # results/resolve_all.json (provenance stamp + reason + reject_notes +
+  # input_fp + upstream_fp per task). Without it the log only carries
+  # the bare status header, so fix_orchestrator and any debugging have
+  # no per-task evidence to consume.
+  (cd "$TAB_BENCH_REPO" && python3 scripts/resolve_upstream_entrypoints.py --refresh-cache 2>&1) \
     | tee "$TAB_RESOLVE_LOG"
   ok "resolve log produced"
   step "verdict distribution:"
