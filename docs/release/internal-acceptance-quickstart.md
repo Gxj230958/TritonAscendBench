@@ -58,18 +58,22 @@ ssh -o BatchMode=yes -o ConnectTimeout=5 <c-host> 'echo OK'
 ```bash
 cd /data1/code/agentic-rl/kernel/triton-ascend-bench
 git pull origin main
-git log --oneline -5
+git log --oneline | head -10
 ```
 
-应看到:
+应**至少**含这些 commit(顺序最新先;未来可能更多):
 
 ```
-29c767a feat: add three-machine runner scripts + acceptance gate
-ebe705a feat: add oracle-mismatch + upstream-not-invocable verdict pipelines
-bf83381 feat: add fix_orchestrator with shapes-incomplete pipeline
-0c2ce09 feat: implement M0 automation skeleton + release boundary
-1e7ee30 docs: add three-machine automation design + impl plan
+feat: add SSH subprocess transport for remote-CLI LLM
+feat: add three-machine runner scripts + acceptance gate
+feat: add oracle-mismatch + upstream-not-invocable verdict pipelines
+feat: add fix_orchestrator with shapes-incomplete pipeline
+feat: implement M0 automation skeleton + release boundary
+docs: add three-machine automation design + impl plan
 ```
+
+> 实际 hash 会变;只要看到 **"SSH subprocess transport"** 出现就说明拉到最新自动化栈
+> 自检命令:`git log --oneline | grep -cE "SSH subprocess|three-machine|verdict pipelines|fix_orchestrator|M0 automation|automation design"` 应输出 ≥ 6
 
 ## Step 2:setup A 机环境(一次性)
 
@@ -329,7 +333,7 @@ bash scripts/automation/runners/run_acceptance_gate.sh \
 
 ## 真跑前最后 checklist
 
-- [ ] `git pull origin main` 在 A 机本地拉到 `29c767a`
+- [ ] `git pull origin main` 后 `git log --oneline | head -1` 含 **"SSH subprocess transport"**(或更新的 commit;意指拉到含 ssh-cli transport 的最新自动化栈)
 - [ ] `nvidia-smi` 看到 GPU
 - [ ] `python3 -c "import torch; print(torch.__version__)"` 是 2.9.1+
 - [ ] C 机 LLM 服务起着 + B 机 → C 机 SSH 免密通
