@@ -1,10 +1,22 @@
 """Shared prompt prefixes for the LLM-driven fix orchestrator.
 
-Every per-decision prompt (``shapes_incomplete`` here; ``oracle_mismatch``
-and ``defer_to_*`` in M2) builds on top of this shared system message.
+Every per-decision prompt (``shapes_incomplete``, ``oracle_mismatch``,
+``defer_to_golden``) builds on top of these shared building blocks.
 
-The output protocol is the single source of truth for what the parser
-in ``automation.lib.file_blocks`` expects.
+The output protocol is split into two parts so individual prompts can
+embed only the keys list relevant to their decision space:
+
+  * ``BLOCK_GRAMMAR``         -- the META + FILE block syntax (decision
+                                 agnostic).
+  * ``META_KEYS_BY_DECISION`` -- per-decision required META key table,
+                                 the single source of truth that mirrors
+                                 ``fix_orchestrator._DECISION_TO_REQUIRED_KEYS``.
+
+The legacy ``OUTPUT_PROTOCOL`` constant is preserved as
+``BLOCK_GRAMMAR + a full keys table`` for backwards compatibility with
+any consumer that still wants the all-decisions superset; new prompts
+should compose ``BLOCK_GRAMMAR`` with only the keys list relevant to
+their decision.
 """
 from __future__ import annotations
 
@@ -15,7 +27,59 @@ SYSTEM_PREFIX = (
 )
 
 
-OUTPUT_PROTOCOL = """\
+# ---------------------------------------------------------------------------
+# META keys table -- single source of truth, mirrors
+# ``automation.fix_orchestrator._DECISION_TO_REQUIRED_KEYS``. A
+# regression test guards the two from drifting apart.
+# ---------------------------------------------------------------------------
+META_KEYS_BY_DECISION: dict[str, tuple[str, ...]] = {
+    "patch-shapes": (
+        "decision", "missing_params", "rationale", "evidence",
+    ),
+    "tolerance-bump": (
+        "decision", "rationale", "evidence", "tolerance_delta",
+    ),
+    "rewrite-primitives": (
+        "decision", "rationale", "evidence", "primitives_changed",
+    ),
+    "defer-to-upstream-oracle": (
+        "decision", "rationale", "evidence", "upstream_callable",
+    ),
+    "defer-to-golden": (
+        "decision", "rationale", "evidence",
+        "upstream_callable", "blocker_reason",
+    ),
+}
+
+
+def render_meta_keys_table(decisions: tuple[str, ...] | None = None) -> str:
+    """Render a markdown table listing the required META keys for the
+    given subset of decisions (or all five if ``decisions`` is None).
+
+    Each per-decision prompt embeds only the rows relevant to its
+    decision space -- this gives the LLM a concise, decision-specific
+    keys reference inside the system message.
+    """
+    if decisions is None:
+        decisions = tuple(META_KEYS_BY_DECISION.keys())
+    lines: list[str] = [
+        "Required META keys per decision",
+        "-------------------------------",
+        "",
+        "| decision | required META keys |",
+        "|---|---|",
+    ]
+    for dec in decisions:
+        keys = META_KEYS_BY_DECISION[dec]
+        lines.append(f"| {dec} | {', '.join(keys)} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Block grammar -- META + FILE syntax, decision agnostic.
+# ---------------------------------------------------------------------------
+BLOCK_GRAMMAR = """\
 OUTPUT FORMAT (STRICT)
 ======================
 
@@ -26,35 +90,15 @@ explain your decision if you wish). Free-form prose INSIDE a FILE
 block is FORBIDDEN -- file blocks contain a single complete file body
 and nothing else (no markdown fences, no diff hunks).
 
-META block (exactly one). It MUST contain ALL FOUR required keys
-(``decision``, ``missing_params``, ``rationale``, ``evidence``) -- a
-META that drops any of these will be rejected by the patch validator
-and the attempt will be retried, burning your turn budget.
+META block (exactly one). It MUST carry every required key for the
+decision you choose -- see the per-decision keys table below. A META
+that drops a required key will be rejected by the patch validator and
+the attempt will be retried, burning your turn budget.
 
-Required META keys:
-  * ``decision``       -- one of the allowed decision strings for this
-                          turn (e.g. ``"patch-shapes"``).
-  * ``missing_params`` -- JSON array of parameter names that the
-                          repaired ``shapes.yaml`` now supplies. For
-                          the ``patch-shapes`` decision this is the
-                          subset of ``shapes.yaml`` keys that the
-                          original task was missing -- e.g.
-                          ``["BLOCK_SIZE_M", "BLOCK_SIZE_N",
-                          "GROUP_SIZE_M"]``. Use ``[]`` only if the
-                          decision is one for which no params were
-                          missing (this is unusual for patch-shapes).
-  * ``rationale``      -- short free-text justification (1-3 sentences).
-  * ``evidence``       -- JSON object citing the call sites / wrapper
-                          signatures / inferred dtypes you relied on
-                          (e.g. ``{"call_sites": ["infer/vllm/model.py:73"],
-                          "wrapper_sig": "def silu(x: Tensor) -> Tensor"}``).
+META block syntax:
 
     ### META
-    {"decision": "patch-shapes",
-     "missing_params": ["BLOCK_SIZE_M", "BLOCK_SIZE_N", "GROUP_SIZE_M"],
-     "rationale": "Wrapper signature + caller dtypes pin the missing tile params.",
-     "evidence": {"call_sites": ["infer/vllm/model.py:73"],
-                  "wrapper_sig": "def silu(x: Tensor) -> Tensor"}}
+    {"decision": "<one of the allowed decision strings>", ...}
     ### END
 
 FILE blocks (one or more; the `path` MUST be a whitelisted target,
@@ -68,6 +112,18 @@ Do NOT emit unified diffs. Do NOT emit zero META blocks. Do NOT emit
 two or more META blocks. Do NOT emit FILE paths outside the task
 directory.
 """
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compat: the legacy combined string. New prompts should
+# compose ``BLOCK_GRAMMAR`` + ``render_meta_keys_table(<subset>)``
+# directly instead of relying on this all-decisions superset.
+# ---------------------------------------------------------------------------
+OUTPUT_PROTOCOL = (
+    BLOCK_GRAMMAR
+    + "\n"
+    + render_meta_keys_table()
+)
 
 
 HIGH_LEVEL_OP_WARNING = """\
@@ -93,4 +149,11 @@ Forbidden torch.nn class instantiations (capitalised):
 """
 
 
-__all__ = ["HIGH_LEVEL_OP_WARNING", "OUTPUT_PROTOCOL", "SYSTEM_PREFIX"]
+__all__ = [
+    "BLOCK_GRAMMAR",
+    "HIGH_LEVEL_OP_WARNING",
+    "META_KEYS_BY_DECISION",
+    "OUTPUT_PROTOCOL",
+    "SYSTEM_PREFIX",
+    "render_meta_keys_table",
+]

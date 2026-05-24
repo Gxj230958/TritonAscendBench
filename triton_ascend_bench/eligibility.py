@@ -41,12 +41,25 @@ class _TaskLike(Protocol):
 def is_score_eligible(task: _TaskLike) -> bool:
     """True iff `task` counts toward the scored denominator.
 
-    A task is NOT eligible when its oracle is a stub
-    (``raise NotImplementedError``) or its ``shapes.yaml`` is
-    ``PHASE-C-MANUAL``. Any OS error reading the task is treated as
-    NOT eligible (the same conservative behaviour as the original
-    inline ``cli.py`` code, which ``continue``-d on ``OSError``).
+    A task is NOT eligible when:
+      * ``meta.yaml.release_scope.excluded`` is ``True`` — the
+        orchestrator has explicitly marked the task unfixable by the
+        LLM patch flow and removed it from release scoring
+        (``specs/task_api_contract.md`` §6a.5). The task still exists
+        in the corpus (no subset escape — the denominator is NOT
+        reduced by silently dropping the task here; the eligibility
+        gate alone subtracts it from the scored set).
+      * its oracle is a stub (``raise NotImplementedError``), or
+      * its ``shapes.yaml`` is ``PHASE-C-MANUAL``.
+
+    Any OS error reading the task is treated as NOT eligible (the
+    same conservative behaviour as the original inline ``cli.py``
+    code, which ``continue``-d on ``OSError``).
     """
+    meta = getattr(task, "meta", None) or {}
+    release_scope = meta.get("release_scope") or {}
+    if release_scope.get("excluded") is True:
+        return False
     try:
         osrc = (task.task_dir / "oracle_pytorch.py").read_text()
         shp = (task.task_dir / "shapes.yaml").read_text()
@@ -242,15 +255,70 @@ def compute_verified_blocked(tasks: Iterable[_TaskLike]) -> set[str]:
 def release_status_pass(meta: dict | None) -> bool:
     """True iff a task's composite ``release_status`` is PASS.
 
-    ``release_status == PASS  <=>  phase_a_prime.status == PASS  AND
-    cost_model.status == PASS`` (DESIGN-V2 §4.4). A missing
-    ``phase_a_prime`` block, a missing ``cost_model`` block, or a
-    missing ``status`` inside either is treated as NOT PASS.
+    Base predicate (DESIGN-V2 §4.4)::
+
+        release_status == PASS
+            <=> phase_a_prime.status PASSes  AND  cost_model.status == PASS
+
+    A missing ``phase_a_prime`` block, a missing ``cost_model`` block,
+    or a missing ``status`` inside either is treated as NOT PASS.
+
+    ``specs/task_api_contract.md`` §6a refinements:
+
+    * ``phase_a_prime.status == "SKIPPED_BY_DESIGN"`` is also accepted
+      as the phase A' clause — the operator cannot be invoked
+      standalone on the GPU verify host and the offline phase B golden
+      capture (§6a.3) is the authoritative truth source. The status
+      is treated as PASS *only when* the corresponding
+      ``phase_b_capture.status == "DONE"`` (cross-field invariant
+      §6a.6 #5 — without a captured golden the
+      ``SKIPPED_BY_DESIGN`` status alone is not a release-ready
+      signal).
+    * ``phase_b_capture_required == True`` promotes the offline golden
+      into the conjunctive predicate: when set, ``release_status``
+      requires ``phase_b_capture.status == "DONE"`` regardless of
+      whether phase A' is ``PASS`` or ``SKIPPED_BY_DESIGN``.
+    * ``release_scope.excluded == True`` is a hard release-blocker: an
+      operator-marked excluded task is by definition NOT release-ready
+      (the conjunctive gate includes ``NOT release_scope.excluded``).
+      This keeps the release-gate authorities aligned with the
+      eligibility-layer exclusion -- a task removed from the scored
+      set must not simultaneously satisfy ``release_status_pass``.
     """
     m = meta or {}
     pap_status = (m.get("phase_a_prime") or {}).get("status")
     cm_status = (m.get("cost_model") or {}).get("status")
-    return pap_status == "PASS" and cm_status == "PASS"
+    pbc_status = (m.get("phase_b_capture") or {}).get("status")
+    pbc_required = m.get("phase_b_capture_required") is True
+    excluded = (m.get("release_scope") or {}).get("excluded") is True
+
+    if excluded:
+        return False
+
+    if cm_status != "PASS":
+        return False
+
+    if pap_status == "PASS":
+        pap_ok = True
+    elif pap_status == "SKIPPED_BY_DESIGN":
+        # Invariant §6a.6 #5: SKIPPED_BY_DESIGN delegates the truth
+        # source to the offline golden — only PASS once the capture
+        # is DONE. Invariant §6a.6 #2: SKIPPED_BY_DESIGN must carry a
+        # non-empty reason — fail-closed defence in case a malformed
+        # block ever reached disk past the patch validator.
+        pap_reason = (m.get("phase_a_prime") or {}).get("reason")
+        reason_ok = isinstance(pap_reason, str) and bool(pap_reason.strip())
+        pap_ok = pbc_status == "DONE" and reason_ok
+    else:
+        pap_ok = False
+
+    if not pap_ok:
+        return False
+
+    if pbc_required and pbc_status != "DONE":
+        return False
+
+    return True
 
 
 def compute_release_blocking(

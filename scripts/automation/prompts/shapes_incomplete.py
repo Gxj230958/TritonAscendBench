@@ -14,9 +14,11 @@ from typing import Any
 import yaml
 
 from automation.prompts.shared import (
+    BLOCK_GRAMMAR,
     HIGH_LEVEL_OP_WARNING,
-    OUTPUT_PROTOCOL,
+    OUTPUT_PROTOCOL,  # noqa: F401  -- kept for backwards-compat consumers
     SYSTEM_PREFIX,
+    render_meta_keys_table,
 )
 
 logger = logging.getLogger("automation.prompts.shapes_incomplete")
@@ -160,7 +162,16 @@ def build_prompt(
 
     rel_task = task_dir.relative_to(repo_root)
 
-    system = SYSTEM_PREFIX + SYSTEM_TASK + "\n" + OUTPUT_PROTOCOL + "\n" + HIGH_LEVEL_OP_WARNING
+    system = (
+        SYSTEM_PREFIX
+        + SYSTEM_TASK
+        + "\n"
+        + BLOCK_GRAMMAR
+        + "\n"
+        + render_meta_keys_table(("patch-shapes",))
+        + "\n"
+        + HIGH_LEVEL_OP_WARNING
+    )
     user_parts = [
         f"task_id: {task_id}",
         f"task_dir (FILE path prefix to use): {rel_task}/",

@@ -27,7 +27,9 @@ import argparse
 import ast
 import hashlib
 import logging
+import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -171,6 +173,43 @@ _HIGH_LEVEL_OP_MODULES = frozenset({
     "torch",
     "torch.nn.functional",
 })
+
+# specs/task_api_contract.md §6a.3 — canonical dotted Python module path
+# (non-empty sequence of valid Python identifiers separated by single dots).
+# Same pattern the patch validator (`scripts/automation/lib/file_blocks.py`)
+# enforces at write time; pre-compiled so the post-write corpus validator
+# does not regress to a different shape.
+_CANONICAL_DOTTED_PATH_RE = re.compile(
+    r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$"
+)
+# §6a.3 — `upstream_callable.function` is a single Python identifier.
+_PY_IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+# §6a.3 / §6a.5 — `*_at` and `captured_at` are ISO 8601 UTC timestamps.
+# The bench writer (`state_machine.iso_utc_now`) emits the trailing-`Z` form
+# `YYYY-MM-DDTHH:MM:SSZ`; readers accept either the `Z` form or the numeric
+# offset form per the ISO 8601 standard.
+_PHASE_B_CAPTURE_STATUS_VALUES = frozenset({"PENDING", "DONE", "FAILED"})
+
+
+def _is_iso8601_utc_timestamp(value) -> bool:
+    """True iff ``value`` parses as an ISO 8601 timestamp.
+
+    Accepts both the bench-canonical trailing-`Z` form
+    (``YYYY-MM-DDTHH:MM:SSZ``) and the numeric-offset form
+    (``YYYY-MM-DDTHH:MM:SS+0000``). Uses :func:`datetime.fromisoformat`
+    on a normalised string — ``Z`` is replaced with ``+00:00`` because
+    Python <3.11 does not accept the trailing-`Z` literal. No new
+    dependency is introduced.
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    normalised = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        datetime.fromisoformat(normalised)
+    except ValueError:
+        return False
+    return True
 
 # Canonical module roots under which a Capitalised `.<Class>` attribute names
 # a high-level `nn.Module` class (the module/class form).
@@ -682,6 +721,191 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
     return errs
 
 
+def _validate_release_scope(tid: str, meta: dict) -> list[str]:
+    """`release_scope` block shape (specs/task_api_contract.md §6a.5).
+
+    Absent / well-formed blocks pass. When ``release_scope.excluded`` is
+    ``True``:
+
+    * ``reason`` must be a non-empty string;
+    * ``excluded_at`` must be a parseable ISO 8601 UTC timestamp;
+    * ``excluded_by`` must be a non-empty string identifying the actor.
+
+    Cross-field invariant §6a.6 #6 — the patch validator (Layer 5)
+    gates writes; this corpus-side check guards against a malformed
+    block that somehow reached disk past the patch validator.
+    """
+    rs = meta.get("release_scope")
+    if rs is None:
+        return []
+    errs: list[str] = []
+    if not isinstance(rs, dict):
+        errs.append(
+            f"{tid}: meta.yaml release_scope must be a mapping "
+            f"(got {type(rs).__name__})"
+        )
+        return errs
+    excluded = rs.get("excluded")
+    if excluded is None or excluded is False:
+        return errs
+    if excluded is not True:
+        errs.append(
+            f"{tid}: meta.yaml release_scope.excluded must be a bool "
+            f"(got {excluded!r})"
+        )
+        return errs
+    reason = rs.get("reason")
+    if not isinstance(reason, str) or not reason.strip():
+        errs.append(
+            f"{tid}: meta.yaml release_scope.excluded is true but "
+            f"release_scope.reason is missing or empty"
+        )
+    excluded_at = rs.get("excluded_at")
+    if not _is_iso8601_utc_timestamp(excluded_at):
+        errs.append(
+            f"{tid}: meta.yaml release_scope.excluded_at "
+            f"{excluded_at!r} is not a valid ISO 8601 UTC timestamp"
+        )
+    excluded_by = rs.get("excluded_by")
+    if not isinstance(excluded_by, str) or not excluded_by.strip():
+        errs.append(
+            f"{tid}: meta.yaml release_scope.excluded_by must be a "
+            f"non-empty string identifying the actor"
+        )
+    return errs
+
+
+def _validate_phase_a_skip_invocation(tid: str, meta: dict) -> list[str]:
+    """`phase_a_prime.skip_invocation` cross-field invariants.
+
+    specs/task_api_contract.md §6a.1 + §6a.6 #1:
+
+      ``skip_invocation == true``
+          ⇒ ``status == "SKIPPED_BY_DESIGN"``
+          ⇒ ``reason`` is a non-empty string
+
+    Plus the inverse §6a.6 #2 — ``status == "SKIPPED_BY_DESIGN"`` ⇒
+    ``skip_invocation == true`` and a non-empty ``reason``. Absent
+    blocks pass.
+    """
+    pap = meta.get("phase_a_prime")
+    if not isinstance(pap, dict):
+        return []
+    errs: list[str] = []
+    skip = pap.get("skip_invocation")
+    status = pap.get("status")
+    reason = pap.get("reason")
+    reason_ok = isinstance(reason, str) and bool(reason.strip())
+
+    if skip is True:
+        if status != "SKIPPED_BY_DESIGN":
+            errs.append(
+                f"{tid}: meta.yaml phase_a_prime.skip_invocation is true "
+                f"but phase_a_prime.status is {status!r} (must be "
+                f"'SKIPPED_BY_DESIGN'; invariant §6a.6 #1)"
+            )
+        if not reason_ok:
+            errs.append(
+                f"{tid}: meta.yaml phase_a_prime.skip_invocation is true "
+                f"but phase_a_prime.reason is missing or empty"
+            )
+    elif skip is not None and skip is not False:
+        errs.append(
+            f"{tid}: meta.yaml phase_a_prime.skip_invocation must be a "
+            f"bool (got {skip!r})"
+        )
+
+    if status == "SKIPPED_BY_DESIGN":
+        if skip is not True:
+            errs.append(
+                f"{tid}: meta.yaml phase_a_prime.status is "
+                f"'SKIPPED_BY_DESIGN' but skip_invocation is {skip!r} "
+                f"(must be true; invariant §6a.6 #2)"
+            )
+        if not reason_ok:
+            errs.append(
+                f"{tid}: meta.yaml phase_a_prime.status is "
+                f"'SKIPPED_BY_DESIGN' but phase_a_prime.reason is "
+                f"missing or empty"
+            )
+    return errs
+
+
+def _validate_phase_b_capture(tid: str, meta: dict) -> list[str]:
+    """`phase_b_capture` block shape + cross-field invariants.
+
+    specs/task_api_contract.md §6a.3 + §6a.6 #3/#4:
+
+    * ``status`` ∈ {``PENDING``, ``DONE``, ``FAILED``};
+    * ``DONE`` ⇒ ``upstream_callable.module`` is a canonical dotted
+      Python path, ``upstream_callable.function`` is a valid Python
+      identifier, ``captured_at`` is a parseable ISO 8601 UTC
+      timestamp;
+    * ``FAILED`` ⇒ ``reason`` is a non-empty string.
+
+    Absent / well-formed blocks pass.
+    """
+    pbc = meta.get("phase_b_capture")
+    if pbc is None:
+        return []
+    errs: list[str] = []
+    if not isinstance(pbc, dict):
+        errs.append(
+            f"{tid}: meta.yaml phase_b_capture must be a mapping "
+            f"(got {type(pbc).__name__})"
+        )
+        return errs
+    status = pbc.get("status")
+    if status is None:
+        # block present but no status — treat as no capture attempted.
+        return errs
+    if status not in _PHASE_B_CAPTURE_STATUS_VALUES:
+        errs.append(
+            f"{tid}: meta.yaml phase_b_capture.status {status!r} not in "
+            f"{sorted(_PHASE_B_CAPTURE_STATUS_VALUES)}"
+        )
+        return errs
+
+    uc = pbc.get("upstream_callable")
+    if status == "DONE":
+        if not isinstance(uc, dict):
+            errs.append(
+                f"{tid}: meta.yaml phase_b_capture.status is 'DONE' but "
+                f"phase_b_capture.upstream_callable is missing or not a "
+                f"mapping"
+            )
+        else:
+            module = uc.get("module")
+            function = uc.get("function")
+            if not isinstance(module, str) or not _CANONICAL_DOTTED_PATH_RE.fullmatch(module):
+                errs.append(
+                    f"{tid}: meta.yaml phase_b_capture.upstream_callable."
+                    f"module {module!r} is not a canonical dotted Python "
+                    f"path"
+                )
+            if not isinstance(function, str) or not _PY_IDENTIFIER_RE.fullmatch(function):
+                errs.append(
+                    f"{tid}: meta.yaml phase_b_capture.upstream_callable."
+                    f"function {function!r} is not a valid Python "
+                    f"identifier"
+                )
+        captured_at = pbc.get("captured_at")
+        if not _is_iso8601_utc_timestamp(captured_at):
+            errs.append(
+                f"{tid}: meta.yaml phase_b_capture.status is 'DONE' but "
+                f"phase_b_capture.captured_at {captured_at!r} is not a "
+                f"valid ISO 8601 UTC timestamp"
+            )
+    elif status == "FAILED":
+        reason = pbc.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            errs.append(
+                f"{tid}: meta.yaml phase_b_capture.status is 'FAILED' "
+                f"but phase_b_capture.reason is missing or empty"
+            )
+    return errs
+
+
 def _validate_metamorphic_checks(tid: str, meta: dict) -> list[str]:
     """`runner_checks.metamorphic_checks` names must be in the known registry.
 
@@ -980,6 +1204,19 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # Step 7f: metamorphic_checks names must be in the known-check registry
     # (W2.3). The authoritative registry is built later by W2.4.
     errs.extend(_validate_metamorphic_checks(tid, meta))
+
+    # Step 7g: bench-team-internal §6a state fields. All four blocks are
+    # OPTIONAL with explicit defaults — the 100-task corpus authored before
+    # M2 has none of them and stays clean. When present, the shape /
+    # cross-field invariants from specs/task_api_contract.md §6a.5 / §6a.1 /
+    # §6a.3 are enforced (the patch validator gates writes at Layer 5;
+    # these checks defend against any malformed block that bypassed it).
+    # `release_scope.excluded == true` does NOT short-circuit `validate_task`
+    # — file presence, syntax, hashes, and every other gate still run, so a
+    # task pulled out of release scope cannot silently rot.
+    errs.extend(_validate_release_scope(tid, meta))
+    errs.extend(_validate_phase_a_skip_invocation(tid, meta))
+    errs.extend(_validate_phase_b_capture(tid, meta))
 
     # Step 8: PHASE-AWARE hash integrity (plan U5 codex-cep-r2 must-fix).
     # If the task has been Phase-A'-processed it carries

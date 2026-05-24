@@ -141,20 +141,70 @@ def test_build_prompt_missing_param_evidence_passed_through(tmp_path):
     assert "param 'gate' has no value at L342" in messages[1]["content"]
 
 
-def test_shared_protocol_lists_all_required_meta_keys():
-    """OUTPUT_PROTOCOL must enumerate every key validated by ``validate_patch``.
+def test_shapes_incomplete_prompt_lists_patch_shapes_keys(tmp_path):
+    """The shapes_incomplete system prompt must enumerate the 4
+    ``patch-shapes`` META keys -- the validator rejects underspecified
+    META and burns the retry budget if any of these is missing from
+    the prompt."""
+    from automation.prompts import shapes_incomplete
 
-    ``fix_orchestrator.py`` calls ``file_blocks.validate_patch`` with
-    ``expected_keys={"decision", "missing_params", "rationale", "evidence"}``;
-    if the system prompt drops any of these, the LLM will ship an
-    underspecified META, the validator will reject the attempt, and the
-    retry loop will burn token budget. This test pins the contract so a
-    future edit to either side keeps them in sync.
-    """
+    _scaffold(tmp_path)
+    messages = shapes_incomplete.build_prompt(
+        "L1_06_swiglu", repo_root=tmp_path,
+    )
+    sys_content = messages[0]["content"]
+    for key in ("decision", "missing_params", "rationale", "evidence"):
+        assert key in sys_content, (
+            f"shapes_incomplete system prompt missing patch-shapes META "
+            f"key {key!r}"
+        )
+    # The decision label itself must appear in the per-decision table.
+    assert "patch-shapes" in sys_content
+
+
+def test_shared_block_grammar_block_protocol_unchanged():
+    """The block grammar carries the META + FILE syntax envelope that
+    ``automation.lib.file_blocks`` parses. A future edit to the grammar
+    must keep both block markers visible -- otherwise every prompt
+    silently breaks the parser."""
     from automation.prompts import shared
 
-    for key in ("decision", "missing_params", "rationale", "evidence"):
-        assert key in shared.OUTPUT_PROTOCOL, (
-            f"OUTPUT_PROTOCOL is missing required META key {key!r}; it must "
-            "mention every key that fix_orchestrator.validate_patch expects."
+    assert "### META" in shared.BLOCK_GRAMMAR
+    assert "### END" in shared.BLOCK_GRAMMAR
+    assert "### FILE" in shared.BLOCK_GRAMMAR
+    # The decision-agnostic grammar must NOT bake any specific
+    # decision into the syntax description -- per-decision keys live
+    # in render_meta_keys_table.
+    for dec in (
+        "patch-shapes", "tolerance-bump", "rewrite-primitives",
+        "defer-to-upstream-oracle", "defer-to-golden",
+    ):
+        assert dec not in shared.BLOCK_GRAMMAR, (
+            f"BLOCK_GRAMMAR should not hard-code decision {dec!r}; "
+            "use render_meta_keys_table for per-decision content."
+        )
+
+
+def test_shared_meta_keys_by_decision_all_5_decisions():
+    """The shared META-keys table MUST stay in lockstep with the
+    orchestrator's ``_DECISION_TO_REQUIRED_KEYS`` -- if either side
+    drifts, the LLM ships a META the validator rejects."""
+    from automation import fix_orchestrator
+    from automation.prompts import shared
+
+    expected_decisions = {
+        "patch-shapes",
+        "tolerance-bump",
+        "rewrite-primitives",
+        "defer-to-upstream-oracle",
+        "defer-to-golden",
+    }
+    assert set(shared.META_KEYS_BY_DECISION.keys()) == expected_decisions
+
+    for dec, keys in shared.META_KEYS_BY_DECISION.items():
+        orchestrator_keys = fix_orchestrator._DECISION_TO_REQUIRED_KEYS[dec]
+        assert set(keys) == set(orchestrator_keys), (
+            f"shared.META_KEYS_BY_DECISION[{dec!r}] drifted from "
+            f"fix_orchestrator._DECISION_TO_REQUIRED_KEYS: "
+            f"{set(keys)} != {set(orchestrator_keys)}"
         )

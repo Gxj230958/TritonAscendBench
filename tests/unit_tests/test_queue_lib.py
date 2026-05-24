@@ -271,3 +271,62 @@ def test_reaper_quarantines_multi_claim(tmp_path):
         (run_dir / "READY").unlink()
     queue.reaper(tmp_path, heartbeat_grace_s=10)
     assert any(run_dir.glob("QUARANTINED.multi_claim.*"))
+
+
+# ---------------------------------------------------------------------------
+# Tier 2 enqueue contracts consumed by ``submit_reverify_job`` (Unit 4.2)
+# ---------------------------------------------------------------------------
+
+def test_enqueue_writes_task_json_with_orchestrator_fields(tmp_path):
+    """``fix_orchestrator.submit_reverify_job`` writes a fixed task.json
+    schema (``task_id`` / ``run_id`` / ``cmd`` / ``requested_at``); the
+    queue lib must round-trip every field verbatim so the daemon can
+    parse them back."""
+    import json as _j
+
+    from automation.lib import queue
+
+    payload = {
+        "task_id": "L1_06_x",
+        "run_id": "tier2-20260524T000000Z-cafebabe",
+        "cmd": "resolve",
+        "requested_at": "2026-05-24T00:00:00Z",
+    }
+    queue.enqueue(tmp_path, payload["run_id"], payload)
+    on_disk = _j.loads(
+        (tmp_path / payload["run_id"] / "task.json").read_text(encoding="utf-8")
+    )
+    assert on_disk == payload
+    # READY marker accompanies task.json (sibling, not parent dir).
+    assert (tmp_path / payload["run_id"] / "READY").is_file()
+
+
+def test_enqueue_ready_marker_appears_after_task_json(tmp_path):
+    """READY is the claim sentinel for ``queue.claim`` (and therefore the
+    ``bench_evaluator_daemon``). It must be created strictly AFTER
+    ``task.json`` -- otherwise a daemon polling for READY can win the
+    rename before task.json is durable on disk and crash on parse.
+    """
+    from automation.lib import queue
+
+    queue.enqueue(tmp_path, "r-task-after-ready", {"task_id": "T"})
+    run_dir = tmp_path / "r-task-after-ready"
+    task_json = run_dir / "task.json"
+    ready = run_dir / "READY"
+    assert task_json.is_file() and ready.is_file()
+    # mtime ordering: task.json must be older-or-equal to READY (strict
+    # ``<`` is unreliable on filesystems with second-grained mtime).
+    assert task_json.stat().st_mtime <= ready.stat().st_mtime
+
+
+def test_enqueue_refuses_to_overwrite_quarantined_run(tmp_path):
+    """If a previous run_id quarantined itself, the orchestrator must
+    mint a fresh run_id rather than re-using the stale one. ``enqueue``
+    enforces this with a ``QueueCorruptError``.
+    """
+    from automation.lib import queue
+
+    run_id = "tier2-quarantined-dead"
+    queue.quarantine(tmp_path, run_id, reason="prior_run_crashed")
+    with pytest.raises(queue.QueueCorruptError, match="terminal marker"):
+        queue.enqueue(tmp_path, run_id, {"task_id": "X"})

@@ -297,7 +297,7 @@ def test_capture_writes_golden_with_correct_path_and_naming(
     layout eval._resolve_golden / eligibility.golden_complete read."""
     task = _load(_write_task(tmp_path, "L1_99_demo"))
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         # Mimic the real child: write a flat tensor-dict per shape.
         for sid in shape_ids:
             save_file({"out": torch.ones(3)},
@@ -327,7 +327,7 @@ def test_capture_result_satisfies_eligibility_golden_complete(
 
     task = _load(_write_task(tmp_path, "L1_99_demo"))
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         for sid in shape_ids:
             save_file({"out": torch.ones(2)},
                       str(golden_dir / f"{sid}.safetensors"))
@@ -349,7 +349,7 @@ def test_capture_is_idempotent_skips_existing(tmp_path, monkeypatch):
 
     captured_shapes: list[str] = []
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         captured_shapes.extend(shape_ids)
         for sid in shape_ids:
             save_file({"out": torch.ones(1)},
@@ -375,7 +375,7 @@ def test_capture_force_recaptures_existing(tmp_path, monkeypatch):
 
     captured_shapes: list[str] = []
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         captured_shapes.extend(shape_ids)
         for sid in shape_ids:
             save_file({"out": torch.ones(1)},
@@ -410,7 +410,7 @@ def test_capture_surfaces_child_fatal_as_honest_error(tmp_path, monkeypatch):
     precondition error -- never a silently-clean run."""
     task = _load(_write_task(tmp_path, "L1_99_demo"))
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         return {"shapes": {}, "fatal": "torch.cuda.is_available() is False"}
 
     monkeypatch.setattr(pbgc, "_run_capture_child", _fake_child)
@@ -424,7 +424,7 @@ def test_capture_surfaces_per_shape_error(tmp_path, monkeypatch):
     capture -- a partial failure is honest, not fatal."""
     task = _load(_write_task(tmp_path, "L1_99_demo"))
 
-    def _fake_child(t, shape_ids, golden_dir, timeout_s):
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
         shapes = {}
         for sid in shape_ids:
             if sid == "H1":

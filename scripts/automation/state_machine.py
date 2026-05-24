@@ -68,7 +68,9 @@ CANONICAL_HISTORY_KINDS: frozenset[str] = frozenset({
 REQUIRED_HISTORY_FIELDS: dict[str, frozenset[str]] = {
     "transition": frozenset({"state", "to"}),
     "result_consumed": frozenset({"run_id", "cmd", "verdict"}),
-    "capture_done_promoted": frozenset({"run_id"}),
+    "capture_done_promoted": frozenset({
+        "run_id", "capture_status_before", "capture_status_after",
+    }),
     "daemon_timeout": frozenset({"run_id"}),
     "llm_call": frozenset({"round"}),
     "patch_validation_failed": frozenset({"round", "errors"}),

@@ -674,3 +674,576 @@ def test_unexpected_blocked_goes_to_backlog_not_new(tmp_path):
     entry = state["tasks"][TASK_ID]
     assert entry["state"] == "BACKLOG_UNEXPECTED"
     assert entry["state_data"]["raw_verdict_class"] == "unexpected-blocked"
+
+
+# ---------------------------------------------------------------------------
+# Unit 2.8: three-class verdict dispatch + state machine closure
+# ---------------------------------------------------------------------------
+
+def _scaffold_oracle_mismatch_repo(tmp_path: Path):
+    """Scaffold a task tree + a vendored wrapper signature stub so the
+    oracle_mismatch prompt builder can succeed (it requires a tasks/
+    tree but tolerates absent vendored sources)."""
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    # Make a fake pa_resolve.log line so the evidence extractor returns
+    # something realistic.
+    log_dir = repo / "results" / "gpu_pipeline"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log = log_dir / "pa_resolve.log"
+    log.write_text(
+        f"[{TASK_ID}] BLOCKED - :: BLOCKED(no-verified-upstream-entrypoint: "
+        "oracle-mismatch): tried [a]; a: max_rel_diff=2.3e-1 exceeds tol\n",
+        encoding="utf-8",
+    )
+    return repo, state_root, reverify, log
+
+
+def _scaffold_defer_repo(tmp_path: Path):
+    """Scaffold a tree for upstream-not-invocable-here -- includes the
+    resolver hint line so ``extract_upstream_callable_hint`` returns a
+    canonical (module, function) pair."""
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    log_dir = repo / "results" / "gpu_pipeline"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log = log_dir / "pa_resolve.log"
+    log.write_text(
+        f"[{TASK_ID}] BLOCKED - :: BLOCKED(no-verified-upstream-entrypoint: "
+        "upstream-not-invocable-here): tried [a]; a: module='vllm.layers' "
+        "function=silu requires real CUDA runtime\n",
+        encoding="utf-8",
+    )
+    return repo, state_root, reverify, log
+
+
+def test_verdict_dispatch_shapes_incomplete(tmp_path):
+    """When entry.verdict_class == 'shapes-incomplete' the orchestrator
+    calls the shapes_incomplete builder (override + dispatcher both)."""
+    from automation.fix_orchestrator import _VERDICT_TO_PROMPT
+    from automation.prompts import shapes_incomplete
+
+    assert _VERDICT_TO_PROMPT["shapes-incomplete"] is shapes_incomplete.build_prompt
+
+
+def test_verdict_dispatch_oracle_mismatch(tmp_path):
+    """oracle-mismatch is wired to the oracle_mismatch builder."""
+    from automation.fix_orchestrator import _VERDICT_TO_PROMPT
+    from automation.prompts import oracle_mismatch
+
+    assert _VERDICT_TO_PROMPT["oracle-mismatch"] is oracle_mismatch.build_prompt
+
+
+def test_verdict_dispatch_upstream_not_invocable(tmp_path):
+    """upstream-not-invocable-here is wired to the defer_to_golden builder."""
+    from automation.fix_orchestrator import _VERDICT_TO_PROMPT
+    from automation.prompts import defer_to_golden
+
+    assert _VERDICT_TO_PROMPT["upstream-not-invocable-here"] is defer_to_golden.build_prompt
+
+
+def test_verdict_unexpected_blocked_to_backlog(tmp_path):
+    """A NEW-state ``unexpected-blocked`` entry must NOT call the LLM
+    patch loop (regression for M1 fix #5). The driver short-circuits
+    before any prompt is built; the entry stays at NEW until the
+    consume path routes it to BACKLOG_UNEXPECTED."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify,
+                  verdict_class_filter=None)
+    entry = sm.new_task_entry("unexpected-blocked")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    chat = MagicMock(side_effect=AssertionError("LLM must NOT be called"))
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    # Entry untouched -- still NEW, no LLM call recorded.
+    assert state["tasks"][TASK_ID]["state"] == "NEW"
+    chat.assert_not_called()
+
+
+def _meta_payload(decision: str, **extra) -> str:
+    base = {
+        "decision": decision,
+        "rationale": "auto-generated",
+        "evidence": {"src": "test"},
+    }
+    base.update(extra)
+    return json.dumps(base)
+
+
+_DEFER_META_YAML = """\
+schema_version: 1.0
+name: swiglu
+oracle_simplified: upstream_oracle_required
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: requires real CUDA runtime
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING
+  upstream_callable:
+    module: vllm.layers
+    function: silu
+"""
+
+
+def _good_tolerance_bump_response(extra_meta: str = "") -> str:
+    body_meta = _meta_payload(
+        "tolerance-bump",
+        tolerance_delta={"old": "elementwise", "new": "reduction"},
+    )
+    return (
+        f"### META\n{body_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n"
+        "schema_version: 1.0\nname: x\ntolerance_class: reduction\n### END\n"
+    )
+
+
+def _good_rewrite_primitives_response() -> str:
+    body_meta = _meta_payload(
+        "rewrite-primitives",
+        primitives_changed=["sigmoid->mul", "exp"],
+    )
+    return (
+        f"### META\n{body_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/oracle_pytorch.py\n"
+        "def oracle(x):\n    return x * (1.0 / (1.0 + (-x).exp()))\n### END\n"
+    )
+
+
+def _good_defer_upstream_oracle_response() -> str:
+    body_meta = _meta_payload(
+        "defer-to-upstream-oracle",
+        oracle_action="unchanged",
+        upstream_callable={"module": "vllm.layers", "function": "silu"},
+    )
+    return (
+        f"### META\n{body_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n{_DEFER_META_YAML}### END\n"
+    )
+
+
+def _good_defer_to_golden_response() -> str:
+    body_meta = _meta_payload(
+        "defer-to-golden",
+        oracle_action="unchanged",
+        upstream_callable={"module": "vllm.layers", "function": "silu"},
+        blocker_reason="C++ binding needs real GPU runtime",
+    )
+    return (
+        f"### META\n{body_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n{_DEFER_META_YAML}### END\n"
+    )
+
+
+def test_decision_tolerance_bump_required_keys(tmp_path):
+    """META missing ``tolerance_delta`` for decision=tolerance-bump must
+    fail validation; entry retries via PATCH_VALIDATING -> PROMPTING."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_oracle_mismatch_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="oracle-mismatch",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    # META without ``tolerance_delta``
+    bad_meta = json.dumps({
+        "decision": "tolerance-bump",
+        "rationale": "x",
+        "evidence": {},
+    })
+    bad = (
+        f"### META\n{bad_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n"
+        "schema_version: 1.0\nname: x\n### END\n"
+    )
+    chat = MagicMock(return_value=SimpleNamespace(content=bad))
+    entry = sm.new_task_entry("oracle-mismatch")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    # validation failed -> not BENCH_RUNNING
+    final = state["tasks"][TASK_ID]
+    assert final["state"] != "BENCH_RUNNING"
+    last_errs = final["state_data"].get("last_validation_errors") or []
+    err_text = " ".join(str(e) for e in last_errs) + " ".join(
+        " ".join(str(v) for v in r.get("errors", []))
+        for r in final["history"] if r.get("kind") == "patch_validation_failed"
+    )
+    assert "tolerance_delta" in err_text
+
+
+def test_decision_rewrite_primitives_required_keys(tmp_path):
+    """META missing ``primitives_changed`` for decision=rewrite-primitives
+    must fail validation."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_oracle_mismatch_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="oracle-mismatch",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    bad_meta = json.dumps({
+        "decision": "rewrite-primitives",
+        "rationale": "x",
+        "evidence": {},
+    })
+    bad = (
+        f"### META\n{bad_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/oracle_pytorch.py\n"
+        "def oracle(x):\n    return x\n### END\n"
+    )
+    chat = MagicMock(return_value=SimpleNamespace(content=bad))
+    entry = sm.new_task_entry("oracle-mismatch")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] != "BENCH_RUNNING"
+    err_text = " ".join(
+        " ".join(str(v) for v in r.get("errors", []))
+        for r in final["history"] if r.get("kind") == "patch_validation_failed"
+    )
+    assert "primitives_changed" in err_text
+
+
+def test_decision_defer_to_upstream_oracle_keys(tmp_path):
+    """META missing ``upstream_callable`` for decision=defer-to-upstream-oracle
+    must fail validation."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_oracle_mismatch_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="oracle-mismatch",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    bad_meta = json.dumps({
+        "decision": "defer-to-upstream-oracle",
+        "rationale": "x",
+        "evidence": {},
+        "oracle_action": "unchanged",
+    })
+    bad = (
+        f"### META\n{bad_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n{_DEFER_META_YAML}### END\n"
+    )
+    chat = MagicMock(return_value=SimpleNamespace(content=bad))
+    entry = sm.new_task_entry("oracle-mismatch")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] != "BENCH_RUNNING"
+    err_text = " ".join(
+        " ".join(str(v) for v in r.get("errors", []))
+        for r in final["history"] if r.get("kind") == "patch_validation_failed"
+    )
+    assert "upstream_callable" in err_text
+
+
+def test_decision_defer_to_golden_keys(tmp_path):
+    """META missing ``blocker_reason`` for decision=defer-to-golden must
+    fail validation."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_defer_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="upstream-not-invocable-here",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    bad_meta = json.dumps({
+        "decision": "defer-to-golden",
+        "rationale": "x",
+        "evidence": {},
+        "oracle_action": "unchanged",
+        "upstream_callable": {"module": "vllm.layers", "function": "silu"},
+    })
+    bad = (
+        f"### META\n{bad_meta}\n### END\n\n"
+        f"### FILE: tasks/{LEVEL}/{TASK_ID}/meta.yaml\n{_DEFER_META_YAML}### END\n"
+    )
+    chat = MagicMock(return_value=SimpleNamespace(content=bad))
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] != "BENCH_RUNNING"
+    err_text = " ".join(
+        " ".join(str(v) for v in r.get("errors", []))
+        for r in final["history"] if r.get("kind") == "patch_validation_failed"
+    )
+    assert "blocker_reason" in err_text
+
+
+def test_tier1_reverify_cmd_resolve_for_patch_shapes(tmp_path):
+    """After patch-shapes the pending_cmd MUST be 'resolve' so the
+    reverify wrapper re-runs the resolver."""
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify,
+                  verdict_class_filter="shapes-incomplete")
+    state = {"schema_version": "1.0", "tasks": {}}
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=_fake_prompt)
+    entry = state["tasks"][TASK_ID]
+    assert entry["state"] == "BENCH_RUNNING"
+    assert entry["state_data"]["pending_cmd"] == "resolve"
+
+
+def test_tier1_reverify_cmd_phase_a_verify_for_tolerance_bump(tmp_path):
+    """After tolerance-bump the pending_cmd MUST be 'phase_a_verify' so
+    the reverify wrapper re-runs Phase A' (which re-evaluates oracle
+    against captured solution under the new tolerance)."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_oracle_mismatch_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="oracle-mismatch",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    chat = MagicMock(return_value=SimpleNamespace(
+        content=_good_tolerance_bump_response(),
+    ))
+    entry = sm.new_task_entry("oracle-mismatch")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BENCH_RUNNING", final["state"]
+    assert final["state_data"]["pending_cmd"] == "phase_a_verify"
+
+
+def test_tier1_reverify_cmd_phase_a_verify_for_defer_to_golden(tmp_path):
+    """After defer-to-golden the pending_cmd MUST be 'phase_a_verify' so
+    the reverify wrapper re-runs Phase A' (which now yields
+    SKIPPED_BY_DESIGN)."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_defer_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="upstream-not-invocable-here",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    chat = MagicMock(return_value=SimpleNamespace(
+        content=_good_defer_to_golden_response(),
+    ))
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BENCH_RUNNING", final["state"]
+    assert final["state_data"]["pending_cmd"] == "phase_a_verify"
+
+
+def test_capture_done_promoted_transitions_to_done(tmp_path):
+    """A BACKLOG_PENDING_GOLDEN entry whose meta.yaml.phase_b_capture.status
+    == 'DONE' must be promoted to DONE by the sweeper, with a
+    ``capture_done_promoted`` history record."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import sweep_backlog_pending_golden
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    # Patch meta.yaml with a DONE phase_b_capture block.
+    meta_path = repo / "tasks" / LEVEL / TASK_ID / "meta.yaml"
+    meta_path.write_text(yaml.safe_dump({
+        "schema_version": "1.0",
+        "name": "x",
+        "phase_b_capture": {
+            "status": "DONE",
+            "captured_at": "2026-05-23T10:00:00Z",
+            "run_id": "phase-b-run-1",
+            "upstream_callable": {
+                "module": "vllm.layers", "function": "silu",
+            },
+        },
+    }), encoding="utf-8")
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    entry["state"] = "BACKLOG_PENDING_GOLDEN"
+    entry["state_data"] = {"phase_b_capture_status_snapshot": "PENDING"}
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    sweep_backlog_pending_golden(ctx, state)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "DONE"
+    assert final["state_data"]["final_verdict"] == "SKIPPED_BY_DESIGN"
+    kinds = [r.get("kind") for r in final["history"]]
+    assert "capture_done_promoted" in kinds
+    promoted = next(
+        r for r in final["history"]
+        if r.get("kind") == "capture_done_promoted"
+    )
+    assert promoted["captured_at"] == "2026-05-23T10:00:00Z"
+    # Schema invariant: capture_done_promoted carries the full 3-field
+    # delta (at + capture_status_before + capture_status_after) so the
+    # promotion event is replayable / auditable.
+    assert "at" in promoted
+    assert promoted["capture_status_before"] == "PENDING"
+    assert promoted["capture_status_after"] == "DONE"
+
+
+def test_capture_pending_stays_in_backlog(tmp_path):
+    """A BACKLOG_PENDING_GOLDEN entry whose meta.yaml.phase_b_capture.status
+    == 'PENDING' MUST stay parked (no transition)."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import sweep_backlog_pending_golden
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    meta_path = repo / "tasks" / LEVEL / TASK_ID / "meta.yaml"
+    meta_path.write_text(yaml.safe_dump({
+        "schema_version": "1.0",
+        "name": "x",
+        "phase_b_capture": {
+            "status": "PENDING",
+            "upstream_callable": {
+                "module": "vllm.layers", "function": "silu",
+            },
+        },
+    }), encoding="utf-8")
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    entry["state"] = "BACKLOG_PENDING_GOLDEN"
+    entry["state_data"] = {"phase_b_capture_status_snapshot": "PENDING"}
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    sweep_backlog_pending_golden(ctx, state)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_PENDING_GOLDEN"
+    kinds = [r.get("kind") for r in final["history"]]
+    assert "capture_done_promoted" not in kinds
+
+
+def test_capture_failed_stays_in_backlog(tmp_path):
+    """phase_b_capture.status='FAILED' MUST leave the entry parked --
+    the operator re-runs capture; no auto-promotion."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import sweep_backlog_pending_golden
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    meta_path = repo / "tasks" / LEVEL / TASK_ID / "meta.yaml"
+    meta_path.write_text(yaml.safe_dump({
+        "schema_version": "1.0",
+        "name": "x",
+        "phase_b_capture": {
+            "status": "FAILED",
+            "upstream_callable": {
+                "module": "vllm.layers", "function": "silu",
+            },
+        },
+    }), encoding="utf-8")
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    entry["state"] = "BACKLOG_PENDING_GOLDEN"
+    entry["state_data"] = {"phase_b_capture_status_snapshot": "PENDING"}
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    sweep_backlog_pending_golden(ctx, state)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_PENDING_GOLDEN"
+
+
+def test_m1_shapes_incomplete_regression(tmp_path):
+    """M1 happy-path: shapes-incomplete drives NEW -> ... -> BENCH_RUNNING
+    -> consume PASS -> DONE through the M2-extended orchestrator."""
+    from automation import extract_verdict as ev
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify,
+                  verdict_class_filter="shapes-incomplete")
+    state = {"schema_version": "1.0", "tasks": {}}
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    # First call: NEW -> BENCH_RUNNING (M1 builder path)
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat,
+                    prompt_builder=_fake_prompt)
+    entry = state["tasks"][TASK_ID]
+    assert entry["state"] == "BENCH_RUNNING"
+    pending_run = entry["state_data"]["pending_run_id"]
+    assert entry["state_data"]["pending_cmd"] == "resolve"
+    # Second call: consume PASS -> DONE
+    ev.write_verdict(
+        task_id=TASK_ID, cmd="resolve", run_id=pending_run,
+        producer="tier1_reverify", out_dir=reverify,
+        verdict="PASS", verdict_class=None,
+        reason="resolver PASS",
+    )
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat,
+                    prompt_builder=_fake_prompt)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "DONE"
+    assert final["state_data"]["final_verdict"] == "PASS"
+
+
+def test_skipped_by_design_routes_to_backlog_pending_golden(tmp_path):
+    """When tier1_reverify returns verdict=SKIPPED_BY_DESIGN (defer
+    flow), the entry must be parked in BACKLOG_PENDING_GOLDEN and the
+    snapshot field must reflect the current phase_b_capture.status."""
+    from automation import extract_verdict as ev
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify, _ = _scaffold_defer_repo(tmp_path)
+    ctx = _mk_ctx(
+        repo, state_root, reverify,
+        verdict_class_filter="upstream-not-invocable-here",
+        resolve_log=repo / "results" / "gpu_pipeline" / "pa_resolve.log",
+    )
+    chat = MagicMock(return_value=SimpleNamespace(
+        content=_good_defer_to_golden_response(),
+    ))
+    entry = sm.new_task_entry("upstream-not-invocable-here")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BENCH_RUNNING"
+    pending_run = final["state_data"]["pending_run_id"]
+    ev.write_verdict(
+        task_id=TASK_ID, cmd="phase_a_verify", run_id=pending_run,
+        producer="tier1_reverify", out_dir=reverify,
+        verdict="SKIPPED_BY_DESIGN", verdict_class=None,
+        reason="phase A' skipped by design",
+    )
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_PENDING_GOLDEN"
+    # On-disk meta.yaml currently carries the defer block; snapshot
+    # field reflects that.
+    assert final["state_data"]["phase_b_capture_status_snapshot"] == "PENDING"
+
+
+def test_extract_upstream_callable_hint_from_log(tmp_path):
+    """Parser extracts (module, function) hints from resolver
+    reject_notes lines for upstream-not-invocable-here."""
+    from automation.fix_orchestrator import extract_upstream_callable_hint
+
+    log = tmp_path / "pa_resolve.log"
+    log.write_text(
+        f"[{TASK_ID}] BLOCKED - :: BLOCKED(no-verified-upstream-entrypoint: "
+        "upstream-not-invocable-here): tried [a]; a: module='vllm.layers' "
+        "function=silu requires real CUDA runtime\n",
+        encoding="utf-8",
+    )
+    hint = extract_upstream_callable_hint(log, TASK_ID)
+    assert hint == {"module": "vllm.layers", "function": "silu"}
+
+
+def test_extract_oracle_mismatch_evidence_returns_list(tmp_path):
+    """oracle-mismatch evidence extractor returns a list (the prompt
+    builder kwarg is a list)."""
+    from automation.fix_orchestrator import extract_oracle_mismatch_evidence
+
+    log = tmp_path / "pa_resolve.log"
+    log.write_text(
+        f"[{TASK_ID}] BLOCKED - :: BLOCKED(no-verified-upstream-entrypoint: "
+        "oracle-mismatch): tried [a]; a: max_rel_diff=2.3e-1\n",
+        encoding="utf-8",
+    )
+    out = extract_oracle_mismatch_evidence(log, TASK_ID)
+    assert isinstance(out, list)
+    assert any("max_rel_diff" in line for line in out)

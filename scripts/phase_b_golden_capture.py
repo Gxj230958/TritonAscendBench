@@ -78,10 +78,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 logging.basicConfig(
@@ -123,7 +125,7 @@ PROMOTED_ENTRYPOINT = "run"
 # surfaced via ``status.json`` so the parent reports it honestly -- the
 # child NEVER writes a partial / fabricated artifact.
 _CAPTURE_CHILD = r'''
-import json, sys, importlib.util
+import importlib, importlib.util, json, sys
 from pathlib import Path
 
 args = json.loads(sys.argv[1])
@@ -134,6 +136,15 @@ try:
     repo_root = args["repo_root"]
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
+    # Unit 2.4 path B: prepend the vendored upstream roots so the
+    # child can ``importlib.import_module(<canonical dotted path>)``
+    # for an upstream callable. The SGLang root is the inner
+    # ``infer/sglang/python`` directory (matches
+    # _pa_oracle_check_runner.py:4-6); the vLLM root is
+    # ``infer/vllm``.
+    for extra in args.get("extra_sys_paths") or []:
+        if extra and extra not in sys.path:
+            sys.path.insert(0, extra)
     import torch
     from safetensors.torch import save_file
     from triton_ascend_bench.inputs import build_inputs
@@ -148,18 +159,42 @@ try:
     device = "cuda"
     shapes_doc = json.loads(Path(args["shapes_json"]).read_text())
 
-    kspec = importlib.util.spec_from_file_location(
-        "_pb_kernel", args["kernel_path"])
-    kmod = importlib.util.module_from_spec(kspec)
-    kspec.loader.exec_module(kmod)
-    run_fn = getattr(kmod, args["entrypoint"], None)
-    if not callable(run_fn):
-        status["fatal"] = (
-            "promoted kernel.py exposes no callable %r -- expected the "
-            "Phase A' synthesised standalone run(inputs)->dict entrypoint "
-            "(is the kernel promoted?)" % args["entrypoint"])
-        status_path.write_text(json.dumps(status))
-        sys.exit(2)
+    entrypoint_source = args.get(
+        "entrypoint_source", "promoted-kernel")
+
+    if entrypoint_source == "upstream-callable":
+        upstream_module = args["upstream_module"]
+        upstream_function = args["upstream_function"]
+        try:
+            umod = importlib.import_module(upstream_module)
+        except Exception as e:  # noqa: BLE001
+            status["fatal"] = (
+                "import-failed: cannot import upstream module %r: "
+                "%s: %s" % (upstream_module, type(e).__name__, e))
+            status_path.write_text(json.dumps(status))
+            sys.exit(2)
+        run_fn = getattr(umod, upstream_function, None)
+        if not callable(run_fn):
+            status["fatal"] = (
+                "upstream module %r exposes no callable %r -- "
+                "phase_b_capture.upstream_callable.function is "
+                "misconfigured" % (upstream_module, upstream_function))
+            status_path.write_text(json.dumps(status))
+            sys.exit(2)
+    else:
+        kspec = importlib.util.spec_from_file_location(
+            "_pb_kernel", args["kernel_path"])
+        kmod = importlib.util.module_from_spec(kspec)
+        kspec.loader.exec_module(kmod)
+        run_fn = getattr(kmod, args["entrypoint"], None)
+        if not callable(run_fn):
+            status["fatal"] = (
+                "promoted kernel.py exposes no callable %r -- expected "
+                "the Phase A' synthesised standalone run(inputs)->dict "
+                "entrypoint (is the kernel promoted?)"
+                % args["entrypoint"])
+            status_path.write_text(json.dumps(status))
+            sys.exit(2)
 
 
     def _to_device(value):
@@ -263,6 +298,225 @@ class TaskCaptureResult:
         return all(s.error is None for s in self.shapes)
 
 
+# Path-A / Path-B sentinels (Unit 2.4 dual-path).
+#
+# * ``promoted-kernel`` (path A, legacy): the task is Phase A' promoted
+#   and we run the promoted standalone ``kernel.py::run`` on the GPU to
+#   produce the golden -- byte-identical to the pre-Unit-2.4 behaviour.
+# * ``upstream-callable`` (path B, new): the task's upstream operator
+#   is intentionally not standalone-invocable on the bench host
+#   (``phase_a_prime.skip_invocation == true``), so the orchestrator
+#   recorded the canonical dotted upstream module + function in
+#   ``meta.phase_b_capture.upstream_callable``; the capture child
+#   imports the upstream module directly (with the vendored
+#   ``infer/vllm`` and ``infer/sglang/python`` roots on PYTHONPATH) and
+#   calls that function to produce the golden.
+CAPTURE_PATH_PROMOTED_KERNEL = "promoted-kernel"
+CAPTURE_PATH_UPSTREAM_CALLABLE = "upstream-callable"
+
+# meta.phase_b_capture.status enum (task_api_contract.md §6a.3).
+PHASE_B_CAPTURE_STATUS_PENDING = "PENDING"
+PHASE_B_CAPTURE_STATUS_DONE = "DONE"
+PHASE_B_CAPTURE_STATUS_FAILED = "FAILED"
+
+# Failure reasons are bounded so a multi-MB traceback never lands in
+# meta.yaml (task_api_contract.md §6a.3 has ``reason`` as a free-form
+# string; we cap at 200 chars per Unit 2.4 plan).
+_PHASE_B_REASON_MAX = 200
+
+
+def _iso8601_utc_now() -> str:
+    """Return the current UTC time in ISO 8601 (``Z`` suffix).
+
+    Format example: ``2026-05-24T07:13:42Z`` -- the canonical
+    ``captured_at`` timestamp format (task_api_contract.md §6a.3).
+    Compatible with ``datetime.fromisoformat`` (the trailing ``Z``
+    is interpreted as ``+00:00``).
+    """
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _atomic_write_meta_yaml(meta_path: Path, meta: dict) -> None:
+    """Atomically replace ``meta.yaml`` with the new content.
+
+    Writes to a sibling ``.tmp`` file, ``fsync`` to force the file
+    payload to disk, then ``os.replace`` -- so a crash mid-write
+    leaves either the old or new meta.yaml intact (never a
+    half-written file). Mirrors ``phase_a_prime.atomic_write_kernel``.
+    """
+    import yaml as _yaml
+
+    tmp = meta_path.with_suffix(meta_path.suffix + ".tmp")
+    payload = _yaml.safe_dump(meta, sort_keys=False, allow_unicode=True)
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(payload)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, meta_path)
+
+
+def _read_meta(task_dir: Path) -> dict:
+    """Load a task's ``meta.yaml`` defensively (return {} on parse
+    error -- the caller is responsible for the structural check)."""
+    import yaml as _yaml
+
+    try:
+        return _yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+    except (OSError, _yaml.YAMLError):
+        return {}
+
+
+def _write_phase_b_capture_block(
+    task_dir: Path,
+    *,
+    status: str,
+    upstream_callable: dict | None = None,
+    captured_at: str | None = None,
+    reason: str | None = None,
+) -> None:
+    """Atomically persist ``meta.phase_b_capture`` for ``task_dir``.
+
+    Status enum: ``PENDING`` / ``DONE`` / ``FAILED`` (Unit 2.1 +
+    task_api_contract.md §6a.3). ``DONE`` MUST be accompanied by a
+    canonical ``upstream_callable`` block and a ``captured_at``
+    timestamp; ``FAILED`` MUST carry a non-empty ``reason``.
+
+    Args:
+        task_dir: the on-disk task directory.
+        status: one of ``PENDING`` / ``DONE`` / ``FAILED``.
+        upstream_callable: ``{"module": ..., "function": ...}`` when
+            the capture went through path B; ``None`` to leave the
+            current value untouched (e.g. on a path-A success the
+            upstream_callable block is the orchestrator's authored
+            intent, not rewritten by capture).
+        captured_at: ISO 8601 UTC timestamp; required for ``DONE``.
+        reason: non-empty failure reason; required for ``FAILED``.
+            Truncated to ``_PHASE_B_REASON_MAX`` chars defensively.
+    """
+    if status not in (
+        PHASE_B_CAPTURE_STATUS_PENDING,
+        PHASE_B_CAPTURE_STATUS_DONE,
+        PHASE_B_CAPTURE_STATUS_FAILED,
+    ):
+        raise ValueError(
+            f"invalid phase_b_capture.status {status!r} -- must be one "
+            f"of PENDING / DONE / FAILED"
+        )
+    meta = _read_meta(task_dir)
+    block = dict(meta.get("phase_b_capture") or {})
+    block["status"] = status
+    if upstream_callable is not None:
+        block["upstream_callable"] = {
+            "module": str(upstream_callable.get("module") or ""),
+            "function": str(upstream_callable.get("function") or ""),
+        }
+    if status == PHASE_B_CAPTURE_STATUS_DONE:
+        block["captured_at"] = captured_at or _iso8601_utc_now()
+        # The DONE record clears any prior failure reason so the
+        # block is a coherent snapshot of the current capture state.
+        block.pop("reason", None)
+    elif status == PHASE_B_CAPTURE_STATUS_FAILED:
+        if not reason:
+            reason = "unknown capture failure"
+        block["reason"] = reason[:_PHASE_B_REASON_MAX]
+    # PENDING: no extra required fields; we keep any existing
+    # upstream_callable / reason / captured_at untouched.
+    meta["phase_b_capture"] = block
+    _atomic_write_meta_yaml(task_dir / "meta.yaml", meta)
+
+
+def _resolve_capture_path(meta: dict) -> tuple[str, str | None, dict | None]:
+    """Determine which capture path applies to a task's meta.
+
+    Returns ``(path_sentinel, error_or_None, upstream_callable_or_None)``
+    where ``path_sentinel`` is one of:
+
+    * ``CAPTURE_PATH_PROMOTED_KERNEL`` (path A) when
+      ``phase_a_prime.status == PASS`` -- the task is Phase A'
+      promoted and we run its standalone ``kernel.py::run``.
+    * ``CAPTURE_PATH_UPSTREAM_CALLABLE`` (path B) when
+      ``phase_a_prime.status == SKIPPED_BY_DESIGN`` AND a canonical
+      ``phase_b_capture.upstream_callable.{module, function}`` is
+      present in the meta -- the capture child imports the upstream
+      module directly.
+    * ``"BLOCKED_no_callable"`` when path B is selected by status
+      but ``upstream_callable`` is missing / incomplete -- the
+      orchestrator's patch is malformed; the operator must fix
+      it before capture can proceed.
+    * ``"BLOCKED_phase_a_prime_not_ready"`` when neither path
+      applies -- ``phase_a_prime.status`` is missing / BLOCKED /
+      UNRUN; the task is not ready for capture.
+
+    The ``error_or_None`` is a human-readable explanation string
+    for the BLOCKED sentinels (``None`` on success).
+    """
+    pap = meta.get("phase_a_prime") or {}
+    status = pap.get("status")
+    if status == "PASS":
+        return CAPTURE_PATH_PROMOTED_KERNEL, None, None
+    if status == "SKIPPED_BY_DESIGN":
+        callable_block = (
+            (meta.get("phase_b_capture") or {}).get("upstream_callable")
+            or {}
+        )
+        module = callable_block.get("module")
+        function = callable_block.get("function")
+        if (
+            isinstance(module, str) and module
+            and isinstance(function, str) and function
+        ):
+            return (
+                CAPTURE_PATH_UPSTREAM_CALLABLE,
+                None,
+                {"module": module, "function": function},
+            )
+        return (
+            "BLOCKED_no_callable",
+            (
+                "phase_a_prime.status is SKIPPED_BY_DESIGN but "
+                "phase_b_capture.upstream_callable.{module, function} "
+                "is missing -- the orchestrator's defer-to-golden "
+                "patch is incomplete; cannot capture without an "
+                "upstream entrypoint"
+            ),
+            None,
+        )
+    return (
+        "BLOCKED_phase_a_prime_not_ready",
+        (
+            f"phase_a_prime.status is {status!r}, not 'PASS' or "
+            f"'SKIPPED_BY_DESIGN' -- the task is not ready for "
+            f"golden capture; run gpu_pipeline step 10 "
+            f"(10_phase_a_prime.sh) first or patch the meta to "
+            f"defer-to-golden"
+        ),
+        None,
+    )
+
+
+def _check_phase_b_required_gate(meta: dict) -> str | None:
+    """When ``phase_b_capture_required == True`` the task may only
+    skip capture once ``phase_b_capture.status == DONE`` -- otherwise
+    the orchestrator must keep the task in ``BACKLOG_PENDING_GOLDEN``.
+
+    Returns ``None`` when the gate is satisfied (or not applicable);
+    otherwise a human-readable explanation. Note: this is the
+    *promote-gate* check (the orchestrator's view); the capture
+    script itself still runs unconditionally because the whole point
+    of running is to flip status from PENDING to DONE.
+    """
+    if meta.get("phase_b_capture_required") is not True:
+        return None
+    cap_status = (meta.get("phase_b_capture") or {}).get("status")
+    if cap_status == PHASE_B_CAPTURE_STATUS_DONE:
+        return None
+    return (
+        f"phase_b_capture_required=true but phase_b_capture.status is "
+        f"{cap_status!r}, not 'DONE' -- the task must remain in "
+        f"BACKLOG_PENDING_GOLDEN until the offline golden is captured"
+    )
+
+
 def _check_promote_precondition(task: TaskDef) -> str | None:
     """Verify a task's kernel is Phase A' promoted -- the capture
     precondition (DESIGN.md §6.10 offline build order; gpu_pipeline
@@ -288,6 +542,20 @@ def _check_promote_precondition(task: TaskDef) -> str | None:
     """
     pap = (task.meta.get("phase_a_prime") or {})
     status = pap.get("status")
+    # Unit 2.4: a SKIPPED_BY_DESIGN task goes through path B (the
+    # capture child imports the upstream module directly) -- it has
+    # no promoted standalone kernel to inspect, so the kernel.py
+    # AST check does not apply. Delegate the path-B precondition
+    # to _resolve_capture_path (which requires a canonical
+    # upstream_callable block).
+    if status == "SKIPPED_BY_DESIGN":
+        path, err, _callable = _resolve_capture_path(task.meta)
+        if path == CAPTURE_PATH_UPSTREAM_CALLABLE:
+            return None
+        return err or (
+            "phase_a_prime.status is SKIPPED_BY_DESIGN but "
+            "phase_b_capture.upstream_callable is missing"
+        )
     if status != "PASS":
         return (
             f"phase_a_prime.status is {status!r}, not 'PASS' -- the "
@@ -392,7 +660,16 @@ def _select_tasks(task_id: str | None) -> list[TaskDef]:
                 f"a PyTorch-oracle task's golden is generated live at "
                 f"eval time"
             )
-        if not eligibility.is_score_eligible(task):
+        # Unit 2.4 path B: a SKIPPED_BY_DESIGN task is intentionally
+        # not standalone-invocable, so the score-eligible gate (which
+        # currently keys on the upstream oracle stub heuristic) does
+        # not apply -- the task is captured via path B regardless of
+        # its release-scoring eligibility, because the orchestrator
+        # has explicitly recorded it as a defer-to-golden candidate.
+        pap_status = (task.meta.get("phase_a_prime") or {}).get("status")
+        if pap_status != "SKIPPED_BY_DESIGN" and (
+            not eligibility.is_score_eligible(task)
+        ):
             raise ValueError(
                 f"{task_id} is an upstream_oracle_required task but is "
                 f"NOT score-eligible (its oracle is a stub or its "
@@ -408,8 +685,43 @@ def _select_tasks(task_id: str | None) -> list[TaskDef]:
         if eligibility.is_upstream_oracle_required(t)
         and eligibility.is_score_eligible(t)
     ]
+    # Unit 2.4 path B: ALSO include any task the orchestrator has
+    # marked SKIPPED_BY_DESIGN (skip_invocation=true), regardless of
+    # ``oracle_simplified`` -- the defer-to-golden contract is "this
+    # task's authoritative oracle lives in the offline golden", and
+    # the capture script must reach those tasks even when their
+    # upstream oracle never resolved into ``upstream_oracle_required``
+    # automatically. Tasks the orchestrator has explicitly excluded
+    # from the release scope (``release_scope.excluded == true``)
+    # are NOT captured -- those are LLM-unfixable backlogs.
+    existing_ids = {t.task_id for t in tasks}
+    for t in iter_all_tasks():
+        if t.task_id in existing_ids:
+            continue
+        pap_status = (t.meta.get("phase_a_prime") or {}).get("status")
+        rs_excluded = (
+            (t.meta.get("release_scope") or {}).get("excluded") is True
+        )
+        if pap_status == "SKIPPED_BY_DESIGN" and not rs_excluded:
+            tasks.append(t)
     tasks.sort(key=lambda t: t.task_id)
     return tasks
+
+
+def _vendored_upstream_sys_paths() -> list[str]:
+    """The vendored upstream roots added to the capture child's
+    ``sys.path`` for path B (``upstream-callable``).
+
+    The SGLang root MUST be the inner ``infer/sglang/python``
+    directory (matches ``scripts/_pa_oracle_check_runner.py:4-6``);
+    the vLLM root is ``infer/vllm``. Order matches the existing
+    Phase A' resolver layout so an upstream module that exists in
+    both wheels resolves to the same artifact in both flows.
+    """
+    return [
+        str(REPO_ROOT / "infer" / "vllm"),
+        str(REPO_ROOT / "infer" / "sglang" / "python"),
+    ]
 
 
 def _run_capture_child(
@@ -417,15 +729,28 @@ def _run_capture_child(
     shape_ids: list[str],
     golden_dir: Path,
     timeout_s: int,
+    *,
+    entrypoint_source: str = CAPTURE_PATH_PROMOTED_KERNEL,
+    upstream_callable: dict | None = None,
 ) -> dict:
-    """Run the promoted kernel on the GPU in an isolated subprocess.
+    """Run the capture entrypoint on the GPU in an isolated subprocess.
 
-    Spawns :data:`_CAPTURE_CHILD` for ``task``: it imports the promoted
-    standalone ``kernel.py``, materialises each shape's inputs with the
-    fixed seed, runs ``run`` on CUDA, and writes
-    ``golden/<shape_id>.safetensors``. The child runs in a fresh
-    interpreter so the kernel's CUDA / triton state never touches this
-    trusted parent.
+    Spawns :data:`_CAPTURE_CHILD` for ``task``. Two paths:
+
+    * ``entrypoint_source = "promoted-kernel"`` (path A, default --
+      legacy behaviour): imports the promoted standalone
+      ``kernel.py`` and calls its top-level ``run(inputs)->dict``.
+    * ``entrypoint_source = "upstream-callable"`` (path B): imports
+      the canonical dotted ``upstream_callable["module"]`` and calls
+      ``upstream_callable["function"]``; the vendored upstream
+      roots (``infer/vllm`` + ``infer/sglang/python``) are prepended
+      to the child's ``sys.path``.
+
+    In both paths the child materialises each shape's inputs with
+    the fixed seed, moves them onto CUDA, calls the entrypoint, and
+    writes ``golden/<shape_id>.safetensors``. The child runs in a
+    fresh interpreter so the kernel's CUDA / triton state never
+    touches this trusted parent.
 
     Args:
         task: the loaded :class:`TaskDef`.
@@ -435,12 +760,34 @@ def _run_capture_child(
         golden_dir: the task's ``golden/`` directory (created by the
             caller).
         timeout_s: wall-clock budget for the child.
+        entrypoint_source: ``"promoted-kernel"`` (path A) or
+            ``"upstream-callable"`` (path B).
+        upstream_callable: ``{"module": ..., "function": ...}``;
+            REQUIRED when ``entrypoint_source == "upstream-callable"``.
 
     Returns:
         The child's parsed ``status`` dict: ``{"shapes": {sid: {...}},
         "fatal": str | None}``. A ``fatal`` value is set on a
         whole-child failure (no CUDA, import error, timeout).
     """
+    if entrypoint_source not in (
+        CAPTURE_PATH_PROMOTED_KERNEL, CAPTURE_PATH_UPSTREAM_CALLABLE
+    ):
+        raise ValueError(
+            f"invalid entrypoint_source {entrypoint_source!r} -- "
+            f"must be {CAPTURE_PATH_PROMOTED_KERNEL!r} or "
+            f"{CAPTURE_PATH_UPSTREAM_CALLABLE!r}"
+        )
+    if entrypoint_source == CAPTURE_PATH_UPSTREAM_CALLABLE and (
+        not upstream_callable
+        or not upstream_callable.get("module")
+        or not upstream_callable.get("function")
+    ):
+        raise ValueError(
+            "upstream-callable path requires a non-empty "
+            "upstream_callable={'module': ..., 'function': ...}"
+        )
+
     with tempfile.TemporaryDirectory(prefix="tab-golden-") as td:
         tdp = Path(td)
         child_py = tdp / "_capture_child.py"
@@ -463,7 +810,12 @@ def _run_capture_child(
             "seed": GOLDEN_SEED,
             "out_dir": str(golden_dir),
             "status_json": str(status_json),
+            "entrypoint_source": entrypoint_source,
         }
+        if entrypoint_source == CAPTURE_PATH_UPSTREAM_CALLABLE:
+            args["upstream_module"] = upstream_callable["module"]
+            args["upstream_function"] = upstream_callable["function"]
+            args["extra_sys_paths"] = _vendored_upstream_sys_paths()
         proc = subprocess.run(
             [sys.executable, str(child_py), json.dumps(args)],
             capture_output=True,
@@ -535,7 +887,22 @@ def capture_task(
     precond = _check_promote_precondition(task)
     if precond is not None:
         result.precondition_error = precond
+        # Unit 2.4: a precondition failure is recorded in
+        # meta.phase_b_capture as FAILED (capture was attempted but
+        # could not start). The orchestrator's BACKLOG_PENDING_GOLDEN
+        # sweep then sees FAILED and routes to BACKLOG_UNEXPECTED
+        # (regulated by fix_orchestrator rule a / b).
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_FAILED,
+            reason=precond,
+        )
         return result
+
+    # Unit 2.4: select the capture path (A: promoted kernel /
+    # B: upstream callable). ``_check_promote_precondition`` already
+    # ensured a valid path is available for this task.
+    capture_path, _, upstream_callable = _resolve_capture_path(task.meta)
 
     golden_dir = task.task_dir / "golden"
     golden_dir.mkdir(parents=True, exist_ok=True)
@@ -553,17 +920,35 @@ def capture_task(
     if not to_capture:
         logger.info("%s: all %d golden artifact(s) already present "
                     "(idempotent skip)", task.task_id, len(all_ids))
+        # All artifacts already present -> the capture state is
+        # effectively DONE for this task (the golden directory is
+        # complete). Refresh meta.phase_b_capture to record that.
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_DONE,
+            upstream_callable=upstream_callable,
+        )
         return result
 
-    logger.info("%s: capturing %d/%d shape(s) on GPU%s",
-                task.task_id, len(to_capture), len(all_ids),
-                " [--force]" if force else "")
+    logger.info(
+        "%s: capturing %d/%d shape(s) on GPU [path=%s]%s",
+        task.task_id, len(to_capture), len(all_ids), capture_path,
+        " [--force]" if force else "",
+    )
     try:
         status = _run_capture_child(
-            task, to_capture, golden_dir, timeout_s)
+            task, to_capture, golden_dir, timeout_s,
+            entrypoint_source=capture_path,
+            upstream_callable=upstream_callable,
+        )
     except subprocess.TimeoutExpired:
         result.precondition_error = (
             f"capture child timed out after {timeout_s}s")
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_FAILED,
+            reason=result.precondition_error,
+        )
         return result
 
     fatal = status.get("fatal")
@@ -571,6 +956,11 @@ def capture_task(
         # A whole-child failure (no CUDA, import error). Honest hard
         # error -- no artifact is fabricated.
         result.precondition_error = f"GPU capture child failed: {fatal}"
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_FAILED,
+            reason=result.precondition_error,
+        )
         return result
 
     child_shapes = status.get("shapes", {})
@@ -591,7 +981,55 @@ def capture_task(
     # Keep the per-shape results in the canonical (public + hidden) order.
     order = {sid: i for i, sid in enumerate(all_ids)}
     result.shapes.sort(key=lambda s: order.get(s.shape_id, len(order)))
+
+    # Unit 2.4: record the per-task capture outcome in
+    # meta.phase_b_capture. The block is DONE only when EVERY eval
+    # shape captured (or was idempotently skipped); otherwise
+    # FAILED with the first per-shape error as the reason.
+    if result.ok:
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_DONE,
+            upstream_callable=upstream_callable,
+        )
+    else:
+        first_err = next(
+            (s.error for s in result.shapes if s.error), None
+        ) or "capture did not complete for at least one shape"
+        _persist_capture_outcome(
+            task,
+            status=PHASE_B_CAPTURE_STATUS_FAILED,
+            reason=first_err,
+        )
     return result
+
+
+def _persist_capture_outcome(
+    task: TaskDef,
+    *,
+    status: str,
+    upstream_callable: dict | None = None,
+    reason: str | None = None,
+) -> None:
+    """Best-effort wrapper around :func:`_write_phase_b_capture_block`.
+
+    A failure to persist the meta block is logged but never raised --
+    the capture outcome (success or failure) has already been recorded
+    in the in-memory ``TaskCaptureResult``; the meta write is a
+    durability convenience.
+    """
+    try:
+        _write_phase_b_capture_block(
+            task.task_dir,
+            status=status,
+            upstream_callable=upstream_callable,
+            reason=reason,
+        )
+    except Exception as e:
+        logger.warning(
+            "%s: could not persist meta.phase_b_capture status=%s: %s",
+            task.task_id, status, e,
+        )
 
 
 def _report(results: list[TaskCaptureResult], dry_run: bool) -> int:

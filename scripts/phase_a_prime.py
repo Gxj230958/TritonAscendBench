@@ -1108,11 +1108,20 @@ def _cuda_available() -> bool:
 @dataclass
 class S2Result:
     task_id: str
-    status: str          # PASS | BLOCKED | UNRUN
+    # PASS | BLOCKED | UNRUN | SKIPPED_BY_DESIGN. The
+    # ``SKIPPED_BY_DESIGN`` value is set when the task's
+    # ``meta.phase_a_prime.skip_invocation`` is ``True`` (i.e. the
+    # orchestrator marked the upstream operator as not standalone-
+    # invocable for this task; the authoritative truth source becomes
+    # the offline phase B golden capture).
+    status: str
     reason: str = ""
     s2_gpu_run_id: str = ""
     smoke_ran: bool = False
     audit_leaks: list[str] = field(default_factory=list)
+    # ``True`` when the verdict comes from the meta.phase_a_prime
+    # short-circuit (no isolated invocation attempted on this host).
+    skip_invocation: bool = False
     # codex r7 [confirmed] HOLE 3 -- the absolute infer/ file paths the
     # S2 *original* side imported (it puts infer/ on sys.path and runs
     # the UNMODIFIED upstream kernel.py). Captured from every original
@@ -1578,6 +1587,56 @@ def s2_verify_task(td: Path) -> S2Result:
     res = S2Result(task_id=td.name, status="UNRUN")
     kernel_path = td / "kernel.py"
     meta = yaml.safe_load((td / "meta.yaml").read_text())
+
+    # Orchestrator short-circuit (Unit 2.3): when the task's
+    # ``meta.phase_a_prime.skip_invocation`` is True (or status is
+    # already ``SKIPPED_BY_DESIGN``), the upstream operator is
+    # intentionally not invocable standalone on this host. The
+    # authoritative truth source becomes the offline phase B golden
+    # capture, so S2 verify must not attempt the GPU isolated
+    # invocation -- return ``SKIPPED_BY_DESIGN`` and persist the
+    # canonical phase_a_prime block so the meta is self-consistent
+    # (skip_invocation == True implies status == SKIPPED_BY_DESIGN +
+    # a non-empty reason, per task_api_contract.md §6a.6).
+    pa_block = meta.get("phase_a_prime") or {}
+    if (
+        pa_block.get("skip_invocation") is True
+        or pa_block.get("status") == "SKIPPED_BY_DESIGN"
+    ):
+        reason = (
+            pa_block.get("reason")
+            or "skip_invocation set by orchestrator"
+        )
+        res.status = "SKIPPED_BY_DESIGN"
+        res.reason = reason
+        res.skip_invocation = True
+        # Persist canonical fields if missing / inconsistent so
+        # downstream readers (validate_tasks, eligibility) see the
+        # cross-field invariant satisfied. Atomic write: tmp + replace
+        # (no half-written meta.yaml).
+        mp = td / "meta.yaml"
+        new_pa = dict(pa_block)
+        changed = False
+        if new_pa.get("skip_invocation") is not True:
+            new_pa["skip_invocation"] = True
+            changed = True
+        if new_pa.get("status") != "SKIPPED_BY_DESIGN":
+            new_pa["status"] = "SKIPPED_BY_DESIGN"
+            changed = True
+        if not new_pa.get("reason"):
+            new_pa["reason"] = reason
+            changed = True
+        if changed:
+            meta["phase_a_prime"] = new_pa
+            tmp = mp.with_suffix(".yaml.tmp")
+            tmp.write_text(
+                yaml.safe_dump(
+                    meta, sort_keys=False, allow_unicode=True
+                )
+            )
+            tmp.replace(mp)
+        return res
+
     shapes_doc = yaml.safe_load((td / "shapes.yaml").read_text())
     shape_ids = _shape_ids_for(shapes_doc)
 
@@ -1725,6 +1784,11 @@ def cmd_verify(args: argparse.Namespace) -> int:
         print(f"verify {td.name}: UNRUN(needs-gpu) -- {res.reason}")
     elif res.status == "PASS":
         print(f"verify {td.name}: PASS ({res.s2_gpu_run_id}) -- {res.reason}")
+    elif res.status == "SKIPPED_BY_DESIGN":
+        print(
+            f"verify {td.name}: SKIPPED_BY_DESIGN (skip_invocation=true) "
+            f"-- {res.reason}"
+        )
     else:
         print(f"verify {td.name}: {res.status} -- {res.reason}")
     return 0
@@ -2513,11 +2577,20 @@ def _render_status_md(
     n_blocked_cand = sum(
         1 for r in results if r.blocked_candidate and not r.blocked
     )
+    # Unit 2.3: SKIPPED_BY_DESIGN is its own bucket (the orchestrator
+    # set phase_a_prime.skip_invocation=true; phase B golden is the
+    # authoritative source). Tracked separately from BLOCKED(upstream
+    # -not-invocable-here) because the former is an intentional
+    # design decision while the latter is a dev-env limitation.
+    n_skipped_by_design = sum(
+        1 for _i, _t, s, _r in per_task if s == "SKIPPED_BY_DESIGN"
+    )
     return _format_status_md(
         per_task, results, gpu, eligible_count,
         n_hard_blocked, n_no_ep, n_unrun, n_pass, n_smoke_fail,
         n_shapes_inc, n_blocked_cand, n_not_invocable,
         n_oracle_mismatch, sub_break, n_resolver_error,
+        n_skipped_by_design,
     )
 
 
@@ -2534,6 +2607,36 @@ def _build_per_task(
     """
     rvf = rvf or _resolver_verdict_for
     for r in sorted(results, key=lambda x: x.task_id):
+        # Unit 2.3 pre-rule: if the task's meta marks
+        # ``phase_a_prime.skip_invocation == True`` (or already records
+        # ``status == SKIPPED_BY_DESIGN``), emit the SKIPPED_BY_DESIGN
+        # row immediately. This wins over the U1 BLOCKED bucket and
+        # the resolver fallback -- the orchestrator already decided
+        # the upstream operator is intentionally not standalone-
+        # invocable here; the authoritative truth source is the
+        # offline phase B golden capture, not the resolver guess.
+        td_pre = task_dirs_by_id.get(r.task_id)
+        if td_pre is not None:
+            try:
+                _meta_pre = yaml.safe_load(
+                    (td_pre / "meta.yaml").read_text()
+                ) or {}
+            except (OSError, yaml.YAMLError):
+                _meta_pre = {}
+            pap_pre = _meta_pre.get("phase_a_prime") or {}
+            if (
+                pap_pre.get("skip_invocation") is True
+                or pap_pre.get("status") == "SKIPPED_BY_DESIGN"
+            ):
+                reason_pre = (
+                    pap_pre.get("reason")
+                    or "phase_a_prime.skip_invocation=true"
+                )
+                per_task.append((
+                    r.task_id, r.tier, "SKIPPED_BY_DESIGN",
+                    f"SKIPPED_BY_DESIGN: {reason_pre}",
+                ))
+                continue
         if r.blocked:
             per_task.append((r.task_id, r.tier, "BLOCKED", r.blocked_reason))
             continue
@@ -2809,6 +2912,7 @@ def _format_status_md(
     n_oracle_mismatch: int = 0,
     sub_break: dict[str, int] | None = None,
     n_resolver_error: int = 0,
+    n_skipped_by_design: int = 0,
 ) -> str:
     """Render the status markdown from the already-computed per-task
     verdicts + tallies (pure string work -- no temp dirs, kept separate
@@ -2940,11 +3044,15 @@ def _format_status_md(
         f"COMPOSITE predicate via `eligibility.compute_release_blocking`)"
     )
     lines.append(
-        f"- **composite release predicate (W1.5 / DESIGN-V2 §4.4)**: "
-        f"`release_status == PASS  <=>  phase_a_prime.status == PASS  "
-        f"AND  cost_model.status == PASS`. A missing `cost_model.status` "
-        f"(most metas pre-W4.2 GPU cross-check) is `!= PASS`, so the "
-        f"gate stays red until Phase 4."
+        "- **composite release predicate (W1.5 / DESIGN-V2 §4.4 + "
+        "Unit 2.3)**: `release_status == PASS  <=>  "
+        "(phase_a_prime.status == PASS  OR  (SKIPPED_BY_DESIGN  AND  "
+        "phase_b_capture.status == DONE))  AND  "
+        "(NOT phase_b_capture_required  OR  phase_b_capture.status "
+        "== DONE)  AND  (NOT release_scope.excluded)  AND  "
+        "cost_model.status == PASS`. A missing `cost_model.status` "
+        "(most metas pre-W4.2 GPU cross-check) is `!= PASS`, so the "
+        "gate stays red until Phase 4."
     )
     lines.append(
         f"- **benchmark NOT releasable** (S6 hard gate): {n_pass} "
@@ -2999,14 +3107,24 @@ def _format_status_md(
         f"as its OWN distinct bucket, never collapsed into a prettier "
         f"label -- MUST-FIX 2, codex r2 [confirmed])"
     )
+    lines.append(
+        f"- **SKIPPED_BY_DESIGN: {n_skipped_by_design}** "
+        f"(orchestrator marked `phase_a_prime.skip_invocation=true` "
+        f"because the upstream operator is intentionally not "
+        f"standalone-invocable here; the authoritative truth source "
+        f"is the offline phase B golden capture -- "
+        f"`phase_b_capture.status == DONE` is required for "
+        f"release_status==PASS on these tasks)"
+    )
     lines.append(f"- **UNRUN(needs-gpu): {n_unrun}**")
     lines.append(f"- hard BLOCKED (U1 classification): **{n_hard_blocked}**")
     lines.append(f"- BLOCKED-candidate: **{n_blocked_cand}**")
     lines.append(
         f"- reconciliation: {n_pass} + {n_no_ep} + {n_not_invocable} + "
         f"{n_shapes_inc} + {n_oracle_mismatch} + {n_smoke_fail} + "
-        f"{n_resolver_error} + {n_unrun} + {n_hard_blocked} = "
-        f"{n_pass + n_no_ep + n_not_invocable + n_shapes_inc + n_oracle_mismatch + n_smoke_fail + n_resolver_error + n_unrun + n_hard_blocked}"
+        f"{n_resolver_error} + {n_unrun} + {n_hard_blocked} + "
+        f"{n_skipped_by_design} = "
+        f"{n_pass + n_no_ep + n_not_invocable + n_shapes_inc + n_oracle_mismatch + n_smoke_fail + n_resolver_error + n_unrun + n_hard_blocked + n_skipped_by_design}"
         f" (must equal {n} tasks)"
     )
     lines.append("")
@@ -3072,9 +3190,25 @@ def cmd_run(args: argparse.Namespace) -> int:
             results, gpu, release_blocker_count, task_dirs_by_id
         )
     )
+    # Unit 2.3: SKIPPED_BY_DESIGN tally is read from each task's
+    # meta.phase_a_prime (the authoritative source -- the row in
+    # status.md is derived from it, not vice versa).
+    n_skipped_by_design = 0
+    for td in task_dirs_by_id.values():
+        try:
+            m = yaml.safe_load((td / "meta.yaml").read_text()) or {}
+        except (OSError, yaml.YAMLError):
+            continue
+        pap = m.get("phase_a_prime") or {}
+        if (
+            pap.get("skip_invocation") is True
+            or pap.get("status") == "SKIPPED_BY_DESIGN"
+        ):
+            n_skipped_by_design += 1
     print(
         f"run: {len(results)} tasks (tier={args.tier}) "
-        f"release-blockers={release_blocker_count} -> "
+        f"release-blockers={release_blocker_count} "
+        f"skipped_by_design={n_skipped_by_design} -> "
         f"{STATUS_MD.relative_to(REPO_ROOT)}  "
         f"(GPU={'yes' if gpu else 'no'})"
     )
@@ -3546,7 +3680,19 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--classify", action="store_true", help="U1 classifier")
     ap.add_argument("--dry-run", action="store_true", help="emit classification md")
-    ap.add_argument("--verify", metavar="TASK", help="U4 S2 verify a task")
+    ap.add_argument(
+        "--verify",
+        metavar="TASK",
+        help=(
+            "U4 S2 verify a task. Possible verdicts: "
+            "PASS / BLOCKED / UNRUN / SKIPPED_BY_DESIGN "
+            "(the last is returned when "
+            "meta.phase_a_prime.skip_invocation=true, marking the "
+            "upstream operator as intentionally not standalone-"
+            "invocable on this host; the offline phase B golden "
+            "capture is then the authoritative truth source)."
+        ),
+    )
     ap.add_argument("--run", action="store_true", help="U8 tiered run")
     ap.add_argument(
         "--rewrite", metavar="TASK", nargs="?", const="__ALL__",
