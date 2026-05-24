@@ -1,0 +1,685 @@
+"""Behavior + boundary tests for the tab_quickstart.sh wrapper.
+
+These tests exercise the operator-facing one-shot wrapper without
+touching real SSH, real GPU, or the real acceptance gate. The strategy
+is to copy the production tab_quickstart.sh into a tmpdir alongside
+stub `setup_machine_a_gpu.sh` and `run_acceptance_gate.sh` files that
+record their argv into a log; the wrapper resolves RUNNERS_DIR off its
+own location, so it picks up the stubs transparently. SSH is mocked
+through a PATH shim that prepends a tmpdir containing a fake `ssh`
+executable.
+
+The release-boundary assertion at the bottom mirrors
+test_release_boundary.py-style export-ignore coverage but stays inline
+to keep the wrapper's own boundary self-evident in one file.
+"""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import stat
+import subprocess
+import textwrap
+from pathlib import Path
+
+import pytest
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REAL_SCRIPT = (
+    _REPO_ROOT / "scripts" / "automation" / "runners" / "tab_quickstart.sh"
+)
+_REAL_CONF_EXAMPLE = (
+    _REPO_ROOT
+    / "scripts"
+    / "automation"
+    / "runners"
+    / "tab_quickstart.conf.example"
+)
+
+
+# ---------------------------------------------------------------------------
+# Test harness helpers
+# ---------------------------------------------------------------------------
+def _bash() -> str:
+    path = shutil.which("bash")
+    if path is None:  # pragma: no cover -- sandbox without bash is a hard fail
+        pytest.skip("bash not available on this host")
+    return path
+
+
+def _make_executable(path: Path) -> None:
+    mode = path.stat().st_mode
+    path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def _write_stub_runner(path: Path, recorder_log: Path, exit_rc: int = 0) -> None:
+    """Drop a stub runner that records its argv as JSON lines."""
+    body = (
+        "#!/usr/bin/env bash\n"
+        f"# Stub runner -- records argv as a JSON line, exits {exit_rc}.\n"
+        "set -eu\n"
+        f"python3 - \"$@\" <<'PY' >> {recorder_log!s}\n"
+        "import json, sys\n"
+        'print(json.dumps({"script": sys.argv[0], "argv": sys.argv[1:]}))\n'
+        "PY\n"
+        f"exit {exit_rc}\n"
+    )
+    path.write_text(body, encoding="utf-8")
+    _make_executable(path)
+
+
+def _write_path_shim(
+    bin_dir: Path,
+    name: str,
+    recorder_log: Path,
+    exit_rc: int = 0,
+    stdout: str = "",
+) -> None:
+    """Drop a PATH-shim binary (e.g. ssh) that records argv + emits stdout.
+
+    `stdout` is emitted verbatim (newlines preserved) via a single-quoted
+    heredoc so shell metacharacters are not interpreted.
+    """
+    path = bin_dir / name
+    body = (
+        "#!/usr/bin/env bash\n"
+        f"python3 - \"$@\" <<'PY' >> {recorder_log!s}\n"
+        "import json, sys, os\n"
+        "print(json.dumps({\n"
+        '  "bin": os.path.basename(sys.argv[0]),\n'
+        '  "argv": sys.argv[1:],\n'
+        "}))\n"
+        "PY\n"
+        "cat <<'STDOUT_EOF'\n"
+        f"{stdout}"
+        "STDOUT_EOF\n"
+        f"exit {exit_rc}\n"
+    )
+    path.write_text(body, encoding="utf-8")
+    _make_executable(path)
+
+
+@pytest.fixture
+def harness(tmp_path: Path) -> dict:
+    """Build a sandboxed copy of tab_quickstart.sh with stub runners.
+
+    Layout:
+      tmp_path/
+        runners/                       <-- copy of tab_quickstart.sh + stubs
+          tab_quickstart.sh
+          setup_machine_a_gpu.sh       <-- stub
+          run_acceptance_gate.sh       <-- stub
+        bin/                           <-- PATH shim
+          ssh                          <-- stub (default: succeed)
+        gpfs/                          <-- $TAB_GPFS_ROOT
+        conf/tab.conf                  <-- TAB_CONFIG target
+        log/runner.log                 <-- argv recorder for stubs
+        log/ssh.log                    <-- argv recorder for ssh shim
+        home/                          <-- HOME override (no real conf)
+    """
+    runners = tmp_path / "runners"
+    bin_dir = tmp_path / "bin"
+    gpfs = tmp_path / "gpfs"
+    conf_dir = tmp_path / "conf"
+    log_dir = tmp_path / "log"
+    home_dir = tmp_path / "home"
+    for d in (runners, bin_dir, gpfs, conf_dir, log_dir, home_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy(_REAL_SCRIPT, runners / "tab_quickstart.sh")
+    _make_executable(runners / "tab_quickstart.sh")
+
+    runner_log = log_dir / "runner.log"
+    ssh_log = log_dir / "ssh.log"
+    runner_log.touch()
+    ssh_log.touch()
+
+    _write_stub_runner(runners / "setup_machine_a_gpu.sh", runner_log)
+    _write_stub_runner(runners / "run_acceptance_gate.sh", runner_log)
+    _write_path_shim(bin_dir, "ssh", ssh_log, exit_rc=0, stdout="OK\n")
+
+    conf_file = conf_dir / "tab.conf"
+    conf_file.write_text(
+        textwrap.dedent(
+            f"""\
+            TAB_GPFS_ROOT="{gpfs}"
+            TAB_C_HOST="user@stub-host"
+            TAB_C_CLI_CMD='stub-cli --print {{prompt}}'
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    return {
+        "tmp": tmp_path,
+        "script": runners / "tab_quickstart.sh",
+        "runners": runners,
+        "bin_dir": bin_dir,
+        "gpfs": gpfs,
+        "conf_file": conf_file,
+        "runner_log": runner_log,
+        "ssh_log": ssh_log,
+        "home_dir": home_dir,
+    }
+
+
+def _run(
+    harness: dict,
+    *args: str,
+    env_extra: dict | None = None,
+    stdin: str | None = None,
+    use_conf: bool = True,
+    use_ssh_shim: bool = True,
+) -> subprocess.CompletedProcess:
+    env = {
+        # Minimal env -- avoid leaking the developer's real ~/.tab-quickstart.conf.
+        "HOME": str(harness["home_dir"]),
+        "PATH": (
+            f"{harness['bin_dir']}:{os.environ.get('PATH', '')}"
+            if use_ssh_shim
+            else os.environ.get("PATH", "")
+        ),
+    }
+    if use_conf:
+        env["TAB_CONFIG"] = str(harness["conf_file"])
+    else:
+        # Point TAB_CONFIG at a missing file so the wrapper skips sourcing.
+        env["TAB_CONFIG"] = str(harness["tmp"] / "nonexistent.conf")
+    if env_extra:
+        env.update(env_extra)
+    return subprocess.run(
+        [_bash(), str(harness["script"]), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        input=stdin,
+        env=env,
+    )
+
+
+def _read_argv_log(log_path: Path) -> list[dict]:
+    rows = []
+    for ln in log_path.read_text(encoding="utf-8").splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        rows.append(json.loads(ln))
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# 1. Help + dispatch
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_help_lists_all_subcommands(harness):
+    # Help works even without any conf loaded -- prove that path too.
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    for cmd in ("setup", "verify-c", "resolve", "smoke", "full", "status", "clean"):
+        assert cmd in proc.stdout, f"help missing subcommand: {cmd}"
+    # Help also surfaces the conf file path and the example path.
+    assert "CONFIG_FILE" in proc.stdout
+    assert "tab_quickstart.conf.example" in proc.stdout
+
+
+def test_tab_quickstart_unknown_subcommand_fatal_rc2(harness):
+    proc = _run(harness, "bogus")
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "unknown subcommand" in proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# 2. Config loading
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_missing_required_var_fails(harness):
+    # No conf, no env vars set for any of the three required keys.
+    proc = _run(harness, "status", use_conf=False)
+    assert proc.returncode != 0
+    assert "TAB_GPFS_ROOT not set" in proc.stderr
+
+
+def test_tab_quickstart_loads_conf_file_from_env(harness):
+    # The harness conf supplies the three required vars; status must run.
+    proc = _run(harness, "status")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "TAB_GPFS_ROOT" in proc.stdout
+    assert str(harness["gpfs"]) in proc.stdout
+
+
+def test_tab_quickstart_env_overrides_conf(harness):
+    # conf sets TAB_GPFS_ROOT to harness["gpfs"]; env points elsewhere.
+    override = harness["tmp"] / "env-root"
+    override.mkdir()
+    proc = _run(harness, "status", env_extra={"TAB_GPFS_ROOT": str(override)})
+    assert proc.returncode == 0, proc.stderr
+    assert str(override) in proc.stdout
+    # Sanity: conf's GPFS path should NOT appear as the active value
+    # in the config block (it may still appear in derived defaults if
+    # the operator left them at the default, but env override wins).
+    config_block = proc.stdout.split("== state ==", 1)[0]
+    assert str(override) in config_block, (
+        "env override TAB_GPFS_ROOT must surface in the config block"
+    )
+
+
+def test_tab_quickstart_cli_cmd_must_contain_prompt_placeholder(harness):
+    # Override TAB_C_CLI_CMD to something missing {prompt}.
+    proc = _run(harness, "status", env_extra={"TAB_C_CLI_CMD": "no-placeholder-cli"})
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "must contain literal '{prompt}'" in proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# 3. setup
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_setup_delegates_to_setup_machine_a(harness):
+    proc = _run(harness, "setup")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(harness["runner_log"])
+    assert len(rows) == 1, rows
+    argv = rows[0]["argv"]
+    assert "--gpfs-root" in argv
+    gpfs_idx = argv.index("--gpfs-root")
+    assert argv[gpfs_idx + 1] == str(harness["gpfs"])
+    assert "--skip-install" not in argv
+
+
+def test_tab_quickstart_setup_skip_install_passes_flag(harness):
+    proc = _run(harness, "setup", env_extra={"TAB_SETUP_SKIP_INSTALL": "1"})
+    assert proc.returncode == 0, proc.stderr
+    rows = _read_argv_log(harness["runner_log"])
+    assert len(rows) == 1, rows
+    argv = rows[0]["argv"]
+    assert "--skip-install" in argv
+
+
+# ---------------------------------------------------------------------------
+# 4. verify-c
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_verify_c_runs_ssh_echo_and_cli_version(harness):
+    proc = _run(harness, "verify-c")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(harness["ssh_log"])
+    # Two SSH invocations: 'echo OK' probe + CLI --version probe.
+    assert len(rows) == 2, rows
+    # Both calls target TAB_C_HOST.
+    for row in rows:
+        argv = row["argv"]
+        assert "user@stub-host" in argv, argv
+    # First call must end in 'echo OK'.
+    assert any("echo OK" in tok for tok in rows[0]["argv"])
+    # Second call must contain '--version' and reference 'stub-cli'.
+    second_joined = " ".join(rows[1]["argv"])
+    assert "stub-cli --version" in second_joined or "stub-cli" in second_joined
+    assert "--version" in second_joined
+
+
+def test_tab_quickstart_verify_c_extracts_cli_name_past_env_prefix(harness):
+    # 'env LANG=C stub-cli ...' must still resolve CLI name = stub-cli.
+    proc = _run(
+        harness,
+        "verify-c",
+        env_extra={"TAB_C_CLI_CMD": "env LANG=C stub-cli --print {prompt}"},
+    )
+    assert proc.returncode == 0, proc.stderr
+    rows = _read_argv_log(harness["ssh_log"])
+    assert len(rows) == 2
+    second_joined = " ".join(rows[1]["argv"])
+    assert "stub-cli --version" in second_joined
+
+
+# ---------------------------------------------------------------------------
+# 5. resolve
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_resolve_overwrite_prompt_fatal_without_tty(harness):
+    # With existing resolve log and no --force, the overwrite confirmation
+    # used to block on `read`. Now -- when stdin is not a TTY (pipe from
+    # subprocess.PIPE here mirrors `tail -f /dev/null | tab_quickstart.sh
+    # resolve` in production) -- we fatal-exit with rc=2 so the wrapper
+    # never hangs in CI / non-interactive shells.
+    rl = harness["gpfs"] / "pa_resolve.log"
+    rl.parent.mkdir(parents=True, exist_ok=True)
+    rl.write_text("PRE-EXISTING\n", encoding="utf-8")
+    proc = _run(harness, "resolve", stdin="N\n")
+    assert proc.returncode == 2, (proc.returncode, proc.stdout, proc.stderr)
+    assert "stdin is not a TTY" in proc.stderr
+    assert rl.read_text(encoding="utf-8") == "PRE-EXISTING\n"
+
+
+def test_tab_quickstart_resolve_force_skips_prompt(harness, tmp_path):
+    rl = harness["gpfs"] / "pa_resolve.log"
+    rl.parent.mkdir(parents=True, exist_ok=True)
+    rl.write_text("PRE-EXISTING\n", encoding="utf-8")
+
+    # Build a stub bench repo that overrides scripts/resolve_upstream_entrypoints.py
+    # to emit deterministic verdict-class lines.
+    stub_repo = tmp_path / "stub_bench_repo"
+    (stub_repo / "scripts").mkdir(parents=True)
+    (stub_repo / "scripts" / "resolve_upstream_entrypoints.py").write_text(
+        textwrap.dedent(
+            """\
+            print('task=a shapes-incomplete')
+            print('task=b oracle-mismatch')
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    proc = _run(
+        harness,
+        "resolve",
+        "--force",
+        env_extra={"TAB_BENCH_REPO": str(stub_repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    content = rl.read_text(encoding="utf-8")
+    assert "shapes-incomplete" in content
+    assert "PRE-EXISTING" not in content
+
+
+# ---------------------------------------------------------------------------
+# 6. smoke / full
+# ---------------------------------------------------------------------------
+def _seed_resolve_log(harness) -> Path:
+    rl = harness["gpfs"] / "pa_resolve.log"
+    rl.parent.mkdir(parents=True, exist_ok=True)
+    rl.write_text("task=a shapes-incomplete\n", encoding="utf-8")
+    return rl
+
+
+def test_tab_quickstart_smoke_fails_when_resolve_log_missing(harness):
+    proc = _run(harness, "smoke")
+    assert proc.returncode != 0
+    assert "run 'resolve' first" in proc.stderr
+
+
+def test_tab_quickstart_smoke_passes_phase_1_to_run_gate(harness):
+    _seed_resolve_log(harness)
+    proc = _run(harness, "smoke")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(harness["runner_log"])
+    assert len(rows) == 1
+    argv = rows[0]["argv"]
+    assert "--phase" in argv and argv[argv.index("--phase") + 1] == "1"
+    assert "--llm-transport" in argv
+    assert argv[argv.index("--llm-transport") + 1] == "ssh-cli"
+    assert "--llm-ssh-host" in argv
+    assert argv[argv.index("--llm-ssh-host") + 1] == "user@stub-host"
+    assert "--llm-cli-cmd" in argv
+    assert argv[argv.index("--llm-cli-cmd") + 1] == "stub-cli --print {prompt}"
+
+
+def test_tab_quickstart_full_passes_phase_all(harness):
+    _seed_resolve_log(harness)
+    proc = _run(harness, "full")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(harness["runner_log"])
+    assert len(rows) == 1
+    argv = rows[0]["argv"]
+    assert "--phase" in argv and argv[argv.index("--phase") + 1] == "all"
+
+
+# ---------------------------------------------------------------------------
+# 7. status / clean
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_status_no_state_file_friendly(harness):
+    proc = _run(harness, "status")
+    assert proc.returncode == 0, proc.stderr
+    assert "(no state file yet" in proc.stdout
+
+
+def test_tab_quickstart_clean_force_removes_dirs(harness):
+    gpfs = harness["gpfs"]
+    for sub in ("state", "queue", "results", ".phase4-worktree"):
+        (gpfs / sub).mkdir(parents=True, exist_ok=True)
+        (gpfs / sub / "marker").write_text("x", encoding="utf-8")
+    # Also seed logs/ and pa_resolve.log -- they must SURVIVE clean.
+    (gpfs / "logs").mkdir(parents=True, exist_ok=True)
+    (gpfs / "logs" / "keep.log").write_text("keep", encoding="utf-8")
+    (gpfs / "pa_resolve.log").write_text("keep", encoding="utf-8")
+
+    proc = _run(harness, "clean", "--force")
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    for sub in ("state", "queue", "results", ".phase4-worktree"):
+        assert not (gpfs / sub).exists(), f"{sub} should be removed"
+    assert (gpfs / "logs" / "keep.log").exists()
+    assert (gpfs / "pa_resolve.log").exists()
+
+
+# ---------------------------------------------------------------------------
+# 8. Release boundary -- both new files must be export-ignored.
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_artifacts_export_ignored():
+    """tab_quickstart.{sh,conf.example} + test live under export-ignore patterns."""
+    gitattrs = (_REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+    dockerignore = (_REPO_ROOT / ".dockerignore").read_text(encoding="utf-8")
+    # The script + conf example are under scripts/automation/ which is
+    # itself an export-ignore directory pattern.
+    assert "scripts/automation/" in gitattrs
+    assert "scripts/automation/" in dockerignore
+    # The test file must be explicitly listed (it does NOT match any of
+    # the existing test_*.py globs).
+    assert "tests/unit_tests/test_tab_quickstart.py" in gitattrs, (
+        "test_tab_quickstart.py must be export-ignored in .gitattributes"
+    )
+    assert "tests/unit_tests/test_tab_quickstart.py" in dockerignore, (
+        "test_tab_quickstart.py must be mirrored in .dockerignore"
+    )
+
+
+def test_tab_quickstart_conf_example_exists_and_documents_required_vars():
+    """The sample conf must enumerate all three required variables."""
+    assert _REAL_CONF_EXAMPLE.is_file(), f"missing: {_REAL_CONF_EXAMPLE}"
+    text = _REAL_CONF_EXAMPLE.read_text(encoding="utf-8")
+    for var in ("TAB_GPFS_ROOT", "TAB_C_HOST", "TAB_C_CLI_CMD"):
+        assert var in text, f"conf example missing {var}"
+    # Must mention the {prompt} placeholder so operators don't omit it.
+    assert "{prompt}" in text
+
+
+def test_tab_quickstart_script_has_no_hardcoded_cli_names():
+    """The wrapper must stay CLI-agnostic -- no hardcoded codex/claude/gemini."""
+    text = _REAL_SCRIPT.read_text(encoding="utf-8")
+    for needle in ("codex", "claude", "gemini"):
+        assert needle.lower() not in text.lower(), (
+            f"tab_quickstart.sh hardcodes CLI name '{needle}' "
+            "-- must be operator-supplied via TAB_C_CLI_CMD"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 9. Env vs conf precedence corner cases
+# ---------------------------------------------------------------------------
+def _write_conf(harness, extra_lines: str) -> None:
+    """Rewrite the harness conf with the three required vars + extra_lines."""
+    harness["conf_file"].write_text(
+        textwrap.dedent(
+            f"""\
+            TAB_GPFS_ROOT="{harness['gpfs']}"
+            TAB_C_HOST="user@stub-host"
+            TAB_C_CLI_CMD='stub-cli --print {{prompt}}'
+            {extra_lines}
+            """
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_tab_quickstart_empty_env_overrides_conf_nonempty(harness):
+    """Empty env var ('' is present, not unset) must trump non-empty conf.
+
+    Conf sets TAB_SETUP_SKIP_INSTALL=1; env sets it to ''. Expected:
+    setup runs without --skip-install. Emptiness-based precedence (the
+    pre-fix logic) would treat the empty env as "unset" and keep conf's 1.
+    """
+    _write_conf(harness, 'TAB_SETUP_SKIP_INSTALL=1')
+    proc = _run(harness, "setup", env_extra={"TAB_SETUP_SKIP_INSTALL": ""})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(harness["runner_log"])
+    assert len(rows) == 1
+    assert "--skip-install" not in rows[0]["argv"], (
+        "empty env TAB_SETUP_SKIP_INSTALL must override conf's '1' "
+        "(presence-based precedence)"
+    )
+
+
+def test_tab_quickstart_env_only_no_conf_works(harness):
+    """Three required vars supplied only via env (no conf file) -> status 0."""
+    proc = _run(
+        harness,
+        "status",
+        use_conf=False,
+        env_extra={
+            "TAB_GPFS_ROOT": str(harness["gpfs"]),
+            "TAB_C_HOST": "user@env-only-host",
+            "TAB_C_CLI_CMD": "env-only-cli --print {prompt}",
+        },
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "user@env-only-host" in proc.stdout
+    assert "env-only-cli --print {prompt}" in proc.stdout
+
+
+def test_tab_quickstart_verbose_empty_env_overrides_conf(harness):
+    """Empty env TAB_VERBOSE must disable conf-supplied TAB_VERBOSE=1."""
+    _write_conf(harness, 'TAB_VERBOSE=1')
+    proc = _run(harness, "status", env_extra={"TAB_VERBOSE": ""})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    # `set -x` would echo every command to stderr with a leading '+ '.
+    # Status itself emits nothing to stderr in the happy path, so absence
+    # of any '+ ' prefix line is a clean signal.
+    trace_lines = [
+        ln for ln in proc.stderr.splitlines() if ln.startswith("+ ")
+    ]
+    assert not trace_lines, (
+        f"empty env TAB_VERBOSE should disable set -x; got trace: {trace_lines[:3]}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 10. CLI cmd early-failure corner cases (quote-depth + exactly-once)
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_cli_cmd_quoted_double_prompt_early_fail(harness):
+    """`cli "{prompt}"` -- double-quoted placeholder -> rc=2 + 'do NOT wrap'."""
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_C_CLI_CMD": 'cli "{prompt}"'},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "do NOT wrap" in proc.stderr
+
+
+def test_tab_quickstart_cli_cmd_quoted_single_prompt_early_fail(harness):
+    """`cli '{prompt}'` -- single-quoted placeholder -> rc=2."""
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_C_CLI_CMD": "cli '{prompt}'"},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "do NOT wrap" in proc.stderr
+
+
+def test_tab_quickstart_cli_cmd_outer_quotes_early_fail(harness):
+    """`cli "prefix {prompt} suffix"` -- placeholder inside outer quotes -> rc=2."""
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_C_CLI_CMD": 'cli "prefix {prompt} suffix"'},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "do NOT wrap" in proc.stderr
+
+
+def test_tab_quickstart_cli_cmd_two_placeholders_early_fail(harness):
+    """`cli {prompt} {prompt}` -- two placeholders -> rc=2 + 'exactly once'."""
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_C_CLI_CMD": "cli {prompt} {prompt}"},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "exactly once" in proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# 11. Status corrupt / partial state-file fallbacks
+# ---------------------------------------------------------------------------
+def test_tab_quickstart_status_corrupt_json_graceful(harness):
+    """Corrupt JSON state file -> status exits 0 with a warning, no crash."""
+    state_path = harness["gpfs"] / "state" / "triage_state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text("{not valid json at all", encoding="utf-8")
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_STATE_PATH": str(state_path)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    # Either "could not parse" (json decode) or the generic warning fallback.
+    assert ("could not parse" in proc.stdout) or ("warning" in proc.stdout), (
+        proc.stdout
+    )
+
+
+def test_tab_quickstart_status_missing_schema_version_graceful(harness):
+    """State file with no schema_version key -> status 0, total tasks: 0."""
+    state_path = harness["gpfs"] / "state" / "triage_state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps({"tasks": {}}),
+        encoding="utf-8",
+    )
+    proc = _run(
+        harness,
+        "status",
+        env_extra={"TAB_STATE_PATH": str(state_path)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "total tasks: 0" in proc.stdout
+    # The wrapper should surface that schema_version is missing.
+    assert "schema_version" in proc.stdout
+
+
+# ---------------------------------------------------------------------------
+# 12. Quickstart markdown documentation contract
+# ---------------------------------------------------------------------------
+_QUICKSTART_MD = (
+    _REPO_ROOT / "docs" / "release" / "internal-acceptance-quickstart.md"
+)
+
+
+def test_tab_quickstart_md_has_tldr_section():
+    """Quickstart md must announce a TL;DR one-shot wrapper section."""
+    assert _QUICKSTART_MD.is_file(), f"missing: {_QUICKSTART_MD}"
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    assert "TL;DR" in text and "一键封装" in text, (
+        "quickstart.md must contain the 'TL;DR -- 一键封装' header"
+    )
+
+
+def test_tab_quickstart_md_lists_all_7_subcommands():
+    """The TL;DR section must enumerate all 7 wrapper subcommands."""
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    # Slice from the TL;DR header up to the next ## header so we test the
+    # block, not random occurrences elsewhere in the doc.
+    tldr_idx = text.find("TL;DR")
+    assert tldr_idx >= 0, "TL;DR header not found"
+    rest = text[tldr_idx:]
+    next_h = rest.find("\n## ", 1)
+    tldr_block = rest[:next_h] if next_h > 0 else rest
+    for cmd in ("setup", "verify-c", "resolve", "smoke", "full", "status", "clean"):
+        assert cmd in tldr_block, (
+            f"TL;DR block missing subcommand '{cmd}'"
+        )
+
+
+def test_tab_quickstart_md_references_conf_example_path():
+    """Quickstart md must point operators at the conf example file."""
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+    assert "scripts/automation/runners/tab_quickstart.conf.example" in text, (
+        "quickstart.md must reference scripts/automation/runners/"
+        "tab_quickstart.conf.example so operators know where to copy from"
+    )

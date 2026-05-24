@@ -1,0 +1,52 @@
+# tab_quickstart.sh configuration
+#
+# Copy to ~/.tab-quickstart.conf (or any path pointed to by TAB_CONFIG)
+# and edit values for your environment. All variables are bash-style
+# KEY="value"; this file is `source`d by tab_quickstart.sh before
+# subcommand dispatch. Comments must start with '#'.
+
+# === REQUIRED ===
+
+# Shared / local working directory holding state, queue, results, logs.
+# Single-machine mode: any writable local path.
+# Three-machine mode: must be a real GPFS / NFS mount accessible from
+# both the GPU host (A) and the orchestrator host (B).
+TAB_GPFS_ROOT="/tmp/tab-shared"
+
+# SSH target for the LLM CLI host. Format: user@host or a ~/.ssh/config
+# alias. BatchMode key auth must work (no password prompts).
+TAB_C_HOST="user@c-host"
+
+# CLI command template invoked via SSH on the LLM host. MUST contain
+# the literal '{prompt}' placeholder (no surrounding quotes around it --
+# the bench wraps the actual prompt with shlex.quote before substituting).
+# Examples (CLI name is just a placeholder -- bench is CLI-agnostic):
+#   TAB_C_CLI_CMD='my-cli --print {prompt}'
+#   TAB_C_CLI_CMD='my-cli exec {prompt}'
+#   TAB_C_CLI_CMD='env LANG=C my-cli --json {prompt}'
+TAB_C_CLI_CMD='my-cli --print {prompt}'
+
+# === OPTIONAL (have defaults) ===
+
+# Bench repository root. Defaults to the git toplevel of the cwd at
+# tab_quickstart.sh invocation.
+# TAB_BENCH_REPO="/path/to/triton-ascend-bench"
+
+# Resolver classification log (produced by 'resolve', consumed by
+# 'smoke' / 'full').
+# TAB_RESOLVE_LOG="$TAB_GPFS_ROOT/pa_resolve.log"
+
+# Master triage state file path passed to run_acceptance_gate.sh.
+# Per-phase state roots are always derived from TAB_GPFS_ROOT and are
+# independent of this path.
+# TAB_STATE_PATH="$TAB_GPFS_ROOT/state/triage_state.json"
+
+# Per-call SSH/CLI transport timeout in seconds. Bump up for slow LLMs.
+# TAB_LLM_TIMEOUT_SECONDS=600
+
+# Skip 'pip install -e .[automation,dev,gpu]' in 'setup' (use when deps
+# are already verified to save several minutes).
+# TAB_SETUP_SKIP_INSTALL=1
+
+# Enable bash trace ('set -x') for debugging.
+# TAB_VERBOSE=1

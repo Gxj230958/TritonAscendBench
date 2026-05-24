@@ -6,6 +6,33 @@
 > 完整规范参考 `docs/release/internal-acceptance-runbook.md`(§1-§7),
 > 本文档是面向具体操作的 step-by-step 速跑指引。
 
+## TL;DR — 一键封装(推荐)
+
+不想手动跑每条命令?用 `tab_quickstart.sh` 封装,只需在 conf 文件里填三个变量,
+然后一条命令一个子命令:
+
+```bash
+# 1. 一次性配置(只填一遍)
+cp scripts/automation/runners/tab_quickstart.conf.example ~/.tab-quickstart.conf
+$EDITOR ~/.tab-quickstart.conf
+# 改 TAB_GPFS_ROOT / TAB_C_HOST / TAB_C_CLI_CMD 三个必填变量为你的实际值
+
+# 2. 跑各步(每条独立可重跑;子命令名见 `bash ... help`)
+bash scripts/automation/runners/tab_quickstart.sh setup       # 验环境
+bash scripts/automation/runners/tab_quickstart.sh verify-c    # 验 C 机 SSH + CLI
+bash scripts/automation/runners/tab_quickstart.sh resolve     # 产 resolve log
+bash scripts/automation/runners/tab_quickstart.sh smoke       # Phase 1 (~30 min)
+bash scripts/automation/runners/tab_quickstart.sh full        # Phase all (~2-4 hr)
+bash scripts/automation/runners/tab_quickstart.sh status      # 看进度 + 报告
+bash scripts/automation/runners/tab_quickstart.sh clean       # 重新跑前清理
+```
+
+变量优先级 `env > conf file > defaults`,也可以临时 `TAB_GPFS_ROOT=/x bash ... status` 覆盖。
+封装内部走的就是下面"手动逐 step"章节里同样的 5 个 runner 脚本,只是把参数收敛到一处。
+
+> 如需自定义每条命令的细节(`--c-port` / `--health-path` / Tier 2 daemon 等),
+> 看下面的"手动逐 step"章节,直接调用 `run_acceptance_gate.sh` / `run_machine_a_daemon.sh` 等。
+
 ## 三机角色
 
 | 机 | 角色 | 跑什么 |
