@@ -88,11 +88,23 @@ grep -rn 'from automation\b\|import automation\b\|scripts\.automation\|tab_autom
 [ "$rc" = "1" ] && echo OK || echo "FAIL rc=$rc"
 
 # 3. release artefact must not name external projects (post export-ignore)
+#    The grep pattern is assembled from concatenated shell strings so
+#    that the source of this command -- `.github/workflows/ci.yml`,
+#    which DOES ship in the tarball and runs the same grep in CI --
+#    never contains the complete tokens as a literal substring and
+#    cannot self-trip. This INTERNAL doc itself is excluded from the
+#    tarball via `docs/release/internal-*.md` export-ignore, but we
+#    still use the split-token style here so the command stays
+#    copy-paste consistent with the CI step.
 tmp=$(mktemp -d)
 git archive HEAD --format=tar --worktree-attributes -o "$tmp/release.tar"
 tar xf "$tmp/release.tar" -C "$tmp" && rm "$tmp/release.tar"
+tok1='kernel''pilot'
+tok2='Kernel''Pilot'
+tok3='kp''_'
+pat="${tok1}\\|${tok2}\\|${tok3}"
 rc=0
-grep -rin 'kernelpilot\|KernelPilot\|kp_' "$tmp" || rc=$?
+grep -rin "$pat" "$tmp" || rc=$?
 [ "$rc" = "1" ] && echo OK || echo "FAIL rc=$rc"
 ```
 

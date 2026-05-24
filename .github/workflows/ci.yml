@@ -91,8 +91,20 @@ jobs:
           rm "$tmp/release.tar"
           # Same exit-code discipline as the bench-core single-direction step:
           # rc=0 means found (fail), rc=1 means clean (pass), rc=2 means grep error (fail loud).
+          #
+          # IMPORTANT: ``ci.yml`` itself ships in the release tarball
+          # (it lives under ``.github/`` which is NOT export-ignored).
+          # If we wrote the literal external-project tokens here, the
+          # grep below would match its own ci.yml under "$tmp" -- a
+          # guaranteed self-trip. Build the search pattern from
+          # adjacent shell strings instead so the on-disk yaml never
+          # contains the complete tokens as a literal substring.
+          tok1='kernel''pilot'
+          tok2='Kernel''Pilot'
+          tok3='kp''_'
+          pat="${tok1}\\|${tok2}\\|${tok3}"
           rc=0
-          grep -rin 'kernelpilot\|KernelPilot\|kp_' "$tmp" || rc=$?
+          grep -rin "$pat" "$tmp" || rc=$?
           if [ "$rc" = "0" ]; then
             echo 'release artifact MUST NOT reference external project names'
             exit 1
