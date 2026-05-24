@@ -56,6 +56,21 @@ automation = [
     # Not part of the bench release artifact; install with `pip install -e ".[automation]"`.
     "requests>=2.31",
 ]
+infer = [
+    # Transitive deps imported by the vllm/sglang source trees under
+    # infer/. We use those source trees directly (not pip-installed
+    # vllm/sglang, so the per-task ``upstream_fp`` hash can pin the
+    # exact infer/ bytes) which means pip cannot auto-pick these up
+    # from vllm/sglang's own pyproject. List them here so setup_machine_a_gpu.sh
+    # installs them and the oracle-consistency subprocess can actually
+    # import vllm.config / sglang.srt.utils -- otherwise resolve mis-classifies
+    # every affected task as upstream-not-invocable-here. Add new leaves
+    # when vllm/sglang upgrade introduces a new top-level import.
+    "pybase64",
+    "pyzmq",
+    "cbor2",
+    "msgspec",
+]
 
 [project.scripts]
 tab = "triton_ascend_bench.cli:main"
