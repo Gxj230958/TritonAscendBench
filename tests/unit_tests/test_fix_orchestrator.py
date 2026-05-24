@@ -201,6 +201,95 @@ def test_parse_resolve_log_filters_classes(tmp_path):
     assert all(tid != "T4" for tid, _ in result)
 
 
+def test_task_ids_filter_overrides_max_tasks():
+    """``--task-ids`` is an explicit allowlist: ``--max-tasks`` is
+    ignored, every listed id is enqueued regardless of slice size."""
+    from automation.fix_orchestrator import _enqueue_from_resolve_log
+
+    parsed = [
+        ("t1", "shapes-incomplete"),
+        ("t2", "shapes-incomplete"),
+        ("t3", "oracle-mismatch"),
+        ("t4", "shapes-incomplete"),
+        ("t5", "oracle-mismatch"),
+    ]
+    state = {"schema_version": "1.0", "tasks": {}}
+    _enqueue_from_resolve_log(
+        state, parsed,
+        task_ids_csv="t1,t3,t5",
+        max_tasks=2,                       # would have sliced to t1, t2
+        allowed_enqueue={"shapes-incomplete"},  # would have dropped t3/t5
+    )
+    # All three explicit ids enqueued; max_tasks=2 ignored; class filter
+    # bypassed (per the task_ids "explicit white-list" semantics).
+    assert set(state["tasks"]) == {"t1", "t3", "t5"}
+    # And each entry inherits the verdict_class from the resolve log.
+    assert state["tasks"]["t3"]["verdict_class"] == "oracle-mismatch"
+    assert state["tasks"]["t5"]["verdict_class"] == "oracle-mismatch"
+    assert state["tasks"]["t1"]["verdict_class"] == "shapes-incomplete"
+
+
+def test_task_ids_filter_skips_ids_not_in_resolve_log():
+    """ids absent from the resolve log must be silently skipped, not
+    crash the orchestrator (the next sweep will surface them)."""
+    from automation.fix_orchestrator import _enqueue_from_resolve_log
+
+    parsed = [("t1", "shapes-incomplete")]
+    state = {"schema_version": "1.0", "tasks": {}}
+    _enqueue_from_resolve_log(
+        state, parsed,
+        task_ids_csv="t1,t99,",   # t99 missing; trailing empty token ignored
+        max_tasks=30,
+        allowed_enqueue={"shapes-incomplete"},
+    )
+    assert set(state["tasks"]) == {"t1"}
+
+
+def test_no_task_ids_falls_back_to_max_tasks_and_class_filter():
+    """Without ``--task-ids`` the historic behaviour (max_tasks slice
+    plus verdict-class enqueue filter) must still apply."""
+    from automation.fix_orchestrator import _enqueue_from_resolve_log
+
+    parsed = [
+        ("t1", "shapes-incomplete"),
+        ("t2", "oracle-mismatch"),
+        ("t3", "shapes-incomplete"),
+        ("t4", "unexpected-blocked"),
+    ]
+    state = {"schema_version": "1.0", "tasks": {}}
+    _enqueue_from_resolve_log(
+        state, parsed,
+        task_ids_csv=None,
+        max_tasks=3,
+        allowed_enqueue={"shapes-incomplete"},
+    )
+    # Slice is parsed[:3] -> (t1, t2, t3); class filter keeps only
+    # shapes-incomplete -> {t1, t3}.
+    assert set(state["tasks"]) == {"t1", "t3"}
+
+
+def test_task_ids_cli_flag_round_trip():
+    """The CLI must accept ``--task-ids`` and surface it as
+    ``args.task_ids`` for the enqueue helper."""
+    from automation.fix_orchestrator import _build_arg_parser
+
+    parser = _build_arg_parser()
+    args = parser.parse_args([
+        "--resolve-log", "x.log",
+        "--reverify-results", "/tmp/r",
+        "--task-ids", "alpha,beta,gamma",
+    ])
+    assert args.task_ids == "alpha,beta,gamma"
+
+    # Default (omitted) is None so the legacy slice path stays in
+    # effect.
+    default_args = parser.parse_args([
+        "--resolve-log", "x.log",
+        "--reverify-results", "/tmp/r",
+    ])
+    assert default_args.task_ids is None
+
+
 def test_extract_missing_params_evidence_filters_to_task_and_class(tmp_path):
     from automation.fix_orchestrator import extract_missing_params_evidence
 

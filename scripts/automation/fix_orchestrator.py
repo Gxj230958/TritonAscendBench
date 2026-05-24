@@ -504,6 +504,49 @@ def extract_oracle_log_excerpt(
     return ""
 
 
+def _enqueue_from_resolve_log(
+    state: dict[str, Any],
+    parsed: list[tuple[str, str]],
+    *,
+    task_ids_csv: str | None,
+    max_tasks: int,
+    allowed_enqueue,
+) -> None:
+    """Enqueue tasks from a parsed resolve log into ``state['tasks']``.
+
+    Priority of enqueue selection (highest first):
+
+    1. ``task_ids_csv`` (from the CLI ``--task-ids`` flag): explicit
+       allowlist. The CSV is honoured verbatim; ``max_tasks`` is
+       ignored (the operator is saying "I want exactly these N
+       tasks"). The verdict-class enqueue filter is also bypassed --
+       the orchestrator's per-task dispatch still gates on
+       :data:`_VERDICT_TO_DECISIONS` so unsupported classes never
+       reach the LLM, but the queue itself reflects the operator's
+       stratified sample.
+    2. ``max_tasks`` slice + ``allowed_enqueue`` class filter (the
+       historic behaviour).
+
+    Mutates ``state['tasks']`` in place; never overwrites an existing
+    entry (``setdefault`` semantics).
+    """
+    if task_ids_csv:
+        wanted = [t.strip() for t in task_ids_csv.split(",") if t.strip()]
+        by_id = {tid: vclass for tid, vclass in parsed}
+        for tid in wanted:
+            vclass = by_id.get(tid)
+            if vclass is None:
+                # Task id not in the resolve log -- skip; the next
+                # sweep will surface it once the resolver emits it.
+                continue
+            state["tasks"].setdefault(tid, sm.new_task_entry(vclass))
+        return
+    for tid, vclass in parsed[:max_tasks]:
+        if vclass not in allowed_enqueue:
+            continue
+        state["tasks"].setdefault(tid, sm.new_task_entry(vclass))
+
+
 def parse_resolve_log(log_path: Path) -> list[tuple[str, str]]:
     """Return list of (task_id, verdict_class) for all BLOCKED lines.
 
@@ -1495,6 +1538,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
              "every supported class through its own prompt builder.",
     )
     p.add_argument("--max-tasks", type=int, default=30)
+    p.add_argument(
+        "--task-ids", default=None,
+        help="Comma-separated explicit task-id allowlist. When supplied, "
+             "only these ids are enqueued from the resolve log; --max-tasks "
+             "is ignored (task_ids is a deliberate, sized white-list). The "
+             "verdict-class filter still applies to the orchestrator's "
+             "dispatch table, but does NOT trim the enqueue list -- task_ids "
+             "expresses 'I want exactly these tasks'.",
+    )
     p.add_argument("--max-attempts", type=int, default=3)
     p.add_argument("--llm-endpoint", required=False, default=None)
     p.add_argument("--reverify-results", required=True, type=Path)
@@ -1607,11 +1659,15 @@ def main(argv: list[str] | None = None) -> int:
             write_state(state, state_path)
             return 0
 
-        # Parse resolve log + enqueue (filter by allowed class set)
-        for tid, vclass in parse_resolve_log(args.resolve_log)[: args.max_tasks]:
-            if vclass not in allowed_enqueue:
-                continue
-            state["tasks"].setdefault(tid, sm.new_task_entry(vclass))
+        # Parse resolve log + enqueue.
+        parsed = parse_resolve_log(args.resolve_log)
+        _enqueue_from_resolve_log(
+            state,
+            parsed,
+            task_ids_csv=args.task_ids,
+            max_tasks=args.max_tasks,
+            allowed_enqueue=allowed_enqueue,
+        )
 
         # Runtime requires an llm endpoint; tests pass None + bypass via
         # drive_task_once + their own mock.
@@ -1665,6 +1721,33 @@ def main(argv: list[str] | None = None) -> int:
 
         write_state(state, state_path)
 
+        # Optionally dump per-run LLM budget snapshot for the acceptance
+        # gate reporter. The runner sets BENCH_AUTOMATION_BUDGET_JSON to
+        # the desired output path; if unset we skip silently (back-compat
+        # with operator-driven runs that don't care about cost). The
+        # LLMClient auto-instantiates a BudgetTracker, so even without
+        # explicit per-token pricing we still capture prompt_tokens,
+        # completion_tokens, and total_calls.
+        budget_out = os.environ.get("BENCH_AUTOMATION_BUDGET_JSON", "").strip()
+        if budget_out:
+            try:
+                budget_path = Path(budget_out)
+                budget_path.parent.mkdir(parents=True, exist_ok=True)
+                payload = {
+                    "total_calls": int(client.budget.total_calls),
+                    "prompt_tokens": int(client.budget.prompt_tokens),
+                    "completion_tokens": int(client.budget.completion_tokens),
+                    "estimated_cost_usd": float(client.budget.estimated_cost_usd),
+                }
+                budget_path.write_text(
+                    json.dumps(payload, indent=2, sort_keys=True),
+                    encoding="utf-8",
+                )
+            except Exception as exc:
+                # Observability hook: never crash a run because we
+                # could not write the budget snapshot.
+                logger.warning("budget snapshot write failed: %s", exc)
+
     # Print user-actionable wrapper commands to stdout (Tier 1 only;
     # Tier 2 jobs are dispatched onto the GPFS queue automatically).
     if ctx.tier == 1:
@@ -1688,6 +1771,7 @@ __all__ = [
     "OrchestratorContext",
     "StateFileCorruptError",
     "StateFileNotFoundError",
+    "_enqueue_from_resolve_log",
     "apply_release_scope_exclusion",
     "drive_task_once",
     "extract_blocker_reason",
