@@ -132,7 +132,10 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     # an earlier filler pass. Each appeared in at least one task's
     # `missing param '<name>'` reason after the first pass landed.
     "chunk_size":         (None, "scalar", "64"),        # mamba SSD / chunk scan
-    "cu_chunk_seqlens":   ("int32", ("CP1",), None),     # chunk offsets; dist via _NAME_TO_DEFAULT_DIST
+    # NOTE: cu_chunk_seqlens deliberately NOT in conventions: codex r4
+    # showed L2_02 (meta: B is chunk axis, dims should be B+1) and
+    # L2_03 (cap should be C*L, not B*L) need conflicting forms; a
+    # global rule is wrong. Per-task patch via LLM or manual edit.
     "max_input_len":      (None, "scalar", "128"),       # attention max seq
     "max_seqlen":         (None, "scalar", "128"),
     "num_logprobs":       (None, "scalar", "5"),
@@ -176,7 +179,6 @@ _MISSING_FOR_ENTRY_RE = re.compile(
 _COMPOSITE_BASES: dict[str, tuple[tuple[str, ...], str]] = {
     "BN":   (("B", "N"), "B*N"),
     "BP1":  (("B",), "B+1"),
-    "CP1":  (("C",), "C+1"),
     "I2":   (("I",), "2*I"),
     "DIM3": ((), "3"),
 }
@@ -188,9 +190,8 @@ _COMPOSITE_BASES: dict[str, tuple[tuple[str, ...], str]] = {
 # ``cu_seqlens[i+1] - cu_seqlens[i]`` slicing then gives nonsense
 # (codex r2 finding on L3_20).
 _NAME_TO_DEFAULT_DIST: dict[str, str] = {
-    "cu_seqlens":       "offsets:to=B*L",
-    "cu_chunk_seqlens": "offsets:to=B*L",
-    "seg_indptr":       "offsets:2",
+    "cu_seqlens":   "offsets:to=B*L",
+    "seg_indptr":   "offsets:2",
 }
 
 # Names whose declared dtype would silently be ignored by
