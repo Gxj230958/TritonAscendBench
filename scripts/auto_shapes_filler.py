@@ -128,6 +128,28 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     "conv_states":    ("float16", ("B", "D", "S"), "randn"),
     "kv_caches":      ("float16", ("BLOCKS", "PAGE", "H", "D"), "randn"),
     "quant_k_cache":  ("int8",    ("BLOCKS", "PAGE", "H", "D"), "randint:-128:127"),
+    # Cascade-revealed names from second-iteration resolve sweeps after
+    # an earlier filler pass. Each appeared in at least one task's
+    # `missing param '<name>'` reason after the first pass landed.
+    "max_input_len":      (None, "scalar", "128"),       # attention max seq
+    "max_seqlen":         (None, "scalar", "128"),
+    "num_logprobs":       (None, "scalar", "5"),
+    "num_local_experts":  (None, "scalar", "8"),
+    "current_draft_step": (None, "scalar", "0"),
+    "num_draft_tokens":   (None, "scalar", "4"),
+    "split_k_iters":      (None, "scalar", "1"),
+    "logits_ptr":         ("float16", ("B", "V"), "randn"),
+    "full_logits":        ("float16", ("B", "V"), "randn"),
+    "gateup_output":      ("float16", ("BN", "I2"), None),
+    "weight1":            ("float16", ("D",), "randn"),
+    "weight2":            ("float16", ("D",), "randn"),
+    "conv_state":         ("float16", ("B", "D", "S"), "randn"),
+    "draft_tokens":       ("int32",   ("B", "K"), "randint:0:V"),
+    "token_ids":          ("int32",   ("B", "N"), "randint:0:V"),
+    "all_token_ids":      ("int32",   ("B", "N"), "randint:0:V"),
+    "expert_indices":     ("int32",   ("BN", "K"), "randint:0:E"),
+    "recv_topk_ids":      ("int32",   ("BN", "K"), "randint:0:E"),
+    "recv_x_scale":       ("float32", ("BN",), "randn"),
 }
 
 _MISSING_PARAM_RE = re.compile(r"missing param '([^']+)'")
