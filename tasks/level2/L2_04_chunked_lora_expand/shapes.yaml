@@ -135,7 +135,7 @@ inputs:
   x:
     dims:
     - B
-    - G
+    - "E*G"
     dtype: float32
     dist: randn
   weights:
@@ -145,23 +145,23 @@ inputs:
     - G
     dtype: float32
     dist: randn
-  seg_indptr:
-    dims:
-    - E+1
-    dtype: int64
-    dist: offsets:2
-  weight_indices:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:E
-  lora_ranks:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:1:G
-  scalings:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
+  batch_info:
+    struct: "sglang.srt.lora.utils.LoRABatchInfo"
+    fields:
+      use_cuda_graph: {scalar: false}
+      bs:             {scalar_knob: B}
+      num_segments:   {scalar_knob: E}
+      seg_indptr:     {dims: ["E+1"], dtype: int32, dist: "offsets:2"}
+      weight_indices: {dims: [E], dtype: int32, dist: "randint:0:E"}
+      lora_ranks:     {dims: [E], dtype: int32, dist: "randint:1:G"}
+      scalings:       {dims: [E], dtype: float32, dist: rand}
+      max_len:        {scalar_knob: L}
+      seg_lens:       {dims: [E], dtype: int32, dist: "randint:1:N"}
+      permutation:    {dims: [B], dtype: int32, dist: "randint:0:B"}
+  slice_offsets:
+    dims: ["E+1"]
+    dtype: int32
+    dist: "offsets:2"
+  max_slice_size:
+    scalar_knob: N
+  base_output: null

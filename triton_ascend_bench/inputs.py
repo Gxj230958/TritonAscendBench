@@ -498,6 +498,82 @@ def _materialise_scalar(name: str, spec: dict[str, Any],
     return list(seq)
 
 
+def _materialise_struct(
+    name: str,
+    spec: dict[str, Any],
+    knobs: dict[str, int],
+    gen: torch.Generator,
+) -> Any:
+    """Materialise a dataclass-shaped input from
+    ``{struct: '<dotted.path.Class>', fields: {<fname>: <input_spec>}}``.
+
+    Each ``fields[fname]`` entry uses the same spec grammar as a top-level
+    inputs entry: ``scalar`` / ``derive`` / ``scalar_seq`` / ``scalar_knob``
+    for non-tensor fields, a ``{dims, dtype, dist}`` mapping for tensor
+    fields, or a nested ``{struct, fields}`` for a sub-dataclass. ``null``
+    binds the field to ``None`` (Optional fields).
+
+    The struct class is imported via ``importlib.import_module`` -- the
+    caller subprocess MUST have the upstream package on ``sys.path``
+    (the oracle / S2 runners already do this). Instantiated as
+    ``cls(**materialised_fields)``, so the dataclass must accept the
+    declared field names as keyword arguments.
+
+    Designed for upstream callables whose host wrapper takes a
+    structured info object (e.g. ``LoRABatchInfo``,
+    ``ForwardBatchInfo``) -- the bench's tensor-or-scalar input model
+    cannot express those directly, and refusing to invoke them is the
+    only honest path otherwise.
+    """
+    import importlib
+
+    klass_path = spec.get("struct")
+    if not isinstance(klass_path, str) or "." not in klass_path:
+        raise TypeError(
+            f"input {name!r}: 'struct' must be a dotted import path "
+            f"(e.g. 'sglang.srt.lora.utils.LoRABatchInfo')"
+        )
+    mod_path, _, cls_name = klass_path.rpartition(".")
+    try:
+        mod = importlib.import_module(mod_path)
+        cls = getattr(mod, cls_name)
+    except (ImportError, AttributeError) as exc:
+        raise ImportError(
+            f"input {name!r}: cannot import struct class {klass_path!r} "
+            f"-- is the upstream tree on sys.path? ({exc})"
+        ) from exc
+
+    fields_spec = spec.get("fields", {})
+    if not isinstance(fields_spec, dict):
+        raise TypeError(
+            f"input {name!r}: 'fields' must be a mapping, got "
+            f"{type(fields_spec).__name__}"
+        )
+
+    kwargs: dict[str, Any] = {}
+    for field_name, field_spec in fields_spec.items():
+        if field_spec is None:
+            kwargs[field_name] = None
+            continue
+        if not isinstance(field_spec, dict):
+            raise TypeError(
+                f"input {name!r}: field {field_name!r} spec must be a "
+                f"dict or null, got {type(field_spec).__name__}"
+            )
+        if "struct" in field_spec:
+            kwargs[field_name] = _materialise_struct(
+                f"{name}.{field_name}", field_spec, knobs, gen,
+            )
+        elif "scalar" in field_spec or "derive" in field_spec or "scalar_seq" in field_spec:
+            kwargs[field_name] = _materialise_scalar(field_name, field_spec, knobs)
+        elif "scalar_knob" in field_spec:
+            kwargs[field_name] = int(eval_numeric(str(field_spec["scalar_knob"]), knobs))
+        else:
+            kwargs[field_name] = _make_tensor(field_spec, knobs, gen)
+
+    return cls(**kwargs)
+
+
 def build_inputs(
     shapes_doc: dict[str, Any], shape_id: str, seed: int = 0,
 ) -> dict[str, Any]:
@@ -506,9 +582,12 @@ def build_inputs(
     Non-tensor inputs are materialised per :func:`_materialise_scalar`:
     a ``scalar`` literal is passed through verbatim, a ``derive`` rule is
     evaluated against the shape row's knobs, and a ``scalar_seq`` carries a
-    list literal. ``scalar_knob`` is the legacy derived-integer form. Tensor
-    specs are materialised from size-knob formulas with a fixed seed so
-    oracle and candidate see identical inputs.
+    list literal. ``scalar_knob`` is the legacy derived-integer form.
+    A ``struct`` spec materialises a dataclass-shaped input via
+    :func:`_materialise_struct` (required for upstream callables that
+    take a structured info object such as ``LoRABatchInfo``). Tensor
+    specs are materialised from size-knob formulas with a fixed seed
+    so oracle and candidate see identical inputs.
     """
     rows = (shapes_doc.get("public_shapes", [])
             + shapes_doc.get("hidden_shapes", []))
@@ -527,7 +606,9 @@ def build_inputs(
         if not isinstance(spec, dict):
             out[name] = spec
             continue
-        if "scalar" in spec or "derive" in spec or "scalar_seq" in spec:
+        if "struct" in spec:
+            out[name] = _materialise_struct(name, spec, knobs, gen)
+        elif "scalar" in spec or "derive" in spec or "scalar_seq" in spec:
             out[name] = _materialise_scalar(name, spec, knobs)
         elif "scalar_knob" in spec:
             out[name] = int(eval_numeric(str(spec["scalar_knob"]), knobs))
