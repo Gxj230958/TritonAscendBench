@@ -145,13 +145,13 @@ inputs:
     dist: randint:0:N
   token_indices:
     dims:
-    - E
+    - B
     - L
     dtype: int32
     dist: randint:0:N
-  block_size:
+  BLOCK_SIZE:
     scalar: 4
   NUM_TOPK_TOKENS:
-    derive: "L"
+    scalar_knob: L
   BLOCK_N:
     scalar: 8

@@ -151,3 +151,28 @@ inputs:
     dist: rand
   topk:
     scalar: 2
+  output:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+  input:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  masked_m:
+    dims:
+    - B
+    - N
+    dtype: bool
+  input_tensor:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn

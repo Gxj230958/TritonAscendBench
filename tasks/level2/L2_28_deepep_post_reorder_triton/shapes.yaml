@@ -151,3 +151,26 @@ inputs:
     dist: rand
   topk:
     scalar: 2
+  down_output:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+  input:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  x_scale:
+    dims:
+    - B
+    dtype: float32
+    dist: randn
+  masked_m:
+    dims:
+    - B
+    - N
+    dtype: bool

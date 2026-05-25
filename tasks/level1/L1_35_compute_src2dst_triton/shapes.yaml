@@ -139,3 +139,29 @@ inputs:
     dist: arange
   num_toks:
     scalar_knob: B
+  masked_m:
+    dims:
+    - B
+    - N
+    dtype: bool
+  input_tensor:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  recv_x:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  x:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn

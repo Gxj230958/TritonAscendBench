@@ -143,3 +143,22 @@ inputs:
     scalar: 16
   num_experts:
     scalar_knob: E
+  problem_sizes1:
+    dims:
+    - E
+    - DIM3
+    dtype: int32
+  x:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  input:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn

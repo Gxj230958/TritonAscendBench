@@ -140,3 +140,21 @@ inputs:
     dist: randint:0:2
   num_experts:
     scalar: 4
+  masked_m:
+    dims:
+    - B
+    - N
+    dtype: bool
+  down_output:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+  input:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn

@@ -145,3 +145,39 @@ inputs:
     dist: randint:0:N
   page_size:
     scalar: 4
+  extend_seq_lens:
+    dims:
+    - B
+    dtype: int32
+    dist: randint:1:N
+  k:
+    dims:
+    - B
+    - H
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  q:
+    dims:
+    - B
+    - H
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  key:
+    dims:
+    - B
+    - H
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  input_emb:
+    dims:
+    - B
+    - N
+    - D
+    dtype: float16
+    dist: randn
