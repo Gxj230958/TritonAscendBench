@@ -341,6 +341,18 @@ def _check_one_shape(
     import torch
 
     inputs = build_inputs(shapes_doc, sid, seed=0)
+    # Snapshot inputs before the kernel call so an in-place upstream
+    # entrypoint (e.g. apply_logit_bias on L1_01: writes -inf into the
+    # supplied ``logits`` tensor and returns None) does not double-apply
+    # when the oracle subsequently reads the SAME mapping. Without this
+    # clone the oracle saw post-mutation logits, re-applied the same
+    # transformations, and produced a doubly-mutated reference -- a
+    # spurious value-mismatch that masked a correct kernel as
+    # ``oracle-mismatch``. Tensor identity is preserved for non-tensors.
+    kernel_inputs = {
+        k: (v.clone() if torch.is_tensor(v) else v)
+        for k, v in inputs.items()
+    }
     kmod = _load(
         task_dir / "kernel.py",
         f"_pa_oc_kernel_{sid}",
@@ -351,16 +363,16 @@ def _check_one_shape(
         return False, f"entrypoint {entrypoint!r} not a module-level callable"
     try:
         sig, bound, kwargs = _map_inputs_by_name(
-            fn, entrypoint, dict(inputs)
+            fn, entrypoint, dict(kernel_inputs)
         )
     except Exception as e:  # ShapesIncompleteError or introspection
         return False, f"by-name bind failed: {type(e).__name__}: {e}"
-    cand_ret = fn(dict(inputs)) if sig is None else fn(**kwargs)
+    cand_ret = fn(dict(kernel_inputs)) if sig is None else fn(**kwargs)
     if cand_ret is None:
         cand_ret = {
-            p: inputs[p]
+            p: kernel_inputs[p]
             for p in bound
-            if torch.is_tensor(inputs.get(p))
+            if torch.is_tensor(kernel_inputs.get(p))
         }
     # oracle_pytorch.py is task-local and has no relative imports onto
     # the upstream tree; passing ``upstream_roots=None`` keeps it on the
