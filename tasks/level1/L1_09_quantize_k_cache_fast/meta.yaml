@@ -8,6 +8,17 @@ repo: SGLang
 dtype_class: VV
 category: quantization
 npu_difficulty: medium
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: "Upstream kernel hard-asserts a MLA-specific layout (k_nope.dtype == torch.bfloat16, dim_nope == 512, dim_rope == 64, group_size == 128) and packs the FP8 quantised nope, FP32 scales, and BF16 rope into a single byte-cast output buffer whose logical fields cannot be compared element-wise against the formula_exact_manual oracle on dev. Defer to phase B golden capture so the authoritative truth source is the on-NPU run."
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING
+  upstream_callable:
+    module: sglang.srt.layers.attention.nsa.quant_k_cache
+    function: _quantize_k_cache_fast
+  reason: "Upstream kernel hard-asserts a MLA-specific layout (k_nope.dtype == torch.bfloat16, dim_nope == 512, dim_rope == 64, group_size == 128) and packs the FP8 quantised nope, FP32 scales, and BF16 rope into a single byte-cast output buffer whose logical fields cannot be compared element-wise against the formula_exact_manual oracle on dev. Defer to phase B golden capture so the authoritative truth source is the on-NPU run."
 upstream:
   repo: sgl-project/sglang
   path: '`sglang/srt/layers/attention/`'
