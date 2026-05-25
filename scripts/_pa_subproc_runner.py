@@ -589,6 +589,32 @@ def _run_side(args: argparse.Namespace) -> int:
         for p in (str(VLLM_ROOT), str(SGLANG_ROOT)):
             if p not in sys.path:
                 sys.path.insert(0, p)
+        # Also expose the bench repo root so the vllm.triton_utils
+        # forward shim can be imported below. The infer/ entries above
+        # are inserted FIRST so a real ``vllm.X`` submodule still wins
+        # over anything in the bench package.
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT))
+        # Inject the vllm.triton_utils forward shim BEFORE loading the
+        # vendored kernel.py. Without it, on a host with no active
+        # Triton driver upstream hands out a TritonPlaceholder whose
+        # .jit / .autotune are no-ops and whose tl.* attributes are
+        # placeholder values -- the vendored kernel's
+        # ``from vllm.triton_utils import tl, triton`` would silently
+        # bind those stubs and the S2-original launch would fail (or
+        # worse, silently no-op). force=True overrides a placeholder
+        # entry that a transitive ``import vllm`` may have already
+        # populated. The severed side intentionally does NOT register
+        # the shim: that surface forbids vllm/sglang resolution at all,
+        # and the staged candidate has no vllm.triton_utils dependency.
+        try:
+            from triton_ascend_bench.upstream_shims._inject import (
+                register as _register_vllm_triton_utils_shim,
+            )
+
+            _register_vllm_triton_utils_shim(force=True)
+        except ImportError:
+            pass
         guard = None
     else:
         # severed side: torch+triton+Class-D+pool+shim ONLY.

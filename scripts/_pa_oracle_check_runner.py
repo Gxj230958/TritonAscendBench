@@ -472,6 +472,29 @@ def main() -> int:
         if p not in sys.path:
             sys.path.insert(0, p)
 
+    # Inject the vllm.triton_utils forward shim BEFORE the vendored
+    # kernel.py executes. On a host with no active Triton driver, the
+    # real upstream vllm/triton_utils/__init__.py would hand out a
+    # TritonPlaceholder (no-op .jit, no-op .autotune, placeholder tl.*);
+    # the shim re-exports the real triton + an interpreter-aware
+    # autotune wrapper so the kernel can be invoked under
+    # TRITON_INTERPRET=1 for the oracle-consistency check. We register
+    # with force=True so a transitive ``import vllm`` higher in the
+    # subprocess (which would otherwise have populated sys.modules with
+    # the placeholder regime) is overridden. ImportError is swallowed
+    # so a setup without the shim package (e.g. an old editable install)
+    # still runs the legacy upstream path -- the resolver will simply
+    # report the placeholder failure as it did before, never a fake
+    # PASS.
+    try:
+        from triton_ascend_bench.upstream_shims._inject import (
+            register as _register_vllm_triton_utils_shim,
+        )
+
+        _register_vllm_triton_utils_shim(force=True)
+    except ImportError:
+        pass
+
     result = {"consistent": False, "detail": ""}
     try:
         import yaml
