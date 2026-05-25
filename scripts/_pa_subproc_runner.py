@@ -46,14 +46,29 @@ from __future__ import annotations
 
 import argparse
 import importlib.abc
+import importlib.util
 import json
+import re
 import sys
+import types
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INFER_ROOT = REPO_ROOT.parent / "infer"
 VLLM_ROOT = INFER_ROOT / "vllm"
 SGLANG_ROOT = INFER_ROOT / "sglang" / "python"
+
+# Header line that the freeze process stamps into every vendored
+# kernel.py docstring; identical contract to the oracle runner.
+_SRC_PATH_RE = re.compile(
+    r"Source\s+path\s*:\s*`?([^`\n]+?)`?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+# ``from .X import Y`` / ``from ..X import Y`` / ``from . import Y``.
+_REL_IMPORT_RE = re.compile(
+    r"^\s*from\s+(\.+)(\w*(?:\.\w+)*)\s+import\s+",
+    re.MULTILINE,
+)
 
 # Third-party packages permitted on the severed surface (torch+triton
 # + Class-D + safetensors/yaml IPC plumbing). Everything else loaded
@@ -400,6 +415,133 @@ def _signature_adapter(fn, entrypoint_name: str):
     return _run
 
 
+def _extract_source_path(kernel_src: str) -> str | None:
+    """Return the upstream ``Source path: <p>`` declared at the top of a
+    vendored kernel.py (or ``None`` if the header is missing). Identical
+    contract to ``_pa_oracle_check_runner._extract_source_path``."""
+    head = kernel_src[:4000]
+    m = _SRC_PATH_RE.search(head)
+    return m.group(1).strip() if m else None
+
+
+def _max_relative_depth(kernel_src: str) -> int:
+    """Return the maximum number of leading dots in any module-scope
+    ``from .X import``. Identical contract to the oracle runner."""
+    depth = 0
+    for m in _REL_IMPORT_RE.finditer(kernel_src):
+        depth = max(depth, len(m.group(1)))
+    return depth
+
+
+def _resolve_upstream_sibling(
+    source_path: str, upstream_roots: list[Path],
+) -> Path | None:
+    """Locate the upstream file's parent directory under one of the
+    configured upstream roots. Identical contract to the oracle runner."""
+    for root in upstream_roots:
+        cand = root / source_path
+        if cand.is_file():
+            return cand.parent
+    return None
+
+
+def _build_synthetic_pkg_chain(
+    leaf_module_name: str,
+    task_dir: Path,
+    upstream_sibling: Path,
+    depth: int,
+) -> str:
+    """Install a synthetic package chain into ``sys.modules`` deep enough
+    to satisfy a kernel.py that uses ``from .X`` (depth==1) or
+    ``from ..X`` (depth==2) imports, and return the leaf-package's name.
+
+    Mirrors ``_pa_oracle_check_runner._build_synthetic_pkg_chain`` --
+    the runners share the contract on purpose so a verdict on one side
+    matches the import surface of the other."""
+    base = f"_pa_pkg_{leaf_module_name}"
+    levels: list[Path] = [upstream_sibling]
+    cur = upstream_sibling
+    for _ in range(max(depth - 1, 0)):
+        cur = cur.parent
+        levels.append(cur)
+    parts: list[str] = []
+    for i, lvl in enumerate(reversed(levels)):
+        parts.append(f"_{i}")
+        full = f"{base}." + ".".join(parts)
+        if full not in sys.modules:
+            pkg_mod = types.ModuleType(full)
+            pkg_mod.__path__ = [str(lvl)]
+            sys.modules[full] = pkg_mod
+        else:
+            sys.modules[full].__path__ = [str(lvl)]
+    leaf_pkg = f"{base}." + ".".join(parts)
+    sys.modules[leaf_pkg].__path__ = [str(task_dir), str(upstream_sibling)]
+    if base not in sys.modules:
+        top = types.ModuleType(base)
+        top.__path__ = []
+        sys.modules[base] = top
+    return leaf_pkg
+
+
+def _load_kernel_with_optional_bridge(
+    kp: Path, name: str, upstream_roots: list[Path] | None,
+):
+    """Import a vendored kernel.py with a per-call synthetic package.
+
+    Same contract as ``_pa_oracle_check_runner._load`` -- the original
+    side of the S2 pair (``--side original``) needs the same relative-
+    import fix the oracle anchor needs, because both load the SAME
+    unmodified vendored kernel.py with the SAME ``from .X import Y``
+    statements. The severed side never reaches here with relative
+    imports (the staged candidate has none), so ``upstream_roots=None``
+    is the back-compat path."""
+    kernel_src = kp.read_text()
+    rel_depth = _max_relative_depth(kernel_src)
+    pkg = f"_pa_pkg_{name}"
+    if rel_depth == 0 or upstream_roots is None:
+        if pkg not in sys.modules:
+            synth = types.ModuleType(pkg)
+            synth.__path__ = [str(kp.parent)]
+            sys.modules[pkg] = synth
+        leaf_name = f"{pkg}.{kp.stem}"
+        leaf_pkg = pkg
+    else:
+        source_path = _extract_source_path(kernel_src)
+        if not source_path:
+            raise RuntimeError(
+                f"_load_kernel_with_optional_bridge: kernel {kp} uses a "
+                f"relative import ({rel_depth} dot(s)) but its docstring "
+                f"carries no ``Source path:`` header -- the freeze tool "
+                f"stamps that line into every vendored kernel; missing "
+                f"means either the freeze metadata was stripped or the "
+                f"kernel is not actually a vendored upstream copy."
+            )
+        sibling = _resolve_upstream_sibling(source_path, upstream_roots)
+        if sibling is None:
+            roots_str = ", ".join(str(r) for r in upstream_roots)
+            raise RuntimeError(
+                f"_load_kernel_with_optional_bridge: upstream sibling "
+                f"not found for {kp} -- declared source_path="
+                f"{source_path!r} is absent under every configured "
+                f"upstream root ({roots_str}); the vendored kernel uses "
+                f"``from .X`` relative imports that resolve into that "
+                f"sibling directory."
+            )
+        leaf_pkg = _build_synthetic_pkg_chain(
+            leaf_module_name=name,
+            task_dir=kp.parent,
+            upstream_sibling=sibling,
+            depth=rel_depth,
+        )
+        leaf_name = f"{leaf_pkg}.{kp.stem}"
+    spec = importlib.util.spec_from_file_location(leaf_name, kp)
+    mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = leaf_pkg
+    sys.modules[leaf_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _resolve_entrypoint(mod, spec: dict):
     """Resolve the callable this side must invoke with ``inputs``.
 
@@ -479,9 +621,21 @@ def _run_side(args: argparse.Namespace) -> int:
         baseline = set(sys.modules.keys())
 
         kp = Path(spec["kernel_path"])
-        ispec = importlib.util.spec_from_file_location("_pa_kernel", kp)
-        mod = importlib.util.module_from_spec(ispec)
-        ispec.loader.exec_module(mod)
+        # Original-side kernels are the UNMODIFIED vendored copies that
+        # may carry ``from .X import Y`` relative imports onto the
+        # upstream sibling helpers. Severed-side kernels are the staged
+        # standalone candidates produced by the rewrite, which have no
+        # relative imports and MUST stay on the severed surface (the
+        # bridge would resolve into infer/ and the leak guard would
+        # block it anyway). Passing ``upstream_roots`` only on the
+        # original side keeps the behaviour split honest.
+        if side == "original":
+            kernel_upstream_roots = [VLLM_ROOT, SGLANG_ROOT]
+        else:
+            kernel_upstream_roots = None
+        mod = _load_kernel_with_optional_bridge(
+            kp, "_pa_kernel", kernel_upstream_roots,
+        )
 
         if side == "severed":
             # Pre-run sys.modules scan (import-time leaks): audit only
