@@ -68,11 +68,16 @@ BACKLOG_STATES: tuple[str, ...] = (
 )
 
 # Human-estimate hours per verdict_class (used in markdown table).
+# ``smoke-fail`` is manual-only (upstream invocation crashed during the
+# smoke phase): no LLM remediation attempt, the entry sits in
+# BACKLOG_UNEXPECTED until an operator triages -- 2 hr matches the
+# unexpected-blocked estimate because the diagnosis surface is similar.
 _VERDICT_HOURS: dict[str, str] = {
     "shapes-incomplete": "0.25",
     "oracle-mismatch": "0.5",
     "upstream-not-invocable-here": "1.0",
     "unexpected-blocked": "2.0",
+    "smoke-fail": "2.0",
 }
 
 

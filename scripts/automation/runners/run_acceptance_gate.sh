@@ -396,11 +396,12 @@ phase1() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 2 -- stratified 5+5+5 by verdict class, Tier 1, isolated state root.
+# Phase 2 -- stratified 5+5+(up to 5) by verdict class, Tier 1, isolated state root.
 #
-# The corpus contains 2 upstream-not-invocable-here tasks in total (per
-# the resolver report). We honestly take what's available rather than
-# back-fill from a different class.
+# The corpus has many upstream-not-invocable-here tasks and only a
+# small number of oracle-mismatch tasks (per the resolver report); the
+# sampler caps at 5 per class and honestly takes what's available
+# rather than back-fill from a different class.
 # ---------------------------------------------------------------------------
 phase2() {
   echo "[phase2] stratified mixed corpus (5 shapes / 5 oracle / up to 5 upstream)"
@@ -412,49 +413,15 @@ phase2() {
   local log="$LOGS_DIR/phase2-$DATE_STAMP.log"
 
   # Resolve the per-class task IDs once, *before* the orchestrator
-  # enqueues anything, so we can guarantee the 5+5+<=5 split.
+  # enqueues anything, so we can guarantee the 5+5+(up-to-5) split.
+  # Stratified sampling routes through the shared resolve loader (which
+  # handles aggregate JSON / JSONL / legacy text uniformly) via the
+  # scripts/automation/select_tasks.py CLI -- keeping the
+  # format-detection logic in one place.
   local task_ids
-  task_ids="$(python3 - "$RESOLVE_LOG" <<'PY'
-import json, re, sys, pathlib
-log = pathlib.Path(sys.argv[1])
-text = log.read_text(encoding="utf-8", errors="replace")
-buckets: dict[str, list[str]] = {
-    "shapes-incomplete": [],
-    "oracle-mismatch": [],
-    "upstream-not-invocable-here": [],
-}
-# Recognise both jsonl and the legacy ``task=X BLOCKED reason=Y`` form.
-for ln in text.splitlines():
-    ln = ln.strip()
-    if not ln:
-        continue
-    if ln.startswith("{"):
-        try:
-            row = json.loads(ln)
-        except Exception:
-            continue
-        tid = row.get("task_id") or row.get("task")
-        reason = (row.get("verdict_class")
-                  or row.get("reason")
-                  or row.get("subclass") or "")
-        if tid and reason:
-            for k in buckets:
-                if k in reason and tid not in buckets[k]:
-                    buckets[k].append(tid)
-        continue
-    m = re.match(r".*\btask=(\S+).*BLOCKED.*reason=(\S+)", ln)
-    if m:
-        tid = m.group(1); reason = m.group(2)
-        for k in buckets:
-            if k in reason and tid not in buckets[k]:
-                buckets[k].append(tid)
-selected: list[str] = []
-selected += buckets["shapes-incomplete"][:5]
-selected += buckets["oracle-mismatch"][:5]
-selected += buckets["upstream-not-invocable-here"][:5]
-print(",".join(selected))
-PY
-)"
+  task_ids="$(python3 scripts/automation/select_tasks.py "$RESOLVE_LOG" \
+              --classes shapes-incomplete,oracle-mismatch,upstream-not-invocable-here \
+              --cap 5)"
   if [[ -z "$task_ids" ]]; then
     record_phase "Phase 2 -- Stratified mixed corpus" "FAIL" \
       "Could not derive a stratified task list from \`$RESOLVE_LOG\`."

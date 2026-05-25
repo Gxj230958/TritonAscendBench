@@ -345,6 +345,33 @@ _RESOLVE_BLOCKED_RE = re.compile(
 # The evidence we want for the prompt is everything after the closing
 # paren -- the reject_notes carry per-candidate reasons (often listing
 # missing param names verbatim).
+def _looks_like_json(text: str) -> bool:
+    """Cheap detection for aggregate-JSON / JSONL resolver artefacts.
+
+    Legacy plain-text resolver logs begin with ``[<task_id>] ...`` which
+    also starts with ``[``, so a structural ``json.loads`` probe is the
+    only reliable way to discriminate. We probe the whole document; on
+    failure we try the first non-empty line (JSONL probe).
+    """
+    if not text.strip():
+        return False
+    try:
+        json.loads(text)
+        return True
+    except json.JSONDecodeError:
+        pass
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            json.loads(line)
+            return True
+        except json.JSONDecodeError:
+            return False
+    return False
+
+
 _RESOLVE_BLOCKED_FULL_RE = re.compile(
     r"^\[(?P<tid>[^\]]+)\]\s+BLOCKED\s+.*?::\s+"
     r"BLOCKED\((?P<reason>[^)]+)\)\s*:?\s*(?P<evidence>.*)$",
@@ -363,14 +390,48 @@ def _extract_resolver_evidence(
     Returns a small newline-joined excerpt suitable for embedding in
     the LLM prompt -- limited to the most recent ``max_lines`` matching
     lines for the task, so a prompt cannot blow up on a noisy log.
+
+    Dual-mode: legacy plain-text logs are parsed line-by-line via
+    ``_RESOLVE_BLOCKED_FULL_RE``; aggregate JSON / JSONL artefacts are
+    routed through ``automation.lib.resolve_loader`` and the per-record
+    ``reason`` field is mined for the subclass filter.
     """
     if not log_path.is_file():
         return ""
-    hits: list[str] = []
     try:
         text = log_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return ""
+
+    # Aggregate JSON / JSONL detection: pull records via the loader and
+    # synthesise plain-text-equivalent excerpts from ``status`` + ``reason``.
+    # Legacy plain-text resolver logs start with ``[<task_id>] ...`` which
+    # also begins with ``[``, so we additionally require that the text is
+    # parseable as JSON before routing into the loader path.
+    if _looks_like_json(text):
+        try:
+            from automation.lib.resolve_loader import load_resolve_artifact
+            records = load_resolve_artifact(log_path)
+        except (FileNotFoundError, ValueError):
+            records = []
+        hits: list[str] = []
+        for rec in records:
+            if rec["task_id"] != task_id:
+                continue
+            if rec["verdict_class"] != subclass_filter:
+                continue
+            # Reconstruct the "raw :: evidence" pair the line-based path
+            # would have produced. Status carries the
+            # "BLOCKED(no-verified-upstream-entrypoint: <vc>)" preamble;
+            # reason carries the per-candidate reject notes.
+            raw = f"no-verified-upstream-entrypoint: {rec['verdict_class']}"
+            evidence = rec["reason"].strip()
+            if evidence:
+                hits.append(f"{raw} :: {evidence}")
+        return "\n".join(hits[-max_lines:])
+
+    # Legacy plain-text fallback.
+    hits = []
     needle = f"[{task_id}]"
     for line in text.splitlines():
         if not line.startswith(needle):
@@ -428,6 +489,11 @@ def extract_upstream_callable_hint(
     hints from the resolver's reject notes. Returns ``None`` when no
     canonical pair is found -- the prompt builder degrades gracefully
     in that case.
+
+    Dual-mode: legacy plain-text logs are scanned line-by-line; aggregate
+    JSON / JSONL artefacts are routed through the shared loader and the
+    per-record ``reason`` / ``status`` fields are mined for the same
+    ``module=`` / ``function=`` pair.
     """
     if not log_path.is_file():
         return None
@@ -435,9 +501,31 @@ def extract_upstream_callable_hint(
         text = log_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-    needle = f"[{task_id}]"
+
     module: str | None = None
     function: str | None = None
+
+    if _looks_like_json(text):
+        try:
+            from automation.lib.resolve_loader import load_resolve_artifact
+            records = load_resolve_artifact(log_path)
+        except (FileNotFoundError, ValueError):
+            records = []
+        for rec in records:
+            if rec["task_id"] != task_id:
+                continue
+            blob = f"{rec.get('status', '')} {rec.get('reason', '')}"
+            m = _UPSTREAM_MODULE_RE.search(blob)
+            if m:
+                module = m.group(1)
+            f = _UPSTREAM_FUNC_RE.search(blob)
+            if f:
+                function = f.group(1)
+        if module and function:
+            return {"module": module, "function": function}
+        return None
+
+    needle = f"[{task_id}]"
     for line in text.splitlines():
         if not line.startswith(needle):
             continue
@@ -506,13 +594,18 @@ def extract_oracle_log_excerpt(
 
 def _enqueue_from_resolve_log(
     state: dict[str, Any],
-    parsed: list[tuple[str, str]],
+    parsed: list[dict] | list[tuple[str, str]],
     *,
     task_ids_csv: str | None,
     max_tasks: int,
     allowed_enqueue,
 ) -> None:
     """Enqueue tasks from a parsed resolve log into ``state['tasks']``.
+
+    ``parsed`` accepts either the modern dict-record form (from the
+    shared :mod:`automation.lib.resolve_loader`) or the legacy
+    ``(task_id, verdict_class)`` tuple form (kept tolerated so older
+    tests / callers do not silently break).
 
     Priority of enqueue selection (highest first):
 
@@ -529,47 +622,78 @@ def _enqueue_from_resolve_log(
 
     Mutates ``state['tasks']`` in place; never overwrites an existing
     entry (``setdefault`` semantics).
+
+    Entries whose ``verdict_class`` is not in
+    :data:`sm.CANONICAL_VERDICT_CLASSES` (e.g. ``smoke-fail``, ``PASS``)
+    are skipped during enqueue -- ``new_task_entry`` would otherwise
+    reject them. Manual-only classes are surfaced via a separate
+    backlog path, not the LLM patch loop.
     """
+    def _coerce(rec):
+        if isinstance(rec, dict):
+            return rec["task_id"], rec["verdict_class"]
+        return rec[0], rec[1]
+
+    items: list[tuple[str, str]] = [_coerce(r) for r in parsed]
+
     if task_ids_csv:
         wanted = [t.strip() for t in task_ids_csv.split(",") if t.strip()]
-        by_id = {tid: vclass for tid, vclass in parsed}
+        by_id = dict(items)
         for tid in wanted:
             vclass = by_id.get(tid)
             if vclass is None:
                 # Task id not in the resolve log -- skip; the next
                 # sweep will surface it once the resolver emits it.
                 continue
+            if vclass not in sm.CANONICAL_VERDICT_CLASSES:
+                # Manual-only / unknown class -- skip enqueue.
+                continue
             state["tasks"].setdefault(tid, sm.new_task_entry(vclass))
         return
-    for tid, vclass in parsed[:max_tasks]:
+    for tid, vclass in items[:max_tasks]:
         if vclass not in allowed_enqueue:
+            continue
+        if vclass not in sm.CANONICAL_VERDICT_CLASSES:
             continue
         state["tasks"].setdefault(tid, sm.new_task_entry(vclass))
 
 
-def parse_resolve_log(log_path: Path) -> list[tuple[str, str]]:
-    """Return list of (task_id, verdict_class) for all BLOCKED lines.
+def parse_resolve_log(log_path: Path) -> list[dict]:
+    """Parse resolver output (JSON aggregate / JSONL / legacy text) via
+    the shared :mod:`automation.lib.resolve_loader`.
 
-    ``shapes-incomplete`` is normalised; everything unrecognised becomes
-    ``unexpected-blocked``.
+    Returns a list of dicts (one per resolver verdict) with the shape::
+
+        {"task_id": str, "verdict_class": str, "status": str, "reason": str}
+
+    PASS records are filtered out -- the orchestrator only enqueues
+    blocked tasks. Any verdict_class that is not in the loader's known
+    enum (``CANONICAL_VERDICTS``) is collapsed to ``unexpected-blocked``
+    so the orchestrator-side handler can route it to BACKLOG_UNEXPECTED
+    instead of crashing on an unknown class. Missing files yield an
+    empty list (legacy behaviour).
     """
-    out: list[tuple[str, str]] = []
-    if not log_path.is_file():
-        return out
-    text = log_path.read_text(encoding="utf-8", errors="replace")
-    for line in text.splitlines():
-        m = _RESOLVE_BLOCKED_RE.match(line)
-        if not m:
+    from automation.lib.resolve_loader import (
+        CANONICAL_VERDICTS,
+        load_resolve_artifact,
+    )
+
+    if not Path(log_path).is_file():
+        return []
+    try:
+        records = load_resolve_artifact(log_path)
+    except (FileNotFoundError, ValueError):
+        return []
+    out: list[dict] = []
+    for rec in records:
+        if rec["verdict_class"] == "PASS":
             continue
-        tid = m.group("tid")
-        raw = m.group("reason").strip()
-        subclass = raw.split(":", 1)[1].strip() if ":" in raw else raw
-        if subclass in {"shapes-incomplete", "oracle-mismatch",
-                        "upstream-not-invocable-here"}:
-            vclass = subclass
-        else:
-            vclass = "unexpected-blocked"
-        out.append((tid, vclass))
+        if rec["verdict_class"] not in CANONICAL_VERDICTS:
+            # Unknown subclass -> orchestrator-side unexpected-blocked
+            # fallback (matches the pre-V2 normaliser behaviour).
+            rec = dict(rec)
+            rec["verdict_class"] = "unexpected-blocked"
+        out.append(rec)
     return out
 
 
@@ -979,17 +1103,38 @@ def drive_task_once(
 
     # ``unexpected-blocked`` is the resolver's fallback bucket. It must
     # never enter the LLM patch loop -- there is no remediation signal
-    # to act on. The canonical FSM cannot reach BACKLOG_UNEXPECTED from
-    # NEW directly (only via BENCH_RUNNING per ALLOWED_TRANSITIONS), so
-    # we leave NEW-state ``unexpected-blocked`` entries untouched here.
-    # They reach BACKLOG_UNEXPECTED via the consume path (handled by
-    # ``_try_consume_pending`` -- the same routing M1 fix #5 established
-    # for class-switch results).
-    if entry["verdict_class"] == "unexpected-blocked":
+    # to act on. ``MANUAL_ONLY_VERDICT_CLASSES`` (currently ``smoke-fail``)
+    # is the same story: the upstream invocation crashed during smoke so
+    # there is no canonical remediation prompt to dispatch.
+    #
+    # NEW-state entries with these classes are routed directly to
+    # BACKLOG_UNEXPECTED (the FSM permits ``NEW -> BACKLOG_UNEXPECTED``)
+    # so they surface in the backlog report and are not silently stuck
+    # at NEW awaiting a reverify result that will never arrive (no LLM
+    # prompt was ever dispatched -> no pending_run_id -> no consume
+    # path). The raw verdict_class is preserved in state_data so the
+    # manual reviewer can tell smoke-fail apart from a generic
+    # unexpected-blocked. Non-NEW entries of the same classes (e.g.
+    # routed via the BENCH_RUNNING consume path) are left to terminal
+    # / semi-terminal no-op handling below.
+    vclass = entry["verdict_class"]
+    if (vclass == "unexpected-blocked"
+            or vclass in sm.MANUAL_ONLY_VERDICT_CLASSES):
+        if entry["state"] == "NEW":
+            sm.transition(
+                entry,
+                to="BACKLOG_UNEXPECTED",
+                state_data={"raw_verdict_class": vclass},
+                reason="manual-only verdict class; manual triage",
+            )
+            logger.info(
+                "task %s class=%s routed NEW -> BACKLOG_UNEXPECTED",
+                task_id, vclass,
+            )
+            return state
         logger.info(
-            "task %s class=unexpected-blocked: LLM patch loop skipped; "
-            "expected to reach BACKLOG_UNEXPECTED via consume path",
-            task_id,
+            "task %s class=%s: LLM patch loop skipped (state=%s)",
+            task_id, vclass, entry["state"],
         )
         return state
 
@@ -1228,10 +1373,15 @@ def _try_consume_pending(
     # it in BACKLOG_UNEXPECTED for manual triage *before* the canonical
     # class-switch path -- otherwise the ``vclass in CANONICAL_VERDICT_CLASSES``
     # branch would silently re-enter NEW with the same useless class.
-    if vclass == "unexpected-blocked":
+    # Same routing for ``MANUAL_ONLY_VERDICT_CLASSES`` (currently
+    # ``smoke-fail``): there is no remediation prompt for an upstream
+    # invocation that crashed during smoke, so the operator must triage.
+    # ``raw_verdict_class`` preserves the original literal so the manual
+    # reviewer can tell smoke-fail apart from a generic unexpected.
+    if vclass == "unexpected-blocked" or vclass in sm.MANUAL_ONLY_VERDICT_CLASSES:
         sm.transition(entry, to="BACKLOG_UNEXPECTED",
-                      state_data={"raw_verdict_class": "unexpected-blocked"},
-                      reason="resolver fallback class; manual triage")
+                      state_data={"raw_verdict_class": vclass},
+                      reason="manual-only verdict class; manual triage")
         return state
     if vclass and vclass != entry["verdict_class"]:
         # class-switch: re-enter NEW with new (real) class.
@@ -1650,9 +1800,22 @@ def main(argv: list[str] | None = None) -> int:
         # through its own prompt builder; otherwise the orchestrator
         # filters to the explicit class for backward-compat with the M1
         # CLI (``--verdict-class shapes-incomplete``).
+        #
+        # Ingest white-list in the ``all`` mode is the LLM-fixable set
+        # PLUS the manual-only classes PLUS the ``unexpected-blocked``
+        # resolver fallback bucket. The latter two have no LLM prompt
+        # but must still enter ``triage_state.json`` so ``drive_task_once``
+        # can route them to BACKLOG_UNEXPECTED for manual triage (and
+        # so ``backlog_report`` can surface them). Dropping them at
+        # ingest meant smoke-fail records silently vanished, leaving
+        # the operator unaware that a task hit a manual-only verdict.
         if args.verdict_class == "all":
             class_filter: str | None = None
-            allowed_enqueue = _VERDICT_TO_DECISIONS.keys()
+            allowed_enqueue = (
+                set(_VERDICT_TO_DECISIONS.keys())
+                | set(sm.MANUAL_ONLY_VERDICT_CLASSES)
+                | {"unexpected-blocked"}
+            )
         else:
             class_filter = args.verdict_class
             allowed_enqueue = {args.verdict_class}

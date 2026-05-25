@@ -81,7 +81,9 @@ Options (both modes):
   --state-root PATH       Default: <gpfs-root>/state
   --tier INT              1 or 2 (default 2 for production three-machine).
   --verdict-class CLASS   all | shapes-incomplete | oracle-mismatch |
-                          upstream-not-invocable-here (default: all)
+                          upstream-not-invocable-here (default: all).
+                          smoke-fail / unexpected-blocked are manual-only
+                          and routed to BACKLOG_UNEXPECTED automatically.
   --max-tasks INT         Default 30.
   --max-attempts INT      Default 3.
   --llm-timeout-seconds N Per-call transport timeout (default 600).

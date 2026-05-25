@@ -578,6 +578,59 @@ def test_acceptance_gate_passes_task_ids_to_orchestrator():
     )
 
 
+def test_acceptance_gate_phase2_uses_shared_select_tasks_cli():
+    """Phase 2 stratified sampler must invoke
+    ``scripts/automation/select_tasks.py`` (which routes through the
+    shared resolve loader) rather than embedding its own line-parser.
+    This keeps the JSON / JSONL / legacy-text detection in one place.
+    """
+    text = _read(_RUNNERS_DIR / "run_acceptance_gate.sh")
+    assert "scripts/automation/select_tasks.py" in text, (
+        "Phase 2 sampler must call select_tasks.py CLI"
+    )
+    # And the legacy inline heredoc parser is gone.
+    assert "buckets:" not in text or "select_tasks.py" in text, (
+        "the legacy buckets-by-substring heredoc must be removed / replaced"
+    )
+
+
+def test_select_tasks_cli_smoke(tmp_path):
+    """End-to-end smoke test for the stratified selector: it must
+    read an aggregate JSON artefact (the format ``--refresh-cache``
+    writes) and emit a CSV of task IDs capped at the requested per-class
+    count.
+    """
+    import json
+    import subprocess
+    import sys
+
+    p = tmp_path / "resolve.json"
+    p.write_text(json.dumps({
+        "verdicts": [
+            {"task_id": f"S{i}", "status": "BLOCKED(no-verified-upstream-entrypoint: shapes-incomplete)"}
+            for i in range(7)
+        ] + [
+            {"task_id": f"O{i}", "status": "BLOCKED(no-verified-upstream-entrypoint: oracle-mismatch)"}
+            for i in range(2)
+        ] + [
+            {"task_id": f"U{i}", "status": "BLOCKED(no-verified-upstream-entrypoint: upstream-not-invocable-here)"}
+            for i in range(10)
+        ],
+    }), encoding="utf-8")
+    cli = _REPO_ROOT / "scripts" / "automation" / "select_tasks.py"
+    proc = subprocess.run(
+        [sys.executable, str(cli), str(p), "--cap", "5"],
+        capture_output=True, text=True, check=True,
+    )
+    ids = proc.stdout.strip().split(",")
+    # 5 shapes + 2 oracle (only 2 in corpus) + 5 upstream = 12.
+    assert len(ids) == 12, f"expected 12, got {len(ids)}: {ids}"
+    # Per-class capping honoured.
+    assert sum(1 for i in ids if i.startswith("S")) == 5
+    assert sum(1 for i in ids if i.startswith("O")) == 2
+    assert sum(1 for i in ids if i.startswith("U")) == 5
+
+
 def test_run_orchestrator_tail_pid_cleanup():
     """Orchestrator runner must declare TAIL_PID at module scope, set
     it after launching `tail -f`, and kill it in the cleanup trap so

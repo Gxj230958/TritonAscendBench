@@ -322,14 +322,40 @@ cmd_resolve() {
         2>&1) \
     | tee "$TAB_RESOLVE_LOG"
   ok "resolve log produced"
+  # --refresh-cache also writes the structured per-task verdict cache
+  # to $TAB_BENCH_REPO/resolve_all.json. Mirror it to $TAB_GPFS_ROOT so
+  # downstream subcommands (smoke / full / verify-c) can load either
+  # the plain-text log or the structured JSON via the shared
+  # automation.lib.resolve_loader -- the loader auto-detects format.
+  local cache_src="$TAB_BENCH_REPO/resolve_all.json"
+  local cache_dst="$TAB_GPFS_ROOT/resolve_all.json"
+  if [[ -s "$cache_src" ]]; then
+    cp -f "$cache_src" "$cache_dst"
+    ok "structured cache mirrored to $cache_dst"
+  fi
   step "verdict distribution:"
-  local n_shapes n_oracle n_upstream
-  n_shapes="$(grep -c 'shapes-incomplete' "$TAB_RESOLVE_LOG" || true)"
-  n_oracle="$(grep -c 'oracle-mismatch' "$TAB_RESOLVE_LOG" || true)"
-  n_upstream="$(grep -c 'upstream-not-invocable' "$TAB_RESOLVE_LOG" || true)"
-  printf "  shapes-incomplete:        %s (expect ~78)\n" "${n_shapes:-0}"
-  printf "  oracle-mismatch:          %s (expect ~17)\n" "${n_oracle:-0}"
-  printf "  upstream-not-invocable:   %s (expect ~2)\n"  "${n_upstream:-0}"
+  # Prefer the structured cache when available (resolve_all.json) so the
+  # distribution numbers come from the canonical JSON, not a grep over a
+  # noisy plain-text tail.
+  local dist_src="$TAB_RESOLVE_LOG"
+  if [[ -s "$cache_dst" ]]; then
+    dist_src="$cache_dst"
+  fi
+  python3 - "$dist_src" <<'PY' || true
+import collections, pathlib, sys
+sys.path.insert(0, "scripts")
+from automation.lib.resolve_loader import load_resolve_artifact
+p = pathlib.Path(sys.argv[1])
+try:
+    records = load_resolve_artifact(p)
+except Exception as exc:
+    print(f"  (could not parse {p}: {exc})")
+    raise SystemExit(0)
+c = collections.Counter(r["verdict_class"] for r in records)
+for cls in sorted(c):
+    print(f"  {cls:32s} {c[cls]}")
+print(f"  total                            {len(records)}")
+PY
 }
 
 # ---------------------------------------------------------------------------

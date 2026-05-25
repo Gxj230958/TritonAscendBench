@@ -195,10 +195,16 @@ def test_parse_resolve_log_filters_classes(tmp_path):
         encoding="utf-8",
     )
     result = parse_resolve_log(log)
-    assert ("T1", "shapes-incomplete") in result
-    assert ("T2", "oracle-mismatch") in result
-    assert ("T3", "unexpected-blocked") in result
-    assert all(tid != "T4" for tid, _ in result)
+    # New dict-record shape (V2): records carry task_id + verdict_class
+    # + status + reason. PASS records are filtered out.
+    assert isinstance(result, list)
+    by_id = {r["task_id"]: r["verdict_class"] for r in result}
+    assert by_id["T1"] == "shapes-incomplete"
+    assert by_id["T2"] == "oracle-mismatch"
+    # Unknown subclass falls back to ``unexpected-blocked``.
+    assert by_id["T3"] == "unexpected-blocked"
+    # PASS rows are filtered out of the enqueue feed.
+    assert "T4" not in by_id
 
 
 def test_task_ids_filter_overrides_max_tasks():
@@ -316,6 +322,35 @@ def test_extract_missing_params_evidence_handles_missing_log(tmp_path):
 
     out = extract_missing_params_evidence(tmp_path / "nope.log", "T1")
     assert out == ""
+
+
+def test_extract_evidence_works_on_aggregate_json(tmp_path):
+    """Aggregate JSON resolver artefacts (the format
+    ``--refresh-cache`` writes) must yield the same per-task evidence
+    as the legacy plain-text format."""
+    import json as _json
+
+    from automation.fix_orchestrator import extract_missing_params_evidence
+
+    p = tmp_path / "resolve_all.json"
+    payload = {
+        "verdicts": [
+            {
+                "task_id": "T1",
+                "status": "BLOCKED(no-verified-upstream-entrypoint: shapes-incomplete)",
+                "reason": "tried [a]; a: missing param 'M'",
+            },
+            {
+                "task_id": "T2",
+                "status": "BLOCKED(no-verified-upstream-entrypoint: shapes-incomplete)",
+                "reason": "tried [b]; b: missing param 'K'",
+            },
+        ],
+    }
+    p.write_text(_json.dumps(payload), encoding="utf-8")
+    out = extract_missing_params_evidence(p, "T1")
+    assert "missing param 'M'" in out
+    assert "missing param 'K'" not in out
 
 
 # ---------------------------------------------------------------------------
@@ -952,6 +987,235 @@ def test_unexpected_blocked_goes_to_backlog_not_new(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# smoke-fail (manual-only verdict_class) routing
+# ---------------------------------------------------------------------------
+
+def test_state_machine_smoke_fail_in_canonical_and_manual_only():
+    """``smoke-fail`` must be a recognised canonical verdict_class and
+    must also be marked as manual-only so the orchestrator routes it to
+    BACKLOG_UNEXPECTED instead of attempting LLM repair."""
+    from automation import state_machine as sm
+
+    assert "smoke-fail" in sm.CANONICAL_VERDICT_CLASSES
+    assert "smoke-fail" in sm.MANUAL_ONLY_VERDICT_CLASSES
+    # Manual-only must be a subset of canonical.
+    assert sm.MANUAL_ONLY_VERDICT_CLASSES <= sm.CANONICAL_VERDICT_CLASSES
+    # Right now smoke-fail is the only manual-only class; if more arrive
+    # this assertion will fail loudly so we re-check the routing table.
+    assert sm.MANUAL_ONLY_VERDICT_CLASSES == frozenset({"smoke-fail"})
+
+
+def test_smoke_fail_new_task_entry_allowed():
+    """``new_task_entry`` must accept ``smoke-fail`` (the entry then sits
+    at NEW until ``drive_task_once`` early-exits without enqueuing it
+    for LLM repair)."""
+    from automation import state_machine as sm
+
+    entry = sm.new_task_entry("smoke-fail")
+    assert entry["verdict_class"] == "smoke-fail"
+    assert entry["state"] == "NEW"
+
+
+def test_smoke_fail_new_state_routes_to_backlog_unexpected(tmp_path):
+    """A NEW-state ``smoke-fail`` task must not call the LLM and must be
+    routed directly to BACKLOG_UNEXPECTED with the raw verdict_class
+    preserved in state_data (so the manual reviewer can tell smoke-fail
+    apart from a generic unexpected-blocked)."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    entry = sm.new_task_entry("smoke-fail")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=_fake_prompt)
+    # LLM was never invoked.
+    chat.assert_not_called()
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_UNEXPECTED"
+    assert final["state_data"]["raw_verdict_class"] == "smoke-fail"
+    # History records a NEW -> BACKLOG_UNEXPECTED transition.
+    transitions = [
+        h for h in final["history"]
+        if h.get("kind") == "transition" and h.get("to") == "BACKLOG_UNEXPECTED"
+    ]
+    assert len(transitions) == 1
+    assert transitions[0]["state"] == "NEW"
+
+
+def test_smoke_fail_consume_routes_to_backlog_unexpected(tmp_path):
+    """A reverify result with verdict_class=smoke-fail must route the
+    task to BACKLOG_UNEXPECTED and preserve the raw class in
+    state_data.raw_verdict_class (so the manual reviewer can tell
+    smoke-fail apart from a generic unexpected-blocked)."""
+    from automation import extract_verdict as ev
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify)
+    state = {"schema_version": "1.0", "tasks": {}}
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    # Stage the task at shapes-incomplete then let it run one round so a
+    # pending_run_id is recorded; the smoke-fail verdict arrives via
+    # reverify result.json (the same path unexpected-blocked uses).
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=_fake_prompt)
+    entry = state["tasks"][TASK_ID]
+    pending_run = entry["state_data"]["pending_run_id"]
+    ev.write_verdict(
+        task_id=TASK_ID, cmd="resolve", run_id=pending_run,
+        producer="tier1_reverify", out_dir=reverify,
+        verdict="BLOCKED", verdict_class="smoke-fail",
+        reason="upstream invocation crashed during smoke",
+    )
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=_fake_prompt)
+    entry = state["tasks"][TASK_ID]
+    assert entry["state"] == "BACKLOG_UNEXPECTED"
+    assert entry["state_data"]["raw_verdict_class"] == "smoke-fail"
+
+
+def test_smoke_fail_task_enqueued_into_triage_state():
+    """``--verdict-class all`` ingest must NOT drop ``smoke-fail`` (and
+    ``unexpected-blocked``) records on the floor. They have no LLM
+    prompt but they must still enter ``triage_state.json`` so the
+    orchestrator can route them to BACKLOG_UNEXPECTED for manual
+    triage (and so backlog_report can surface them).
+
+    Reproduces the original bug: with ``allowed_enqueue =
+    _VERDICT_TO_DECISIONS.keys()`` the smoke-fail / unexpected-blocked
+    records were silently dropped at ingest, leaving the operator
+    unaware that a task hit a manual-only verdict.
+    """
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import (
+        _VERDICT_TO_DECISIONS,
+        _enqueue_from_resolve_log,
+    )
+
+    parsed = [
+        {"task_id": "t_smoke", "verdict_class": "smoke-fail",
+         "status": "BLOCKED(smoke-fail)", "reason": "upstream crash"},
+        {"task_id": "t_shapes", "verdict_class": "shapes-incomplete",
+         "status": "BLOCKED", "reason": "missing param"},
+        {"task_id": "t_unexp", "verdict_class": "unexpected-blocked",
+         "status": "BLOCKED", "reason": "unknown subclass"},
+    ]
+    # Mirrors the production CLI ingest in ``--verdict-class all`` mode.
+    allowed = (
+        set(_VERDICT_TO_DECISIONS.keys())
+        | set(sm.MANUAL_ONLY_VERDICT_CLASSES)
+        | {"unexpected-blocked"}
+    )
+    state = {"schema_version": "1.0", "tasks": {}}
+    _enqueue_from_resolve_log(
+        state, parsed,
+        task_ids_csv=None,
+        max_tasks=10,
+        allowed_enqueue=allowed,
+    )
+    assert set(state["tasks"]) == {"t_smoke", "t_shapes", "t_unexp"}
+    # Every entry starts at NEW; routing to BACKLOG_UNEXPECTED happens
+    # later in drive_task_once (not at ingest time).
+    for tid in ("t_smoke", "t_shapes", "t_unexp"):
+        assert state["tasks"][tid]["state"] == "NEW"
+    assert state["tasks"]["t_smoke"]["verdict_class"] == "smoke-fail"
+    assert state["tasks"]["t_unexp"]["verdict_class"] == "unexpected-blocked"
+
+
+def test_drive_task_once_smoke_fail_routes_to_backlog_unexpected(tmp_path):
+    """Smoke-fail at NEW state must transition to BACKLOG_UNEXPECTED
+    with raw_verdict_class preserved and a transition history record.
+    The LLM must not be called."""
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import drive_task_once
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    entry = sm.new_task_entry("smoke-fail")
+    state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=_fake_prompt)
+    chat.assert_not_called()
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_UNEXPECTED"
+    assert final["state_data"]["raw_verdict_class"] == "smoke-fail"
+    transitions = [
+        h for h in final["history"]
+        if h.get("kind") == "transition"
+    ]
+    assert len(transitions) == 1
+    assert transitions[0]["state"] == "NEW"
+    assert transitions[0]["to"] == "BACKLOG_UNEXPECTED"
+
+
+def test_drive_task_once_smoke_fail_preserved_via_task_ids_path(tmp_path):
+    """End-to-end ingest -> drive: ``--task-ids`` explicit allowlist
+    accepts smoke-fail (its verdict_class is canonical), the entry
+    lands at NEW in triage_state, and the very next drive_task_once
+    routes it to BACKLOG_UNEXPECTED (i.e. it does not get stuck at
+    NEW, the original v2 r2 bug).
+
+    Same expectation for ``unexpected-blocked``.
+    """
+    from automation import state_machine as sm
+    from automation.fix_orchestrator import (
+        _enqueue_from_resolve_log,
+        drive_task_once,
+    )
+
+    repo, state_root, reverify = _scaffold_repo(tmp_path)
+    ctx = _mk_ctx(repo, state_root, reverify, verdict_class_filter=None)
+    parsed = [
+        {"task_id": "t_smoke", "verdict_class": "smoke-fail",
+         "status": "BLOCKED(smoke-fail)", "reason": "crash"},
+        {"task_id": "t_unexp", "verdict_class": "unexpected-blocked",
+         "status": "BLOCKED", "reason": "unknown subclass"},
+    ]
+    state = {"schema_version": "1.0", "tasks": {}}
+    # ``--task-ids`` path: max_tasks + allowed_enqueue are ignored, but
+    # smoke-fail / unexpected-blocked must still be accepted (they are
+    # canonical verdict classes).
+    _enqueue_from_resolve_log(
+        state, parsed,
+        task_ids_csv="t_smoke,t_unexp",
+        max_tasks=1,                       # would have sliced to t_smoke
+        allowed_enqueue={"shapes-incomplete"},  # would have dropped both
+    )
+    assert set(state["tasks"]) == {"t_smoke", "t_unexp"}
+    assert all(state["tasks"][t]["state"] == "NEW" for t in ("t_smoke", "t_unexp"))
+    # First drive transitions both to BACKLOG_UNEXPECTED -- not stuck NEW.
+    chat = MagicMock(return_value=SimpleNamespace(content=_good_llm_response()))
+    for tid in ("t_smoke", "t_unexp"):
+        drive_task_once(
+            ctx, state, tid,
+            llm_chat=chat, prompt_builder=_fake_prompt,
+        )
+    chat.assert_not_called()
+    assert state["tasks"]["t_smoke"]["state"] == "BACKLOG_UNEXPECTED"
+    assert state["tasks"]["t_smoke"]["state_data"]["raw_verdict_class"] == "smoke-fail"
+    assert state["tasks"]["t_unexp"]["state"] == "BACKLOG_UNEXPECTED"
+    assert (
+        state["tasks"]["t_unexp"]["state_data"]["raw_verdict_class"]
+        == "unexpected-blocked"
+    )
+    # sm import is intentional: ensure manual-only invariants still hold
+    # at the point of assertion (catches a future change that drops
+    # smoke-fail from MANUAL_ONLY_VERDICT_CLASSES).
+    assert "smoke-fail" in sm.MANUAL_ONLY_VERDICT_CLASSES
+
+
+def test_backlog_report_smoke_fail_has_estimated_hours():
+    """The backlog report's verdict_class -> hours table must include
+    ``smoke-fail`` so the markdown row never renders a ``?`` placeholder."""
+    from automation.backlog_report import _VERDICT_HOURS
+
+    assert "smoke-fail" in _VERDICT_HOURS
+    # Non-empty hours estimate.
+    assert _VERDICT_HOURS["smoke-fail"].strip()
+    assert _VERDICT_HOURS["smoke-fail"] != "?"
+
+
+# ---------------------------------------------------------------------------
 # Unit 2.8: three-class verdict dispatch + state machine closure
 # ---------------------------------------------------------------------------
 
@@ -1017,9 +1281,10 @@ def test_verdict_dispatch_upstream_not_invocable(tmp_path):
 
 def test_verdict_unexpected_blocked_to_backlog(tmp_path):
     """A NEW-state ``unexpected-blocked`` entry must NOT call the LLM
-    patch loop (regression for M1 fix #5). The driver short-circuits
-    before any prompt is built; the entry stays at NEW until the
-    consume path routes it to BACKLOG_UNEXPECTED."""
+    patch loop (regression for M1 fix #5). The driver routes it
+    directly to BACKLOG_UNEXPECTED so the task surfaces in the backlog
+    report instead of silently sitting at NEW forever (no LLM prompt
+    was ever dispatched -> no pending_run_id -> no consume path)."""
     from automation import state_machine as sm
     from automation.fix_orchestrator import drive_task_once
 
@@ -1030,8 +1295,9 @@ def test_verdict_unexpected_blocked_to_backlog(tmp_path):
     state = {"schema_version": "1.0", "tasks": {TASK_ID: entry}}
     chat = MagicMock(side_effect=AssertionError("LLM must NOT be called"))
     drive_task_once(ctx, state, TASK_ID, llm_chat=chat, prompt_builder=None)
-    # Entry untouched -- still NEW, no LLM call recorded.
-    assert state["tasks"][TASK_ID]["state"] == "NEW"
+    final = state["tasks"][TASK_ID]
+    assert final["state"] == "BACKLOG_UNEXPECTED"
+    assert final["state_data"]["raw_verdict_class"] == "unexpected-blocked"
     chat.assert_not_called()
 
 

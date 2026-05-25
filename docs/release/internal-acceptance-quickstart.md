@@ -287,12 +287,39 @@ python3 scripts/resolve_upstream_entrypoints.py 2>&1 \
 
 ```bash
 wc -l /tmp/pa_resolve.log              # 至少几百行
-grep -c shapes-incomplete /tmp/pa_resolve.log   # 应该 ~78
-grep -c oracle-mismatch /tmp/pa_resolve.log     # 应该 ~17
-grep -c upstream-not-invocable /tmp/pa_resolve.log  # 应该 ~2
+grep -c shapes-incomplete /tmp/pa_resolve.log   # 应该 ~56
+grep -c oracle-mismatch /tmp/pa_resolve.log     # 应该 ~2
+grep -c upstream-not-invocable /tmp/pa_resolve.log  # 应该 ~38
+grep -c smoke-fail /tmp/pa_resolve.log          # 应该 ~1
+grep -c ':: PASS' /tmp/pa_resolve.log           # 应该 ~3
 ```
 
+也可以用结构化 cache(`resolve_all.json`)直接看分布:
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, 'scripts')
+from collections import Counter
+from automation.lib.resolve_loader import load_resolve_artifact
+c = Counter(r['verdict_class'] for r in load_resolve_artifact('resolve_all.json'))
+for k, n in sorted(c.items()): print(f'  {k:32s} {n}')
+"
+# 期望: shapes-incomplete 56 / upstream-not-invocable-here 38 / oracle-mismatch 2 / smoke-fail 1 / PASS 3
+```
+
+**verdict_class 路由说明**:
+
+| class | LLM 修? | 路由 |
+|---|---|---|
+| `shapes-incomplete` | ✓ | LLM patch loop |
+| `oracle-mismatch` | ✓ | LLM patch loop |
+| `upstream-not-invocable-here` | ✓ (defer-to-golden) | 通过后进 `BACKLOG_PENDING_GOLDEN`,等 phase B golden capture |
+| `smoke-fail` | ✗ manual-only | 自动路由到 `BACKLOG_UNEXPECTED`,不进 LLM;需人工评审 |
+| `unexpected-blocked` | ✗ manual-only | 自动路由到 `BACKLOG_UNEXPECTED` |
+
 如果分布偏太大,看 `/tmp/pa_resolve.log` 头尾(`head -30 /tmp/pa_resolve.log` + `tail -30 /tmp/pa_resolve.log`)排查环境问题。
+
+预期 `upstream-not-invocable-here` 这 ~38 个全部会在 LLM 跑完一轮 defer-to-golden 后进 `BACKLOG_PENDING_GOLDEN`(等 phase B 真实 golden 数据采集后才能解锁)。
 
 ## Step 5 [B]:Phase 1 smoke(3 个 shapes-incomplete,~15-30 分钟)
 
@@ -385,8 +412,8 @@ bash scripts/automation/runners/run_acceptance_gate.sh \
 | Phase | 范围 | 估时 |
 |---|---|---|
 | 1 | 3 个 shapes-incomplete(同 Step 5) | 15-30 min |
-| 2 | 5 shapes + 5 oracle-mismatch + ≤2 upstream-not-invocable | 30-60 min |
-| 3 | 全 101 task 语料 | 1.5-3 hr |
+| 2 | 5 shapes + ≤2 oracle-mismatch + 5 upstream-not-invocable(分类上限 5,corpus 中 oracle-mismatch 实际只 2 个) | 30-60 min |
+| 3 | 全 100 benchmark task(101 含 canary;canary 不进 resolver) | 1.5-3 hr |
 | 4 | 5 task Tier 1 vs Tier 2(自动 git worktree 隔离) | 10-20 min |
 
 **产出**:
@@ -460,6 +487,6 @@ bash scripts/automation/runners/run_acceptance_gate.sh \
 - [ ] `python3 -c "import torch; print(torch.__version__)"` 是 2.9.1+
 - [ ] C 机 LLM 服务起着 + B 机 → C 机 SSH 免密通
 - [ ] http 模式:`ssh <c-ssh-host> "curl -s -o /dev/null -w '%{http_code}\n' http://localhost:<c-port>/v1/models"` 返 200/401/404(runner 起 tunnel,无需手动)
-- [ ] `pa_resolve.log` 有合理分布(78/17/2/4)
+- [ ] `pa_resolve.log` 有合理分布(shapes 56 / upstream 38 / oracle 2 / smoke-fail 1 / PASS 3 = 100,总和应接近 corpus 大小)
 
 全 ✓ → 跑 Step 5。

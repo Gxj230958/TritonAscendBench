@@ -55,6 +55,16 @@ SEMI_TERMINAL_STATES: frozenset[str] = frozenset({
 CANONICAL_VERDICT_CLASSES: frozenset[str] = frozenset({
     "shapes-incomplete", "oracle-mismatch", "upstream-not-invocable-here",
     "unexpected-blocked",
+    "smoke-fail",  # manual-only: routed to BACKLOG_UNEXPECTED, no LLM repair
+})
+
+# Subset of canonical that does NOT get LLM repair attempts. These are
+# parked in BACKLOG_UNEXPECTED for manual triage. Routing rule mirrors
+# ``unexpected-blocked`` but the raw verdict_class is preserved so the
+# manual reviewer can see whether the blocker was a smoke crash, an
+# unknown subclass, or some other manual-only verdict.
+MANUAL_ONLY_VERDICT_CLASSES: frozenset[str] = frozenset({
+    "smoke-fail",
 })
 
 CANONICAL_HISTORY_KINDS: frozenset[str] = frozenset({
@@ -79,7 +89,12 @@ REQUIRED_HISTORY_FIELDS: dict[str, frozenset[str]] = {
 }
 
 ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
-    "NEW": frozenset({"QUEUED"}),
+    # ``NEW -> BACKLOG_UNEXPECTED`` is the direct routing path used by the
+    # orchestrator for manual-only verdict classes (smoke-fail) and the
+    # resolver's ``unexpected-blocked`` fallback. Those classes have no
+    # LLM remediation prompt, so the patch loop bypasses QUEUED entirely
+    # and parks the task for manual triage on first sight.
+    "NEW": frozenset({"QUEUED", "BACKLOG_UNEXPECTED"}),
     "QUEUED": frozenset({"PROMPTING"}),
     "PROMPTING": frozenset({"PATCH_VALIDATING", "LLM_TRANSIENT_ERROR"}),
     "LLM_TRANSIENT_ERROR": frozenset({"PROMPTING", "UNFIXABLE_BY_LLM"}),
@@ -383,6 +398,7 @@ __all__ = [
     "CANONICAL_STATES",
     "CANONICAL_VERDICT_CLASSES",
     "COMMON_FIELDS",
+    "MANUAL_ONLY_VERDICT_CLASSES",
     "REQUIRED_STATE_DATA",
     "SEMI_TERMINAL_STATES",
     "TERMINAL_STATES",
