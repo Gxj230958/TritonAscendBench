@@ -153,17 +153,53 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
 }
 
 _MISSING_PARAM_RE = re.compile(r"missing param '([^']+)'")
+# Each `missing param` mention is followed by `for entrypoint '<name>'` in
+# the resolver's reason field. Capturing both lets us scope filler additions
+# to the chosen candidate's signature -- otherwise the resolver's reason can
+# include missing-params from SIBLING candidates that share a vendored file
+# (e.g. L1_15 reported `output` from a sibling kernel, not from the
+# act_and_mul_triton host wrapper that the task actually picks). Codex
+# review caught five such false additions in B1's first batch.
+_MISSING_FOR_ENTRY_RE = re.compile(
+    r"missing param '([^']+)' for entrypoint '([^']+)'"
+)
 
-# Composite dim symbols decomposed to atomic bases. Only the atomic
-# bases must exist in the task's knobs universe; composites are kept
-# verbatim in the emitted YAML so a separate spec layer can resolve
-# them later (B*N for BN, B+1 for BP1, etc.).
-_COMPOSITE_BASES: dict[str, tuple[str, ...]] = {
-    "BN":   ("B", "N"),
-    "BP1":  ("B",),
-    "I2":   ("I",),
-    "DIM3": (),  # literal-3 placeholder; no symbol required
+# Composite dim symbols: (required_atomic_bases, emitted_dim_expression).
+# The atomic bases are checked against the task's knobs universe (skip
+# the convention if any base is missing). The emitted expression is the
+# arithmetic form ``triton_ascend_bench.inputs._resolve_dims`` actually
+# evaluates -- inputs.py's whitelist evaluator accepts ``B+1`` / ``B*N``
+# but NOT a bare token like ``BP1`` (codex r2 finding: prior emission of
+# `[BP1]` made L3_20 unmaterializable).
+_COMPOSITE_BASES: dict[str, tuple[tuple[str, ...], str]] = {
+    "BN":   (("B", "N"), "B*N"),
+    "BP1":  (("B",), "B+1"),
+    "I2":   (("I",), "2*I"),
+    "DIM3": ((), "3"),
 }
+
+# Names that need a special ``dist`` because random integers wouldn't
+# satisfy the kernel's invariant (monotone prefix-sum, offsets, etc.).
+# Without this, ``inputs.py`` defaults absent ``dist`` to ``randn`` and
+# the int cast produces arbitrary integers -- the kernel's
+# ``cu_seqlens[i+1] - cu_seqlens[i]`` slicing then gives nonsense
+# (codex r2 finding on L3_20).
+_NAME_TO_DEFAULT_DIST: dict[str, str] = {
+    "cu_seqlens":   "offsets:to=B*L",
+    "seg_indptr":   "offsets:2",
+}
+
+# Names whose declared dtype would silently be ignored by
+# ``triton_ascend_bench.inputs._make_tensor`` (the ``offsets`` /
+# ``cumcount`` / ``arange`` / ``full`` branches return early as
+# ``torch.int64`` -- they never reach the dtype-cast step). Authoring
+# a ``dtype`` for those rows would lie in the spec, so the auto-filler
+# emits no ``dtype`` field for them and lets the underlying generator's
+# native return type stand. TODO: fix _make_tensor to honour declared
+# dtype, then this gate can be removed.
+_DIST_PREFIXES_IGNORE_DTYPE: tuple[str, ...] = (
+    "offsets", "cumcount", "arange", "full",
+)
 
 
 def _load_cache(path: Path) -> list[dict]:
@@ -179,18 +215,127 @@ def _load_cache(path: Path) -> list[dict]:
     return data.get("verdicts", []) or []
 
 
+_TASK_ID_PREFIX_RE = re.compile(r"^L\d+_\d+_")
+
+
+def _intended_entrypoint_candidates(task_id: str) -> list[str]:
+    """Derive plausible "intended entrypoint" names from a task_id.
+
+    Task IDs follow ``L<level>_<idx>_<intended_name>[_kernel]``.
+    Stripping the prefix yields the conceptual intended entrypoint
+    (e.g. ``L1_32_create_flashinfer_kv_indices_triton`` ->
+    ``create_flashinfer_kv_indices_triton``). Some vendored kernels
+    keep a ``_kernel`` suffix on the actual @triton.jit function;
+    we generate both the stripped form and the with-suffix form.
+    """
+    stripped = _TASK_ID_PREFIX_RE.sub("", task_id)
+    cands = [stripped]
+    if not stripped.endswith("_kernel"):
+        cands.append(stripped + "_kernel")
+    if stripped.endswith("_kernel"):
+        cands.append(stripped[: -len("_kernel")])
+    return cands
+
+
+def _choose_entrypoint(task_id: str, reason: str, tried: list[str]) -> str | None:
+    """Pick the entrypoint name that THIS task intends, given the
+    resolver's reason (which can mention many sibling candidates).
+
+    Substring matching is bidirectional so naming-convention drift
+    between the task_id and the upstream function name does not
+    silently skip the task. Examples:
+      - L1_15: task_id ``act_and_mul`` -> intended ``act_and_mul`` -> the
+        upstream wrapper is named ``act_and_mul_triton`` (task_id is a
+        substring of the wrapper) -> chosen = ``act_and_mul_triton``.
+      - L3_19: task_id ``chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter``
+        -> tried contains ``chunk_kda_scaled_dot_kkt_fwd`` (a prefix of
+        the task_id) -> chosen = ``chunk_kda_scaled_dot_kkt_fwd``.
+      - L1_32: task_id ``create_flashinfer_kv_indices_triton`` is not a
+        substring of any name in tried, and no tried name is a substring
+        of it -> chosen = None -> skip the task (no auto-fill is far
+        safer than wrong auto-fill; codex r1 finding caught five false
+        rows from a blanket tried[0] fallback).
+
+    Priority:
+      1. Exact match: any tried candidate equals an intended form.
+      2. Bidirectional substring match against tried (intended in tried[i]
+         OR tried[i] in intended).
+      3. Bidirectional substring match against entrypoint mentions in
+         the reason (covers candidates that didn't make it into tried[]
+         for some reason).
+      4. None -- skip rather than guess wrong.
+    """
+    intended = _intended_entrypoint_candidates(task_id)
+    intended_set = set(intended)
+
+    # 1. exact
+    for cand in tried:
+        if cand in intended_set:
+            return cand
+
+    # 2. bidirectional substring against tried[].
+    # Reject if MORE THAN ONE distinct candidate matches -- the chooser
+    # cannot prove which one the task intends (codex r2 finding: tasks
+    # like L1_09_quantize_k_cache_fast have both `_quantize_k_cache_fast`
+    # and `_quantize_k_cache_fast_separate` matching by substring, and
+    # arbitrarily returning the first is just as wrong as guessing).
+    sub_matches: list[str] = []
+    for cand in tried:
+        for intended_form in intended:
+            if intended_form in cand or cand in intended_form:
+                if cand not in sub_matches:
+                    sub_matches.append(cand)
+                break
+    if len(sub_matches) == 1:
+        return sub_matches[0]
+    if len(sub_matches) > 1:
+        return None  # ambiguous
+
+    # 3. bidirectional substring against reason mentions
+    mentioned: list[str] = []
+    for (_n, entry) in _MISSING_FOR_ENTRY_RE.findall(reason):
+        if entry not in mentioned:
+            mentioned.append(entry)
+    reason_matches: list[str] = []
+    for entry in mentioned:
+        for intended_form in intended:
+            if intended_form in entry or entry in intended_form:
+                if entry not in reason_matches:
+                    reason_matches.append(entry)
+                break
+    if len(reason_matches) == 1:
+        return reason_matches[0]
+    return None
+
+
 def _missing_params(verdict: dict) -> list[str]:
+    """Return the missing params for the candidate the task INTENDS to
+    bind to, not every missing-param mention across all tried siblings.
+
+    The resolver's reason field can mention `missing param 'X' for
+    entrypoint 'Y'` multiple times -- once per candidate it tried. If
+    we naively collect every X we end up adding shapes.yaml rows for
+    sibling candidates that share the vendored kernel.py file but are
+    NOT what the task picks (codex review found this caused five false
+    rows in B1 batch 1: L1_15 / L1_32 / L1_35 / L3_17 / L3_19).
+
+    Use the task_id-derived intended entrypoint when it can be matched
+    against the reason; skip the task otherwise (the LLM patch-shapes
+    path will handle it later -- "no auto-fill" beats "wrong auto-fill").
+    """
     if "shapes-incomplete" not in verdict.get("status", ""):
         return []
     reason = verdict.get("reason") or ""
-    # Preserve discovery order; de-dup so a name reported on multiple
-    # candidates only generates one entry.
+    tried = verdict.get("tried") or []
+    chosen = _choose_entrypoint(verdict.get("task_id", ""), reason, tried)
+    if chosen is None:
+        return []
     out: list[str] = []
     seen: set[str] = set()
-    for m in _MISSING_PARAM_RE.findall(reason):
-        if m not in seen:
-            out.append(m)
-            seen.add(m)
+    for name, entry in _MISSING_FOR_ENTRY_RE.findall(reason):
+        if entry == chosen and name not in seen:
+            out.append(name)
+            seen.add(name)
     return out
 
 
@@ -226,7 +371,17 @@ def _scalar_value(default: str | None):
 def _build_entry(name: str, knobs: set[str]) -> dict | None:
     """Build the ``shapes.yaml inputs[name]`` entry from CONVENTIONS, or
     return ``None`` when the convention is missing OR when the required
-    atomic dim bases are not all present in the task's knobs universe."""
+    atomic dim bases are not all present in the task's knobs universe.
+
+    Composite dim symbols (``BN`` / ``BP1`` / ``I2`` / ``DIM3``) are
+    decomposed two ways:
+      - the atomic bases (``("B", "N")`` for ``BN``) are checked against
+        the knobs universe;
+      - the emitted ``dims`` entry uses the arithmetic expression
+        (``B*N``) that ``triton_ascend_bench.inputs._resolve_dims`` can
+        actually evaluate. Bare composite tokens are not understood by
+        the input materialiser (codex r2 finding on L3_20).
+    """
     spec = _CONVENTIONS.get(name)
     if spec is None:
         return None
@@ -237,16 +392,34 @@ def _build_entry(name: str, knobs: set[str]) -> dict | None:
     bases: set[str] = set()
     for d in dims:
         if d in _COMPOSITE_BASES:
-            bases.update(_COMPOSITE_BASES[d])
+            bases.update(_COMPOSITE_BASES[d][0])
         else:
             bases.add(d)
     if not bases.issubset(knobs):
         return None
-    entry: dict = {"dims": list(dims)}
-    if dtype is not None:
+    # Emit arithmetic form for composites so inputs.py can evaluate them.
+    emitted_dims = [
+        _COMPOSITE_BASES[d][1] if d in _COMPOSITE_BASES else d
+        for d in dims
+    ]
+    entry: dict = {"dims": emitted_dims}
+    # Per-name dist override (cu_seqlens / seg_indptr need monotone forms);
+    # otherwise use the convention's declared dist.
+    if name in _NAME_TO_DEFAULT_DIST:
+        chosen_dist = _NAME_TO_DEFAULT_DIST[name]
+    else:
+        chosen_dist = dist
+    if chosen_dist is not None:
+        entry["dist"] = chosen_dist
+    # Only declare dtype when the underlying dist generator will honour
+    # it. Distributions like ``offsets`` short-circuit to int64 and
+    # ignore the declared dtype; emitting the field would be a
+    # spec-vs-runtime lie (codex r3 finding on L3_20).
+    if dtype is not None and not (
+        chosen_dist is not None
+        and chosen_dist.split(":", 1)[0] in _DIST_PREFIXES_IGNORE_DTYPE
+    ):
         entry["dtype"] = dtype
-    if dist is not None:
-        entry["dist"] = dist
     return entry
 
 
