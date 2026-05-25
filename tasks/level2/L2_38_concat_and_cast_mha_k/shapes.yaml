@@ -182,3 +182,24 @@ inputs:
     - B
     dtype: int32
     dist: randint:1:N
+  v:
+    dims:
+    - B
+    - H
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  value:
+    dims:
+    - B
+    - H
+    - N
+    - D
+    dtype: float16
+    dist: randn
+  seq_lens:
+    dims:
+    - B
+    dtype: int32
+    dist: randint:1:N

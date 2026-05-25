@@ -173,13 +173,28 @@ inputs:
     - E
     dtype: int64
     dist: randint:1:L
-  scale:
+  softmax_scale:
     derive: 1/sqrt(D)
   causal:
-    scalar_knob: CAUSAL
+    scalar: true
   out:
     dims:
-    - B
-    - N
+    - E*L
+    - H
     - D
     dtype: float16
+  max_seqlen_q:
+    scalar_knob: L
+  max_seqlen_k:
+    scalar_knob: L
+  window_size:
+    scalar_seq: [-1, -1]
+  block_table:
+    dims: [E, N]
+    dtype: int32
+    dist: "randint:0:E"
+  softcap:
+    scalar: 0.0
+  q_descale: null
+  k_descale: null
+  v_descale: null

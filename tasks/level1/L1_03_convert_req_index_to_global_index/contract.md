@@ -77,9 +77,9 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `req_id`: `int64`
-- `block_table`: `int64`
-- `token_indices`: `int64`
+- `req_id`: `int32`
+- `block_table`: `int32`
+- `token_indices`: `int32`
 
 ### Input distributions (`dists`)
 
