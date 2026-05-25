@@ -503,6 +503,7 @@ def _materialise_struct(
     spec: dict[str, Any],
     knobs: dict[str, int],
     gen: torch.Generator,
+    siblings: dict[str, Any] | None = None,
 ) -> Any:
     """Materialise a dataclass-shaped input from
     ``{struct: '<dotted.path.Class>', fields: {<fname>: <input_spec>}}``.
@@ -510,8 +511,11 @@ def _materialise_struct(
     Each ``fields[fname]`` entry uses the same spec grammar as a top-level
     inputs entry: ``scalar`` / ``derive`` / ``scalar_seq`` / ``scalar_knob``
     for non-tensor fields, a ``{dims, dtype, dist}`` mapping for tensor
-    fields, or a nested ``{struct, fields}`` for a sub-dataclass. ``null``
-    binds the field to ``None`` (Optional fields).
+    fields, a nested ``{struct, fields}`` for a sub-dataclass, or a
+    ``{ref: '<sibling_input_name>'}`` to share an already-materialised
+    tensor with another top-level input (so the oracle / candidate /
+    other consumers see THE SAME tensor object, not a re-randomised
+    twin). ``null`` binds the field to ``None`` (Optional fields).
 
     The struct class is imported via ``importlib.import_module`` -- the
     caller subprocess MUST have the upstream package on ``sys.path``
@@ -550,6 +554,7 @@ def _materialise_struct(
             f"{type(fields_spec).__name__}"
         )
 
+    siblings = siblings or {}
     kwargs: dict[str, Any] = {}
     for field_name, field_spec in fields_spec.items():
         if field_spec is None:
@@ -560,9 +565,18 @@ def _materialise_struct(
                 f"input {name!r}: field {field_name!r} spec must be a "
                 f"dict or null, got {type(field_spec).__name__}"
             )
-        if "struct" in field_spec:
+        if "ref" in field_spec:
+            target = field_spec["ref"]
+            if target not in siblings:
+                raise ValueError(
+                    f"input {name!r}: field {field_name!r} refs sibling "
+                    f"{target!r} which has not been materialised yet -- "
+                    f"declare it BEFORE this struct in shapes.yaml inputs"
+                )
+            kwargs[field_name] = siblings[target]
+        elif "struct" in field_spec:
             kwargs[field_name] = _materialise_struct(
-                f"{name}.{field_name}", field_spec, knobs, gen,
+                f"{name}.{field_name}", field_spec, knobs, gen, siblings,
             )
         elif "scalar" in field_spec or "derive" in field_spec or "scalar_seq" in field_spec:
             kwargs[field_name] = _materialise_scalar(field_name, field_spec, knobs)
@@ -607,7 +621,12 @@ def build_inputs(
             out[name] = spec
             continue
         if "struct" in spec:
-            out[name] = _materialise_struct(name, spec, knobs, gen)
+            # Pass already-materialised siblings so struct fields can
+            # `{ref: <name>}` to share tensors with flat inputs the
+            # oracle / candidate consume directly. Order in
+            # shapes.yaml inputs: matters -- the referenced sibling
+            # must appear BEFORE the struct.
+            out[name] = _materialise_struct(name, spec, knobs, gen, out)
         elif "scalar" in spec or "derive" in spec or "scalar_seq" in spec:
             out[name] = _materialise_scalar(name, spec, knobs)
         elif "scalar_knob" in spec:

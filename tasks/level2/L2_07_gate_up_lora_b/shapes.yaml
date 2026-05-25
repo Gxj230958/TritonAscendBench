@@ -138,7 +138,7 @@ inputs:
     - G
     dtype: float32
     dist: randn
-  weights:
+  gate_up_lora_b:
     dims:
     - E
     - N
@@ -165,3 +165,18 @@ inputs:
     - E
     dtype: float32
     dist: rand
+  batch_info:
+    struct: "sglang.srt.lora.utils.LoRABatchInfo"
+    fields:
+      use_cuda_graph: {scalar: false}
+      bs:             {scalar_knob: B}
+      num_segments:   {scalar_knob: E}
+      seg_indptr:     {ref: seg_indptr}
+      weight_indices: {ref: weight_indices}
+      lora_ranks:     {ref: lora_ranks}
+      scalings:       {ref: scalings}
+      max_len:        {scalar_knob: L}
+      seg_lens:       {dims: [E], dtype: int32, dist: "randint:1:N"}
+      permutation:    {dims: [B], dtype: int32, dist: "randint:0:B"}
+  output_dim:
+    scalar_knob: N
