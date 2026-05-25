@@ -8,6 +8,17 @@ repo: vLLM
 dtype_class: CV
 category: moe
 npu_difficulty: high
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: "Block-wise W8A8 INT8 GEMM oracle anchor passes locally on the two sampled shapes (H2 + P5) under TRITON_INTERPRET=1 with the runner's pre-call input snapshot, but the resolver's full S2-smoke pair drives both original and severed sides across every public+hidden shape (9 rows) of a 2*B*N*D int8 GEMM with tl.dot accumulation. CPU emulation of GEMM is multi-orders-of-magnitude slower than NPU/GPU execution; a single P3/P4 shape exceeds the per-task verification budget. The kernel itself runs correctly and produces oracle-equivalent outputs (max_abs 0.0 on H2, 1.0 on P5); the only blocker is that S2-smoke cannot terminate in practical time on this host. Defer to phase B golden capture so the authoritative truth source is the on-NPU run."
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING
+  upstream_callable:
+    module: vllm.model_executor.layers.quantization.utils.int8_utils
+    function: w8a8_block_int8_matmul
+  reason: "Block-wise W8A8 INT8 GEMM oracle anchor passes locally on the two sampled shapes (H2 + P5) under TRITON_INTERPRET=1 with the runner's pre-call input snapshot, but the resolver's full S2-smoke pair drives both original and severed sides across every public+hidden shape (9 rows) of a 2*B*N*D int8 GEMM with tl.dot accumulation. CPU emulation of GEMM is multi-orders-of-magnitude slower than NPU/GPU execution; a single P3/P4 shape exceeds the per-task verification budget. The kernel itself runs correctly and produces oracle-equivalent outputs (max_abs 0.0 on H2, 1.0 on P5); the only blocker is that S2-smoke cannot terminate in practical time on this host. Defer to phase B golden capture so the authoritative truth source is the on-NPU run."
 upstream:
   repo: vllm-project/vllm
   path: vllm/model_executor/layers/quantization/utils/int8_utils.py
