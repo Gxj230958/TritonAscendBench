@@ -251,6 +251,21 @@ def main() -> int:
     spec = json.loads(Path(args.spec).read_text())
 
     os.environ["TRITON_INTERPRET"] = "1"
+    # sglang's @cached_triton_kernel decorator (common.py:3917-3934) wraps
+    # the @triton.jit fn in a CachedKernel object whose __init__ asserts
+    # isinstance(fn, triton.runtime.jit.JITFunction). The wrap fires only
+    # when is_cuda() is True AND SGLANG_USE_CUSTOM_TRITON_KERNEL_CACHE is
+    # unset; on hosts with a real CUDA device the assert path is taken,
+    # and the strict isinstance check fails under our import setup
+    # (sys.path-layered infer/ + synthetic per-call package in _load),
+    # which used to mis-bucket L2_04..L2_09 as upstream-not-invocable-here.
+    # Setting the env var to "0" routes the decorator down the `return fn`
+    # branch (the native triton cache path) -- correctness is unchanged
+    # because we only need to invoke the kernel once for oracle
+    # comparison, not benefit from sglang's launch-time caching. Use
+    # setdefault so an operator who explicitly exports the variable can
+    # still opt into the CachedKernel wrapper.
+    os.environ.setdefault("SGLANG_USE_CUSTOM_TRITON_KERNEL_CACHE", "0")
     task_dir = Path(spec["task_dir"])
     out_json = Path(spec["out_json"])
     entrypoint = spec["entrypoint"]

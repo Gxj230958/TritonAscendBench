@@ -129,7 +129,3 @@ param_constraints:
     args:
       input: weight_indices
       value: E
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: "env_limited: sglang.srt.utils.cached_triton_kernel asserts isinstance(fn, triton.runtime.jit.JITFunction) but the deploy host's triton lacks triton.backends (vllm flags it 'Disabling Triton'), so @triton.jit returns an object that fails the isinstance check at module-load time. Oracle truth comes from Phase B offline golden capture (the kernel is real; only local invocation is impossible)."
