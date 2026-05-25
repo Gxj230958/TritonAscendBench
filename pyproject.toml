@@ -76,6 +76,50 @@ infer = [
     "openai-harmony",
     "openai",
     "partial-json-parser",
+    # vllm/sglang core runtime deps -- vendored upstream source imports
+    # these at module load time (e.g. sentencepiece via tokenizer pipeline,
+    # transformers everywhere, blake3 via vllm caching, etc.). Without
+    # them every kernel.py that pulls in a vllm or sglang facade module
+    # blocks on ModuleNotFoundError before reaching its own logic.
+    # CUDA-only / GPU-build deps (flash-attn, flashinfer, sgl-deep-gemm,
+    # cuda-python, etc.) are intentionally omitted: those need the actual
+    # GPU host, and the bench's CPU/TRITON_INTERPRET=1 oracle path does
+    # not need them.
+    "sentencepiece",
+    "transformers",
+    "tokenizers",
+    "blake3",
+    "protobuf",
+    "aiohttp",
+    "pydantic",
+    "tiktoken",
+    "lm-format-enforcer",
+    "outlines_core",
+    "diskcache",
+    "lark",
+    "xgrammar",
+    "filelock",
+    "interegular",
+    "orjson",
+    "prometheus-client",
+    "python-multipart",
+    "scipy",
+    "setproctitle",
+    "soundfile",
+    "compressed-tensors",
+    "easydict",
+    "blobfile",
+    "IPython",
+    "datasets",
+    "einops",
+    "apache-tvm-ffi",
+    "nvidia-ml-py",
+    "llguidance",
+    "tqdm",
+    "psutil",
+    "regex",
+    "pillow",
+    "requests",
 ]
 
 [project.scripts]
