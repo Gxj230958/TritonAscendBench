@@ -363,6 +363,18 @@ PY
 # ---------------------------------------------------------------------------
 _run_phase() {
   local phase="$1"
+  # Point downstream consumers (select_tasks.py, fix_orchestrator) at the
+  # structured JSON cache, not the human-readable text log: both already
+  # use automation.lib.resolve_loader which auto-detects aggregate JSON
+  # and exposes the per-task ``reason`` field. The text log only carries
+  # the bare BLOCKED status header and would leave evidence-extraction
+  # paths empty -- LLM prompts then arrive without missing_params /
+  # mismatch_evidence / upstream_callable, which has been driving the
+  # ssh-cli timeouts on the C-machine.
+  local resolve_cache="$TAB_BENCH_REPO/results/resolve_all.json"
+  if [[ ! -s "$resolve_cache" ]]; then
+    fail "$resolve_cache missing or empty; run 'resolve' first (it writes the JSON cache via --refresh-cache)"
+  fi
   step "running acceptance gate (phase=$phase) via $TAB_C_HOST"
   bash "$RUNNERS_DIR/run_acceptance_gate.sh" \
     --gpfs-root "$TAB_GPFS_ROOT" \
@@ -370,7 +382,7 @@ _run_phase() {
     --llm-ssh-host "$TAB_C_HOST" \
     --llm-cli-cmd "$TAB_C_CLI_CMD" \
     --llm-timeout-seconds "$TAB_LLM_TIMEOUT_SECONDS" \
-    --resolve-log "$TAB_RESOLVE_LOG" \
+    --resolve-log "$resolve_cache" \
     --state-path "$TAB_STATE_PATH" \
     --phase "$phase"
 }

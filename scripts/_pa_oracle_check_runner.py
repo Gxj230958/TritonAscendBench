@@ -45,6 +45,7 @@ import importlib.util
 import json
 import os
 import sys
+import types
 from pathlib import Path
 
 THIS = Path(__file__).resolve()
@@ -92,8 +93,26 @@ def _anchor_shape_ids(shapes_doc: dict) -> list[str]:
 
 
 def _load(path: Path, name: str):
-    spec = importlib.util.spec_from_file_location(name, path)
+    # Some kernel.py modules (e.g. those vendored from sglang.srt.* or
+    # vllm.v1.*) use sibling-relative imports like ``from .X import Y``.
+    # The bare ``spec_from_file_location(name, path)`` form leaves
+    # ``__package__`` empty, so any relative import inside kernel.py
+    # raises ``ImportError: attempted relative import with no known
+    # parent package``. Wrap the load in a synthetic per-call package
+    # whose ``__path__`` points at the task dir, so relative imports
+    # resolve against the sibling files under that dir; install both the
+    # synthetic package and the leaf module into ``sys.modules`` before
+    # ``exec_module`` so the resolver itself can find them mid-load.
+    pkg = f"_pa_pkg_{name}"
+    if pkg not in sys.modules:
+        synth = types.ModuleType(pkg)
+        synth.__path__ = [str(path.parent)]
+        sys.modules[pkg] = synth
+    leaf_name = f"{pkg}.{path.stem}"
+    spec = importlib.util.spec_from_file_location(leaf_name, path)
     mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = pkg
+    sys.modules[leaf_name] = mod
     spec.loader.exec_module(mod)
     return mod
 
