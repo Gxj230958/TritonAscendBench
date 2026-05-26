@@ -1689,13 +1689,44 @@ def s2_verify_task(td: Path) -> S2Result:
         res.reason = f"S2-smoke: {sm_why}"
         return res
     if not sm_eq:
-        res.status = "BLOCKED"
-        res.reason = (
-            f"S2-smoke MISMATCH (CPU/TRITON_INTERPRET pre-filter, "
-            f"phase={sm_phase}): {sm_why} -- staged candidate "
-            f"discarded, real kernel.py untouched (smoke NEVER PASS)"
+        # Auto-skip smoke when its failure is CLEARLY a CPU-interpreter
+        # limitation rather than a real kernel bug AND we are on a GPU
+        # host (so the authoritative GPU run can proceed). Three known
+        # CPU-only failure signatures from real verdicts:
+        #   - "Expected a cuda device" -- kernel requires CUDA backend
+        #     (fp8 ops, cuda allocator, etc.); CPU interpret cannot run
+        #   - "only 0-dimensional arrays can be converted" -- Triton
+        #     interpreter limitation on multi-dim scalar conversion
+        #   - "InterpreterBuilder ... has no attribute" -- the bundled
+        #     Triton interpreter lacks methods the real GPU builder has
+        cpu_interp_signatures = (
+            "Expected a cuda device",
+            "only 0-dimensional arrays",
+            "InterpreterBuilder",
+            "AttributeError: 'InterpreterBuilder'",
         )
-        return res
+        sm_why_str = str(sm_why or "")
+        if (
+            _cuda_available()
+            and any(sig in sm_why_str for sig in cpu_interp_signatures)
+        ):
+            # GPU host + interpreter-specific failure: smoke is a false
+            # negative. Skip and proceed to the GPU-authoritative run.
+            # NOT a silent override: log it so the operator sees the auto-skip.
+            print(
+                f"[{td.name}] S2-smoke auto-skip: GPU host + CPU-interpreter "
+                f"failure signature ({sm_why_str[:120]!r}) -- proceeding to "
+                f"S2-gpu-authoritative",
+                file=sys.stderr,
+            )
+        else:
+            res.status = "BLOCKED"
+            res.reason = (
+                f"S2-smoke MISMATCH (CPU/TRITON_INTERPRET pre-filter, "
+                f"phase={sm_phase}): {sm_why} -- staged candidate "
+                f"discarded, real kernel.py untouched (smoke NEVER PASS)"
+            )
+            return res
 
     # 3. The ONLY honest short-circuit: real CUDA-absence check. Smoke
     #    PASSED (real work) but the AUTHORITATIVE verdict needs a GPU.
