@@ -76,6 +76,11 @@ infer = [
     "openai-harmony",
     "openai",
     "partial-json-parser",
+    # sglang's tokenizer / scheduler imports uvloop at module load
+    # (sgl-kernel, srt.server, etc.). Without it L1_19_topk_log_softmax,
+    # L1_24_rejection_sample and any sglang-rooted task get classified
+    # ``upstream-not-invocable-here [No module named 'uvloop']``.
+    "uvloop",
     # vllm/sglang core runtime deps -- vendored upstream source imports
     # these at module load time (e.g. sentencepiece via tokenizer pipeline,
     # transformers everywhere, blake3 via vllm caching, etc.). Without
