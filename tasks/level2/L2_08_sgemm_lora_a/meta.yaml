@@ -127,9 +127,10 @@ param_constraints:
 phase_a_prime:
   skip_invocation: true
   status: SKIPPED_BY_DESIGN
-  reason: Triton interpreter on the dev host's CPU path disagrees with the formula_exact_manual
-    oracle for this kernel; the interpreter has known precision drift for some atomic/reduce
-    patterns. The on-NPU run is the authoritative truth source; defer to phase B.
+  reason: Resolver reports a numeric tolerance failure against the formula_exact_manual
+    oracle on the dev host's CPU interpreter path. The CPU interpreter has known precision
+    drift for some atomic/reduce patterns; the on-NPU run is the authoritative truth
+    source; defer to phase B.
 phase_b_capture_required: true
 phase_b_capture:
   status: PENDING

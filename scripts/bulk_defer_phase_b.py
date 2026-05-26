@@ -81,7 +81,39 @@ def _level_dir(task_id: str) -> Path:
     return REPO / "tasks" / f"level{lvl[1:]}" / task_id
 
 
-def _classify(verdict: dict) -> tuple[str, str]:
+def _task_declared_params(task_dir: Path) -> set[str]:
+    """Return the union of param names the task's contract declares.
+
+    The contract is meta.yaml ``param_constraints.dtypes``,
+    ``param_constraints.dists``, ``param_constraints.dims``, and
+    ``param_constraints.scalars``; each is a list of ``{name: ..., ...}``
+    dicts. Empty set when meta missing or contract not declared.
+    """
+    mp = task_dir / "meta.yaml"
+    if not mp.exists():
+        return set()
+    try:
+        meta = yaml.safe_load(mp.read_text())
+    except (OSError, yaml.YAMLError):
+        return set()
+    pc = (meta or {}).get("param_constraints") or {}
+    names: set[str] = set()
+    for key in ("dtypes", "dists", "dims", "scalars"):
+        section = pc.get(key) or []
+        if isinstance(section, list):
+            for item in section:
+                if isinstance(item, dict):
+                    n = item.get("name")
+                    if isinstance(n, str):
+                        names.add(n)
+        elif isinstance(section, dict):
+            names.update(k for k in section.keys() if isinstance(k, str))
+    return names
+
+
+def _classify(
+    verdict: dict, declared_params: set[str] | None = None
+) -> tuple[str, str]:
     """Return ``(category, reason)`` for a non-PASS verdict.
 
     Reason text is honest about *why* this dev host cannot certify the
@@ -89,6 +121,12 @@ def _classify(verdict: dict) -> tuple[str, str]:
     entrypoint segment of the resolver reason, not the aggregate -- a
     multi-candidate task's intended entrypoint can have a different
     (often better) substatus than the aggregate ``worst-status`` rollup.
+
+    ``declared_params`` (the task contract's known param names) lets the
+    classifier reject a ``missing param 'X'`` claim that names a sibling
+    candidate's parameter rather than one of the intended kernel's. When
+    the resolver's intended-entrypoint segment cannot be located, this
+    filter prevents falling back to a sibling-derived defer reason.
     """
     status = verdict.get("status", "")
     reason = verdict.get("reason", "") or ""
@@ -114,8 +152,30 @@ def _classify(verdict: dict) -> tuple[str, str]:
     reason = reason_local
 
     if "shapes-incomplete" in status:
-        m = re.search(r"missing param '([^']+)'", reason)
-        param = m.group(1) if m else "unknown"
+        # Prefer a missing-param mention that the task's own contract
+        # declares -- the resolver's reason can also enumerate sibling
+        # candidates' missing params, and attributing those to this task
+        # is misleading. When no contract-declared param appears in the
+        # reason, fall back to a verdict that is honest about that gap
+        # rather than citing a sibling param.
+        candidates = re.findall(r"missing param '([^']+)'", reason)
+        param: str | None = None
+        if declared_params:
+            for cand in candidates:
+                if cand in declared_params:
+                    param = cand
+                    break
+        if param is None and candidates and not declared_params:
+            param = candidates[0]
+        if param is None:
+            return (
+                "shapes-incomplete",
+                "Resolver reaches shapes-incomplete on the intended "
+                "entrypoint, but the missing-param details surfaced "
+                "belong to sibling candidates rather than to this "
+                "task's own contract. Defer to phase B golden capture "
+                "for canonical resolution against the on-device caller.",
+            )
         return (
             "shapes-incomplete",
             f"Resolver reports missing param '{param}'. Authoring it "
@@ -235,13 +295,37 @@ def _classify(verdict: dict) -> tuple[str, str]:
         )
 
     if "oracle-mismatch" in status:
+        # Surface the resolver's actual divergence signal rather than
+        # blanket-blaming "interpreter precision drift", which can hide
+        # a real wrapper/kernel bug. Three signals seen in the cache:
+        # STRUCTURE MISMATCH (output shape / dtype / count diverge from
+        # oracle), explicit "wrong operator" annotation, and pure
+        # numeric tolerance failures.
+        if "STRUCTURE MISMATCH" in reason or "wrong operator" in reason:
+            return (
+                "oracle-mismatch",
+                "Resolver reports a STRUCTURE MISMATCH / wrong-operator "
+                "signal between kernel output and oracle on the dev host "
+                "(output shape, dtype, or operator semantics diverge -- "
+                "this is not a precision-drift case). The on-NPU run is "
+                "the authoritative truth source; defer to phase B for "
+                "canonical resolution.",
+            )
+        if "dtype mismatch" in reason.lower():
+            return (
+                "oracle-mismatch",
+                "Resolver reports a dtype mismatch between kernel output "
+                "and oracle on the dev host. The on-NPU run is the "
+                "authoritative truth source; defer to phase B for "
+                "canonical resolution.",
+            )
         return (
             "oracle-mismatch",
-            "Triton interpreter on the dev host's CPU path disagrees "
-            "with the formula_exact_manual oracle for this kernel; the "
-            "interpreter has known precision drift for some atomic/reduce "
-            "patterns. The on-NPU run is the authoritative truth source; "
-            "defer to phase B.",
+            "Resolver reports a numeric tolerance failure against the "
+            "formula_exact_manual oracle on the dev host's CPU "
+            "interpreter path. The CPU interpreter has known precision "
+            "drift for some atomic/reduce patterns; the on-NPU run is "
+            "the authoritative truth source; defer to phase B.",
         )
 
     if "smoke-fail" in status:
@@ -458,10 +542,11 @@ def main() -> int:
             continue
         if args.owner_bucket == "B" and owner_is_a:
             continue
-        category, reason = _classify(v)
+        td = _level_dir(tid)
+        declared = _task_declared_params(td)
+        category, reason = _classify(v, declared_params=declared)
         if category in ("pass",):
             continue
-        td = _level_dir(tid)
         result = _patch_meta(
             td, category, reason,
             dry_run=not args.apply,
