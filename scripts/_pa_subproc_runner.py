@@ -623,6 +623,15 @@ def _run_side(args: argparse.Namespace) -> int:
         for p in (str(pool.parent), str(shimp)):
             if p not in sys.path:
                 sys.path.insert(0, p)
+        # Expose REPO_ROOT so the rewriter-emitted ``from tasks._frozen_shim
+        # import ...`` resolves at IMPORT TIME. Without it the severed kernel
+        # is loaded before the later REPO_ROOT insertion (around the run()
+        # dispatch) and fails with ``ModuleNotFoundError: No module named
+        # 'tasks'``. The leak guard still blocks vllm/sglang at this surface;
+        # bench-local imports were already reachable via the post-load
+        # REPO_ROOT insertion, so this is not a new leak class.
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT))
         # Install the runtime import-leak guard BEFORE the kernel runs
         # (catches `import vllm` inside run(), not just import-time).
         guard = _LeakGuardFinder()
