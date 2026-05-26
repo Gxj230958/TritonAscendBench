@@ -14,6 +14,9 @@ Usage::
 
 from __future__ import annotations
 
+import os
+import tempfile
+
 import argparse
 import json
 import re
@@ -65,6 +68,31 @@ def _kernel_source(task_dir: Path) -> str:
         return ""
 
 
+def _atomic_write(dest: Path, text: str) -> None:
+    """Write ``text`` to ``dest`` atomically, even under concurrent runs.
+
+    Uses ``tempfile.mkstemp`` in the destination directory so each writer
+    gets a unique temp filename; a fixed ``dest.tmp`` would race with
+    another worker rewriting the same meta.yaml.
+    """
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=dest.name + ".",
+        suffix=".tmp",
+        dir=str(dest.parent),
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        os.replace(tmp_path, dest)
+    except Exception:
+        # Clean up the temp file if the rename never happened.
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
 def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
     """Find the segment of ``reason`` that describes the task's intended
     entrypoint, and return ``(substatus, segment_text)``.
@@ -93,14 +121,22 @@ def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
             candidates.append((m.group(1), part))
     if not candidates:
         return ("", reason)
+    # Normalise ``-``/``_`` before comparison so task_id "L1_99_foo_bar"
+    # matches a resolver segment named "foo-bar" (and vice versa). Bench
+    # tasks identify kernels by Python identifier (underscores), but some
+    # upstream entrypoint names use hyphens.
+    def _norm(s: str) -> str:
+        return s.replace("-", "_")
+    intended_n = _norm(intended)
     # Exact match.
     for name, seg in candidates:
-        if name == intended:
+        if _norm(name) == intended_n:
             sub = re.match(r"\s*[A-Za-z_][\w\-]*:\s*([a-z][a-z_\-]+)", seg)
             return (sub.group(1) if sub else "", seg)
     # Bidirectional substring match.
     for name, seg in candidates:
-        if intended in name or name in intended:
+        name_n = _norm(name)
+        if intended_n in name_n or name_n in intended_n:
             sub = re.match(r"\s*[A-Za-z_][\w\-]*:\s*([a-z][a-z_\-]+)", seg)
             return (sub.group(1) if sub else "", seg)
     # Fall back to empty when no candidate matches the intended kernel name
@@ -494,9 +530,7 @@ def _patch_meta(task_dir: Path, category: str, reason: str, dry_run: bool, force
             return "ERR(rewrite-not-visible)"
         if dry_run:
             return f"DRY-RUN-REWRITE({category})"
-        tmp = mp.with_suffix(".yaml.tmp")
-        tmp.write_text(new_text)
-        tmp.replace(mp)
+        _atomic_write(mp, new_text)
         return f"REWROTE({category})"
 
     append_lines: list[str] = []
@@ -544,9 +578,7 @@ def _patch_meta(task_dir: Path, category: str, reason: str, dry_run: bool, force
     if dry_run:
         return f"DRY-RUN({category})"
 
-    tmp = mp.with_suffix(".yaml.tmp")
-    tmp.write_text(new_text)
-    tmp.replace(mp)
+    _atomic_write(mp, new_text)
     return f"WROTE({category})"
 
 
