@@ -107,11 +107,9 @@ param_constraints:
 phase_a_prime:
   skip_invocation: true
   status: SKIPPED_BY_DESIGN
-  reason: Resolver reports missing param 'dim'. Authoring it requires kernel-specific
-    knowledge (the exact dtype, dim expression, and distribution that satisfies the
-    kernel's internal asserts and oracle agreement) that the auto-filler conventions
-    cannot infer without risk of silent miscompute. Defer to phase B golden capture,
-    where the on-device run with the authoritative caller supplies the value.
+  reason: Upstream calls vllm.platforms.current_platform.num_compute_units(), which
+    raises NotImplementedError on the dev host's stub platform. The value is hardware-specific
+    and the only authoritative source is the NPU; defer to phase B.
 phase_b_capture_required: true
 phase_b_capture:
   status: PENDING

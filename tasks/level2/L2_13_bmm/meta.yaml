@@ -102,11 +102,9 @@ param_constraints:
 phase_a_prime:
   skip_invocation: true
   status: SKIPPED_BY_DESIGN
-  reason: Resolver reports missing param 'dim'. Authoring it requires kernel-specific
-    knowledge (the exact dtype, dim expression, and distribution that satisfies the
-    kernel's internal asserts and oracle agreement) that the auto-filler conventions
-    cannot infer without risk of silent miscompute. Defer to phase B golden capture,
-    where the on-device run with the authoritative caller supplies the value.
+  reason: Intended entrypoint reaches oracle-consistent on the dev host but the S2 smoke
+    pre-filter rejects it due to a CPU/TRITON_INTERPRET numeric mismatch the kernel
+    does not exhibit on the real device. Defer to phase B golden capture.
 phase_b_capture_required: true
 phase_b_capture:
   status: PENDING

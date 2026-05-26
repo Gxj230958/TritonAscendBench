@@ -168,6 +168,23 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     "recv_x_scale":       ("float32", ("BN",), "randn"),
 }
 
+# Per-task skip set for (task_id, param) pairs the conventions know they
+# would mis-fill for. Each entry MUST cite the kernel-asserted constraint
+# that the convention's default violates -- otherwise the convention is
+# probably fine and the per-task escape is masking a real bug.
+_TASK_PARAM_SKIP: set[tuple[str, str]] = {
+    # weight2 default is float16 but L2_15's kernel asserts x.dtype ==
+    # residual.dtype with x already float32; the float16 default makes
+    # the assertion fire. Authoring weight2 here needs the residual
+    # dtype/shape rework that is itself a Phase B item.
+    ("L2_15_fused_dual_residual_rmsnorm", "weight2"),
+    # BLOCK_SIZE_K default is 32 but L2_30's H2 shape uses D=16; the
+    # kernel asserts hidden_dim % BLOCK_SIZE_K == 0, which fails. A
+    # per-task value (16) would work but the choice is shape-sweep
+    # dependent; defer to Phase B.
+    ("L2_30_fused_moe_router_tensorcore", "BLOCK_SIZE_K"),
+}
+
 _MISSING_PARAM_RE = re.compile(r"missing param '([^']+)'")
 # Each `missing param` mention is followed by `for entrypoint '<name>'` in
 # the resolver's reason field. Capturing both lets us scope filler additions
@@ -572,6 +589,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.task and tid != args.task:
             continue
         missing = _missing_params(v)
+        # Drop per-task params that conventions are known to mis-fill.
+        missing = [p for p in missing if (tid, p) not in _TASK_PARAM_SKIP]
         if not missing:
             continue
         td = _find_task_dir(tid)

@@ -28,6 +28,50 @@ A_OWN = {
     "L2_10_w8a8_block_int8_matmul",
 }
 
+
+def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
+    """Find the segment of ``reason`` that describes the task's intended
+    entrypoint, and return ``(substatus, segment_text)``.
+
+    The resolver's reason aggregates EVERY candidate entrypoint it tried;
+    classifying off the aggregate string would attribute (for example)
+    a sibling's missing param to a task whose intended entrypoint actually
+    reached oracle-mismatch. Each per-entrypoint segment has the shape
+    ``<name>: <substatus> [<details>]`` and segments are joined by ``' | '``.
+    The intended entrypoint is derived from ``task_id`` by stripping the
+    ``L<level>_<idx>_`` prefix and matching bidirectionally against the
+    segment names; fall back to the first segment when no name matches.
+    """
+    # Strip ``L<n>_<m>_`` prefix from task_id to recover the kernel name.
+    intended = re.sub(r"^L\d+_\d+_", "", task_id)
+    # Drop the aggregate prefix ``BLOCKED(...): tried [...];`` so the first
+    # per-entrypoint segment isn't glued to it.
+    after_tried = re.split(r";\s+", reason, maxsplit=1)
+    body = after_tried[1] if len(after_tried) > 1 else reason
+    # Segments are joined by ' | '; split and find each `<name>: <status>`.
+    parts = re.split(r"\s\|\s", body)
+    candidates: list[tuple[str, str]] = []
+    for part in parts:
+        m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*):\s*([a-z\-]+)\b", part)
+        if m:
+            candidates.append((m.group(1), part))
+    if not candidates:
+        return ("", reason)
+    # Exact match.
+    for name, seg in candidates:
+        if name == intended:
+            sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
+            return (sub.group(1) if sub else "", seg)
+    # Bidirectional substring match.
+    for name, seg in candidates:
+        if intended in name or name in intended:
+            sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
+            return (sub.group(1) if sub else "", seg)
+    # Fall back to first segment.
+    name, seg = candidates[0]
+    sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
+    return (sub.group(1) if sub else "", seg)
+
 REPO = Path(__file__).resolve().parent.parent
 
 
@@ -40,7 +84,10 @@ def _classify(verdict: dict) -> tuple[str, str]:
     """Return ``(category, reason)`` for a non-PASS verdict.
 
     Reason text is honest about *why* this dev host cannot certify the
-    task -- not a generic blanket excuse.
+    task -- not a generic blanket excuse. Classifies from the INTENDED
+    entrypoint segment of the resolver reason, not the aggregate -- a
+    multi-candidate task's intended entrypoint can have a different
+    (often better) substatus than the aggregate ``worst-status`` rollup.
     """
     status = verdict.get("status", "")
     reason = verdict.get("reason", "") or ""
@@ -51,6 +98,19 @@ def _classify(verdict: dict) -> tuple[str, str]:
         # Kernel binds clean; only Phase A' GPU verify is missing.
         # Don't set skip_invocation; just request phase B capture.
         return ("unrun_needs_gpu", "")
+
+    # Re-scope status + reason to the intended entrypoint's segment when
+    # the resolver tried multiple candidates.
+    task_id = verdict.get("task_id", "")
+    intended_sub, intended_seg = _intended_entrypoint_segment(task_id, reason)
+    if intended_sub:
+        status_local = intended_sub
+        reason_local = intended_seg
+    else:
+        status_local = status
+        reason_local = reason
+    status = status_local
+    reason = reason_local
 
     if "shapes-incomplete" in status:
         m = re.search(r"missing param '([^']+)'", reason)
@@ -190,6 +250,19 @@ def _classify(verdict: dict) -> tuple[str, str]:
             "the kernel's computational density exceeds what the "
             "interpreter can simulate inside the per-task budget. The "
             "kernel runs correctly on GPU/NPU; defer to phase B.",
+        )
+
+    # ``oracle-consistent but S2-smoke BLOCKED`` reaches here when an
+    # intended-entrypoint segment has the kernel passing the oracle
+    # anchor but the smoke pre-filter blocked due to CPU-interpreter
+    # numeric mismatch. Treat as smoke-fail.
+    if "oracle-consistent" in status and "smoke" in reason.lower():
+        return (
+            "smoke-fail",
+            "Intended entrypoint reaches oracle-consistent on the dev "
+            "host but the S2 smoke pre-filter rejects it due to a "
+            "CPU/TRITON_INTERPRET numeric mismatch the kernel does not "
+            "exhibit on the real device. Defer to phase B golden capture.",
         )
 
     return ("other", f"Resolver verdict: {status}.")

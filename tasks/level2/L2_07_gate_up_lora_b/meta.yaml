@@ -131,10 +131,10 @@ param_constraints:
 phase_a_prime:
   skip_invocation: true
   status: SKIPPED_BY_DESIGN
-  reason: Kernel hard-asserts a LoRA-specific shape invariant (input_dim == n_slices
-    * r). Honoring it requires a paired-knob discipline that is non-trivial to express
-    in shapes.yaml without a fixed rank. Defer to phase B where the on-device LoRA caller
-    pins the rank.
+  reason: Upstream entrypoint raises AssertionError when bound on the dev host's vllm/sglang
+    shim. Diagnosing the root cause requires either deeper shim work or a GPU/NPU host
+    where the upstream config layer initialises the missing state. Defer to phase B
+    golden capture.
 phase_b_capture_required: true
 phase_b_capture:
   status: PENDING
