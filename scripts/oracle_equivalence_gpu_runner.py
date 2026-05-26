@@ -35,11 +35,14 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from triton_ascend_bench.inputs import build_inputs  # noqa: E402
 from triton_ascend_bench.tolerance import (  # noqa: E402
     ToleranceClass,
     compare,
     load_policy,
 )
+
+GOLDEN_SEED = 0  # mirror oracle_pyref_precompute.py's seed for determinism
 
 
 _TOLERANCE_CACHE: dict[str, ToleranceClass] | None = None
@@ -306,17 +309,25 @@ def _verify_one_task(
     tolerance_class_name = meta.get("tolerance_class", "vector_reduce")
     tol = _tolerance_for(tolerance_class_name)
 
+    # Re-load shapes.yaml so we can rebuild inputs deterministically (the
+    # precompute step's safetensors only stores torch.Tensor values; string
+    # scalars like 'kv_cache_dtype' get dropped on save and would surface
+    # later as "missing 1 required positional argument").
+    shapes_doc = yaml.safe_load((task_dir / "shapes.yaml").read_text())
+
+    import inspect
+    sig = inspect.signature(kernel_fn)
+    sig_param_names = set(sig.parameters.keys())
+
     n_verified = 0
     n_failed = 0
     n_blocked = 0
     for ref_file in sorted(ref_dir.glob("ref_*.safetensors")):
         sid = ref_file.stem.replace("ref_", "")
-        inputs_file = ref_dir / f"inputs_{sid}.safetensors"
         sv = ShapeVerdict(shape_id=sid)
 
         try:
             ref_tensors = load_file(str(ref_file))
-            input_tensors_cpu = load_file(str(inputs_file)) if inputs_file.exists() else {}
         except Exception as e:
             sv.status = "LAUNCH_BLOCKED"
             sv.blocker_reason = f"safetensors load: {e}"
@@ -325,20 +336,34 @@ def _verify_one_task(
             continue
 
         try:
-            # Move inputs to GPU; keep scalars as-is
+            # Rebuild inputs deterministically (same seed used by precompute).
+            # This recovers non-tensor scalars (strings, bools) that safetensors
+            # cannot persist.
+            inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+            # Move tensor inputs to GPU; keep non-tensor inputs (str, int,
+            # float, etc.) as-is.
             inputs_gpu: dict[str, object] = {}
-            for k, v in input_tensors_cpu.items():
+            for k, v in inputs_full.items():
                 if isinstance(v, torch.Tensor):
                     inputs_gpu[k] = v.to(gpu_device)
                 else:
                     inputs_gpu[k] = v
-
-            # Provide kernel optional defaults if not in inputs
-            extras = _materialise_kernel_optional_params(kernel_fn, set(inputs_gpu.keys()))
+            # Filter to only the keys the kernel signature actually accepts —
+            # shapes.yaml may include extras (e.g. BLOCK_SIZE_M, scalars meant
+            # for the underlying @triton.jit kernel, not the host wrapper)
+            # that the host wrapper rejects as unexpected kwargs.
+            inputs_for_kernel = {
+                k: v for k, v in inputs_gpu.items() if k in sig_param_names
+            }
+            # Provide kernel optional defaults for any sig param the rebuilt
+            # inputs do not cover.
+            extras = _materialise_kernel_optional_params(
+                kernel_fn, set(inputs_for_kernel.keys())
+            )
             for k, v in extras.items():
-                inputs_gpu.setdefault(k, v)
+                inputs_for_kernel.setdefault(k, v)
 
-            kernel_out = kernel_fn(**inputs_gpu)
+            kernel_out = kernel_fn(**inputs_for_kernel)
         except Exception as e:
             sv.status = "LAUNCH_BLOCKED"
             sv.blocker_reason = f"{type(e).__name__}: {e}"
@@ -380,23 +405,43 @@ def _verify_one_task(
 
         # Compare each matched key
         all_pass = True
+        fail_reasons: list[str] = []
         for key in sorted(set(sv.output_keys_ref) & set(sv.output_keys_kernel)):
-            ref_t = ref_tensors[key].float()
-            ker_t = out_dict_cpu[key].float() if isinstance(out_dict_cpu[key], torch.Tensor) else None
-            if ker_t is None:
+            ref_t = ref_tensors[key]
+            ker_raw = out_dict_cpu[key]
+            if not isinstance(ker_raw, torch.Tensor):
                 continue
+            ker_t = ker_raw
             try:
-                diff = (ref_t - ker_t).abs()
-                max_abs = float(diff.max().item())
-                denom = ref_t.abs().clamp_min(1e-12)
-                max_rel = float((diff / denom).max().item())
-                sv.max_abs_diff[key] = max_abs
-                sv.max_rel_diff[key] = max_rel
-                if not compare(ref_t, ker_t, tol):
+                # Numeric diff stats for logging (works on float view)
+                ref_f = ref_t.detach().to(torch.float32).cpu()
+                ker_f = ker_t.detach().to(torch.float32).cpu()
+                if ref_f.shape == ker_f.shape:
+                    diff = (ref_f - ker_f).abs()
+                    sv.max_abs_diff[key] = float(diff.max().item())
+                    denom = ref_f.abs().clamp_min(1e-12)
+                    sv.max_rel_diff[key] = float((diff / denom).max().item())
+                else:
+                    sv.max_abs_diff[key] = float("inf")
+                    sv.max_rel_diff[key] = float("inf")
+                # Tolerance-aware verdict — compare returns ComparisonResult,
+                # NOT bool. Check the .passed field; earlier code treated the
+                # whole object as truthy which produced false-positive VERIFIED.
+                result = compare(ker_t, ref_t, tol)
+                if not result.passed:
                     all_pass = False
+                    fail_reasons.append(
+                        f"{key}: {result.reason or 'tolerance fail'} "
+                        f"(max_abs={sv.max_abs_diff.get(key, '?')}, "
+                        f"max_rel={sv.max_rel_diff.get(key, '?')}, "
+                        f"tol={tol.name} atol={tol.atol} rtol={tol.rtol}"
+                        f"{' bit_exact' if tol.bit_exact else ''})"
+                    )
             except Exception as e:
                 sv.blocker_reason = f"compare error on {key}: {e}"
                 all_pass = False
+        if fail_reasons and not sv.blocker_reason:
+            sv.blocker_reason = "; ".join(fail_reasons[:3])
 
         # Verdict
         if sv.output_keys_ref != sv.output_keys_kernel:
