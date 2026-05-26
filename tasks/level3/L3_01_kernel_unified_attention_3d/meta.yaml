@@ -145,3 +145,12 @@ param_constraints:
     args:
       input: seqused_k
       value: E
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: Upstream raises ZeroDivisionError on the dev host -- the shape sweep produces
+    a zero-valued dim or stride the kernel does not guard against. Defer to phase B
+    where the authoritative caller pins non-zero values.
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING

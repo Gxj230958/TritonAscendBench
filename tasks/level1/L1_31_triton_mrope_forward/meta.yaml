@@ -102,3 +102,13 @@ param_constraints:
     head_size: head_size == 16
     rotary_dim: 0 < rotary_dim <= 16 and rotary_dim % 2 == 0
   tensor_invariants: []
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: Upstream import triggers a duplicate torch.library / operator registration
+    on the dev host's shim, because another vendored copy already registered the same
+    op. Resolving this requires deduplicating the shim; defer to phase B where the canonical
+    upstream stack registers the op exactly once.
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING

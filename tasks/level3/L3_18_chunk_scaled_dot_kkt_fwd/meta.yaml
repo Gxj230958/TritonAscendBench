@@ -102,3 +102,12 @@ param_constraints:
       kind: rand
   scalars: {}
   tensor_invariants: []
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: Kernel applies @triton.heuristics on top of a wrapper that lacks the .arg_names
+    attribute the current Triton expects. Resolution needs a Triton-version-specific
+    adapter; defer to phase B where the NPU Triton stack matches upstream's API.
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING

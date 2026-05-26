@@ -113,3 +113,12 @@ param_constraints:
     args:
       input: req_id
       value: E
+phase_a_prime:
+  skip_invocation: true
+  status: SKIPPED_BY_DESIGN
+  reason: Upstream raises KeyError('block_size') when bound on the dev host. The missing
+    dict key is supplied by an upstream caller / config layer that does not run here;
+    defer to phase B golden capture.
+phase_b_capture_required: true
+phase_b_capture:
+  status: PENDING
