@@ -88,7 +88,7 @@ def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
     parts = re.split(r"\s\|\s", body)
     candidates: list[tuple[str, str]] = []
     for part in parts:
-        m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*):\s*([a-z\-]+)\b", part)
+        m = re.match(r"\s*([A-Za-z_][\w\-]*):\s*([a-z][a-z_\-]+)\b", part)
         if m:
             candidates.append((m.group(1), part))
     if not candidates:
@@ -96,12 +96,12 @@ def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
     # Exact match.
     for name, seg in candidates:
         if name == intended:
-            sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
+            sub = re.match(r"\s*[A-Za-z_][\w\-]*:\s*([a-z][a-z_\-]+)", seg)
             return (sub.group(1) if sub else "", seg)
     # Bidirectional substring match.
     for name, seg in candidates:
         if intended in name or name in intended:
-            sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
+            sub = re.match(r"\s*[A-Za-z_][\w\-]*:\s*([a-z][a-z_\-]+)", seg)
             return (sub.group(1) if sub else "", seg)
     # Fall back to empty when no candidate matches the intended kernel name
     # -- the caller then keeps the aggregate status, which is safer than
