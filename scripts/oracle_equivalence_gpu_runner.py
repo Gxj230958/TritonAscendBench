@@ -223,22 +223,41 @@ def _resolve_kernel_entrypoint(
 def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):
     """Import kernel.py and return the host-wrapper function fn_name.
 
-    The kernel.py may import from vllm/sglang;ensure infer/ is on sys.path
-    via the existing setup_infer_paths shim.
+    Vendored kernel.py files use `from .X import Y` relative imports that
+    resolve into the upstream sibling directory recorded in their
+    `Source path:` header. A bare `spec_from_file_location` leaves
+    `__package__` empty and these imports fail with
+    `attempted relative import with no known parent package`.
+
+    Delegate to the existing `_pa_oracle_check_runner._load()` helper
+    which builds a synthetic package chain pointing at the upstream
+    sibling so the relative imports resolve correctly. This is the same
+    loader the existing dual-anchor oracle check uses, so behavior is
+    consistent with phase_a_prime semantics.
     """
-    # Make infer/{vllm,sglang} importable
+    # Make infer/{vllm,sglang} importable so absolute upstream imports
+    # (e.g. `from vllm._custom_ops import ...`) also resolve.
     if (infer_root / "vllm").exists():
         sys.path.insert(0, str(infer_root / "vllm"))
     if (infer_root / "sglang" / "python").exists():
         sys.path.insert(0, str(infer_root / "sglang" / "python"))
 
-    import importlib.util as iu
+    # Lazy-import the loader so a stale gpu host without _pa_oracle_check_runner
+    # still parses this file (the import would fail at call time, not module load).
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from _pa_oracle_check_runner import _load as _load_kernel
 
-    spec = iu.spec_from_file_location(f"kernel_{kernel_path.parent.name}", str(kernel_path))
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"cannot import kernel.py at {kernel_path}")
-    mod = iu.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    upstream_roots: list[Path] = []
+    if (infer_root / "vllm").is_dir():
+        upstream_roots.append(infer_root / "vllm")
+    if (infer_root / "sglang" / "python").is_dir():
+        upstream_roots.append(infer_root / "sglang" / "python")
+
+    mod = _load_kernel(
+        kernel_path,
+        f"kernel_{kernel_path.parent.name}",
+        upstream_roots=upstream_roots or None,
+    )
     fn = getattr(mod, fn_name, None)
     if fn is None:
         raise AttributeError(f"function `{fn_name}` not found in kernel.py")
