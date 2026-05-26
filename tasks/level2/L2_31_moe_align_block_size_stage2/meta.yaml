@@ -98,9 +98,11 @@ param_constraints:
 phase_a_prime:
   skip_invocation: true
   status: SKIPPED_BY_DESIGN
-  reason: Resolver reaches shapes-incomplete on the intended entrypoint, but the missing-param
-    details surfaced belong to sibling candidates rather than to this task's own contract.
-    Defer to phase B golden capture for canonical resolution against the on-device caller.
+  reason: Resolver reports missing param 'sorted_token_ids'. Authoring it requires kernel-specific
+    knowledge (the exact dtype, dim expression, and distribution that satisfies the
+    kernel's internal asserts and oracle agreement) that the auto-filler conventions
+    cannot infer without risk of silent miscompute. Defer to phase B golden capture,
+    where the on-device run with the authoritative caller supplies the value.
 phase_b_capture_required: true
 phase_b_capture:
   status: PENDING

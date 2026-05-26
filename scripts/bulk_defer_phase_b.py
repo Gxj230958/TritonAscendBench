@@ -29,6 +29,42 @@ A_OWN = {
 }
 
 
+def _is_score_eligible(task_dir: Path) -> bool:
+    """Mirror ``triton_ascend_bench.eligibility.is_score_eligible`` so this
+    script does not import the package (keeps the tool standalone).
+
+    Skips bulk-defer for non-score-eligible tasks because phase B golden
+    capture / select_all enumerate ONLY the score-eligible set, and
+    marking a stub-oracle / excluded task as SKIPPED_BY_DESIGN would put
+    it back into that enumeration -- breaking the contract tested in
+    test_phase_b_golden_capture.test_select_all_finds_exactly_the_score_eligible_uor_set.
+    """
+    meta_path = task_dir / "meta.yaml"
+    osrc_path = task_dir / "oracle_pytorch.py"
+    shapes_path = task_dir / "shapes.yaml"
+    try:
+        meta = yaml.safe_load(meta_path.read_text()) or {}
+    except (OSError, yaml.YAMLError):
+        return False
+    if (meta.get("release_scope") or {}).get("excluded") is True:
+        return False
+    try:
+        osrc = osrc_path.read_text()
+        shp = shapes_path.read_text()
+    except OSError:
+        return False
+    if "raise NotImplementedError" in osrc or "PHASE-C-MANUAL" in shp:
+        return False
+    return True
+
+
+def _kernel_source(task_dir: Path) -> str:
+    try:
+        return (task_dir / "kernel.py").read_text()
+    except OSError:
+        return ""
+
+
 def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
     """Find the segment of ``reason`` that describes the task's intended
     entrypoint, and return ``(substatus, segment_text)``.
@@ -112,7 +148,9 @@ def _task_declared_params(task_dir: Path) -> set[str]:
 
 
 def _classify(
-    verdict: dict, declared_params: set[str] | None = None
+    verdict: dict,
+    declared_params: set[str] | None = None,
+    kernel_src: str = "",
 ) -> tuple[str, str]:
     """Return ``(category, reason)`` for a non-PASS verdict.
 
@@ -155,9 +193,12 @@ def _classify(
         # Prefer a missing-param mention that the task's own contract
         # declares -- the resolver's reason can also enumerate sibling
         # candidates' missing params, and attributing those to this task
-        # is misleading. When no contract-declared param appears in the
-        # reason, fall back to a verdict that is honest about that gap
-        # rather than citing a sibling param.
+        # is misleading. When the contract is incomplete (declared set
+        # does not cover the kernel signature), fall back to checking
+        # the kernel source text: a name that appears in kernel.py is
+        # plausibly a real param of the intended entrypoint rather than
+        # a sibling-only mention. Only when neither check matches do we
+        # write the explicit "sibling-candidate" wording.
         candidates = re.findall(r"missing param '([^']+)'", reason)
         param: str | None = None
         if declared_params:
@@ -165,7 +206,12 @@ def _classify(
                 if cand in declared_params:
                     param = cand
                     break
-        if param is None and candidates and not declared_params:
+        if param is None and kernel_src:
+            for cand in candidates:
+                if re.search(r"\b" + re.escape(cand) + r"\b", kernel_src):
+                    param = cand
+                    break
+        if param is None and candidates and not declared_params and not kernel_src:
             param = candidates[0]
         if param is None:
             return (
@@ -543,8 +589,18 @@ def main() -> int:
         if args.owner_bucket == "B" and owner_is_a:
             continue
         td = _level_dir(tid)
+        # Non-score-eligible tasks (stub oracle / release_scope.excluded
+        # / PHASE-C-MANUAL shapes) must not be marked SKIPPED_BY_DESIGN
+        # -- phase B select_all enumerates score-eligible UOR tasks via
+        # phase_a_prime metadata, and a stub-oracle task with the
+        # deferral block would be erroneously picked up.
+        if not _is_score_eligible(td):
+            continue
         declared = _task_declared_params(td)
-        category, reason = _classify(v, declared_params=declared)
+        kernel_src = _kernel_source(td)
+        category, reason = _classify(
+            v, declared_params=declared, kernel_src=kernel_src
+        )
         if category in ("pass",):
             continue
         result = _patch_meta(
