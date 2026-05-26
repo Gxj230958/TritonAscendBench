@@ -67,10 +67,11 @@ def _intended_entrypoint_segment(task_id: str, reason: str) -> tuple[str, str]:
         if intended in name or name in intended:
             sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
             return (sub.group(1) if sub else "", seg)
-    # Fall back to first segment.
-    name, seg = candidates[0]
-    sub = re.match(r"\s*[A-Za-z_][A-Za-z0-9_]*:\s*([a-z\-]+)", seg)
-    return (sub.group(1) if sub else "", seg)
+    # Fall back to empty when no candidate matches the intended kernel name
+    # -- the caller then keeps the aggregate status, which is safer than
+    # blindly picking the first-listed segment (its identity has nothing
+    # to do with the intended entrypoint and the order is resolver-internal).
+    return ("", "")
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -350,6 +351,10 @@ def _patch_meta(task_dir: Path, category: str, reason: str, dry_run: bool, force
     if existing_pa.get("status") == "SKIPPED_BY_DESIGN":
         if not force_rewrite or category == "unrun_needs_gpu":
             return "ALREADY-SKIPPED"
+        # Idempotency: if the existing reason already matches what the
+        # classifier would write, skip the rewrite entirely.
+        if existing_pa.get("reason") == reason:
+            return "NOOP-REASON-EQUAL"
         # Rewrite only the reason field, preserving everything else.
         new_text = _rewrite_phase_a_prime_reason(text, reason)
         if new_text is None:
