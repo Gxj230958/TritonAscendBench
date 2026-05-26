@@ -110,14 +110,3 @@ param_constraints:
     topk: 1 <= topk <= 8
     moe_softcapping: moe_softcapping >= 0
   tensor_invariants: []
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Resolver reports missing param 'BLOCK_SIZE_K'. Authoring it requires kernel-specific
-    knowledge (the exact dtype, dim expression, and distribution that satisfies the
-    kernel's internal asserts and oracle agreement) that the auto-filler conventions
-    cannot infer without risk of silent miscompute. Defer to phase B golden capture,
-    where the on-device run with the authoritative caller supplies the value.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

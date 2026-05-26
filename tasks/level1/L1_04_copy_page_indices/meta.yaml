@@ -105,12 +105,3 @@ param_constraints:
     args:
       input: block_table
       value: N
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Upstream binding requires 'flashinfer' which is unavailable or incompatible
-    on this dev host. Defer to phase B golden capture on the GPU/NPU machine where the
-    dependency is installed.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

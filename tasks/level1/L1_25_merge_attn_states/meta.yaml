@@ -100,13 +100,3 @@ param_constraints:
       kind: randn
   scalars: {}
   tensor_invariants: []
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Resolver reports a STRUCTURE MISMATCH / wrong-operator signal between kernel
-    output and oracle on the dev host (output shape, dtype, or operator semantics diverge
-    -- this is not a precision-drift case). The on-NPU run is the authoritative truth
-    source; defer to phase B for canonical resolution.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

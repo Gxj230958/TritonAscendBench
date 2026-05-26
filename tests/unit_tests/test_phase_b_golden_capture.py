@@ -135,63 +135,37 @@ def test_task_capture_result_all_shape_ids_order():
     assert r.all_shape_ids == ["P1", "P2", "H1"]
 
 
-# --- score-eligible UOR + defer-to-golden enumeration (real repo) -----
+# --- 18-task enumeration (real repo) ----------------------------------
 
 def test_select_all_finds_exactly_the_score_eligible_uor_set():
-    """--all selects every score-eligible ``upstream_oracle_required``
-    task PLUS every task the orchestrator has flagged
-    ``phase_a_prime.status == SKIPPED_BY_DESIGN`` (the defer-to-golden
-    path B), minus anything explicitly removed from the release scope
-    (``release_scope.excluded == True``). The score-eligible filter
-    matches ``gpu_pipeline`` step 20 (``phase_a_cost_xcheck``); a non-
-    score-eligible ``upstream_oracle_required`` task (today
-    ``L1_21_gumbel_sample``: stub oracle / placeholder kernel) has no
-    capturable offline golden and is excluded from path A. Path B picks
-    up tasks the orchestrator has explicitly deferred to phase B
-    (today ``L1_09_quantize_k_cache_fast``: FP8 MLA layout cannot be
-    compared element-wise against the formula_exact_manual oracle on
-    dev) even when their ``oracle_simplified`` is not
-    ``upstream_oracle_required``.
-    """
+    """--all selects exactly the SCORE-ELIGIBLE upstream_oracle_required
+    tasks (18 today), derived from trusted repo meta -- the same
+    score-eligible filter gpu_pipeline step 20 (phase_a_cost_xcheck)
+    applies. A non-score-eligible upstream_oracle_required task
+    (L1_21_gumbel_sample: stub oracle / placeholder kernel) has no
+    capturable offline golden and is excluded from the capture sweep."""
     from triton_ascend_bench import eligibility
     from triton_ascend_bench.dataset import iter_all_tasks
 
     all_tasks = list(iter_all_tasks())
     selected = pbgc._select_tasks(None)
-    selected_ids = {t.task_id for t in selected}
-    # Path A: score-eligible upstream_oracle_required tasks.
-    path_a = {
+    expected = {
         t.task_id for t in all_tasks
         if eligibility.is_upstream_oracle_required(t)
         and eligibility.is_score_eligible(t)
     }
-    # Path B: every SKIPPED_BY_DESIGN task that is not explicitly
-    # excluded from the release scope -- regardless of
-    # oracle_simplified, so a defer-to-golden task that is not
-    # upstream_oracle_required (e.g. formula_exact_manual L1_09) is
-    # still picked up.
-    path_b = {
-        t.task_id for t in all_tasks
-        if (t.meta.get("phase_a_prime") or {}).get("status")
-        == "SKIPPED_BY_DESIGN"
-        and not (t.meta.get("release_scope") or {}).get("excluded", False)
-    }
-    assert selected_ids == path_a | path_b
-    # Every path-A task is upstream_oracle_required AND score-eligible.
+    assert {t.task_id for t in selected} == expected
+    # Every selected task is upstream_oracle_required AND score-eligible.
     for t in selected:
-        if t.task_id in path_a:
-            assert eligibility.is_upstream_oracle_required(t)
-            assert eligibility.is_score_eligible(t)
-    # Each task that is in path A passes both filters; the path-B set
-    # is non-empty (the defer-to-golden contract is in use), and at
-    # least L1_21_gumbel_sample (non-score-eligible UOR) is still
-    # excluded from path A. The exact size of each path is a property
-    # of the meta corpus and will drift as the orchestrator marks more
-    # tasks SKIPPED_BY_DESIGN -- the structural invariant under test
-    # is the union, not the cardinality.
+        assert eligibility.is_upstream_oracle_required(t)
+        assert eligibility.is_score_eligible(t)
+    # The corpus has 19 upstream_oracle_required tasks; exactly one
+    # (L1_21_gumbel_sample) is non-score-eligible and excluded -> 18.
+    assert len(selected) == 18
     uor = eligibility.compute_upstream_oracle_required(all_tasks)
-    assert "L1_21_gumbel_sample" in uor
-    assert "L1_21_gumbel_sample" not in selected_ids
+    assert len(uor) == 19
+    excluded = uor - {t.task_id for t in selected}
+    assert excluded == {"L1_21_gumbel_sample"}
 
 
 def test_select_all_excludes_non_score_eligible_uor():
@@ -296,29 +270,19 @@ def test_dry_run_enumerates_without_promote_gate_or_write(tmp_path):
     assert not (task.task_dir / "golden").exists()
 
 
-def test_dry_run_all_tasks_enumerates_full_eval_shape_set():
+def test_dry_run_all_18_tasks_enumerates_162_shapes():
     """The documented dev-machine verification: --dry-run --all enumerates
-    every selected task and its full eval shape set with no errors.
-
-    The selected set is the union of two paths (see
-    :func:`test_select_all_finds_exactly_the_score_eligible_uor_set`):
-    path A = score-eligible ``upstream_oracle_required`` tasks; path B =
-    orchestrator-deferred ``SKIPPED_BY_DESIGN`` tasks. The total shape
-    count is therefore the sum of (public + hidden) across both paths,
-    not a fixed corpus snapshot -- the structural invariant under test
-    is "every task has at least one public and one hidden eval shape
-    and the dry-run reports no precondition error", not a hardcoded
-    cardinality that would drift each time a task is added to either
-    path.
-    """
+    the 18 score-eligible upstream_oracle_required tasks and their full
+    eval shape set."""
     tasks = pbgc._select_tasks(None)
     results = [pbgc.capture_task(t, dry_run=True) for t in tasks]
-    assert len(results) == len(tasks)
+    assert len(results) == 18
     assert all(r.precondition_error is None for r in results)
     total = sum(len(r.all_shape_ids) for r in results)
-    # The total shape budget is at least 9 per task (the minimum corpus
-    # shape coverage is P1-P5 + H1-H4) so the sum must be >= 9 * N.
-    assert total >= 9 * len(tasks)
+    # 162 = the score-eligible upstream_oracle_required eval shape count
+    # (the full 19-task corpus has 166; L1_21_gumbel_sample's 4 shapes
+    # are excluded with the task).
+    assert total == 162
     # Every task has both public and hidden eval shapes.
     for r in results:
         assert r.public_shapes, f"{r.task_id} has no public shapes"

@@ -538,43 +538,6 @@ tensor matching the kernel contract.
 L1_09_quantize_k_cache_fast: <bump tolerance | tighten rounding mode>.
 ```
 
-#### A2.4 A2 实际执行结论
-
-**L1_01_bias — RESOLVED via runner pre-call input snapshot + oracle structural arity expansion**
-
-Root cause (实测): the L1_01 oracle algorithm was **already correct** (manual reproduction with a fresh `build_inputs(seed=0)` rebuild produced `max_abs = 0.0` against the kernel output). The blocker was a Phase A' oracle-consistency runner bug: `_pa_oracle_check_runner._check_one_shape` invoked the in-place kernel on the SAME tensor mapping it then passed to the oracle, so `inputs["logits"]` arrived at the oracle already mutated by `tl.store(... -inf ...)`. The oracle then re-cloned that post-mutation state, re-applied the bias-add stage, and produced doubly-mutated logits — a `max_abs = 1.509` spurious mismatch the resolver honestly recorded as `oracle-mismatch`.
-
-Fix applied:
-
-1. `scripts/_pa_oracle_check_runner.py::_check_one_shape` — pre-call tensor clone (every tensor input shallow-cloned into `kernel_inputs`, non-tensors aliased) so the kernel mutates clones and the oracle still reads pristine inputs. For non-in-place kernels the clone is wasted work but produces the same compare path — the snapshot is correctness-equivalent on non-in-place kernels; it is not, by itself, a fix for any pre-existing structural-mismatch issue in the None-returning fallback at lines 359-364 (that fallback over-reports outputs for `wo_candidate_allocated` kernels like `L3_04_fwd::context_attention_fwd` where the oracle returns `{"o": ...}` but the candidate fallback returns every bound tensor arg; this latent issue is bench-wide, predates this fix, and is **out of A own scope** per plan §6 — A only owns L1_01 / L1_09 / L2_10).
-2. `tasks/level1/L1_01_bias/oracle_pytorch.py` — `run()` now returns all 11 kernel-touched tensors (the rw_in_place `logits` carrying the 3-stage transform + the 10 read-only tables echoed back via `.clone()`) so the structural arity matches the candidate fallback path (`{p: kernel_inputs[p] for p in bound}`). The 3-stage transform itself was unchanged. An unchanged-input candidate (one that returns `None` without mutating `logits`) cannot pass the anchor: the 10 echoed read-only tables would match, but `logits` would not — the kernel writes -inf into non-allowed slots while the unchanged candidate keeps the original randn values, producing a `max_abs ≈ 1` mismatch on every shape that exercises the allowed-mask stage.
-
-Verification:
-
-```
-$ python3 scripts/resolve_upstream_entrypoints.py --task L1_01_bias
-[L1_01_bias] RESOLVED apply_logit_bias :: UNRUN(needs-gpu)
-resolved=1 already-resolved=0 blocked=0 total=1 (DRY-RUN)
-```
-
-**L1_09_quantize_k_cache_fast — SKIPPED_BY_DESIGN + phase_b_capture_required (option c, defer to phase B)**
-
-Neither plan §A2.2 option (tolerance bump / rounding-mode tighten) is viable:
-
-- The upstream `_quantize_k_cache_fast` kernel hard-asserts a MLA-specific layout (`assert k_nope.dtype == torch.bfloat16`, `dim_nope == 512`, `dim_rope == 64`, `group_size == 128`, `num_blocks_per_token == 5`); shapes.yaml currently materialises `k_nope` as float32 with D varying across P1-P5 / H1-H4, which trips the very first assert.
-- The sibling entrypoint `_quantize_k_cache_fast_separate` returns a packed uint8 tuple `(nope_part_u8, rope_part_u8)` (FP8 quantised nope + FP32 scales + BF16 rope, all bit-cast into the same byte buffer); the existing formula_exact_manual oracle returns `{nope_q fp8, nope_s fp32, rope fp32}` as logical fields. The structural / dtype gap (3 fp-typed tensors vs 2 uint8 packed buffers) is not a tolerance issue — it is a real difference in output schema, and any patch would either require rewriting the shape grid (breaking the quantization-family validity contract pinned in `docs/plans/2026-05-21-operator-param-validity-impl.md`) or reauthoring the oracle to emit packed uint8 buffers (which would no longer be element-wise comparable on dev).
-
-`tasks/level1/L1_09_quantize_k_cache_fast/meta.yaml` now carries `phase_a_prime: {skip_invocation: true, status: SKIPPED_BY_DESIGN, reason: <details>}` + `phase_b_capture_required: true` + `phase_b_capture: {status: PENDING, upstream_callable: {module: sglang.srt.layers.attention.nsa.quant_k_cache, function: _quantize_k_cache_fast}, reason: <same>}`, validated via `python3 -c 'import yaml; yaml.safe_load(open(...))'` and against `specs/task_api_contract.md §6a.1-6a.5` (skip_invocation+SKIPPED_BY_DESIGN+reason invariant satisfied; upstream_callable is the canonical dotted module + single identifier function; PENDING is the correct initial status).
-
-Verification:
-
-```
-$ python3 scripts/resolve_upstream_entrypoints.py --task L1_09_quantize_k_cache_fast
-[L1_09_quantize_k_cache_fast] BLOCKED - :: BLOCKED(no-verified-upstream-entrypoint: oracle-mismatch)
-```
-
-(The resolver itself does not honour `phase_a_prime.skip_invocation` — that is a phase-A' / eligibility-gate flag, not a resolver flag — so the cached verdict stays BLOCKED. The terminal state per plan §A2.4 "RESOLVED + PASS 或 SKIPPED_BY_DESIGN+phase_b_capture_required" is satisfied via the meta block; `triton_ascend_bench.eligibility.release_status_pass` will accept the task once phase B writes `phase_b_capture.status = DONE`.)
-
 ### A3. L2_10 smoke-fail 静态分析
 
 #### A3.1 Reason snapshot
@@ -604,46 +567,9 @@ $ python3 scripts/resolve_upstream_entrypoints.py --task L1_09_quantize_k_cache_
 - 若候选 1(可 dev 修):**A 自己**给 meta.yaml / shapes.yaml diff 并落盘,自走 P3 / shapes-incomplete fix path,**不归 smoke-fail**。
 - 若候选 2 / 3(必须 GPU):**A 自己**按 §B3.2 schema 写完整 meta.yaml 归档块(`phase_a_prime.skip_invocation + status:SKIPPED_BY_DESIGN + reason`,`phase_b_capture_required: true`,`phase_b_capture` 含 `upstream_callable.{module, function}` 两字段、`status: PENDING`、`reason`)并自己 commit。**不**移交给 session B。
 
-#### A3.5 分析结论
+#### A3.5 分析结论(占位,A 实际执行时填充)
 
-**判定:候选 2 (必须 GPU/NPU) — 标 phase B defer**
-
-**实测取证(直接代码/log 证据)**:
-
-1. **kernel.py 静态结构**(`tasks/level2/L2_10_w8a8_block_int8_matmul/kernel.py:40-65`):`BLOCK_SIZE_M` / `BLOCK_SIZE_N` / `BLOCK_SIZE_K` / `GROUP_SIZE_M` **都已正确标 `tl.constexpr`**(line 40-43)。`accumulator = tl.zeros((BLOCK_SIZE_M, BLOCK_SIZE_N), dtype=tl.float32)` 在 line 65 是 constexpr 已绑定后的合法初始化 — **不**是候选 1 (constexpr 未 bind) 的形态。
-
-2. **dev 机直跑取证**(本次 session 实测,`TRITON_INTERPRET=1`):
-   - 直接调 `km.w8a8_block_int8_matmul(...)` on H2 shape:返回 `torch.Size([2, 8]) torch.float16` 无错。
-   - 直接调 `km.w8a8_block_int8_matmul(...)` on P5 shape (B=8, D=512, N=512):`P5 OK in 12.3s` — 即 kernel **正确编译并跑通**,只是 CPU 慢。
-   - `_pa_subproc_runner --side original --shape H2`:`rc=0`、`ran=True`、`error=null`、`audit_leaks=[]`。
-   - `_pa_subproc_runner --side severed --shape H2`:同样 `rc=0`、无错。
-   - `oracle_consistency_check` 直接调:`2/2 shape(s) ['H2', 'P5']` 都 PASS,`max_abs=0.0` on H2 / `max_abs=1.0` on P5 (within `int8_w8a8` tolerance)。`done in 13.9s`。
-
-3. **缓存 `smoke-fail` 真因**:cached `results/resolve_all.json` 来自 17:31:50 (root-owned),早于 A1 commit (`340bccb`) + 本 session 加的 `_pa_oracle_check_runner.py` pre-call input snapshot fix。**该状态下 in-place 类 kernel 的 oracle anchor 会假性 double-mutation 失败**(L1_01 同样表现已实测);L2_10 的 cached `CompilationError at 57:23` 实际是上游 stale runner 路径下的失败,**当前代码下 anchor + 双 side 都正常**。**`CompilationError` 不可再现** — 但 **完整 9 shape S2-smoke pair 仍超时**(`timeout 600s` × 单 task 仍 124),因为 CPU emulation 的 GEMM 在 P3/P4 体量 (`2*B*N*D = 2*256*2048*2048` ~ 2G ops 单 shape) 远超 dev 机分钟级单 task 预算。
-
-4. **kernel 端 frozen 不可改**(`§6.1 / §6.3`),shapes.yaml 端也不能为了绕 CPU 慢丢 P3/P4 shape (会破 score coverage);所以 dev 机侧的 path A (real S2-smoke PASS) **结构上不可达**,authoritative truth source 必须委托给 phase B golden capture (on-NPU 跑真实 kernel 后落 safetensors)。
-
-**实际改动**:
-
-`tasks/level2/L2_10_w8a8_block_int8_matmul/meta.yaml` 顶层加 `phase_a_prime` + `phase_b_capture_required` + `phase_b_capture` 三个块,严格按 `specs/task_api_contract.md §6a` schema:
-
-```yaml
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: "<details on why standalone S2-smoke cannot terminate on dev>"
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING
-  upstream_callable:
-    module: vllm.model_executor.layers.quantization.utils.int8_utils
-    function: w8a8_block_int8_matmul
-  reason: "<same reason>"
-```
-
-`reason` 字段统一引同样的 hard evidence(oracle anchor PASS / 9-shape budget overflow / kernel frozen),不引 round/version 痕迹。
-
-**eligibility 影响**:本改动让 L2_10 同时落进 path A (it was already `oracle_simplified: upstream_oracle_required`) 与 path B (now `phase_a_prime.status: SKIPPED_BY_DESIGN`),`_select_tasks` 内部 dedup 后只算 1 个 task — 与 L1_09 (newly path B only) 同时让 capture 集合从 18 → 19。`tests/unit_tests/test_phase_b_golden_capture.py` 内之前 hard-code 的 `len(selected) == 18` / `total == 162` 已同步重写为结构性不变量(`>= 9 * len(tasks)`、union of path A + path B),覆盖未来 path B 集合再扩张的场景。
+_待 session A 执行 A3 步骤后填充:候选编号 + 判定 + 必要的 diff 草稿或归档条目。_
 
 ### A4. Session A 验证 + commit + push
 

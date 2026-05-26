@@ -107,13 +107,3 @@ param_constraints:
     args:
       input: logits_indices
       value: E
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Triton interpreter rejects the by-name bind because the kernel has many required
-    positional arguments that the resolver cannot infer without a known-good call site.
-    Defer to phase B where the authoritative caller (model_executor / sgl-kernel) supplies
-    them.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

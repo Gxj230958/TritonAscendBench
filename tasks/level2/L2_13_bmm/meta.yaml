@@ -99,12 +99,3 @@ param_constraints:
       kind: randn
   scalars: {}
   tensor_invariants: []
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Intended entrypoint reaches oracle-consistent on the dev host but the S2 smoke
-    pre-filter rejects it due to a CPU/TRITON_INTERPRET numeric mismatch the kernel
-    does not exhibit on the real device. Defer to phase B golden capture.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

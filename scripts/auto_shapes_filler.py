@@ -141,9 +141,7 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     "query_start_loc":    ("int32",   ("BP1",), None),   # cu_seqlens-style offsets (uses _NAME_TO_DEFAULT_DIST if added)
     "target_logits":      ("float16", ("B", "V"), "randn"),  # rejection sampling target
     "sampled_token_ids":  ("int32",   ("B",), "randint:0:V"),
-    # topk_weights deliberately NOT in conventions: it must align with
-    # topk_ids.size() per task, which varies (e.g. L1_28 has topk_ids on
-    # [B, D], no K knob); a global rule would silently mismatch.
+    "topk_weights":       ("float32", ("BN", "K"), "rand"),  # MoE routing weights
     # cu_chunk_seqlens deliberately NOT in conventions: chunk axis differs
     # per task (e.g. L2_02 chunks on B, L2_03 chunks on C), so a global
     # dims/cap rule would be wrong. Per-task patch via LLM or manual edit.
@@ -166,23 +164,6 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     "expert_indices":     ("int32",   ("BN", "K"), "randint:0:E"),
     "recv_topk_ids":      ("int32",   ("BN", "K"), "randint:0:E"),
     "recv_x_scale":       ("float32", ("BN",), "randn"),
-}
-
-# Per-task skip set for (task_id, param) pairs the conventions know they
-# would mis-fill for. Each entry MUST cite the kernel-asserted constraint
-# that the convention's default violates -- otherwise the convention is
-# probably fine and the per-task escape is masking a real bug.
-_TASK_PARAM_SKIP: set[tuple[str, str]] = {
-    # weight2 default is float16 but L2_15's kernel asserts x.dtype ==
-    # residual.dtype with x already float32; the float16 default makes
-    # the assertion fire. Authoring weight2 here needs the residual
-    # dtype/shape rework that is itself a Phase B item.
-    ("L2_15_fused_dual_residual_rmsnorm", "weight2"),
-    # BLOCK_SIZE_K default is 32 but L2_30's H2 shape uses D=16; the
-    # kernel asserts hidden_dim % BLOCK_SIZE_K == 0, which fails. A
-    # per-task value (16) would work but the choice is shape-sweep
-    # dependent; defer to Phase B.
-    ("L2_30_fused_moe_router_tensorcore", "BLOCK_SIZE_K"),
 }
 
 _MISSING_PARAM_RE = re.compile(r"missing param '([^']+)'")
@@ -588,10 +569,7 @@ def main(argv: list[str] | None = None) -> int:
         tid = v["task_id"]
         if args.task and tid != args.task:
             continue
-        raw_missing = _missing_params(v)
-        # Drop per-task params that conventions are known to mis-fill.
-        skipped = [p for p in raw_missing if (tid, p) in _TASK_PARAM_SKIP]
-        missing = [p for p in raw_missing if (tid, p) not in _TASK_PARAM_SKIP]
+        missing = _missing_params(v)
         if not missing:
             if skipped:
                 # All missing params landed in the per-task skip set --

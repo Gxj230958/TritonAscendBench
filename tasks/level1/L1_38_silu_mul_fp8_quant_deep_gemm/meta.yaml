@@ -101,13 +101,3 @@ param_constraints:
     group_size: group_size >= 1
     fp8_max: 0 < fp8_max <= 1e4
   tensor_invariants: []
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Upstream entrypoint raises AssertionError when bound on the dev host's vllm/sglang
-    shim. Diagnosing the root cause requires either deeper shim work or a GPU/NPU host
-    where the upstream config layer initialises the missing state. Defer to phase B
-    golden capture.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

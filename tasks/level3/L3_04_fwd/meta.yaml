@@ -160,12 +160,3 @@ param_constraints:
     args:
       input: b_start_loc
       value: B*L
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Resolver subprocess SIGSEGV under the CPU interpreter path. The crash is in
-    third-party C code (Triton interpreter / numpy backend) and is not reproducible
-    on GPU/NPU; defer to phase B for authoritative truth.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING

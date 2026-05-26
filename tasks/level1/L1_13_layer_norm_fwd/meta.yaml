@@ -93,12 +93,3 @@ param_constraints:
   scalars:
     eps: 0 < eps <= 1e-2
   tensor_invariants: []
-phase_a_prime:
-  skip_invocation: true
-  status: SKIPPED_BY_DESIGN
-  reason: Upstream calls vllm.platforms.current_platform.num_compute_units(), which
-    raises NotImplementedError on the dev host's stub platform. The value is hardware-specific
-    and the only authoritative source is the NPU; defer to phase B.
-phase_b_capture_required: true
-phase_b_capture:
-  status: PENDING
