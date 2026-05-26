@@ -132,10 +132,19 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     # an earlier filler pass. Each appeared in at least one task's
     # `missing param '<name>'` reason after the first pass landed.
     "chunk_size":         (None, "scalar", "64"),        # mamba SSD / chunk scan
-    # NOTE: cu_chunk_seqlens deliberately NOT in conventions: codex r4
-    # showed L2_02 (meta: B is chunk axis, dims should be B+1) and
-    # L2_03 (cap should be C*L, not B*L) need conflicting forms; a
-    # global rule is wrong. Per-task patch via LLM or manual edit.
+    "kv_cache_dtype":     (None, "scalar", "auto"),      # paged attn dtype tag
+    "mrope_interleaved":  (None, "scalar", "false"),     # mrope variant flag
+    "stack_num":          (None, "scalar", "1"),         # sgemm lora stack
+    "n_slices":           (None, "scalar", "3"),         # qkv lora slices
+    "num_slices":         (None, "scalar", "1"),         # chunked sgmv shrink
+    "softplus_beta":      (None, "scalar", "1.0"),       # gated delta rule update
+    "query_start_loc":    ("int32",   ("BP1",), None),   # cu_seqlens-style offsets (uses _NAME_TO_DEFAULT_DIST if added)
+    "target_logits":      ("float16", ("B", "V"), "randn"),  # rejection sampling target
+    "sampled_token_ids":  ("int32",   ("B",), "randint:0:V"),
+    "topk_weights":       ("float32", ("BN", "K"), "rand"),  # MoE routing weights
+    # cu_chunk_seqlens deliberately NOT in conventions: chunk axis differs
+    # per task (e.g. L2_02 chunks on B, L2_03 chunks on C), so a global
+    # dims/cap rule would be wrong. Per-task patch via LLM or manual edit.
     "max_input_len":      (None, "scalar", "128"),       # attention max seq
     "max_seqlen":         (None, "scalar", "128"),
     "num_logprobs":       (None, "scalar", "5"),
@@ -174,8 +183,8 @@ _MISSING_FOR_ENTRY_RE = re.compile(
 # the convention if any base is missing). The emitted expression is the
 # arithmetic form ``triton_ascend_bench.inputs._resolve_dims`` actually
 # evaluates -- inputs.py's whitelist evaluator accepts ``B+1`` / ``B*N``
-# but NOT a bare token like ``BP1`` (codex r2 finding: prior emission of
-# `[BP1]` made L3_20 unmaterializable).
+# but NOT a bare token like ``BP1``; emitting ``[BP1]`` directly would
+# leave the dim unmaterializable.
 _COMPOSITE_BASES: dict[str, tuple[tuple[str, ...], str]] = {
     "BN":   (("B", "N"), "B*N"),
     "BP1":  (("B",), "B+1"),
@@ -188,7 +197,7 @@ _COMPOSITE_BASES: dict[str, tuple[tuple[str, ...], str]] = {
 # Without this, ``inputs.py`` defaults absent ``dist`` to ``randn`` and
 # the int cast produces arbitrary integers -- the kernel's
 # ``cu_seqlens[i+1] - cu_seqlens[i]`` slicing then gives nonsense
-# (codex r2 finding on L3_20).
+# prefix-sum names like cu_seqlens get an explicit ``offsets:`` distribution.
 _NAME_TO_DEFAULT_DIST: dict[str, str] = {
     "cu_seqlens":   "offsets:to=B*L",
     "seg_indptr":   "offsets:2",
@@ -258,8 +267,8 @@ def _choose_entrypoint(task_id: str, reason: str, tried: list[str]) -> str | Non
       - L1_32: task_id ``create_flashinfer_kv_indices_triton`` is not a
         substring of any name in tried, and no tried name is a substring
         of it -> chosen = None -> skip the task (no auto-fill is far
-        safer than wrong auto-fill; codex r1 finding caught five false
-        rows from a blanket tried[0] fallback).
+        safer than wrong auto-fill; a blanket ``tried[0]`` fallback would
+        scope additions to a sibling kernel and produce false rows).
 
     Priority:
       1. Exact match: any tried candidate equals an intended form.
@@ -280,10 +289,10 @@ def _choose_entrypoint(task_id: str, reason: str, tried: list[str]) -> str | Non
 
     # 2. bidirectional substring against tried[].
     # Reject if MORE THAN ONE distinct candidate matches -- the chooser
-    # cannot prove which one the task intends (codex r2 finding: tasks
-    # like L1_09_quantize_k_cache_fast have both `_quantize_k_cache_fast`
-    # and `_quantize_k_cache_fast_separate` matching by substring, and
-    # arbitrarily returning the first is just as wrong as guessing).
+    # cannot prove which one the task intends. Example: a task_id like
+    # ``_quantize_k_cache_fast`` is a substring of both ``_quantize_k_cache_fast``
+    # and ``_quantize_k_cache_fast_separate``; arbitrarily returning the first
+    # is just as wrong as guessing.
     sub_matches: list[str] = []
     for cand in tried:
         for intended_form in intended:
@@ -321,8 +330,8 @@ def _missing_params(verdict: dict) -> list[str]:
     entrypoint 'Y'` multiple times -- once per candidate it tried. If
     we naively collect every X we end up adding shapes.yaml rows for
     sibling candidates that share the vendored kernel.py file but are
-    NOT what the task picks (codex review found this caused five false
-    rows in B1 batch 1: L1_15 / L1_32 / L1_35 / L3_17 / L3_19).
+    NOT what the task picks, leading to false rows. Scope additions to
+    the task's intended entrypoint via the chooser instead.
 
     Use the task_id-derived intended entrypoint when it can be matched
     against the reason; skip the task otherwise (the LLM patch-shapes
@@ -385,7 +394,7 @@ def _build_entry(name: str, knobs: set[str]) -> dict | None:
       - the emitted ``dims`` entry uses the arithmetic expression
         (``B*N``) that ``triton_ascend_bench.inputs._resolve_dims`` can
         actually evaluate. Bare composite tokens are not understood by
-        the input materialiser (codex r2 finding on L3_20).
+        the input materialiser, so the dim would stay unmaterializable.
     """
     spec = _CONVENTIONS.get(name)
     if spec is None:
@@ -419,7 +428,7 @@ def _build_entry(name: str, knobs: set[str]) -> dict | None:
     # Only declare dtype when the underlying dist generator will honour
     # it. Distributions like ``offsets`` short-circuit to int64 and
     # ignore the declared dtype; emitting the field would be a
-    # spec-vs-runtime lie (codex r3 finding on L3_20).
+    # spec-vs-runtime lie.
     if dtype is not None and not (
         chosen_dist is not None
         and chosen_dist.split(":", 1)[0] in _DIST_PREFIXES_IGNORE_DTYPE
