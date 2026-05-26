@@ -2067,55 +2067,76 @@ def _load_resolver_verdicts() -> dict[str, dict]:
     # ``_writeback_fresh_verdict`` rewrite between the parse and a
     # post-parse re-read can no longer bind content-A verdicts under a
     # content-B key).
-    verdicts, staleness, snap = rue.load_resolver_cache(
-        RESOLVE_CACHE, return_snapshot=True
-    )
+    accept_stale = os.environ.get("PA_ACCEPT_STALE_CACHE") == "1"
+    try:
+        verdicts, staleness, snap = rue.load_resolver_cache(
+            RESOLVE_CACHE, return_snapshot=True
+        )
+    except StaleResolverCacheError:
+        if not accept_stale:
+            raise
+        # Per-invocation human bypass (--accept-stale-cache): live
+        # infer/ failed the fail-closed check. We honor the human's
+        # explicit acceptance and return an empty verdict dict; status
+        # rendering then falls back to per-task scanning. The user's
+        # --task X kernel still runs fresh against current infer/.
+        verdicts, staleness, snap = [], "infer-state-bypassed", None
 
     if staleness is not None:
-        # The cache cannot be trusted (predates a resolver/anchor/runner
-        # /honest-category change, or carries no provenance). NEVER
-        # silently consume it.
-        if os.environ.get("PA_NO_CACHE_REGEN") == "1":
+        if accept_stale:
+            # Per-invocation human bypass (PA_ACCEPT_STALE_CACHE=1 set
+            # by --accept-stale-cache). Skip both the raise and the
+            # full auto-regen sweep; use the (possibly stale) verdicts
+            # AS-IS for status rendering. The --task X kernel run path
+            # is unaffected; it executes fresh against the current
+            # infer/ checkout. Status rows for OTHER tasks may reflect
+            # older verdicts -- the human accepted that trade-off.
+            pass  # fall through to the out-dict builder below
+        elif os.environ.get("PA_NO_CACHE_REGEN") == "1":
+            # The cache cannot be trusted (predates a resolver/anchor/
+            # runner /honest-category change, or carries no provenance).
+            # NEVER silently consume it.
             raise StaleResolverCacheError(
                 f"stale/missing resolver cache ({staleness}) at "
                 f"{RESOLVE_CACHE} and auto-regeneration is disabled "
                 f"(PA_NO_CACHE_REGEN=1). Run: python3 "
                 f"scripts/resolve_upstream_entrypoints.py --refresh-cache"
             )
-        try:
-            # Auto-regenerate under the CURRENT code -- the full
-            # GPU-free sweep (the SAME work as --refresh-cache), then
-            # re-validate so we only ever proceed on a FRESH artifact.
-            res = rue.run_resolver(
-                None, True, False, None, False
-            )
-            rue.write_resolver_cache(RESOLVE_CACHE, res)
-            # codex r12 MUST-FIX [confirmed] -- on a true MISS/regen the
-            # NEW memo key is derived from a FRESH single-read snapshot
-            # of the JUST-WRITTEN file (this one ``load_resolver_cache``
-            # reads it once, hashes+parses+validates+snapshots from
-            # those exact bytes). Still single-snapshot, no split.
-            verdicts, staleness2, snap = rue.load_resolver_cache(
-                RESOLVE_CACHE, return_snapshot=True
-            )
-            if staleness2 is not None:
-                raise StaleResolverCacheError(
-                    f"resolver cache still {staleness2} AFTER an "
-                    f"in-process regeneration at {RESOLVE_CACHE} -- "
-                    f"refusing to consume an unvalidated cache. Run: "
-                    f"python3 scripts/resolve_upstream_entrypoints.py "
-                    f"--refresh-cache"
+        else:
+            try:
+                # Auto-regenerate under the CURRENT code -- the full
+                # GPU-free sweep (the SAME work as --refresh-cache), then
+                # re-validate so we only ever proceed on a FRESH artifact.
+                res = rue.run_resolver(
+                    None, True, False, None, False
                 )
-        except StaleResolverCacheError:
-            raise
-        except Exception as e:  # regen itself failed -> hard-fail
-            raise StaleResolverCacheError(
-                f"stale/missing resolver cache ({staleness}) at "
-                f"{RESOLVE_CACHE} and in-process auto-regeneration "
-                f"FAILED ({type(e).__name__}: {e}). Run: python3 "
-                f"scripts/resolve_upstream_entrypoints.py "
-                f"--refresh-cache"
-            ) from e
+                rue.write_resolver_cache(RESOLVE_CACHE, res)
+                # codex r12 MUST-FIX [confirmed] -- on a true MISS/regen the
+                # NEW memo key is derived from a FRESH single-read snapshot
+                # of the JUST-WRITTEN file (this one ``load_resolver_cache``
+                # reads it once, hashes+parses+validates+snapshots from
+                # those exact bytes). Still single-snapshot, no split.
+                verdicts, staleness2, snap = rue.load_resolver_cache(
+                    RESOLVE_CACHE, return_snapshot=True
+                )
+                if staleness2 is not None:
+                    raise StaleResolverCacheError(
+                        f"resolver cache still {staleness2} AFTER an "
+                        f"in-process regeneration at {RESOLVE_CACHE} -- "
+                        f"refusing to consume an unvalidated cache. Run: "
+                        f"python3 scripts/resolve_upstream_entrypoints.py "
+                        f"--refresh-cache"
+                    )
+            except StaleResolverCacheError:
+                raise
+            except Exception as e:  # regen itself failed -> hard-fail
+                raise StaleResolverCacheError(
+                    f"stale/missing resolver cache ({staleness}) at "
+                    f"{RESOLVE_CACHE} and in-process auto-regeneration "
+                    f"FAILED ({type(e).__name__}: {e}). Run: python3 "
+                    f"scripts/resolve_upstream_entrypoints.py "
+                    f"--refresh-cache"
+                ) from e
 
     out: dict[str, dict] = {}
     for r in verdicts:
@@ -3707,6 +3728,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--task", help="restrict to one task id")
     ap.add_argument(
+        "--accept-stale-cache",
+        action="store_true",
+        help="(per-invocation human override) when the resolver cache is "
+        "STALE relative to the live infer/ checkout, do NOT auto-regenerate "
+        "the full GPU-free sweep -- use the stale verdicts AS-IS only for "
+        "status report rendering. The --task X kernel still executes fresh "
+        "against the current infer/. Use this when you know infer/ is pinned "
+        "to the expected commit and you only need to run a small subset of "
+        "tasks without paying the full --refresh-cache cost. Status rows for "
+        "OTHER tasks may reflect older verdicts.",
+    )
+    ap.add_argument(
         "--resolve-entrypoint",
         action="store_true",
         help="Phase A' prerequisite: resolve the real upstream "
@@ -3730,6 +3763,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if getattr(args, "accept_stale_cache", False):
+        # Translate the CLI flag into the env var the loader reads.
+        # Set here, BEFORE any code path imports / triggers the loader.
+        os.environ["PA_ACCEPT_STALE_CACHE"] = "1"
     if not VLLM_ROOT.is_dir() or not SGLANG_ROOT.is_dir():
         print(
             f"warning: infer roots missing ({VLLM_ROOT} / {SGLANG_ROOT}); "
