@@ -40,5 +40,7 @@ def run(inputs: dict) -> dict:
     return {
         "logits": _apply_min_p(
             inputs["logits"], inputs["expanded_idx_mapping"], inputs["min_p"]
-        )
+        ),
+        "expanded_idx_mapping": inputs["expanded_idx_mapping"],
+        "min_p": inputs["min_p"],
     }

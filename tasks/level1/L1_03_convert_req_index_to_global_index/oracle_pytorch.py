@@ -40,6 +40,6 @@ def run(inputs: dict) -> dict:
     return {
         "out": _convert_req_index_to_global_index(
             inputs["req_id"], inputs["block_table"],
-            inputs["token_indices"], int(inputs["block_size"]),
+            inputs["token_indices"], int(inputs["BLOCK_SIZE"]),
         )
     }
