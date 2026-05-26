@@ -1,0 +1,97 @@
+"""Phase A' standalone shim package.
+
+When Phase A' rewrites a task's ``kernel.py`` to standalone form
+(plan U5), references to non-numeric vllm / sglang helpers (loggers,
+platform queries, dtype constants, pure predicates) are redirected to
+the stubs below. The rewriter knows about each by name; severing the
+real upstream import is the goal -- the shim provides the SAME
+runtime values that the upstream code returned on the bench's target
+class (CUDA / Ascend NPU, which are operationally equivalent for the
+queries below).
+
+Invariants:
+- Every stub MUST return the same value the upstream returned on the
+  target class. Anything platform-specific that diverges between
+  CUDA / NPU is documented inline.
+- Numeric/algorithmic logic in kernel.py NEVER calls these stubs in
+  a way that would change kernel output -- they are configuration
+  predicates / dtype constants the kernel reads BEFORE the compute
+  path, not values mixed into the math.
+"""
+from __future__ import annotations
+
+import torch
+
+
+def init_logger(name: str = ""):
+    """Inert no-op logger sink. Upstream returns a stdlib-logger-like
+    object; bench's frozen kernel.py never emits at PASS-relevant
+    severity, so a silent stub is correct for both CUDA and NPU."""
+
+    class _Silent:
+        def info(self, *a, **kw): pass
+        def warning(self, *a, **kw): pass
+        def error(self, *a, **kw): pass
+        def debug(self, *a, **kw): pass
+        def critical(self, *a, **kw): pass
+
+    return _Silent()
+
+
+class _CurrentPlatformStub:
+    """Stub for ``vllm.platforms.current_platform`` queries the bench's
+    target classes (CUDA / NPU) answer deterministically.
+
+    - is_rocm(): bench targets NVIDIA CUDA and Ascend NPU, neither is AMD ROCm
+    - is_xpu(): same, neither is Intel XPU
+    - is_fp8_fnuz(): only ROCm + fnuz fp8 variant; both target classes are False
+    - fp8_dtype(): NVIDIA / Ascend both default to ``torch.float8_e4m3fn``
+    - num_compute_units(): NPU has a real implementation at runtime; this
+      stub returns a representative value (128) used only when the host
+      wrapper sizes a grid -- the value affects throughput, not numeric
+      output.
+    """
+
+    @staticmethod
+    def is_rocm() -> bool:
+        return False
+
+    @staticmethod
+    def is_xpu() -> bool:
+        return False
+
+    @staticmethod
+    def is_fp8_fnuz() -> bool:
+        return False
+
+    @staticmethod
+    def fp8_dtype() -> torch.dtype:
+        return torch.float8_e4m3fn
+
+    @staticmethod
+    def num_compute_units(device_id: int = 0) -> int:
+        return 128
+
+
+current_platform = _CurrentPlatformStub()
+
+
+def is_quantized_kv_cache(kv_cache_dtype: str) -> bool:
+    """Verbatim from vllm/utils/torch_utils.py -- pure string predicate,
+    no platform branching."""
+    return (
+        kv_cache_dtype.startswith("fp8")
+        or kv_cache_dtype.endswith("per_token_head")
+        or kv_cache_dtype == "nvfp4"
+    )
+
+
+# Quant utilities the upstream module re-exports.
+FP8_DTYPE: torch.dtype = torch.float8_e4m3fn
+
+
+def get_fp8_min_max() -> tuple[float, float]:
+    """Verbatim from vllm/model_executor/layers/quantization/utils/quant_utils.py
+    for the non-ROCm path (is_fp8_fnuz() is False on bench target classes)."""
+    finfo = torch.finfo(torch.float8_e4m3fn)
+    return finfo.min, finfo.max

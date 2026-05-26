@@ -3261,6 +3261,7 @@ def rewrite_imports_to_standalone(
     failure)."""
     lines = src.splitlines(keepends=True)
     out: list[str] = []
+    in_multiline_import = False
     for ln in lines:
         stripped = ln.strip()
         if stripped.startswith("from vllm.triton_utils import") or (
@@ -3284,6 +3285,48 @@ def rewrite_imports_to_standalone(
                 f"{indent}from tasks._frozen_shim import init_logger"
                 f"  # Phase A': inert no-op sink (B-inert-shim)\n"
             )
+            continue
+        # B-inert-shim: platform / dtype / pure-predicate helpers whose
+        # value is deterministic on bench target classes (CUDA + NPU).
+        # The shim exports them so the severed kernel can compile + run
+        # standalone without re-importing vllm/sglang.
+        if stripped.startswith("from vllm.platforms import current_platform"):
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import current_platform"
+                f"  # Phase A': platform stub (B-inert-shim)\n"
+            )
+            continue
+        if stripped.startswith("from vllm.utils.torch_utils import is_quantized_kv_cache"):
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import is_quantized_kv_cache"
+                f"  # Phase A': pure predicate (B-inert-shim)\n"
+            )
+            continue
+        if stripped.startswith("from vllm.model_executor.layers.quantization.utils.quant_utils import"):
+            # The kernel only imports FP8_DTYPE + get_fp8_min_max from
+            # this module; both are deterministic on target classes
+            # (the upstream definitions evaluate current_platform once
+            # at import time -- the shim freezes the CUDA-class value).
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import FP8_DTYPE, get_fp8_min_max"
+                f"  # Phase A': quant constants (B-inert-shim)\n"
+            )
+            # Skip any continuation lines of the multi-line import (the
+            # original ``import (A, B,)`` form spans multiple lines).
+            # We have to consume them: their indentation level is
+            # greater than the import line's, ending at the closing ')'.
+            # Done in the outer loop by detecting and skipping them.
+            in_multiline_import = True
+            continue
+        # If we're consuming continuation lines of a multi-line import
+        # we just rewrote, drop them until we hit the closing ')' on a
+        # line by itself.
+        if in_multiline_import:
+            if ")" in stripped:
+                in_multiline_import = False
             continue
         out.append(ln)
     return "".join(out)
