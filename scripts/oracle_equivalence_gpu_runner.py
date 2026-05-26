@@ -35,7 +35,33 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench.tolerance import ToleranceClass, compare  # noqa: E402
+from triton_ascend_bench.tolerance import (  # noqa: E402
+    ToleranceClass,
+    compare,
+    load_policy,
+)
+
+
+_TOLERANCE_CACHE: dict[str, ToleranceClass] | None = None
+
+
+def _tolerance_for(name: str) -> ToleranceClass:
+    """Lookup ToleranceClass by name from the global policy file."""
+    global _TOLERANCE_CACHE
+    if _TOLERANCE_CACHE is None:
+        _TOLERANCE_CACHE = load_policy()
+    if name in _TOLERANCE_CACHE:
+        return _TOLERANCE_CACHE[name]
+    # fallback: use a permissive default if the task's tolerance_class is
+    # missing from the policy (shouldn't happen but fail-safe)
+    log.warning(
+        "tolerance_class %r not in tolerance_policy.yaml; using vector_reduce",
+        name,
+    )
+    return _TOLERANCE_CACHE.get(
+        "vector_reduce",
+        ToleranceClass(name="fallback", atol=1e-3, rtol=1e-3),
+    )
 
 
 logging.basicConfig(
@@ -65,14 +91,74 @@ class TaskVerdict:
     elapsed_s: float = 0.0
 
 
-def _resolve_kernel_entrypoint(meta: dict, kernel_path: Path, task_id: str) -> str | None:
-    """Mirror logic in oracle_pyref_precompute.py for consistency."""
+def _kernel_has_function(kernel_path: Path, fn_name: str) -> bool:
+    """Quick AST check: does kernel.py have a module-level def for fn_name?"""
+    try:
+        tree = ast.parse(kernel_path.read_text())
+    except (OSError, SyntaxError):
+        return False
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == fn_name
+        ):
+            return True
+    return False
+
+
+def _enumerate_non_jit_module_defs(kernel_path: Path) -> list[tuple[str, list[str]]]:
+    """Mirror of oracle_pyref_precompute.py helper: non-jit module-level
+    defs with their required params, for AST-based wrapper selection."""
+    if not kernel_path.exists():
+        return []
+    try:
+        tree = ast.parse(kernel_path.read_text())
+    except SyntaxError:
+        return []
+    out: list[tuple[str, list[str]]] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        is_jit = False
+        for dec in node.decorator_list:
+            src = ast.unparse(dec)
+            if (
+                "triton.jit" in src
+                or "triton.heuristics" in src
+                or "triton.autotune" in src
+            ):
+                is_jit = True
+                break
+        if is_jit:
+            continue
+        args = [a.arg for a in node.args.args]
+        defaults = node.args.defaults
+        n_req = len(args) - len(defaults)
+        req = args[:n_req]
+        if req and req[0] == "self":
+            req = req[1:]
+        out.append((node.name, req))
+    return out
+
+
+def _resolve_kernel_entrypoint(
+    meta: dict,
+    kernel_path: Path,
+    task_id: str,
+    oracle_input_keys: list[str] | None = None,
+) -> str | None:
+    """Mirror logic in oracle_pyref_precompute.py for consistency.
+
+    Preference: meta.oracle.gpu_triton -> results/resolve_all.json tried[0]
+    -> AST-based wrapper auto-detection (max-jaccard with oracle inputs)
+    -> pattern variants -> raw meta.name fallback.
+    """
     gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
     if isinstance(gpu_triton, str) and "::" in gpu_triton:
         _, _, fn = gpu_triton.partition("::")
         if fn and fn != "placeholder":
             return fn
-    # Load resolve cache
+    # Load resolve cache (gitignored;may be absent on GPU host)
     rj = REPO_ROOT / "results" / "resolve_all.json"
     if rj.exists():
         try:
@@ -80,14 +166,55 @@ def _resolve_kernel_entrypoint(meta: dict, kernel_path: Path, task_id: str) -> s
             for v in d.get("verdicts", []):
                 if v.get("task_id") == task_id:
                     tried = v.get("tried") or []
-                    if tried:
+                    if tried and _kernel_has_function(kernel_path, tried[0]):
                         return tried[0]
+                    break
         except Exception:
             pass
-    meta_name = meta.get("name", "")
-    if meta_name.endswith("_kernel"):
-        meta_name = meta_name[:-len("_kernel")].lstrip("_")
-    return meta_name or None
+
+    # AST-based auto-detection: pick non-jit def with highest jaccard overlap
+    if oracle_input_keys:
+        oracle_set = set(oracle_input_keys)
+        non_jit = _enumerate_non_jit_module_defs(kernel_path)
+        scored: list[tuple[float, str]] = []
+        for name, req in non_jit:
+            if not req:
+                continue
+            req_set = set(req)
+            inter = len(oracle_set & req_set)
+            union = len(oracle_set | req_set)
+            if union == 0:
+                continue
+            jaccard = inter / union
+            subset_bonus = 0.2 if req_set.issubset(oracle_set) else 0.0
+            scored.append((jaccard + subset_bonus, name))
+        scored.sort(reverse=True)
+        if scored and scored[0][0] >= 0.3:
+            return scored[0][1]
+
+    meta_name = meta.get("name", "") or ""
+    if not meta_name:
+        return None
+    base = meta_name
+    if base.endswith("_kernel"):
+        base = base[: -len("_kernel")]
+    base = base.lstrip("_")
+    pattern_candidates = [
+        base,
+        f"triton_{base}",
+        f"{base}_triton",
+        f"{base}_fast",
+        f"{base}_paged",
+        meta_name,
+    ]
+    seen: set[str] = set()
+    for cand in pattern_candidates:
+        if not cand or cand in seen:
+            continue
+        seen.add(cand)
+        if _kernel_has_function(kernel_path, cand):
+            return cand
+    return meta_name
 
 
 def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):
@@ -147,7 +274,21 @@ def _verify_one_task(
 
     meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
     kernel_path = task_dir / "kernel.py"
-    fn_name = _resolve_kernel_entrypoint(meta, kernel_path, task_id)
+
+    # Read oracle's `inputs[...]` keys for AST-based wrapper auto-detect
+    oracle_input_keys: list[str] = []
+    oracle_path = task_dir / "oracle_pytorch.py"
+    if oracle_path.exists():
+        import re as _re
+        src = oracle_path.read_text()
+        oracle_input_keys = sorted(
+            set(_re.findall(r'inputs\[["\']([^"\']+)["\']\]', src))
+            | set(_re.findall(r'inputs\.get\(["\']([^"\']+)["\']', src))
+        )
+
+    fn_name = _resolve_kernel_entrypoint(
+        meta, kernel_path, task_id, oracle_input_keys=oracle_input_keys
+    )
     if not fn_name:
         verdict.overall = "LAUNCH_BLOCKED"
         log.info("  %s: cannot resolve kernel entrypoint", task_id)
@@ -163,7 +304,7 @@ def _verify_one_task(
         return verdict
 
     tolerance_class_name = meta.get("tolerance_class", "vector_reduce")
-    tol = ToleranceClass.from_name(tolerance_class_name)
+    tol = _tolerance_for(tolerance_class_name)
 
     n_verified = 0
     n_failed = 0

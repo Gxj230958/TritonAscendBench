@@ -168,14 +168,59 @@ def _load_resolve_tried_map() -> dict[str, list[str]]:
     return _RESOLVE_CACHE
 
 
+def _enumerate_non_jit_module_defs(kernel_path: Path) -> list[tuple[str, list[str]]]:
+    """List (name, required_params) for every module-level def in kernel.py
+    that is NOT decorated with ``@triton.jit`` / ``@triton.heuristics`` /
+    ``@triton.autotune``. These are candidate host wrappers (jit kernels
+    have ptr/stride args and won't align with the oracle's tensor-level
+    inputs)."""
+    if not kernel_path.exists():
+        return []
+    try:
+        tree = ast.parse(kernel_path.read_text())
+    except SyntaxError:
+        return []
+    out: list[tuple[str, list[str]]] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        is_jit = False
+        for dec in node.decorator_list:
+            src = ast.unparse(dec)
+            if "triton.jit" in src or "triton.heuristics" in src or "triton.autotune" in src:
+                is_jit = True
+                break
+        if is_jit:
+            continue
+        args = [a.arg for a in node.args.args]
+        defaults = node.args.defaults
+        n_req = len(args) - len(defaults)
+        req = args[:n_req]
+        if req and req[0] == "self":
+            req = req[1:]
+        out.append((node.name, req))
+    return out
+
+
 def _resolve_kernel_entrypoint(
-    meta: dict, kernel_path: Path, task_id: str
+    meta: dict,
+    kernel_path: Path,
+    task_id: str,
+    oracle_input_keys: list[str] | None = None,
 ) -> str | None:
-    """Find host wrapper. Preference order:
-      1) meta.oracle.gpu_triton parsed as `kernel.py::<name>` if not 'placeholder'
-      2) resolver's tried[0] from results/resolve_all.json
-      3) meta.name stripped of `_kernel` suffix or `_` prefix
-      4) first non-underscored module-level def in kernel.py
+    """Find host wrapper for the upstream kernel. Preference order:
+
+    1. ``meta.oracle.gpu_triton`` parsed as ``kernel.py::<name>`` if not
+       ``placeholder`` (the resolver-written verified entrypoint).
+    2. ``results/resolve_all.json`` ``tried[0]`` cache if present (dev
+       machine only; .gitignored, never on a fresh GPU host).
+    3. **AST-based wrapper auto-detection**: scan all non-``@triton.jit``
+       module-level defs in kernel.py, pick the one whose required-param
+       set has the highest Jaccard overlap with the oracle's input keys.
+       This handles wrappers whose name does not derive predictably from
+       ``meta.name`` (e.g. ``_topk_log_softmax_kernel`` → ``compute_token_logprobs``,
+       ``bmm_kernel`` → ``bmm_batch_invariant``).
+    4. Pattern fallback from ``meta.name`` (last resort).
     """
     gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
     if isinstance(gpu_triton, str) and "::" in gpu_triton:
@@ -184,20 +229,55 @@ def _resolve_kernel_entrypoint(
             return fn
     tried_map = _load_resolve_tried_map()
     if task_id in tried_map and tried_map[task_id]:
-        return tried_map[task_id][0]
+        candidate = tried_map[task_id][0]
+        if _kernel_entrypoint_signature(kernel_path, candidate) is not None:
+            return candidate
+
+    # AST-based auto-detection: pick the non-jit def whose required-param
+    # set most overlaps oracle's input keys.
+    if oracle_input_keys:
+        oracle_set = set(oracle_input_keys)
+        non_jit = _enumerate_non_jit_module_defs(kernel_path)
+        scored: list[tuple[float, str]] = []
+        for name, req in non_jit:
+            if not req:
+                continue
+            req_set = set(req)
+            inter = len(oracle_set & req_set)
+            union = len(oracle_set | req_set)
+            if union == 0:
+                continue
+            jaccard = inter / union
+            # Bonus: prefer wrappers whose required params are subset of oracle inputs
+            subset_bonus = 0.2 if req_set.issubset(oracle_set) else 0.0
+            scored.append((jaccard + subset_bonus, name))
+        scored.sort(reverse=True)
+        if scored and scored[0][0] >= 0.3:
+            return scored[0][1]
+
     meta_name = meta.get("name")
-    if isinstance(meta_name, str) and meta_name:
-        candidate = meta_name
-        if candidate.endswith("_kernel"):
-            candidate = candidate[: -len("_kernel")]
-        candidate = candidate.lstrip("_")
-        if candidate and candidate != meta_name:
-            # Verify the stripped name actually exists in kernel.py
-            sig = _kernel_entrypoint_signature(kernel_path, candidate)
-            if sig is not None:
-                return candidate
-        return meta_name
-    return None
+    if not (isinstance(meta_name, str) and meta_name):
+        return None
+    base = meta_name
+    if base.endswith("_kernel"):
+        base = base[: -len("_kernel")]
+    base = base.lstrip("_")
+    pattern_candidates = [
+        base,
+        f"triton_{base}",
+        f"{base}_triton",
+        f"{base}_fast",
+        f"{base}_paged",
+        meta_name,
+    ]
+    seen: set[str] = set()
+    for cand in pattern_candidates:
+        if not cand or cand in seen:
+            continue
+        seen.add(cand)
+        if _kernel_entrypoint_signature(kernel_path, cand) is not None:
+            return cand
+    return meta_name
 
 
 def _audit_task(task_dir: Path) -> TaskAudit:
@@ -221,7 +301,9 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         oracle_path
     )
 
-    fn_name = _resolve_kernel_entrypoint(meta, kernel_path, task_id)
+    fn_name = _resolve_kernel_entrypoint(
+        meta, kernel_path, task_id, oracle_input_keys=audit.oracle_input_keys
+    )
     if not fn_name:
         audit.status = "KERNEL_PARSE_ERROR"
         audit.runtime_error = "could not resolve kernel entrypoint from meta"
