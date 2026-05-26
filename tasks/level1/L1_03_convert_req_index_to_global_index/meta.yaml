@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::triton_convert_req_index_to_global_index
 tolerance_class: vector_reduce
 cost_model:
   # Symbol audit (approach §3.4). Pure integer index conversion: for each of

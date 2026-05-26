@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::apply_min_p
 tolerance_class: sampling_rng
 cost_model:
   # Symbol audit (approach §3.4). min-p filter: per row softmax over the vocab,
