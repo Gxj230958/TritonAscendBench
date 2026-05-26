@@ -141,7 +141,9 @@ _CONVENTIONS: dict[str, tuple[str | None, tuple[str, ...] | str, str | None]] = 
     "query_start_loc":    ("int32",   ("BP1",), None),   # cu_seqlens-style offsets (uses _NAME_TO_DEFAULT_DIST if added)
     "target_logits":      ("float16", ("B", "V"), "randn"),  # rejection sampling target
     "sampled_token_ids":  ("int32",   ("B",), "randint:0:V"),
-    "topk_weights":       ("float32", ("BN", "K"), "rand"),  # MoE routing weights
+    # topk_weights deliberately NOT in conventions: it must align with
+    # topk_ids.size() per task, which varies (e.g. L1_28 has topk_ids on
+    # [B, D], no K knob); a global rule would silently mismatch.
     # cu_chunk_seqlens deliberately NOT in conventions: chunk axis differs
     # per task (e.g. L2_02 chunks on B, L2_03 chunks on C), so a global
     # dims/cap rule would be wrong. Per-task patch via LLM or manual edit.

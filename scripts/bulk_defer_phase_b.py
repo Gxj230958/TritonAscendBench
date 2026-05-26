@@ -156,11 +156,13 @@ def _classify(verdict: dict) -> tuple[str, str]:
                 "where the authoritative caller pins non-zero values.",
             )
         # Fallback: surface the first exception type so the meta reason
-        # is not a generic 'device-specific helper' blanket.
-        et = re.search(
-            r"by-name bind failed: (\w+Error)\b",
-            reason,
-        )
+        # is not a generic 'device-specific helper' blanket. The reason
+        # text usually wraps the upstream exception in square brackets:
+        # ``upstream-not-invocable-here [AttributeError: ...]``; try that
+        # form first, then the older ``by-name bind failed: ExcType`` form.
+        et = re.search(r"upstream-not-invocable-here \[(\w+Error)\b", reason)
+        if not et:
+            et = re.search(r"by-name bind failed: (\w+Error)\b", reason)
         exc = et.group(1) if et else "an unhandled exception"
         return (
             "upstream-not-invocable",
