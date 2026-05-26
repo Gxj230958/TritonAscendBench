@@ -1076,3 +1076,38 @@ def test_conf_example_has_cli_cmd_compare_table():
     )
     # And the placeholder must be documented as a required token.
     assert "{prompt}" in text
+
+
+def test_quickstart_md_documents_pass_all_workflow():
+    """Quickstart md must document the 4 new release-gate subcommands
+    (goldens / verify-all / release-gate / pass-all) in its TL;DR
+    section AND in the per-command machine target table.
+
+    This guards the doc contract: an operator opening the quickstart md
+    must immediately see all 11 tab_quickstart subcommands (7 acceptance
+    gate + 4 release gate), not just the original 7.
+    """
+    text = _QUICKSTART_MD.read_text(encoding="utf-8")
+
+    # 14a. TL;DR block must list all 4 release-gate subcommands.
+    tldr_idx = text.find("TL;DR")
+    assert tldr_idx >= 0, "TL;DR header not found"
+    rest = text[tldr_idx:]
+    next_h = rest.find("\n## ", 1)
+    tldr_block = rest[:next_h] if next_h > 0 else rest
+    for sub in ("goldens", "verify-all", "release-gate", "pass-all"):
+        assert sub in tldr_block, (
+            f"TL;DR block must enumerate the '{sub}' release-gate subcommand"
+        )
+
+    # 14b. Machine target table must annotate each new subcommand. The
+    # table header is anchored on '哪条命令在哪台机器跑'.
+    table_idx = text.find("哪条命令在哪台机器跑")
+    assert table_idx > 0, "machine target table heading not found"
+    table_rest = text[table_idx:]
+    table_end = table_rest.find("\n## ", 1)
+    table_block = table_rest[:table_end] if table_end > 0 else table_rest
+    for sub in ("goldens", "verify-all", "release-gate", "pass-all"):
+        assert sub in table_block, (
+            f"machine target table must list '{sub}'"
+        )

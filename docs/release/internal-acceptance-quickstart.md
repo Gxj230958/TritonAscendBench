@@ -33,6 +33,12 @@ bash scripts/automation/runners/tab_quickstart.sh smoke       # [B] Phase 1 (~30
 bash scripts/automation/runners/tab_quickstart.sh full        # [B] Phase all (~2-4 hr)
 bash scripts/automation/runners/tab_quickstart.sh status      # [A or B] 看进度
 bash scripts/automation/runners/tab_quickstart.sh clean       # [A or B] 重跑前清
+
+# 3. Release-gate 子命令(GPU 机 A 上跑,不需 LLM)
+bash scripts/automation/runners/tab_quickstart.sh goldens      # [A] phase B golden capture
+bash scripts/automation/runners/tab_quickstart.sh verify-all   # [A] phase A' --tier all
+bash scripts/automation/runners/tab_quickstart.sh release-gate # [A] validate_tasks --release-gate
+bash scripts/automation/runners/tab_quickstart.sh pass-all     # [A] 一键 fail-fast: goldens -> verify-all -> release-gate
 ```
 
 变量优先级 `env > conf file > defaults`,也可以临时 `TAB_GPFS_ROOT=/x bash ... status` 覆盖。
@@ -62,6 +68,10 @@ bash scripts/automation/runners/tab_quickstart.sh clean       # [A or B] 重跑�
 | `tab_quickstart.sh verify-c` | — | ✓(从 B ssh 到 C 验)| — |
 | `tab_quickstart.sh resolve` | ✓(GPU 解析) | — | — |
 | `tab_quickstart.sh smoke / full` | — | ✓(orchestrator)| — |
+| `tab_quickstart.sh goldens` | ✓(GPU 采 golden) | — | — |
+| `tab_quickstart.sh verify-all` | ✓(GPU S2 验证) | — | — |
+| `tab_quickstart.sh release-gate` | ✓(静态校验) | — | — |
+| `tab_quickstart.sh pass-all` | ✓(三步链) | — | — |
 | `tab_quickstart.sh status / clean / help` | 任意 | 任意 | — |
 | `setup_machine_a_gpu.sh` | ✓ | — | — |
 | `setup_machine_b_cpu.sh` | — | ✓ | — |

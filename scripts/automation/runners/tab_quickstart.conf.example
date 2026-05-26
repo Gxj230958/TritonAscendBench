@@ -13,6 +13,17 @@
 #   three-machine separated:        A=GPU bench, B=CPU orchestrator, C=LLM CLI host
 # See tab_quickstart.sh help for per-subcommand "Runs on" target.
 #
+# Subcommand groups:
+#   Acceptance gate (LLM loop, operator-driven):
+#     setup verify-c resolve smoke full
+#   Release gate (GPU host, no LLM):
+#     goldens         -- phase_b_golden_capture.py --all
+#     verify-all      -- phase_a_prime.py --run --tier <T0|T1|T2|T3|all>
+#     release-gate    -- validate_tasks.py --release-gate
+#     pass-all        -- goldens -> verify-all -> release-gate (fail-fast)
+#   Read-only / housekeeping:
+#     status clean help
+#
 # All variables are bash-style KEY="value"; sourced before subcommand
 # dispatch. Comments must start with '#'.
 

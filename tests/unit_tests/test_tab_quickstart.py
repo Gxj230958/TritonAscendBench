@@ -966,3 +966,451 @@ def test_gitignore_contains_tab_quickstart_conf_rules():
     assert ".tab-quickstart.conf" in lines, (
         ".gitignore must list '.tab-quickstart.conf' (legacy name, any dir)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 14. Release-gate subcommands (goldens / verify-all / release-gate / pass-all)
+#
+# These subcommands wrap three repo-local python producers:
+#   phase_b_golden_capture.py --all
+#   phase_a_prime.py --run --tier <tier>
+#   validate_tasks.py --release-gate
+#
+# To test them in isolation we stand up a *stub* bench repo under tmp_path
+# whose ``scripts/<producer>.py`` files just record argv as JSON lines.
+# The wrapper picks the stub via TAB_BENCH_REPO env (set per-test); no
+# real GPU / NPZ / corpus is touched.
+# ---------------------------------------------------------------------------
+
+
+def _stub_python_script(
+    path: Path, recorder_log: Path, exit_rc: int = 0
+) -> None:
+    """Drop a stub python producer that records argv + exits ``exit_rc``."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = textwrap.dedent(
+        f"""\
+        import json, pathlib, sys
+        pathlib.Path({str(recorder_log)!r}).open("a").write(
+            json.dumps({{"script": sys.argv[0], "argv": sys.argv[1:]}}) + "\\n"
+        )
+        sys.exit({exit_rc})
+        """
+    )
+    path.write_text(body, encoding="utf-8")
+
+
+def _stub_bench_repo(
+    tmp_path: Path,
+    runner_log: Path,
+    *,
+    phase_b_present: bool = True,
+    goldens_rc: int = 0,
+    verify_rc: int = 0,
+    release_gate_rc: int = 0,
+) -> Path:
+    """Build a stub bench repo with stub python producers + at least one
+    ``meta.yaml`` carrying ``phase_b_capture_required: true`` so the
+    goldens sanity grep finds something to capture (unless
+    ``phase_b_present=False`` -- the warn-when-no-tasks path).
+
+    Returns the stub repo root; tests point TAB_BENCH_REPO at it.
+    """
+    repo = tmp_path / "stub_bench"
+    (repo / "scripts").mkdir(parents=True, exist_ok=True)
+    _stub_python_script(
+        repo / "scripts" / "phase_b_golden_capture.py",
+        runner_log,
+        exit_rc=goldens_rc,
+    )
+    _stub_python_script(
+        repo / "scripts" / "phase_a_prime.py",
+        runner_log,
+        exit_rc=verify_rc,
+    )
+    _stub_python_script(
+        repo / "scripts" / "validate_tasks.py",
+        runner_log,
+        exit_rc=release_gate_rc,
+    )
+
+    # Plant a meta.yaml the cmd_goldens sanity grep can find.
+    if phase_b_present:
+        meta_dir = repo / "tasks" / "level1" / "L1_stub_task"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / "meta.yaml").write_text(
+            "phase_b_capture_required: true\n",
+            encoding="utf-8",
+        )
+
+    return repo
+
+
+# --- 14a. help / status surface checks for the 4 new subcommands -----------
+
+
+def test_goldens_subcommand_listed_in_help(harness):
+    """`help` must enumerate the new ``goldens`` subcommand."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    assert "goldens" in proc.stdout, (
+        "help must list 'goldens' subcommand"
+    )
+    # Anchored on a 'Runs on:' line so the machine target is explicit.
+    runs_on_lines = [
+        ln for ln in proc.stdout.splitlines() if "Runs on:" in ln
+    ]
+    assert any("goldens" in ln for ln in runs_on_lines), (
+        "'goldens' must appear on a 'Runs on:' line in help"
+    )
+
+
+def test_verify_all_subcommand_listed_in_help(harness):
+    """`help` must enumerate the new ``verify-all`` subcommand."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    assert "verify-all" in proc.stdout
+    runs_on_lines = [
+        ln for ln in proc.stdout.splitlines() if "Runs on:" in ln
+    ]
+    assert any("verify-all" in ln for ln in runs_on_lines), (
+        "'verify-all' must appear on a 'Runs on:' line in help"
+    )
+
+
+def test_release_gate_subcommand_listed_in_help(harness):
+    """`help` must enumerate the new ``release-gate`` subcommand."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    assert "release-gate" in proc.stdout
+    runs_on_lines = [
+        ln for ln in proc.stdout.splitlines() if "Runs on:" in ln
+    ]
+    assert any("release-gate" in ln for ln in runs_on_lines), (
+        "'release-gate' must appear on a 'Runs on:' line in help"
+    )
+
+
+def test_pass_all_subcommand_listed_in_help(harness):
+    """`help` must enumerate the new ``pass-all`` subcommand."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    assert "pass-all" in proc.stdout
+    runs_on_lines = [
+        ln for ln in proc.stdout.splitlines() if "Runs on:" in ln
+    ]
+    assert any("pass-all" in ln for ln in runs_on_lines), (
+        "'pass-all' must appear on a 'Runs on:' line in help"
+    )
+
+
+def test_help_lists_runs_on_per_subcommand_includes_new_four(harness):
+    """At least 11 lines (7 existing + 4 new) carry the 'Runs on:' marker."""
+    proc = _run(harness, "help", use_conf=False)
+    assert proc.returncode == 0, proc.stderr
+    runs_on_lines = [
+        ln for ln in proc.stdout.splitlines() if "Runs on:" in ln
+    ]
+    assert len(runs_on_lines) >= 11, (
+        f"help must annotate all 11 subcommands with 'Runs on:'; "
+        f"got {len(runs_on_lines)}:\n" + "\n".join(runs_on_lines)
+    )
+
+
+# --- 14b. behaviour: each subcommand actually invokes its producer ---------
+
+
+def test_goldens_calls_phase_b_golden_capture(harness, tmp_path):
+    """`goldens` must invoke ``scripts/phase_b_golden_capture.py --all``."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(harness, "goldens", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 1, f"expected one producer invocation, got: {rows}"
+    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
+    assert rows[0]["argv"] == ["--all"], rows[0]
+
+
+def test_goldens_forwards_dry_run_arg(harness, tmp_path):
+    """Extra args after `goldens` must forward verbatim to the producer."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "goldens", "--dry-run",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 1
+    assert rows[0]["argv"] == ["--all", "--dry-run"], rows[0]
+
+
+def test_verify_all_calls_phase_a_prime(harness, tmp_path):
+    """`verify-all` must invoke ``scripts/phase_a_prime.py --run --tier all``."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(harness, "verify-all", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 1, rows
+    assert rows[0]["script"].endswith("phase_a_prime.py"), rows[0]
+    assert rows[0]["argv"] == ["--run", "--tier", "all"], rows[0]
+
+
+def test_verify_all_accepts_explicit_tier(harness, tmp_path):
+    """`verify-all T2` must forward ``--tier T2`` to phase_a_prime."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "verify-all", "T2",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 1
+    assert rows[0]["argv"] == ["--run", "--tier", "T2"], rows[0]
+
+
+def test_verify_all_invalid_tier_fails_loud(harness, tmp_path):
+    """`verify-all T9` must fatal-exit (rc=2) with a clear message
+    and must NOT invoke phase_a_prime.py.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "verify-all", "T9",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "T0|T1|T2|T3|all" in proc.stderr
+    # And the producer must NOT have been invoked.
+    assert _read_argv_log(runner_log) == []
+
+
+def test_verify_all_rejects_extra_args(harness, tmp_path):
+    """`verify-all T2 --dry-run` must fatal (rc=2) instead of silently
+    dropping the extra arg. Guards a real footgun: phase_a_prime.py has
+    no `--dry-run`, so a silent drop would let an operator think they
+    were dry-running when in fact the producer is running for real.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "verify-all", "T2", "--dry-run",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "unexpected extra args" in proc.stderr
+    assert _read_argv_log(runner_log) == []
+
+
+def test_release_gate_calls_validate_tasks(harness, tmp_path):
+    """`release-gate` must invoke ``validate_tasks.py --release-gate``."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "release-gate",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 1, rows
+    assert rows[0]["script"].endswith("validate_tasks.py"), rows[0]
+    assert rows[0]["argv"] == ["--release-gate"], rows[0]
+
+
+def test_release_gate_failure_propagates(harness, tmp_path):
+    """A non-zero validate_tasks exit must surface as a `[fail]` rc=1."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log, release_gate_rc=3)
+    proc = _run(
+        harness, "release-gate",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 1, (proc.returncode, proc.stderr, proc.stdout)
+    assert "release-gate FAIL" in proc.stderr
+
+
+def test_release_gate_rejects_extra_args(harness, tmp_path):
+    """`release-gate --foo` must fatal (rc=2); the subcommand takes no
+    arguments and a silent drop would mask a typo.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "release-gate", "--foo",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 2, (proc.returncode, proc.stderr)
+    assert "unexpected extra args" in proc.stderr
+    assert _read_argv_log(runner_log) == []
+
+
+# --- 14c. pass-all chain + fail-fast ----------------------------------------
+
+
+def test_pass_all_chains_three_steps(harness, tmp_path):
+    """`pass-all` must invoke the three producers in order: goldens ->
+    verify-all -> release-gate.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(harness, "pass-all", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 3, f"expected 3 producer calls, got: {rows}"
+    # Order must be goldens -> verify-all -> release-gate.
+    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
+    assert rows[1]["script"].endswith("phase_a_prime.py"), rows[1]
+    assert rows[2]["script"].endswith("validate_tasks.py"), rows[2]
+    # And each got the expected argv.
+    assert rows[0]["argv"] == ["--all"], rows[0]
+    assert rows[1]["argv"] == ["--run", "--tier", "all"], rows[1]
+    assert rows[2]["argv"] == ["--release-gate"], rows[2]
+
+
+def test_pass_all_fail_fast_stops_after_goldens_failure(harness, tmp_path):
+    """If `goldens` fails, `pass-all` must NOT invoke verify-all or
+    release-gate. Verifies the fail-fast contract.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log, goldens_rc=7)
+    proc = _run(harness, "pass-all", env_extra={"TAB_BENCH_REPO": str(repo)})
+    # set -e + the `fail` helper turn a goldens failure into rc=1 here.
+    assert proc.returncode == 1, (proc.returncode, proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    # Exactly one producer invocation (the failed goldens); no follow-ons.
+    assert len(rows) == 1, f"fail-fast violated, got: {rows}"
+    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
+
+
+def test_pass_all_forwards_dry_run_to_goldens_only(harness, tmp_path):
+    """Args after `pass-all` forward to goldens; verify-all + release-gate
+    get no extra args even though pass-all received them.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "pass-all", "--dry-run",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    rows = _read_argv_log(runner_log)
+    assert len(rows) == 3
+    assert rows[0]["argv"] == ["--all", "--dry-run"], rows[0]
+    assert rows[1]["argv"] == ["--run", "--tier", "all"], rows[1]
+    assert rows[2]["argv"] == ["--release-gate"], rows[2]
+
+
+# --- 14d. log file landing --------------------------------------------------
+
+
+def test_goldens_writes_log_under_gpfs_logs(harness, tmp_path):
+    """`goldens` must write its log to $TAB_GPFS_ROOT/logs/phase_b_golden_*.log."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(harness, "goldens", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    logs = list((harness["gpfs"] / "logs").glob("phase_b_golden_*.log"))
+    assert len(logs) == 1, f"expected one phase_b_golden log file, got: {logs}"
+
+
+def test_verify_all_writes_log_under_gpfs_logs(harness, tmp_path):
+    """`verify-all` must write its log to $TAB_GPFS_ROOT/logs/phase_a_verify_*.log."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(harness, "verify-all", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    logs = list((harness["gpfs"] / "logs").glob("phase_a_verify_*.log"))
+    assert len(logs) == 1, f"expected one phase_a_verify log file, got: {logs}"
+
+
+def test_release_gate_writes_log_under_gpfs_logs(harness, tmp_path):
+    """`release-gate` must write its log to $TAB_GPFS_ROOT/logs/release_gate_*.log."""
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    proc = _run(
+        harness, "release-gate",
+        env_extra={"TAB_BENCH_REPO": str(repo)},
+    )
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    logs = list((harness["gpfs"] / "logs").glob("release_gate_*.log"))
+    assert len(logs) == 1, f"expected one release_gate log file, got: {logs}"
+
+
+# --- 14e. goldens warn-when-no-phase-b-required-tasks -----------------------
+
+
+def test_goldens_warns_when_no_phase_b_required_tasks(harness, tmp_path):
+    """If no task has ``phase_b_capture_required: true``, `goldens` must
+    warn and return rc=0 without invoking the producer.
+    """
+    runner_log = harness["runner_log"]
+    # phase_b_present=False -> no meta.yaml plants the required field.
+    repo = _stub_bench_repo(tmp_path, runner_log, phase_b_present=False)
+    proc = _run(harness, "goldens", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    # The warn line must surface to the operator. step / warn both go to
+    # stdout in the wrapper, so check the combined stream.
+    combined = proc.stdout + proc.stderr
+    assert "nothing to capture" in combined, combined
+    # And the producer must NOT have been invoked.
+    assert _read_argv_log(runner_log) == [], (
+        "phase_b_golden_capture.py must NOT run when zero tasks need capture"
+    )
+
+
+# --- 14f. status surfaces release-gate artefacts ----------------------------
+
+
+def test_status_reports_release_gate_artefacts(harness, tmp_path):
+    """`status` must surface the new release-gate artefacts block:
+    phase B captured tally, phase A' status report, latest release-gate log.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    # Plant a stale release_gate log + a phase_a_prime_status.md to give
+    # status real lookup targets.
+    (harness["gpfs"] / "logs").mkdir(parents=True, exist_ok=True)
+    (harness["gpfs"] / "logs" / "release_gate_20260101_120000.log").write_text(
+        "stale\n", encoding="utf-8"
+    )
+    (repo / "docs" / "plans").mkdir(parents=True, exist_ok=True)
+    (repo / "docs" / "plans" / "phase_a_prime_status.md").write_text(
+        "stub status\n", encoding="utf-8"
+    )
+
+    proc = _run(harness, "status", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "release-gate artefacts" in proc.stdout
+    assert "phase B golden tensors" in proc.stdout
+    assert "phase_a_prime_status.md" in proc.stdout
+    assert "release_gate_20260101_120000.log" in proc.stdout
+
+
+def test_status_release_gate_block_handles_cold_start_repo(harness, tmp_path):
+    """On a cold-start repo with no $TAB_GPFS_ROOT/logs dir, the
+    release-gate artefacts block must still emit the 'latest release-gate log'
+    line (with the friendly '(none ...)' placeholder), so the status report
+    keeps a fixed shape across rehearsal stages.
+    """
+    runner_log = harness["runner_log"]
+    repo = _stub_bench_repo(tmp_path, runner_log)
+    # Important: do NOT create the harness logs/ directory -- this is the
+    # cold-start path. The harness fixture only creates gpfs/ itself.
+    assert not (harness["gpfs"] / "logs").exists(), (
+        "harness fixture must not pre-create gpfs/logs for this test"
+    )
+
+    proc = _run(harness, "status", env_extra={"TAB_BENCH_REPO": str(repo)})
+    assert proc.returncode == 0, (proc.stderr, proc.stdout)
+    assert "release-gate artefacts" in proc.stdout
+    # The phase B + phase A' lines must still render, and the latest-log
+    # line must always appear (with the friendly placeholder when missing).
+    assert "phase B golden tensors" in proc.stdout
+    assert "latest release-gate log" in proc.stdout, (
+        "status must always emit the 'latest release-gate log' line "
+        "even on cold-start repos with no logs dir"
+    )
+    assert "(none -- run 'release-gate' or 'pass-all')" in proc.stdout
