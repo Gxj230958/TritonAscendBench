@@ -81,10 +81,24 @@ infer = [
     # L1_24_rejection_sample and any sglang-rooted task get classified
     # ``upstream-not-invocable-here [No module named 'uvloop']``.
     "uvloop",
-    # vllm.utils.platform_utils + sglang scheduler import psutil at module
-    # load. Without it tasks like L1_06_reshape_and_cache_kernel_flash fail
-    # the S2-smoke prefilter with ModuleNotFoundError before any kernel work.
-    "psutil",
+    # Added proactively after dev grep of vllm/sglang imports across all
+    # vendored modules (top-N frequency + module-init likely). Each one
+    # has shown up as a real ModuleNotFoundError during S2-smoke runs OR
+    # is imported at module init by a vllm/sglang core file the bench's
+    # candidate-search reaches. Adding here once so operators don't hit
+    # "discover-one-by-one" smoke failures.
+    "huggingface_hub",
+    "packaging",
+    "httpx",
+    "jinja2",
+    "starlette",
+    "uvicorn",
+    "jsonschema",
+    "cloudpickle",
+    "typing_extensions",
+    "tabulate",
+    "msgpack",
+    "urllib3",
     # vllm/sglang core runtime deps -- vendored upstream source imports
     # these at module load time (e.g. sentencepiece via tokenizer pipeline,
     # transformers everywhere, blake3 via vllm caching, etc.). Without
