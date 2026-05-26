@@ -1659,11 +1659,20 @@ def s2_verify_task(td: Path) -> S2Result:
 
     # 2. S2-smoke: REAL CPU / TRITON_INTERPRET pre-filter (GPU-FREE,
     #    runs on THIS box). A mismatch is an EARLY BLOCKED -- NEVER PASS.
-    sm_eq, sm_why, _sm_o, sm_s, sm_phase, _ = _run_s2_pair(
-        kernel_path, staged, entrypoint, shapes_doc, shape_ids, seed,
-        accel_disabled, pinned_config, interpret=True,
-    )
-    res.smoke_ran = True
+    #    Per-invocation human bypass (PA_SKIP_S2_SMOKE=1 set by
+    #    --skip-smoke) when the user knows the smoke MISMATCH is a CPU-
+    #    interpreter limitation (e.g. 0-dim arrays, missing builder
+    #    methods) rather than a real kernel bug.
+    if os.environ.get("PA_SKIP_S2_SMOKE") == "1":
+        sm_eq, sm_why, sm_phase = True, "skipped (--skip-smoke)", "skipped"
+        _sm_o, sm_s = None, None
+        res.smoke_ran = False
+    else:
+        sm_eq, sm_why, _sm_o, sm_s, sm_phase, _ = _run_s2_pair(
+            kernel_path, staged, entrypoint, shapes_doc, shape_ids, seed,
+            accel_disabled, pinned_config, interpret=True,
+        )
+        res.smoke_ran = True
     # codex r7 [confirmed] HOLE 3 -- record the S2-original side's
     # imported infer/ closure (it ran the UNMODIFIED upstream kernel.py
     # with infer/ on sys.path). Done BEFORE every early return so the
@@ -3740,6 +3749,18 @@ def build_parser() -> argparse.ArgumentParser:
         "OTHER tasks may reflect older verdicts.",
     )
     ap.add_argument(
+        "--skip-smoke",
+        action="store_true",
+        help="(per-invocation human override) skip the S2-smoke CPU/"
+        "TRITON_INTERPRET pre-filter and go directly to the GPU-authoritative "
+        "S2 run. Use this when the smoke MISMATCH is a known CPU-interpreter "
+        "limitation (e.g. 'only 0-dimensional arrays can be converted', "
+        "'InterpreterBuilder has no attribute get_int1_ty') rather than a "
+        "real kernel bug. The GPU run still executes; smoke just no longer "
+        "gates it. Risk: a real kernel bug that smoke would have caught "
+        "now wastes a GPU run.",
+    )
+    ap.add_argument(
         "--resolve-entrypoint",
         action="store_true",
         help="Phase A' prerequisite: resolve the real upstream "
@@ -3767,6 +3788,9 @@ def main(argv: list[str] | None = None) -> int:
         # Translate the CLI flag into the env var the loader reads.
         # Set here, BEFORE any code path imports / triggers the loader.
         os.environ["PA_ACCEPT_STALE_CACHE"] = "1"
+    if getattr(args, "skip_smoke", False):
+        # Translate to env var s2_verify_task reads at smoke pre-filter step.
+        os.environ["PA_SKIP_S2_SMOKE"] = "1"
     if not VLLM_ROOT.is_dir() or not SGLANG_ROOT.is_dir():
         print(
             f"warning: infer roots missing ({VLLM_ROOT} / {SGLANG_ROOT}); "

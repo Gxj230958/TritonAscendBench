@@ -81,6 +81,10 @@ infer = [
     # L1_24_rejection_sample and any sglang-rooted task get classified
     # ``upstream-not-invocable-here [No module named 'uvloop']``.
     "uvloop",
+    # vllm.utils.platform_utils + sglang scheduler import psutil at module
+    # load. Without it tasks like L1_06_reshape_and_cache_kernel_flash fail
+    # the S2-smoke prefilter with ModuleNotFoundError before any kernel work.
+    "psutil",
     # vllm/sglang core runtime deps -- vendored upstream source imports
     # these at module load time (e.g. sentencepiece via tokenizer pipeline,
     # transformers everywhere, blake3 via vllm caching, etc.). Without
