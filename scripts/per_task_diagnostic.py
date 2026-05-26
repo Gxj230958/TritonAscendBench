@@ -83,25 +83,83 @@ def _split_segments(reason: str) -> list[tuple[str, str, str]]:
     return out
 
 
-def _pick_intended_segment(task_id: str, segments: list[tuple[str, str, str]]) -> tuple[str, str, str]:
+def _meta_intended_kernel_name(meta: dict) -> str:
+    """Extract the canonical intended kernel name from meta.yaml.
+
+    Priority:
+      1. ``meta.name`` (the bench's authoritative name field)
+      2. ``meta.oracle.gpu_triton`` parsed as ``kernel.py::<name>``
+      3. fallback to task_id-derived name
+    """
+    name = (meta or {}).get("name")
+    if isinstance(name, str) and name:
+        return name
+    gt = ((meta or {}).get("oracle") or {}).get("gpu_triton") or ""
+    m = re.search(r"::([A-Za-z_][\w]*)", gt)
+    if m and m.group(1) != "placeholder":
+        return m.group(1)
+    return ""
+
+
+def _pick_intended_segment(
+    task_id: str,
+    segments: list[tuple[str, str, str]],
+    intended_canonical: str = "",
+) -> tuple[str, str, str]:
     if not segments:
         return ("", "", "")
-    intended = re.sub(r"^L\d+_\d+_", "", task_id)
+    # Prefer the canonical name from meta.yaml when supplied; fall back to
+    # task_id-stripped form. Without normalization the matcher drifted to
+    # sibling wrappers when the task_id name and the resolver's chosen
+    # entrypoint name only loosely overlap (e.g. L1_04 task_id derives
+    # ``copy_page_indices`` but the resolver tried ``trtllm_prefill_*``).
+    intended = intended_canonical or re.sub(r"^L\d+_\d+_", "", task_id)
     norm = lambda s: s.replace("-", "_")
+    intended_n = norm(intended)
     for name, sub, seg in segments:
-        if norm(name) == norm(intended):
+        if norm(name) == intended_n:
             return (name, sub, seg)
-    for name, sub, seg in segments:
-        if norm(intended) in norm(name) or norm(name) in norm(intended):
-            return (name, sub, seg)
-    return segments[0]
+    # Bidirectional substring match only when the canonical name has
+    # meaningful overlap (>= 6 chars to avoid matching everything).
+    if len(intended_n) >= 6:
+        for name, sub, seg in segments:
+            name_n = norm(name)
+            if intended_n in name_n or (len(name_n) >= 6 and name_n in intended_n):
+                return (name, sub, seg)
+    # No match -- intended kernel name is not in the resolver's tried set.
+    # Returning empty signals the caller to fall back to ``meta.name``
+    # for kernel.py signature inspection rather than trusting a wrong
+    # sibling.
+    return ("", "", "")
+
+
+# Heuristic filter for @triton.jit kernel-internal params that are NEVER
+# user-callable inputs (the host wrapper allocates / derives these and
+# passes them down). Filtering these out of `missing_in_shapes` prevents
+# the diagnostic from declaring 15 "missing" params for a single kernel
+# when only 3-4 are actually user-facing tensor / scalar inputs.
+_INTERNAL_PARAM_PATTERNS = (
+    re.compile(r"_ptr$"),                 # raw pointer args (Q_ptr, output_ptr, etc.)
+    re.compile(r"^BLOCK(?:_|$)"),         # BLOCK_SIZE, BLOCK_M, BLOCK_DMODEL, BLOCK
+    re.compile(r"^NUM_(?:BLOCK|FBLOCK|CBLOCK)"),
+    re.compile(r"^stride_"),               # stride_x_row, stride_y_row
+    re.compile(r"^(?:HAS|IS|USE|STORE|NORM|DOT)_"),  # boolean tl.constexpr flags
+    re.compile(r"^(?:M|N|K|D|H|T|E|V|G|S|L|B)$"),  # single-letter sizes (passed down as ints)
+    re.compile(r"^[A-Z][A-Z0-9_]*$"),     # ALL_CAPS = tl.constexpr meta-param
+)
+
+
+def _is_internal_kernel_param(name: str) -> bool:
+    return any(p.search(name) for p in _INTERNAL_PARAM_PATTERNS)
 
 
 def _parse_kernel_signature(kernel_src: str, fn_name: str) -> tuple[list[str], list[str]]:
-    """Return ``(required_params, optional_params)`` for ``def fn_name(...)``.
+    """Return ``(user_required_params, optional_params)`` for ``def fn_name(...)``.
 
-    Optional means the param has a default value. Looks for the FIRST
-    matching ``def`` block (not @triton.jit kernels which are internal).
+    Filters @triton.jit kernel-internal params (pointers, BLOCK sizes,
+    strides, tl.constexpr flags) which the host wrapper supplies; user
+    inputs in shapes.yaml only need to satisfy the host-wrapper signature
+    or the @triton.jit signature's user-facing tensor/scalar params.
     """
     if not kernel_src or not fn_name:
         return ([], [])
@@ -114,8 +172,11 @@ def _parse_kernel_signature(kernel_src: str, fn_name: str) -> tuple[list[str], l
             args = node.args
             n_defaults = len(args.defaults)
             n_args = len(args.args)
-            required = [a.arg for a in args.args[: n_args - n_defaults]]
-            optional = [a.arg for a in args.args[n_args - n_defaults :]]
+            required_raw = [a.arg for a in args.args[: n_args - n_defaults]]
+            optional_raw = [a.arg for a in args.args[n_args - n_defaults :]]
+            # Strip kernel-internals; keep user-facing params.
+            required = [a for a in required_raw if not _is_internal_kernel_param(a)]
+            optional = [a for a in optional_raw if not _is_internal_kernel_param(a)]
             return (required, optional)
     return ([], [])
 
@@ -180,21 +241,38 @@ def _diagnose_one(verdict: dict) -> TaskDiagnosis:
         diag.effort = "S"
         return diag
 
-    # Parse resolver reason -> intended segment.
+    # Parse resolver reason -> intended segment, anchored on meta.name.
     reason = verdict.get("reason", "") or ""
     segments = _split_segments(reason)
-    name, sub, seg = _pick_intended_segment(tid, segments)
-    diag.intended_kernel_name = name
-    diag.intended_substatus = sub
-    diag.intended_segment = seg
+    meta_kernel_name = _meta_intended_kernel_name(meta)
+    name, sub, seg = _pick_intended_segment(tid, segments, intended_canonical=meta_kernel_name)
+    # If resolver tried no segment matching meta.name, the diagnostic
+    # should STILL anchor on meta.name for signature parsing so we report
+    # what the TASK CONTRACT wants, not what the resolver mistakenly
+    # called. Mark intended_kernel_name from meta when segment match failed.
+    if not name and meta_kernel_name:
+        diag.intended_kernel_name = meta_kernel_name
+        diag.intended_substatus = ""
+        diag.intended_segment = ""
+    else:
+        diag.intended_kernel_name = name
+        diag.intended_substatus = sub
+        diag.intended_segment = seg
 
-    # Parse kernel.py signature for the intended kernel.
+    # Parse kernel.py signature for the intended kernel. Always prefer
+    # meta.name if it exists in kernel.py -- the resolver-chosen wrapper
+    # may be a sibling whose signature is misleading.
     try:
         kernel_src = (td / "kernel.py").read_text()
     except OSError:
         kernel_src = ""
-    if name and kernel_src:
-        required, optional = _parse_kernel_signature(kernel_src, name)
+    sig_target = meta_kernel_name or diag.intended_kernel_name
+    if sig_target and kernel_src:
+        required, optional = _parse_kernel_signature(kernel_src, sig_target)
+        if not required and not optional and name and name != sig_target:
+            # meta.name not in kernel.py; fall back to resolver-chosen name.
+            required, optional = _parse_kernel_signature(kernel_src, name)
+            diag.intended_kernel_name = name or sig_target
         diag.kernel_required_params = required
         diag.kernel_optional_params = optional
 
@@ -233,23 +311,61 @@ def _classify_root_cause(
 
     if sub == "shapes-incomplete":
         # The resolver's "missing param 'X'" inside the intended segment.
+        # Cross-check against CURRENT shapes.yaml (cache may be stale).
+        declared = set(diag.shapes_inputs.keys())
         mp = re.search(r"missing param '([^']+)'", diag.intended_segment)
         param = mp.group(1) if mp else (diag.missing_in_shapes[0] if diag.missing_in_shapes else "?")
         is_known_to_kernel = (param in diag.kernel_required_params) or (param in diag.kernel_optional_params)
-        if is_known_to_kernel:
+        if param in declared:
+            # Stale cache: resolver complained about this param but
+            # shapes.yaml already provides it. Don't trust the cache;
+            # diagnose what's TRULY missing from kernel signature vs
+            # shapes.yaml right now.
+            still_missing = [p for p in diag.kernel_required_params if p not in declared]
+            if still_missing:
+                param = still_missing[0]
+                diag.missing_in_shapes = still_missing
+                diag.root_cause_category = "missing-shape-row"
+                diag.root_cause_detail = (
+                    f"Resolver cache is STALE: it claims `{mp.group(1) if mp else '?'}` "
+                    f"missing but shapes.yaml already declares it. "
+                    f"Current real gap: kernel `{name}` requires params "
+                    f"{still_missing} that shapes.yaml does not declare."
+                )
+                diag.fix_recipe = [
+                    "First: refresh resolver cache (resolve --refresh-cache --task <this>)",
+                    f"Then add the still-missing params to shapes.yaml: {still_missing}",
+                ]
+                diag.effort = "M"
+            else:
+                diag.root_cause_category = "stale-cache-resolved"
+                diag.root_cause_detail = (
+                    f"Resolver cache is STALE: claims `{param}` missing but shapes.yaml "
+                    f"already provides every kernel-required param. This task likely "
+                    f"PASSES after a cache refresh."
+                )
+                diag.fix_recipe = [
+                    "Refresh resolver cache: python3 scripts/resolve_upstream_entrypoints.py --task <this>",
+                    "If status changes to PASS / UNRUN / something other than shapes-incomplete, re-run diagnostic",
+                ]
+                diag.effort = "S"
+        elif is_known_to_kernel:
+            # Enumerate ALL kernel-required params not in shapes (multi-blocker).
+            all_missing = [p for p in diag.kernel_required_params if p not in declared]
+            diag.missing_in_shapes = all_missing
             diag.root_cause_category = "missing-shape-row"
             diag.root_cause_detail = (
-                f"Kernel function `{name}` requires param `{param}` (in its signature), "
-                f"but shapes.yaml `inputs:` block does not declare it. "
-                f"Resolver's by-name adapter stops at first missing param."
+                f"Kernel function `{name}` requires {len(all_missing)} param(s) "
+                f"that shapes.yaml does not declare: {all_missing}. "
+                f"Resolver reports `{param}` first; subsequent params surface in cascade."
             )
             diag.fix_recipe = [
                 f"Open tasks/{_task_dir(diag.task_id).name}/shapes.yaml",
-                f"Add `{param}:` entry under `inputs:` with the kernel's expected dtype + dims + dist",
-                "Refer to kernel.py signature / docstring for shape constraints",
-                "Re-run resolver to confirm advance to next stage (often more missing params surface in cascade)",
+                f"Add ALL {len(all_missing)} missing entries: {all_missing}",
+                "For each, refer to kernel.py signature for dtype + dims + dist semantics",
+                "Re-run resolver after each batch to confirm progress",
             ]
-            diag.effort = "S" if param.startswith("BLOCK_SIZE") or param in ("chunk_size", "max_seq_len") else "M"
+            diag.effort = "S" if len(all_missing) == 1 and param in ("chunk_size", "max_seq_len") or all(p.startswith("BLOCK_SIZE") for p in all_missing) else ("M" if len(all_missing) <= 5 else "L")
         else:
             diag.root_cause_category = "shapes-incomplete-sibling"
             diag.root_cause_detail = (
@@ -412,6 +528,28 @@ def _classify_root_cause(
             "Phase B GPU run will verify",
         ]
         diag.effort = "S"
+
+    elif not sub and name:
+        # meta.name is set but the resolver did not even try this kernel
+        # (its candidate-search picked unrelated wrappers). This is a
+        # meta-vs-resolver mismatch -- the truth-inventory finding that
+        # 42% of meta.upstream.path are stale lands exactly here.
+        diag.root_cause_category = "meta-resolver-mismatch"
+        diag.root_cause_detail = (
+            f"Resolver candidate-search did not try the meta-declared kernel "
+            f"`{name}`. Likely meta.upstream.path / meta.oracle.gpu_triton "
+            f"points at a stale location, OR the kernel.py vendored function "
+            f"is named differently than meta records. Resolver tried instead: "
+            f"{[s[0] for s in _split_segments(full_reason)][:4]}"
+        )
+        diag.fix_recipe = [
+            f"Verify `{name}` exists in kernel.py (grep `def {name}`)",
+            "If not, find the actual entrypoint name in kernel.py and update meta.name",
+            "If yes, audit scripts/resolve_upstream_entrypoints.py candidate-search "
+            "to understand why this kernel was not tried",
+            f"Then add shapes.yaml inputs matching `{name}`'s signature",
+        ]
+        diag.effort = "M"
 
     else:
         # Catch-all for special resolver outputs that don't follow the
