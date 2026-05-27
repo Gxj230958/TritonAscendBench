@@ -16,15 +16,25 @@ operator script (gpu_pipeline/25_oracle_equivalence_verify.sh) will
 consume in stage 2 (M2.1b, manual operator run).
 
 Status enum (closed):
-  ALIGNED_READY        — oracle ran OK on CPU, artifacts written
-  SIGNATURE_MISMATCH   — oracle / kernel / shapes inputs disagree on keys
-  NEEDS_BRIDGE         — oracle and kernel have different input layouts
-                         (e.g. oracle takes splits, kernel takes packed)
-                         and require a build_inputs derivation bridge
-  NEEDS_GPU_FOR_ORACLE — oracle itself imports libdevice / Triton ops
-                         that cannot run under CPU; defer to GPU stage
-  RUNTIME_ERROR        — oracle import or call raised an exception
-  KERNEL_PARSE_ERROR   — kernel.py AST parse / entrypoint detection failed
+  ALIGNED_READY              — oracle ran OK on CPU, artifacts written
+  SIGNATURE_MISMATCH         — oracle / kernel / shapes inputs disagree on keys
+  NEEDS_BRIDGE               — oracle and kernel have different input layouts
+                               (e.g. oracle takes splits, kernel takes packed)
+                               and require a build_inputs derivation bridge
+  NEEDS_GPU_FOR_ORACLE       — oracle itself imports libdevice / Triton ops
+                               that cannot run under CPU; defer to GPU stage
+  RUNTIME_ERROR              — oracle import or call raised an exception
+  KERNEL_PARSE_ERROR         — kernel.py AST parse / entrypoint detection failed
+  WRAPPER_CONTRACT_MISMATCH  — kernel host wrapper expects a specific input
+                               rank that build_inputs does not produce, BUT
+                               the oracle is rank-agnostic so patching
+                               shapes.yaml.inputs.dims would resolve both.
+                               (V9 codex review 2026-05-27)
+  ORACLE_KERNEL_LAYOUT_MISMATCH — kernel host wrapper expects rank N, oracle
+                               internal helper expects rank M (M != N). The
+                               two contracts disagree fundamentally; patching
+                               shapes would break one to fix the other.
+                               Route to source ②. (V9 codex review 2026-05-27)
 """
 from __future__ import annotations
 
@@ -166,6 +176,36 @@ def _load_resolve_tried_map() -> dict[str, list[str]]:
     except Exception:
         _RESOLVE_CACHE = {}
     return _RESOLVE_CACHE
+
+
+def _extract_oracle_helper_contract(oracle_path: Path):
+    """Find the oracle's internal helper (the def that takes tensor args,
+    not the thin ``run(inputs)`` wrapper) and return its WrapperContract.
+
+    Oracles by convention have one top-level ``_helper(...)`` def plus a
+    ``run(inputs)`` that calls it. The helper carries the tensor-shape
+    contract (``B, T, D = kf.shape`` etc.) while ``run`` is just a
+    dict-indexing thin shim. Returns ``None`` when no non-``run`` def
+    is found (oracle is purely top-level run, or file does not parse).
+    """
+    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+        extract_wrapper_contract,
+    )
+
+    if not oracle_path.exists():
+        return None
+    try:
+        tree = ast.parse(oracle_path.read_text())
+    except (OSError, SyntaxError):
+        return None
+    helper_name: str | None = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name != "run":
+            helper_name = node.name
+            break
+    if helper_name is None:
+        return None
+    return extract_wrapper_contract(oracle_path, helper_name)
 
 
 def _enumerate_non_jit_module_defs(kernel_path: Path) -> list[tuple[str, list[str]]]:
@@ -384,6 +424,81 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             "OR rewrite oracle."
         )
         return audit
+
+    # V9 codex review 2026-05-27: static rank check before running oracle.
+    # Even when key sets line up, the kernel host wrapper may unpack
+    # ``B, T, H, K = k.shape`` expecting 4-D while build_inputs produces
+    # rank-3 -- GPU verify then fails with stale tracebacks. Catch it
+    # here and classify by whether the oracle agrees (WRAPPER_CONTRACT_
+    # MISMATCH = patch shapes fixes both) or disagrees
+    # (ORACLE_KERNEL_LAYOUT_MISMATCH = oracle needs rewrite, route to ②).
+    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+        check_against_inputs,
+        extract_wrapper_contract,
+    )
+
+    wrapper_contract = extract_wrapper_contract(kernel_path, fn_name)
+    if wrapper_contract is not None and (
+        wrapper_contract.accepted_ranks or wrapper_contract.min_ranks
+    ):
+        try:
+            shapes_doc_preview = yaml.safe_load(shapes_path.read_text())
+            preview_inputs = build_inputs(
+                shapes_doc_preview, DEFAULT_SHAPES[0], seed=GOLDEN_SEED
+            )
+            input_ranks = {
+                k: v.ndim
+                for k, v in preview_inputs.items()
+                if isinstance(v, torch.Tensor)
+            }
+            violations = check_against_inputs(wrapper_contract, input_ranks)
+        except Exception:
+            # build_inputs may fail for many reasons; let the
+            # downstream CPU-run path surface them as RUNTIME_ERROR.
+            violations = []
+
+        if violations:
+            # Probe oracle for a competing rank contract.
+            oracle_contract = _extract_oracle_helper_contract(oracle_path)
+            layout_conflict_keys: list[str] = []
+            for v in violations:
+                if oracle_contract is None:
+                    continue
+                oracle_ranks = oracle_contract.accepted_ranks.get(
+                    v.input_name
+                ) or set()
+                if oracle_ranks and not (oracle_ranks & v.expected_ranks):
+                    layout_conflict_keys.append(v.input_name)
+
+            violation_summary = "; ".join(
+                f"{v.input_name}: wrapper wants rank "
+                f"{sorted(v.expected_ranks) or f'>= {v.expected_min_rank}'}, "
+                f"build_inputs gave {v.actual_rank}"
+                for v in violations
+            )
+            if layout_conflict_keys:
+                audit.status = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+                audit.suggested_fix = (
+                    f"oracle helper and wrapper disagree on rank for "
+                    f"{layout_conflict_keys}; route this task to source "
+                    "(2) -- a shapes.yaml patch would resolve the "
+                    "wrapper but break the oracle. Wrapper expectations: "
+                    f"{violation_summary}"
+                )
+                return audit
+            audit.status = "WRAPPER_CONTRACT_MISMATCH"
+            audit.suggested_fix = (
+                f"kernel `{fn_name}` host wrapper expects: {violation_summary}. "
+                f"Oracle helper does not surface a conflicting unpack-rank "
+                f"constraint, so patching `shapes.yaml.inputs.<name>.dims` "
+                f"to the expected rank is a candidate fix. CAVEAT: this "
+                f"static checker does NOT parse oracle einsum subscripts or "
+                f"index expressions; after patching shapes, re-run R10.a "
+                f"and confirm the oracle still runs (a RUNTIME_ERROR there "
+                f"would indicate the oracle is actually rank-N-coupled and "
+                f"the task should be reclassified as ORACLE_KERNEL_LAYOUT_MISMATCH)."
+            )
+            return audit
 
     # ALIGNED — attempt CPU run
     try:
@@ -621,6 +736,8 @@ def main(argv: list[str] | None = None) -> int:
         "NEEDS_GPU_FOR_ORACLE",
         "RUNTIME_ERROR",
         "KERNEL_PARSE_ERROR",
+        "WRAPPER_CONTRACT_MISMATCH",
+        "ORACLE_KERNEL_LAYOUT_MISMATCH",
     ):
         sub = [a for a in audits.values() if a.status == status_label]
         if not sub:
