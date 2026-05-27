@@ -135,6 +135,7 @@ inputs:
   input:
     dims:
     - B
+    - N
     - D
     dtype: float32
     dist: randn
@@ -147,28 +148,9 @@ inputs:
     dims:
     - B
     - N
-    - D
-    dtype: float16
+    - D//2
+    dtype: float8_e4m3fn
   masked_m:
     dims:
     - B
-    - N
-    dtype: bool
-  x:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  problem_sizes1:
-    dims:
-    - E
-    - "3"
-    dtype: int32
-  down_output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
+    dist: full:N

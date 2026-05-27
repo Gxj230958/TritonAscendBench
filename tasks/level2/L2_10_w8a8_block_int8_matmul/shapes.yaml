@@ -147,16 +147,16 @@ inputs:
   As:
     dims:
     - B
-    - D//8
+    - (D+31)//32
     dtype: float32
     dist: rand
   Bs:
     dims:
     - N//8
-    - D//8
+    - (D+31)//32
     dtype: float32
     dist: rand
   block_size:
     scalar_seq:
     - 8
-    - 8
+    - 32

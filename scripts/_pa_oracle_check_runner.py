@@ -296,6 +296,15 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
             depth=rel_depth,
         )
         leaf_name = f"{leaf_pkg}.{path.stem}"
+    try:
+        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            clear_conflicting_vllm_registrations,
+        )
+
+        clear_conflicting_vllm_registrations(kernel_src)
+    except ImportError:
+        pass
+
     spec = importlib.util.spec_from_file_location(leaf_name, path)
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = leaf_pkg
@@ -483,6 +492,15 @@ def main() -> int:
               str(SCRIPTS_DIR)):
         if p not in sys.path:
             sys.path.insert(0, p)
+
+    try:
+        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            install_vllm_source_version_shim,
+        )
+
+        install_vllm_source_version_shim(Path(spec["vllm_root"]))
+    except ImportError:
+        pass
 
     # Inject the vllm.triton_utils forward shim BEFORE the vendored
     # kernel.py executes. On a host with no active Triton driver, the

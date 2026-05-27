@@ -534,6 +534,15 @@ def _load_kernel_with_optional_bridge(
             depth=rel_depth,
         )
         leaf_name = f"{leaf_pkg}.{kp.stem}"
+    try:
+        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            clear_conflicting_vllm_registrations,
+        )
+
+        clear_conflicting_vllm_registrations(kernel_src)
+    except ImportError:
+        pass
+
     spec = importlib.util.spec_from_file_location(leaf_name, kp)
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = leaf_pkg
@@ -595,6 +604,14 @@ def _run_side(args: argparse.Namespace) -> int:
         # over anything in the bench package.
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
+        try:
+            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+                install_vllm_source_version_shim,
+            )
+
+            install_vllm_source_version_shim(VLLM_ROOT)
+        except ImportError:
+            pass
         # Inject the vllm.triton_utils forward shim BEFORE loading the
         # vendored kernel.py. Without it, on a host with no active
         # Triton driver upstream hands out a TritonPlaceholder whose
