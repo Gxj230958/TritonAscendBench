@@ -135,17 +135,24 @@ def cmd_submit(args: argparse.Namespace) -> int:
             )
             return 1
         # Also probe remote, including the same dead/<id>{,.*}.err variants.
+        # Each test line ends with `|| true` so a single failed test does NOT
+        # abort the probe; the script collects echoes from successful checks.
+        # The prior `ls dead/<id>.*.err | head -1 && echo` pattern was
+        # broken: head exits 0 on empty stdin, so the && echo always fired
+        # and every fresh batch_id was incorrectly reported as collision
+        # (round-3 codex finding). Use POSIX `find -print -quit` to detect
+        # "any match exists" without shell-pipeline traps.
         bid = shlex.quote(batch_id)
         bench = shlex.quote(REMOTE_BENCH)
+        bid_inner = batch_id  # already validated by regex; safe for -name glob
         probe = _ssh(
-            "set -e; "
-            f"test -f {bench}/.loop/jobs/{bid}.json && echo JOB; "
-            f"test -f {bench}/.loop/jobs/{bid}.json.taken && echo TAKEN; "
-            f"test -f {bench}/.loop/done/{bid}.flag && echo DONE; "
-            f"test -d {bench}/.loop/results/{bid} && echo RESULTS; "
-            f"test -f {bench}/.loop/dead/{bid}.err && echo DEAD_BARE; "
-            f"ls {bench}/.loop/dead/{bid}.*.err 2>/dev/null | head -1 && echo DEAD_REASONED; "
-            "true"
+            f"test -f {bench}/.loop/jobs/{bid}.json && echo JOB || true; "
+            f"test -f {bench}/.loop/jobs/{bid}.json.taken && echo TAKEN || true; "
+            f"test -f {bench}/.loop/done/{bid}.flag && echo DONE || true; "
+            f"test -d {bench}/.loop/results/{bid} && echo RESULTS || true; "
+            f"test -f {bench}/.loop/dead/{bid}.err && echo DEAD_BARE || true; "
+            f"[ -n \"$(find {bench}/.loop/dead -maxdepth 1 -name '{bid_inner}.*.err' -print -quit 2>/dev/null)\" ] "
+            f"&& echo DEAD_REASONED || true"
         )
         remote_collision = probe.stdout.strip()
         if remote_collision:
