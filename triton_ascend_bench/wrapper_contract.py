@@ -171,6 +171,101 @@ def _shape_subscript_min_rank(node: ast.expr, inputs: set[str]) -> tuple[str, in
     return name, 1
 
 
+# Tensor methods that produce an alias of the same rank as the
+# receiver. Oracle helpers commonly do ``kf = k.to(fp32)`` then unpack
+# ``kf.shape`` -- without alias tracking we'd miss that contract entirely.
+_RANK_PRESERVING_METHODS: frozenset[str] = frozenset({
+    "to", "contiguous", "detach", "clone", "cpu", "cuda",
+    "float", "half", "double", "bfloat16", "int", "long", "byte",
+    "type_as", "requires_grad_", "pin_memory",
+})
+
+
+def _is_rank_preserving_alias(
+    value: ast.expr, params: set[str]
+) -> str | None:
+    """Match ``x.METHOD(...)`` where METHOD preserves rank. Returns the
+    aliased param name, or ``None`` if value is not such a call."""
+    if not isinstance(value, ast.Call):
+        return None
+    func = value.func
+    if not (isinstance(func, ast.Attribute) and func.attr in _RANK_PRESERVING_METHODS):
+        return None
+    base = func.value
+    if isinstance(base, ast.Name) and base.id in params:
+        return base.id
+    return None
+
+
+def _is_genexp_alias_unpack(
+    value: ast.expr, params: set[str]
+) -> list[str] | None:
+    """Match ``(t.METHOD(...) for t in (a, b, c))`` -- the common oracle
+    pattern ``kf, wf, uf = (t.to(fp32) for t in (k, w, u))``.
+
+    Returns the list of param names in iteration order (so the caller
+    can zip them with the multi-target tuple LHS), or ``None``.
+    """
+    if not isinstance(value, ast.GeneratorExp):
+        return None
+    elt = value.elt
+    if not isinstance(elt, ast.Call):
+        return None
+    func = elt.func
+    if not (
+        isinstance(func, ast.Attribute)
+        and func.attr in _RANK_PRESERVING_METHODS
+    ):
+        return None
+    loop_base = func.value
+    if not isinstance(loop_base, ast.Name):
+        return None
+    if len(value.generators) != 1:
+        return None
+    gen = value.generators[0]
+    if not (
+        isinstance(gen.target, ast.Name)
+        and gen.target.id == loop_base.id
+    ):
+        return None
+    iter_node = gen.iter
+    if not isinstance(iter_node, (ast.Tuple, ast.List)):
+        return None
+    names: list[str] = []
+    for e in iter_node.elts:
+        if not (isinstance(e, ast.Name) and e.id in params):
+            return None
+        names.append(e.id)
+    return names
+
+
+def _lhs_starred_unpack_min_rank(
+    target: ast.expr, value: ast.expr, inputs: set[str]
+) -> tuple[str, int] | None:
+    """Match LHS starred unpack ``*lead, n, _ = x.shape``.
+
+    Returns ``(x, min_rank)`` where ``min_rank`` = number of
+    non-starred fixed slots. ``*lead, n, _ = Af.shape`` means
+    ``Af.ndim >= 2`` (the starred slot can absorb 0 elements).
+    """
+    if not isinstance(target, (ast.Tuple, ast.List)):
+        return None
+    starred = [e for e in target.elts if isinstance(e, ast.Starred)]
+    if len(starred) != 1:
+        return None
+    if not (
+        isinstance(value, ast.Attribute)
+        and value.attr == "shape"
+        and isinstance(value.value, ast.Name)
+        and value.value.id in inputs
+    ):
+        return None
+    fixed_count = sum(
+        1 for e in target.elts if not isinstance(e, ast.Starred)
+    )
+    return value.value.id, fixed_count
+
+
 def extract_wrapper_contract(
     kernel_path: Path, fn_name: str
 ) -> WrapperContract | None:
@@ -207,6 +302,32 @@ def extract_wrapper_contract(
     if not params_set:
         return WrapperContract(fn_name=fn_name)
 
+    # ``alias_map``: name -> originating param via rank-preserving call
+    # (``kf = k.to(fp32)``) or generator-exp alias unpack
+    # (``kf,wf,uf = (t.to(fp32) for t in (k,w,u))``). Built in a
+    # pre-pass so subsequent .shape unpacks on ``kf`` are credited to
+    # the original param ``k``.
+    alias_map: dict[str, str] = {p: p for p in params_set}
+    for stmt in ast.walk(target):
+        if not isinstance(stmt, ast.Assign):
+            continue
+        if len(stmt.targets) != 1:
+            continue
+        tgt = stmt.targets[0]
+        # Simple alias: ``kf = k.to(fp32)``
+        base = _is_rank_preserving_alias(stmt.value, set(alias_map))
+        if base is not None and isinstance(tgt, ast.Name):
+            alias_map[tgt.id] = alias_map[base]
+            continue
+        # Generator-exp alias unpack: ``kf,wf,uf = (t.to(...) for t in (k,w,u))``
+        if isinstance(tgt, (ast.Tuple, ast.List)):
+            genexp_bases = _is_genexp_alias_unpack(stmt.value, set(alias_map))
+            if genexp_bases is not None and len(genexp_bases) == len(tgt.elts):
+                for alias_node, base_name in zip(tgt.elts, genexp_bases):
+                    if isinstance(alias_node, ast.Name):
+                        alias_map[alias_node.id] = alias_map[base_name]
+    aliased_inputs = set(alias_map)
+
     contract = WrapperContract(fn_name=fn_name)
 
     def _accept_rank(name: str, rank: int, line: int, src: str) -> None:
@@ -219,28 +340,31 @@ def extract_wrapper_contract(
         contract.source_lines.setdefault(name, []).append((line, src.strip()[:120]))
 
     # Walk the function body. Every assign / aug-assign / return that
-    # mentions an input.shape goes through the matchers above.
+    # mentions an aliased-input.shape goes through the matchers above.
+    # Constraints are credited to the ORIGINAL param (via alias_map),
+    # not the local alias name -- so ``kf = k.to(fp32); B,T,D = kf.shape``
+    # is treated as a constraint on ``k``.
     for stmt in ast.walk(target):
         if isinstance(stmt, ast.Assign):
             for tgt in stmt.targets:
-                # Direct unpack ``a, b, ... = x.shape``
-                hit = _direct_shape_unpack_rank(tgt, stmt.value, params_set)
+                hit = _direct_shape_unpack_rank(tgt, stmt.value, aliased_inputs)
                 if hit is not None:
-                    name, rank = hit
+                    alias, rank = hit
+                    original = alias_map.get(alias, alias)
                     try:
                         src = ast.unparse(stmt)
                     except Exception:
                         src = ""
-                    _accept_rank(name, rank, stmt.lineno, src)
+                    _accept_rank(original, rank, stmt.lineno, src)
                     continue
-                # Starred unpack ``a, b, c = *x.shape, y.shape[-1]``
                 if (
                     isinstance(tgt, (ast.Tuple, ast.List))
                     and isinstance(stmt.value, ast.Tuple)
                 ):
-                    sh = _starred_count(stmt.value.elts, params_set)
+                    sh = _starred_count(stmt.value.elts, aliased_inputs)
                     if sh is not None:
-                        name, other_count = sh
+                        alias, other_count = sh
+                        original = alias_map.get(alias, alias)
                         starred_rank = len(tgt.elts) - other_count
                         if starred_rank > 0:
                             try:
@@ -248,19 +372,30 @@ def extract_wrapper_contract(
                             except Exception:
                                 src = ""
                             _accept_rank(
-                                name, starred_rank, stmt.lineno, src
+                                original, starred_rank, stmt.lineno, src
                             )
-        # ``.shape[N]`` access anywhere -- min_rank only (not enough
-        # info to fix the rank exactly).
+                # LHS starred unpack: ``*lead, n, _ = Af.shape``
+                lhs = _lhs_starred_unpack_min_rank(
+                    tgt, stmt.value, aliased_inputs
+                )
+                if lhs is not None:
+                    alias, min_rank = lhs
+                    original = alias_map.get(alias, alias)
+                    try:
+                        src = ast.unparse(stmt)
+                    except Exception:
+                        src = ""
+                    _update_min(original, min_rank, stmt.lineno, src)
         if isinstance(stmt, ast.Subscript):
-            mh = _shape_subscript_min_rank(stmt, params_set)
+            mh = _shape_subscript_min_rank(stmt, aliased_inputs)
             if mh is not None:
-                name, n = mh
+                alias, n = mh
+                original = alias_map.get(alias, alias)
                 try:
                     src = ast.unparse(stmt)
                 except Exception:
                     src = ""
-                _update_min(name, n, stmt.lineno, src)
+                _update_min(original, n, stmt.lineno, src)
 
     return contract
 

@@ -178,6 +178,96 @@ def test_check_silent_when_input_not_referenced(tmp_path):
 
 
 # ─────────────────────────────────────────────────────────────────────
+# Alias tracking (V9 codex review 2026-05-27)
+# ─────────────────────────────────────────────────────────────────────
+
+
+def test_simple_dtype_alias_unpacks_to_original_param(tmp_path):
+    """``kf = k.to(fp32); B, T, D = kf.shape`` -> k accepted_ranks={3}."""
+    src = (
+        "import torch\n"
+        "def wrap(k):\n"
+        "    kf = k.to(torch.float32)\n"
+        "    B, T, D = kf.shape\n"
+        "    return B + T + D\n"
+    )
+    kp = _write(tmp_path, src)
+    c = extract_wrapper_contract(kp, "wrap")
+    assert c.accepted_ranks.get("k") == {3}, (
+        f"alias k->kf->.shape unpack should credit k, got {dict(c.accepted_ranks)}"
+    )
+
+
+def test_chained_alias_methods_preserve_rank(tmp_path):
+    """``a = x.to(fp32).contiguous(); B, T = a.shape`` is one alias hop +
+    a rank-preserving method call. v1 only follows ONE hop -- assert
+    that one-hop still works."""
+    src = (
+        "import torch\n"
+        "def wrap(x):\n"
+        "    a = x.detach()\n"
+        "    B, T = a.shape\n"
+        "    return B + T\n"
+    )
+    kp = _write(tmp_path, src)
+    c = extract_wrapper_contract(kp, "wrap")
+    assert c.accepted_ranks.get("x") == {2}
+
+
+def test_genexp_alias_unpack_credits_all_params(tmp_path):
+    """``kf, wf, uf = (t.to(fp32) for t in (k, w, u))`` -- the L3_13
+    oracle pattern. Subsequent ``B,T,D = kf.shape`` must credit ``k``."""
+    src = (
+        "import torch\n"
+        "def wrap(k, w, u):\n"
+        "    kf, wf, uf = (t.to(torch.float32) for t in (k, w, u))\n"
+        "    B, T, D = kf.shape\n"
+        "    Du = uf.shape[-1]\n"
+        "    return B + T + D + Du\n"
+    )
+    kp = _write(tmp_path, src)
+    c = extract_wrapper_contract(kp, "wrap")
+    assert c.accepted_ranks.get("k") == {3}
+    # uf only has .shape[-1] -> min_rank 1 on u
+    assert c.min_ranks.get("u", 0) >= 1
+
+
+def test_lhs_starred_unpack_records_min_rank(tmp_path):
+    """``*lead, n, _ = Af.shape`` -> A.ndim >= 2 (n + _ are fixed)."""
+    src = (
+        "import torch\n"
+        "def wrap(A):\n"
+        "    Af = A.to(torch.float32)\n"
+        "    *lead, n, _ = Af.shape\n"
+        "    return n\n"
+    )
+    kp = _write(tmp_path, src)
+    c = extract_wrapper_contract(kp, "wrap")
+    # *lead + 2 fixed slots -> min_rank 2 on the original param A
+    assert c.min_ranks.get("A", 0) >= 2
+    # No exact accepted_rank (starred LHS absorbs unknown count)
+    assert "A" not in c.accepted_ranks
+
+
+def test_l3_13_oracle_helper_exposes_k_rank_3():
+    """End-to-end on real corpus: L3_13 oracle helper's alias chain
+    must surface k.ndim==3. This is the failure mode codex flagged
+    on 2026-05-27 -- if alias tracking is missing the helper returns
+    an empty accepted_ranks and the GPU runner can't classify L3_13
+    as ORACLE_KERNEL_LAYOUT_MISMATCH."""
+    oracle = Path(
+        "tasks/level3/L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64/oracle_pytorch.py"
+    )
+    if not oracle.is_file():
+        pytest.skip("L3_13 oracle missing in this checkout")
+    c = extract_wrapper_contract(oracle, "_chunk_gated_delta_rule_fwd_h")
+    assert c is not None
+    assert c.accepted_ranks.get("k") == {3}, (
+        f"L3_13 oracle should expose k={{3}}, got {dict(c.accepted_ranks)}"
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────
 # Corpus integration -- 7 ValueError task classify correctly
 # ─────────────────────────────────────────────────────────────────────
 
