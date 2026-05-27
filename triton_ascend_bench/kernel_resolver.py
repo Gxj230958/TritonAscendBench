@@ -122,6 +122,90 @@ def kernel_function_exists(kernel_path: Path, fn_name: str) -> bool:
     return False
 
 
+def _required_param_jaccard(
+    required_params: list[str],
+    oracle_input_keys: list[str] | None,
+) -> float:
+    """Jaccard overlap between a wrapper's required params and oracle keys."""
+    if not oracle_input_keys:
+        return 1.0
+    if not required_params:
+        return 0.0
+    req_set = set(required_params)
+    oracle_set = set(oracle_input_keys)
+    inter = len(req_set & oracle_set)
+    union = len(req_set | oracle_set)
+    return inter / union if union else 0.0
+
+
+def _resolve_meta_name_pattern(
+    meta_name: str,
+    kernel_path: Path,
+    oracle_input_keys: list[str] | None,
+    *,
+    allow_zero_overlap: bool = False,
+    required_params_by_name: dict[str, list[str]] | None = None,
+) -> str | None:
+    """Return the best ``meta.name``-derived host-wrapper candidate.
+
+    The resolver historically tried ``meta.name`` variants *after* the
+    global AST Jaccard scan, which let tasks like L1_20 drift to an
+    unrelated wrapper in the same file. Promoting ``meta.name`` is only
+    safe if we require positive overlap with the oracle keys; otherwise
+    zero-arg stubs like L1_34's ``transform_index_page_table_decode``
+    would beat the real ``*_fast`` wrapper by string match alone.
+    """
+    if not meta_name:
+        return None
+
+    base = meta_name
+    if base.endswith("_kernel"):
+        base = base[: -len("_kernel")]
+    base = base.lstrip("_")
+    pattern_candidates = [
+        base,
+        f"triton_{base}",
+        f"{base}_triton",
+        f"{base}_fast",
+        f"{base}_paged",
+        meta_name,
+    ]
+
+    if required_params_by_name is None:
+        required_params_by_name = dict(enumerate_non_jit_module_defs(kernel_path))
+
+    matches: list[tuple[float, int, str]] = []
+    seen: set[str] = set()
+    for idx, cand in enumerate(pattern_candidates):
+        if not cand or cand in seen:
+            continue
+        seen.add(cand)
+        if is_jit_decorated(kernel_path, cand):
+            continue
+        if not kernel_function_exists(kernel_path, cand):
+            continue
+        score = _required_param_jaccard(
+            required_params_by_name.get(cand, []),
+            oracle_input_keys,
+        )
+        matches.append((score, -idx, cand))
+
+    if not matches:
+        return None
+    if not oracle_input_keys:
+        matches.sort(key=lambda item: item[1], reverse=True)
+        return matches[0][2]
+
+    positive = [item for item in matches if item[0] > 0.0]
+    if not positive:
+        if allow_zero_overlap:
+            matches.sort(key=lambda item: item[1], reverse=True)
+            return matches[0][2]
+        return None
+    positive.sort(reverse=True)
+    return positive[0][2]
+
+
 def resolve_kernel_entrypoint(
     meta: dict,
     kernel_path: Path,
@@ -138,7 +222,11 @@ def resolve_kernel_entrypoint(
 
     1. ``meta.oracle.gpu_triton`` parsed as ``kernel.py::<fn>``, unless
        ``<fn>`` is the ``placeholder`` sentinel.
-    2. ``results/resolve_all.json::tried[0]`` cache, **if** the
+    2. ``meta.name`` pattern variants, but only when the candidate has
+       positive required-param overlap with the oracle's input keys.
+       This fixes same-file mis-dispatches like L1_20 while avoiding
+       zero-arg stub wrappers such as L1_34's decode shim.
+    3. ``results/resolve_all.json::tried[0]`` cache, **if** the
        candidate's required-param set has at least ``min_tried_jaccard``
        overlap with the oracle's input keys. The cache historically
        picked the wrong host wrapper for tasks where the original phase-A
@@ -146,10 +234,12 @@ def resolve_kernel_entrypoint(
        though the oracle works on ``correct_attn_out``); without the
        jaccard floor we'd silently auto-patch shapes against the wrong
        wrapper.
-    3. AST-based wrapper auto-detection: pick the non-jit def with the
+    4. AST-based wrapper auto-detection: pick the non-jit def with the
        highest jaccard overlap (>= 0.3).
-    4. Pattern variants from ``meta.name``.
-    5. ``meta.name`` itself if it resolves to a non-jit def.
+    5. Legacy ``meta.name`` pattern fallback by string order, used only
+       when the promoted positive-overlap pass and the broader AST scan
+       both fail to find a stronger signal.
+    6. ``meta.name`` itself if it resolves to a non-jit def.
 
     Returns ``None`` rather than a jit-decorated raw kernel -- emitting
     a clean LAUNCH_BLOCKED with that reason beats a misleading runtime
@@ -164,31 +254,34 @@ def resolve_kernel_entrypoint(
             return False
         return kernel_function_exists(kernel_path, cand)
 
+    non_jit_defs = dict(enumerate_non_jit_module_defs(kernel_path))
+
     def _jaccard_with_oracle(cand: str) -> float:
         """Cheap sanity gate: cand's required params vs oracle keys.
 
         Returns ``0`` when we cannot extract cand's signature -- the
         caller treats that the same as a low jaccard and falls through.
         """
-        if not oracle_input_keys:
-            return 1.0  # no oracle to compare; trust the candidate
-        for name, req in enumerate_non_jit_module_defs(kernel_path):
-            if name != cand:
-                continue
-            if not req:
-                return 0.0
-            req_set = set(req)
-            oracle_set = set(oracle_input_keys)
-            inter = len(req_set & oracle_set)
-            union = len(req_set | oracle_set)
-            return inter / union if union else 0.0
-        return 0.0
+        return _required_param_jaccard(
+            non_jit_defs.get(cand, []),
+            oracle_input_keys,
+        )
 
     gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
     if isinstance(gpu_triton, str) and "::" in gpu_triton:
         _, _, fn = gpu_triton.partition("::")
         if fn and fn != "placeholder" and _accept(fn):
             return fn
+
+    meta_name = meta.get("name", "") or ""
+    pattern_match = _resolve_meta_name_pattern(
+        meta_name,
+        kernel_path,
+        oracle_input_keys,
+        required_params_by_name=non_jit_defs,
+    )
+    if pattern_match:
+        return pattern_match
 
     if resolve_cache_path and resolve_cache_path.exists():
         try:
@@ -208,9 +301,8 @@ def resolve_kernel_entrypoint(
 
     if oracle_input_keys:
         oracle_set = set(oracle_input_keys)
-        non_jit = enumerate_non_jit_module_defs(kernel_path)
         scored: list[tuple[float, str]] = []
-        for name, req in non_jit:
+        for name, req in non_jit_defs.items():
             if not req:
                 continue
             req_set = set(req)
@@ -225,28 +317,17 @@ def resolve_kernel_entrypoint(
         if scored and scored[0][0] >= 0.3:
             return scored[0][1]
 
-    meta_name = meta.get("name", "") or ""
     if not meta_name:
         return None
-    base = meta_name
-    if base.endswith("_kernel"):
-        base = base[: -len("_kernel")]
-    base = base.lstrip("_")
-    pattern_candidates = [
-        base,
-        f"triton_{base}",
-        f"{base}_triton",
-        f"{base}_fast",
-        f"{base}_paged",
+    pattern_fallback = _resolve_meta_name_pattern(
         meta_name,
-    ]
-    seen: set[str] = set()
-    for cand in pattern_candidates:
-        if not cand or cand in seen:
-            continue
-        seen.add(cand)
-        if _accept(cand):
-            return cand
+        kernel_path,
+        oracle_input_keys,
+        allow_zero_overlap=True,
+        required_params_by_name=non_jit_defs,
+    )
+    if pattern_fallback:
+        return pattern_fallback
     if _accept(meta_name):
         return meta_name
     return None

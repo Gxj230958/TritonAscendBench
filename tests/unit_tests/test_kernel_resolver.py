@@ -8,14 +8,18 @@ reject any JIT-decorated candidate at every return point.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from triton_ascend_bench.kernel_resolver import (
+    _resolve_meta_name_pattern,
     enumerate_non_jit_module_defs,
     is_jit_decorated,
     kernel_function_exists,
+    resolve_kernel_entrypoint,
 )
 
 
@@ -150,3 +154,87 @@ def test_l3_23_resolver_picks_host_wrapper():
     keys = ["A"]
     assert r1(meta, td / "kernel.py", td.name, oracle_input_keys=keys) == "solve_tril"
     assert r2(meta, td / "kernel.py", td.name, oracle_input_keys=keys) == "solve_tril"
+
+
+def test_l1_20_meta_name_pattern_beats_stale_cache(tmp_path):
+    """When the explicit pin is absent, ``meta.name`` should select
+    ``log_softmax`` before a stale cache / same-file AST scan can drift
+    to unrelated wrappers."""
+    td = Path("tasks/level1/L1_20_log_softmax")
+    meta = yaml.safe_load((td / "meta.yaml").read_text())
+    meta["oracle"]["gpu_triton"] = "kernel.py::placeholder"
+
+    stale_cache = tmp_path / "resolve_all.json"
+    stale_cache.write_text(
+        json.dumps(
+            {
+                "verdicts": [
+                    {
+                        "task_id": td.name,
+                        "tried": ["softmax_batch_invariant"],
+                    }
+                ]
+            }
+        )
+    )
+
+    assert resolve_kernel_entrypoint(
+        meta,
+        td / "kernel.py",
+        td.name,
+        ["input", "dim"],
+        resolve_cache_path=stale_cache,
+    ) == "log_softmax"
+
+
+def test_l1_34_meta_pattern_skips_zero_arg_decode_stub():
+    """The promoted ``meta.name`` pass must not grab the zero-arg decode
+    shim just because its name matches first; the real wrapper is the
+    ``*_fast`` host function with overlapping inputs."""
+    td = Path("tasks/level1/L1_34_transform_index_page_table_decode")
+    assert _resolve_meta_name_pattern(
+        "transform_index_page_table_decode_kernel",
+        td / "kernel.py",
+        ["page_table", "topk_indices", "page_size"],
+    ) == "transform_index_page_table_decode_fast"
+
+
+def test_l1_17_meta_pattern_requires_positive_overlap():
+    """If no ``meta.name`` variant overlaps the oracle keys, return
+    ``None`` and let the broader AST scan decide."""
+    td = Path("tasks/level1/L1_17_gelu_and_mul")
+    assert _resolve_meta_name_pattern(
+        "gelu_and_mul_kernel",
+        td / "kernel.py",
+        ["x", "approximate"],
+    ) is None
+
+
+def test_l3_07_zero_overlap_cache_still_falls_through_to_ast(tmp_path):
+    """L3_07's historical cache points at ``pack_seq_triton``. The cache
+    gate should reject that zero-overlap wrapper so AST scoring can still
+    recover ``correct_attn_out``."""
+    td = Path("tasks/level3/L3_07_correct_attn_cp_out")
+    meta = yaml.safe_load((td / "meta.yaml").read_text())
+
+    stale_cache = tmp_path / "resolve_all.json"
+    stale_cache.write_text(
+        json.dumps(
+            {
+                "verdicts": [
+                    {
+                        "task_id": td.name,
+                        "tried": ["pack_seq_triton"],
+                    }
+                ]
+            }
+        )
+    )
+
+    assert resolve_kernel_entrypoint(
+        meta,
+        td / "kernel.py",
+        td.name,
+        ["out", "lses", "cp_rank", "is_lse_base_on_e"],
+        resolve_cache_path=stale_cache,
+    ) == "correct_attn_out"
