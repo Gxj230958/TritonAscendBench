@@ -512,8 +512,21 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             inputs_path = ref_dir / f"inputs_{shape_id}.safetensors"
             ref_path = ref_dir / f"ref_{shape_id}.safetensors"
 
+            # V9 codex review 2026-05-27 (round 2): safetensors load_file
+            # returns keys sorted alphabetically. For a multi-output oracle
+            # whose dict insertion order doesn't match alphabetical, the
+            # R10.b runner used to mis-map the kernel's positional tuple
+            # to the wrong ref tensor. Stamp the oracle's dict insertion
+            # order into the ref's safetensors metadata so R10.b can
+            # reconstruct the original mapping after load. Only the
+            # ref artifact needs this -- ``inputs_*.safetensors`` is
+            # consumed by name (build_inputs rebuilds anyway), not by
+            # positional tuple, so it would just be noise there.
+            ref_meta = {
+                "output_key_order": json.dumps(list(ref_tensors.keys()))
+            }
             save_file(inputs_tensors, str(inputs_path))
-            save_file(ref_tensors, str(ref_path))
+            save_file(ref_tensors, str(ref_path), metadata=ref_meta)
 
             audit.ref_artifacts[shape_id] = hashlib.sha256(
                 ref_path.read_bytes()

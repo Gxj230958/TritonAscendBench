@@ -29,6 +29,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
 import torch
+from safetensors import safe_open
 from safetensors.torch import load_file
 import yaml
 
@@ -429,6 +430,25 @@ def _verify_one_task(
             verdict.shapes.append(sv)
             continue
 
+        # V9 codex review 2026-05-27: safetensors load_file returns
+        # alphabetical keys, so a multi-output oracle whose dict
+        # insertion order didn't happen to be alphabetical can no
+        # longer be re-aligned with the kernel's positional tuple
+        # return. R10.a now stamps the original ``output_key_order``
+        # into the safetensors metadata; read it back here so the
+        # tuple-to-dict mapping below honours the oracle's intent.
+        ref_output_order: list[str] = []
+        try:
+            with safe_open(str(ref_file), framework="pt") as f:
+                meta = f.metadata() or {}
+            if "output_key_order" in meta:
+                ref_output_order = json.loads(meta["output_key_order"])
+        except Exception:
+            # Missing / malformed metadata is fine on pre-2026-05-27
+            # ref artifacts -- fall through to the alphabetical
+            # mapping path below.
+            ref_output_order = []
+
         # Reuse Phase 1 build_inputs result when available; rebuild as a
         # safety net for paths that didn't populate the cache (the
         # wrapper had no rank constraints so Phase 1 short-circuited).
@@ -490,7 +510,51 @@ def _verify_one_task(
             else:
                 out_dict = {"output": kernel_out}
         elif isinstance(kernel_out, (tuple, list)):
-            ref_keys = list(ref_tensors.keys())
+            # Multi-output kernels MUST carry the oracle's dict insertion
+            # order in safetensors metadata. Silently falling back to
+            # alphabetical ``ref_tensors.keys()`` is a mispair landmine
+            # (codex r2 review 2026-05-27): for the L1_36 case it would
+            # quietly swap seg_indptr and src2dst and report inf again.
+            # Validate the metadata: it must be a list of strings whose
+            # set EXACTLY matches the safetensors keys and whose length
+            # equals the kernel tuple length.
+            alphabetical_keys = list(ref_tensors.keys())
+            if len(ref_tensors) <= 1:
+                # 1-output case can use alphabetical safely (single key).
+                ref_keys = ref_output_order or alphabetical_keys
+            else:
+                if not ref_output_order:
+                    sv.status = "LAUNCH_BLOCKED"
+                    sv.blocker_reason = (
+                        f"multi-output kernel returned {len(kernel_out)}-tuple "
+                        f"but ref safetensors has no `output_key_order` "
+                        f"metadata; the alphabetical-load fallback would "
+                        f"mis-pair outputs. Re-run R10.a so the artifact is "
+                        f"stamped with the oracle's dict insertion order."
+                    )
+                    n_blocked += 1
+                    verdict.shapes.append(sv)
+                    log.warning("  %s/%s: %s", task_id, sid, sv.blocker_reason)
+                    continue
+                if (
+                    not isinstance(ref_output_order, list)
+                    or not all(isinstance(k, str) for k in ref_output_order)
+                    or len(set(ref_output_order)) != len(ref_output_order)
+                    or set(ref_output_order) != set(alphabetical_keys)
+                    or len(ref_output_order) != len(kernel_out)
+                ):
+                    sv.status = "LAUNCH_BLOCKED"
+                    sv.blocker_reason = (
+                        f"output_key_order metadata invalid: got "
+                        f"{ref_output_order!r}, alphabetical ref keys "
+                        f"{alphabetical_keys!r}, kernel returned "
+                        f"{len(kernel_out)}-tuple. Re-run R10.a to refresh."
+                    )
+                    n_blocked += 1
+                    verdict.shapes.append(sv)
+                    log.warning("  %s/%s: %s", task_id, sid, sv.blocker_reason)
+                    continue
+                ref_keys = ref_output_order
             out_dict = {
                 ref_keys[i] if i < len(ref_keys) else f"out_{i}": v
                 for i, v in enumerate(kernel_out)
