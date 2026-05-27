@@ -466,9 +466,17 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             from safetensors.torch import save_file
             import hashlib
 
+            # ``safetensors.save_file`` rejects non-contiguous tensors,
+            # so a oracle that returns a view (e.g. via in-place
+            # assignment on a sliced sub-tensor -- L3_21's solve_tril
+            # path hits this) would crash R10.a with the misleading
+            # "non contiguous tensor" error. Forcing ``.contiguous()``
+            # here is the right precaution for a *captured* artifact:
+            # downstream consumers (R10.b GPU verify, manifest hashing)
+            # all expect packed bytes anyway.
             inputs_tensors = {
                 k: (
-                    v.detach().cpu()
+                    v.detach().cpu().contiguous()
                     if isinstance(v, torch.Tensor)
                     else torch.tensor(v)
                 )
@@ -477,7 +485,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             }
             ref_tensors = {
                 k: (
-                    v.detach().cpu()
+                    v.detach().cpu().contiguous()
                     if isinstance(v, torch.Tensor)
                     else torch.tensor(v)
                 )

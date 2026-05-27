@@ -15,6 +15,13 @@ size_knobs:
   E: 4
   C: 8
   G: 4
+  # V9 codex review 2026-05-27: solve_tril wrapper requires
+  # A.shape[-1] in {16, 32, 64} AND the oracle's last-two-dim block
+  # algebra requires A.shape[-2] == A.shape[-1] (square per-chunk
+  # block). This task's name `merge_16x16_to_32x32_inverse` pins the
+  # block to 32; expose BT as a fixed size_knob so inputs.A.dims can
+  # reference it without per-shape duplication.
+  BT: 32
 public_shapes:
 - id: P1
   name: tiny
@@ -136,9 +143,18 @@ hidden_shapes:
     G: 4
 inputs:
   A:
+    # V9 codex review 2026-05-27: wrapper `solve_tril` unpacks
+    # `B, T, H, BT = A.shape` (4-D) and the oracle's block-LU math
+    # requires the last two dims to be square (`A.shape[-2] ==
+    # A.shape[-1]`). For the 32x32-inverse variant we pin `BT=32` via
+    # size_knobs and use `[B, T, BT, BT]` -- this satisfies both the
+    # wrapper assert (`A.shape[-1] in {16,32,64}`) and the oracle
+    # square-block invariant. The `H` knob is unused here because the
+    # operation is per-chunk; the wrapper's H slot is filled by BT.
     dims:
     - B
-    - D
-    - D
+    - T
+    - BT
+    - BT
     dtype: float32
     dist: tril

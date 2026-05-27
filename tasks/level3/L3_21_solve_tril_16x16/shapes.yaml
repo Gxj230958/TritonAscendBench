@@ -15,6 +15,11 @@ size_knobs:
   E: 4
   C: 8
   G: 4
+  # V9 codex review 2026-05-27: same solve_tril family as L3_23. The
+  # wrapper asserts `A.shape[-1] in {16, 32, 64}` and the oracle
+  # requires square last-two dims. This task's name pins the block
+  # to 16; expose BT as a fixed size_knob.
+  BT: 16
 public_shapes:
 - id: P1
   name: tiny
@@ -136,8 +141,15 @@ hidden_shapes:
     G: 4
 inputs:
   A:
+    # V9 codex review 2026-05-27: wrapper `solve_tril` (shared with
+    # L3_23) unpacks `B, T, H, BT = A.shape` and the oracle's
+    # solve_triangular requires square last-two dims. Pin BT to 16
+    # (this task targets the 16x16 kernel variant) and use
+    # `[B, T, BT, BT]` so both wrapper assert and oracle math hold.
     dims:
+    - B
     - T
-    - T
+    - BT
+    - BT
     dtype: float32
     dist: tril
