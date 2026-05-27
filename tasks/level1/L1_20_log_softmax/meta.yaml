@@ -65,23 +65,20 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L1-20
   golden:
-    oracle_kernel_equivalence: FAILED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T14:31:24Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
-        status: FAILED
-        max_abs: 7.308230400085449
-        max_rel: 1.1546756029129028
-        blocker: 'output: atol/rtol: max_abs=7.31, max_rel=1.15 (max_abs=7.308230400085449,
-          max_rel=1.1546756029129028, tol=vector_reduce atol=0.001 rtol=0.001)'
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P2:
-        status: FAILED
-        max_abs: 10.099743843078613
-        max_rel: 1.047157883644104
-        blocker: 'output: atol/rtol: max_abs=10.1, max_rel=1.05 (max_abs=10.099743843078613,
-          max_rel=1.047157883644104, tol=vector_reduce atol=0.001 rtol=0.001)'
-    golden_source: fallback_to_gpu_capture_pending
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.1697049018266625e-07
+    golden_source: oracle_pytorch_verified
+    golden_sha256: 06d670f8a6cdc7153ab828876743d14f199a24fa3821a2234027ab1e6490ea06
 param_constraints:
   scaffold: false
   dims:
