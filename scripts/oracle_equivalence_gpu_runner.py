@@ -689,7 +689,15 @@ def main(argv: list[str] | None = None) -> int:
         args.output_dir,
     )
 
-    summary = {"verified": 0, "failed": 0, "mixed": 0, "blocked": 0, "skipped": 0}
+    summary = {
+        "verified": 0,
+        "failed": 0,
+        "mixed": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "wrapper_contract_mismatch": 0,
+        "oracle_kernel_layout_mismatch": 0,
+    }
     for td in sorted(task_dirs):
         v = _verify_one_task(td, args.infer_root, args.gpu)
         verdict_path = args.output_dir / f"{td.name}.json"
