@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
-tolerance_class: sampling_rng
+tolerance_class: vector_reduce
 cost_model:
   # Symbol audit (approach §3.4). Numerically-stable log_softmax over the last
   # dim. One program per row. Symbol map: B -> input rows (input dim 0, kernel
