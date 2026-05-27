@@ -356,9 +356,18 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
         if len(shape) > 2:
             t = t.expand(shape).contiguous()
     elif kind == "tril":
-        n = shape[-1] if shape else 1
+        # tril of randn; for square last-two dims we add a diagonal bias
+        # so the matrix is well-conditioned for triangular solves. Non-
+        # square last-two (e.g. wrapper-required [B, T, H, BT]) skip the
+        # bias because broadcasting eye(n) against the non-square plane
+        # is undefined; oracles in that case mask the upper triangle
+        # internally per-chunk so the bias would be a no-op anyway.
         base = torch.tril(torch.randn(shape, generator=gen, dtype=torch.float32))
-        t = base + torch.eye(n, dtype=torch.float32) * (n + 1)  # well-conditioned
+        if len(shape) >= 2 and shape[-1] == shape[-2]:
+            n = shape[-1]
+            t = base + torch.eye(n, dtype=torch.float32) * (n + 1)  # well-conditioned
+        else:
+            t = base
     elif kind == "randint":
         lo_i = int(eval_numeric(str(args["lo"]), knobs))
         hi_i = max(int(eval_numeric(str(args["hi"]), knobs)), lo_i + 1)
