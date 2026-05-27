@@ -584,11 +584,112 @@ def _ctx_from_args(args: argparse.Namespace) -> DaemonContext:
     )
 
 
+def _r19_startup_self_check() -> tuple[bool, str]:
+    """V9 plan M2.0 (R19 verified-runner boundary, fail-closed):
+    refuse to start unless the daemon is running as the provider uid
+    OR has CAP_SETUID.
+
+    The daemon brokers verified-mode evaluation -- it materialises
+    sealed-golden tensors in process memory and runs candidate code
+    against them. Running it under the same uid as the submitter
+    would let a candidate process trivially read those tensors via
+    ``/proc/<pid>/mem`` or shared CUDA mappings. v1 ships the
+    *minimum-viable* defence: refuse-to-start when the runtime cannot
+    enforce uid isolation, rather than silently degrading to a no-
+    isolation mode (which is the prior behaviour).
+
+    Returns ``(ok, reason)`` where ``ok=False`` means "refuse to
+    start" and ``reason`` is a single-line human-readable error.
+
+    The check is bypassed when ``$TAB_R19_SELF_CHECK_DISABLE=1`` is
+    set, which is the explicit opt-out for tooling that runs the
+    daemon in an unprivileged sandbox (CI / local dev) and accepts
+    the weakened isolation. The opt-out is loud (logged at WARNING).
+    """
+    import os as _os
+
+    if _os.environ.get("TAB_R19_SELF_CHECK_DISABLE") == "1":
+        return True, "R19 self-check disabled via TAB_R19_SELF_CHECK_DISABLE=1"
+
+    provider_uid_str = _os.environ.get("TAB_PROVIDER_UID")
+    current_uid = _os.geteuid() if hasattr(_os, "geteuid") else None
+    if current_uid is None:
+        return False, (
+            "R19: os.geteuid() unavailable on this platform; the daemon "
+            "cannot verify it is running as the provider uid. Refusing "
+            "to start."
+        )
+
+    if provider_uid_str:
+        try:
+            provider_uid = int(provider_uid_str)
+        except ValueError:
+            return False, (
+                f"R19: $TAB_PROVIDER_UID={provider_uid_str!r} is not an "
+                "integer; refusing to start"
+            )
+        if current_uid == provider_uid:
+            return True, f"R19: running as provider uid {current_uid}"
+
+    # uid mismatch (or $TAB_PROVIDER_UID unset): fall back to checking
+    # CAP_SETUID -- the daemon needs that capability to switch to a
+    # submitter uid for candidate sub-process isolation (the security
+    # follow-up plan ships the actual switching). Without either, no
+    # isolation is possible and we refuse to start.
+    try:
+        with open("/proc/self/status") as fh:
+            caps_line = next(
+                (line for line in fh if line.startswith("CapEff:")),
+                None,
+            )
+    except OSError as exc:
+        return False, (
+            f"R19: cannot read /proc/self/status ({exc}); cannot verify "
+            "CAP_SETUID. Refusing to start."
+        )
+
+    if caps_line is None:
+        return False, (
+            "R19: /proc/self/status missing CapEff line; cannot verify "
+            "CAP_SETUID. Refusing to start."
+        )
+
+    try:
+        caps_mask = int(caps_line.split()[1], 16)
+    except (IndexError, ValueError) as exc:
+        return False, (
+            f"R19: malformed CapEff line {caps_line!r}: {exc}; refusing "
+            "to start."
+        )
+
+    # CAP_SETUID is bit 7 (Linux capabilities, see capabilities(7)).
+    _CAP_SETUID_BIT = 1 << 7
+    if caps_mask & _CAP_SETUID_BIT:
+        return True, f"R19: uid {current_uid} has CAP_SETUID"
+
+    return False, (
+        f"R19: daemon uid {current_uid} is not the provider uid "
+        f"(${'TAB_PROVIDER_UID'}={provider_uid_str or '<unset>'}) "
+        "AND lacks CAP_SETUID; cannot enforce candidate isolation. "
+        "Refusing to start. Set $TAB_R19_SELF_CHECK_DISABLE=1 to opt "
+        "out and accept the weakened isolation."
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    log = logging.getLogger("bench_evaluator_daemon")
+    ok, reason = _r19_startup_self_check()
+    if not ok:
+        log.error(reason)
+        return 2
+    if "disabled" in reason.lower():
+        log.warning(reason)
+    else:
+        log.info(reason)
     parser = _build_parser()
     args = parser.parse_args(argv)
     ctx = _ctx_from_args(args)

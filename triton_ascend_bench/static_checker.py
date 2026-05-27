@@ -68,6 +68,19 @@ _DENYLIST_IMPORT_EXACT = {
     "torch.cuda.Event", "torch.npu.Event", "torch_npu.npu.Event",
     "torch.profiler", "torch_npu.profiler",
     "oracle_pytorch", "triton_ascend_bench", "tasks",
+    # V9 plan M2.0 (R19 verified-runner boundary, v1 minimum-viable):
+    # candidate source MUST NOT import the safetensors loader or
+    # torch deserialization primitives. The verified runner holds the
+    # sealed-golden tensors in process memory; if a candidate could
+    # call `safetensors.torch.load_file` on a sealed path it would
+    # short-circuit the R14 file-mode + R18 signature gates. The full
+    # process-isolation model (uid switching + MADV_DONTFORK) ships
+    # in the security follow-up plan; this Layer A static deny is the
+    # immediate v1 defence.
+    "safetensors", "safetensors.torch",
+    "safetensors.torch.load_file", "safetensors.torch.save_file",
+    "torch.load", "torch.serialization",
+    "torch.serialization.load",
 }
 _DENYLIST_IMPORT_PREFIX = {
     "vllm_ascend.npu_",
