@@ -143,7 +143,20 @@ hidden_shapes:
     REV: 0
 inputs:
   g:
+    # V9 codex review 2026-05-27 (round 2): the kernel does per-chunk
+    # cumsum (resets at every `chunk_size` boundary). Old oracle did a
+    # plain torch.cumsum over the full sequence axis, so for L > BT it
+    # was off by a constant per chunk -- a real oracle bug, not a
+    # shapes issue. The companion fix in oracle_pytorch.py rewrites the
+    # oracle to mirror the wrapper's own equivalence comment
+    # `g.view(B, H, NT, BT, -1).cumsum(-2).view(B, H, T, -1)`.
+    # We pin `head_first=True` so wrapper unpacks `B, H, T, S = g.shape`
+    # and the oracle takes the matching `[B, H, T, S]` layout
+    # without a transpose round-trip. `S` is per-head channel width and
+    # reuses the existing `D` knob.
     dims:
+    - B
+    - H
     - L
     - D
     dtype: float32
@@ -151,4 +164,9 @@ inputs:
   reverse:
     scalar_knob: REV
   chunk_size:
-    scalar: 64
+    # Power-of-two BT that divides every shape's L value
+    # (16, 32, 64, 96, 128, 256, 512 are all multiples of 8 -- the
+    # smallest L is 16 = 8*2 so BT=8 is the safe pick).
+    scalar: 8
+  head_first:
+    scalar: true

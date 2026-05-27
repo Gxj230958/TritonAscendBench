@@ -16,18 +16,60 @@ import torch.nn.functional as F
 
 
 def _chunk_local_cumsum_vector(
-    g: torch.Tensor, reverse: bool = False,
+    g: torch.Tensor,
+    chunk_size: int,
+    reverse: bool = False,
+    head_first: bool = False,
 ) -> torch.Tensor:
-    """Per-chunk local cumulative sum along the sequence axis (FLA).
-    g: [..., L, D]. reverse ⇒ suffix cumsum."""
+    """Per-CHUNK-local cumulative sum along the sequence axis (FLA).
+
+    Matches ``chunk_local_cumsum_vector_kernel`` (kernel.py:211): cumsum
+    resets at every ``chunk_size`` boundary. For ``T = NT * BT``,
+
+        out[..., t * BT + k, :] = sum_{i=0..k} g[..., t * BT + i, :]
+
+    (and reversed-sum when ``reverse=True``). Equivalent to the wrapper
+    comment ``g.view(B, H, NT, BT, -1).cumsum(-2).view(B, H, T, -1)``.
+
+    Args:
+        g: rank-4 tensor. Layout depends on ``head_first``:
+              ``head_first=False`` (default): ``[B, T, H, S]``
+              ``head_first=True``           : ``[B, H, T, S]``
+        chunk_size: BT block size; must be a power of 2 (mirrors the
+            wrapper's own assert) and ``T`` must be a multiple of it.
+        reverse: suffix cumsum within each chunk.
+        head_first: input layout flag (forwarded from wrapper).
+    """
     gf = g.to(torch.float32)
-    if reverse:
-        out = torch.flip(torch.cumsum(torch.flip(gf, [-2]), dim=-2), [-2])
+    if head_first:
+        B, H, T, S = gf.shape
     else:
-        out = torch.cumsum(gf, dim=-2)
+        B, T, H, S = gf.shape
+        gf = gf.transpose(1, 2).contiguous()  # -> (B, H, T, S)
+    BT = chunk_size
+    if T % BT != 0:
+        raise ValueError(
+            f"chunk_local_cumsum_vector oracle: T={T} must be a "
+            f"multiple of chunk_size={BT}"
+        )
+    NT = T // BT
+    chunked = gf.view(B, H, NT, BT, S)
+    if reverse:
+        out = torch.flip(
+            torch.cumsum(torch.flip(chunked, [-2]), dim=-2), [-2]
+        )
+    else:
+        out = torch.cumsum(chunked, dim=-2)
+    out = out.view(B, H, T, S)
+    if not head_first:
+        out = out.transpose(1, 2).contiguous()  # -> (B, T, H, S)
     return out.to(g.dtype)
 
 
 def run(inputs: dict) -> dict:
     return {"output": _chunk_local_cumsum_vector(
-        inputs["g"], bool(inputs.get("reverse", False)))}
+        inputs["g"],
+        int(inputs["chunk_size"]),
+        bool(inputs.get("reverse", False)),
+        bool(inputs.get("head_first", False)),
+    )}
