@@ -26,15 +26,49 @@ PRECOMPUTE = REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"
 
 
 CLASSIFICATION_CASES = [
+    # L3_22 was patched 2026-05-27 (oracle rewritten as per-chunk
+    # cumsum + shapes.yaml aligned to [B,H,L,D]); it now returns
+    # ALIGNED_READY and is no longer expected in this rank-mismatch
+    # bucket.
     ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
         "ORACLE_KERNEL_LAYOUT_MISMATCH"),
     ("L3_16_chunk_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_17_chunk_gla_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_18_chunk_scaled_dot_kkt_fwd", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_20_recompute_w_u_fwd", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_22_chunk_local_cumsum_vector", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_23_merge_16x16_to_32x32_inverse", "WRAPPER_CONTRACT_MISMATCH"),
 ]
+
+
+def test_l3_22_now_aligned():
+    """Spot check: L3_22 was patched out of the WRAPPER_CONTRACT_MISMATCH
+    bucket on 2026-05-27 (oracle rewritten as per-chunk cumsum, shapes
+    aligned to [B,H,L,D]). Guard against regression that reintroduces
+    a rank-mismatch verdict here."""
+    import sys
+
+    td = REPO_ROOT / "tasks" / "level3" / "L3_22_chunk_local_cumsum_vector"
+    if not td.is_dir():
+        pytest.skip("L3_22 missing")
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(PRECOMPUTE),
+            "--task", "L3_22_chunk_local_cumsum_vector",
+            "--json-out", "/tmp/_l3_22_test.json",
+            "--report", "/tmp/_l3_22_test.md",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+        timeout=60,
+    )
+    assert proc.returncode == 0
+    combined = proc.stdout + proc.stderr
+    assert "ALIGNED_READY" in combined, (
+        f"L3_22 should now be ALIGNED_READY: {combined}"
+    )
+    assert "WRAPPER_CONTRACT_MISMATCH" not in combined
 
 
 @pytest.mark.parametrize("task_id,expected_status", CLASSIFICATION_CASES)

@@ -274,12 +274,15 @@ def test_l3_13_oracle_helper_exposes_k_rank_3():
 
 REAL_CORPUS_CASES = [
     # (task_id, key, wrapper_expected_rank, actual_rank)
+    # L3_22 was patched 2026-05-27 (oracle rewritten as per-chunk
+    # cumsum + shapes.yaml.g.dims aligned to [B,H,L,D]); it now
+    # returns ALIGNED_READY and no longer belongs in the
+    # rank-mismatch list.
     ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4, 3),
     ("L3_16_chunk_fwd_kernel_o", "q", 4, 3),
     ("L3_17_chunk_gla_fwd_kernel_o", "q", 4, 3),
     ("L3_18_chunk_scaled_dot_kkt_fwd", "k", 4, 3),
     ("L3_20_recompute_w_u_fwd", "k", 4, 3),
-    ("L3_22_chunk_local_cumsum_vector", "g", 4, 2),
     ("L3_23_merge_16x16_to_32x32_inverse", "A", 4, 3),
 ]
 
