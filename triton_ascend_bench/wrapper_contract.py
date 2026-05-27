@@ -55,6 +55,15 @@ class WrapperContract:
     source_lines: dict[str, list[tuple[int, str]]] = field(
         default_factory=dict
     )
+    # V9 P6 (auto_patch_shapes): for each input, the list of dim-name
+    # tuples observed in *direct* (non-starred) ``a, b, c = x.shape``
+    # unpacks. Each tuple is the LHS variable name sequence in source
+    # order, e.g. ``B, T, H, K = k.shape`` -> ``('B', 'T', 'H', 'K')``.
+    # The auto-patch tool reads the first entry as the canonical
+    # ``shapes.yaml.inputs[name].dims`` value. Branch unpack populates
+    # multiple entries; starred unpack contributes nothing here (the
+    # starred slot has no source-level name).
+    dim_names: dict[str, list[tuple[str, ...]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -115,8 +124,11 @@ def _starred_count(elts: list[ast.expr], inputs: set[str]) -> tuple[str, int] | 
 
 def _direct_shape_unpack_rank(
     target: ast.expr, value: ast.expr, inputs: set[str]
-) -> tuple[str, int] | None:
-    """Match ``a, b, ..., c = x.shape`` -> ``(x, n)`` where n = len(LHS).
+) -> tuple[str, int, tuple[str, ...]] | None:
+    """Match ``a, b, ..., c = x.shape`` -> ``(x, n, names)``.
+
+    ``n`` = ``len(LHS)``; ``names`` = source-order tuple of the LHS
+    Name ids (e.g. ``('B', 'T', 'H', 'K')``).
 
     LHS must be a Tuple of bare Names (no Starred, no Subscripts).
     RHS must be ``x.shape`` for some ``x`` in the wrapper param set.
@@ -132,7 +144,8 @@ def _direct_shape_unpack_rank(
         and value.value.id in inputs
     ):
         return None
-    return value.value.id, len(target.elts)
+    names = tuple(e.id for e in target.elts)
+    return value.value.id, len(target.elts), names
 
 
 def _shape_subscript_min_rank(node: ast.expr, inputs: set[str]) -> tuple[str, int] | None:
@@ -330,10 +343,20 @@ def extract_wrapper_contract(
 
     contract = WrapperContract(fn_name=fn_name)
 
-    def _accept_rank(name: str, rank: int, line: int, src: str) -> None:
+    def _accept_rank(
+        name: str,
+        rank: int,
+        line: int,
+        src: str,
+        names: tuple[str, ...] | None = None,
+    ) -> None:
         contract.accepted_ranks.setdefault(name, set()).add(rank)
         contract.min_ranks[name] = max(contract.min_ranks.get(name, 0), rank)
         contract.source_lines.setdefault(name, []).append((line, src.strip()[:120]))
+        if names is not None:
+            existing = contract.dim_names.setdefault(name, [])
+            if names not in existing:
+                existing.append(names)
 
     def _update_min(name: str, rank: int, line: int, src: str) -> None:
         contract.min_ranks[name] = max(contract.min_ranks.get(name, 0), rank)
@@ -349,13 +372,13 @@ def extract_wrapper_contract(
             for tgt in stmt.targets:
                 hit = _direct_shape_unpack_rank(tgt, stmt.value, aliased_inputs)
                 if hit is not None:
-                    alias, rank = hit
+                    alias, rank, names = hit
                     original = alias_map.get(alias, alias)
                     try:
                         src = ast.unparse(stmt)
                     except Exception:
                         src = ""
-                    _accept_rank(original, rank, stmt.lineno, src)
+                    _accept_rank(original, rank, stmt.lineno, src, names)
                     continue
                 if (
                     isinstance(tgt, (ast.Tuple, ast.List))

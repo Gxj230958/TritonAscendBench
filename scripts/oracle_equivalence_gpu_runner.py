@@ -150,94 +150,22 @@ def _resolve_kernel_entrypoint(
     task_id: str,
     oracle_input_keys: list[str] | None = None,
 ) -> str | None:
-    """Mirror logic in oracle_pyref_precompute.py for consistency.
-
-    Preference: meta.oracle.gpu_triton -> results/resolve_all.json tried[0]
-    -> AST-based wrapper auto-detection (max-jaccard with oracle inputs)
-    -> pattern variants -> raw meta.name fallback.
+    """Shim over the shared resolver in
+    :mod:`triton_ascend_bench.kernel_resolver`. The R10.a / R10.b / auto-
+    patch scripts all delegate here so they can never drift on jaccard
+    thresholds, jit gating, or tried-cache trust rules.
     """
-    from triton_ascend_bench.kernel_resolver import is_jit_decorated  # noqa: PLC0415
+    from triton_ascend_bench.kernel_resolver import (  # noqa: PLC0415
+        resolve_kernel_entrypoint,
+    )
 
-    def _accept(cand: str) -> bool:
-        """Reject @triton.jit-decorated candidates -- the R10 pipeline
-        wants the host wrapper, not the raw kernel (V9 codex review
-        2026-05-27)."""
-        if not cand:
-            return False
-        if is_jit_decorated(kernel_path, cand):
-            return False
-        return _kernel_has_function(kernel_path, cand)
-
-    gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
-    if isinstance(gpu_triton, str) and "::" in gpu_triton:
-        _, _, fn = gpu_triton.partition("::")
-        if fn and fn != "placeholder" and _accept(fn):
-            return fn
-    # Load resolve cache (gitignored;may be absent on GPU host)
-    rj = REPO_ROOT / "results" / "resolve_all.json"
-    if rj.exists():
-        try:
-            d = json.loads(rj.read_text())
-            for v in d.get("verdicts", []):
-                if v.get("task_id") == task_id:
-                    tried = v.get("tried") or []
-                    if tried and _accept(tried[0]):
-                        return tried[0]
-                    break
-        except Exception:
-            pass
-
-    # AST-based auto-detection: pick non-jit def with highest jaccard overlap
-    if oracle_input_keys:
-        oracle_set = set(oracle_input_keys)
-        non_jit = _enumerate_non_jit_module_defs(kernel_path)
-        scored: list[tuple[float, str]] = []
-        for name, req in non_jit:
-            if not req:
-                continue
-            req_set = set(req)
-            inter = len(oracle_set & req_set)
-            union = len(oracle_set | req_set)
-            if union == 0:
-                continue
-            jaccard = inter / union
-            subset_bonus = 0.2 if req_set.issubset(oracle_set) else 0.0
-            scored.append((jaccard + subset_bonus, name))
-        scored.sort(reverse=True)
-        if scored and scored[0][0] >= 0.3:
-            # ``_enumerate_non_jit_module_defs`` already excludes JIT
-            # decorators, so the top scorer is host-wrapper-safe.
-            return scored[0][1]
-
-    meta_name = meta.get("name", "") or ""
-    if not meta_name:
-        return None
-    base = meta_name
-    if base.endswith("_kernel"):
-        base = base[: -len("_kernel")]
-    base = base.lstrip("_")
-    pattern_candidates = [
-        base,
-        f"triton_{base}",
-        f"{base}_triton",
-        f"{base}_fast",
-        f"{base}_paged",
-        meta_name,
-    ]
-    seen: set[str] = set()
-    for cand in pattern_candidates:
-        if not cand or cand in seen:
-            continue
-        seen.add(cand)
-        if _accept(cand):
-            return cand
-    # Final fallback: refuse to return a JIT-decorated name -- silently
-    # invoking a Triton kernel with bare tensor args fails with stale
-    # tracebacks (V9 codex review). Better to return None and have the
-    # caller flag the task than ship a misleading verdict.
-    if _accept(meta_name):
-        return meta_name
-    return None
+    return resolve_kernel_entrypoint(
+        meta,
+        kernel_path,
+        task_id,
+        oracle_input_keys,
+        resolve_cache_path=REPO_ROOT / "results" / "resolve_all.json",
+    )
 
 
 def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):

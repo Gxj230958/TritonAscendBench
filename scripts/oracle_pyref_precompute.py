@@ -230,98 +230,21 @@ def _resolve_kernel_entrypoint(
     task_id: str,
     oracle_input_keys: list[str] | None = None,
 ) -> str | None:
-    """Find host wrapper for the upstream kernel. Preference order:
-
-    1. ``meta.oracle.gpu_triton`` parsed as ``kernel.py::<name>`` if not
-       ``placeholder`` (the resolver-written verified entrypoint).
-    2. ``results/resolve_all.json`` ``tried[0]`` cache if present (dev
-       machine only; .gitignored, never on a fresh GPU host).
-    3. **AST-based wrapper auto-detection**: scan all non-``@triton.jit``
-       module-level defs in kernel.py, pick the one whose required-param
-       set has the highest Jaccard overlap with the oracle's input keys.
-       This handles wrappers whose name does not derive predictably from
-       ``meta.name`` (e.g. ``_topk_log_softmax_kernel`` → ``compute_token_logprobs``,
-       ``bmm_kernel`` → ``bmm_batch_invariant``).
-    4. Pattern fallback from ``meta.name`` (last resort).
+    """Thin shim over the shared
+    :func:`triton_ascend_bench.kernel_resolver.resolve_kernel_entrypoint`
+    -- preserves the local name R10.a / tests already use.
     """
-    # Lazy import so the helper module stays optional during unit tests
-    # that monkeypatch the shared functions.
-    from triton_ascend_bench.kernel_resolver import is_jit_decorated  # noqa: PLC0415
+    from triton_ascend_bench.kernel_resolver import (  # noqa: PLC0415
+        resolve_kernel_entrypoint,
+    )
 
-    def _accept(cand: str) -> bool:
-        """Reject any candidate that turns out to be a @triton.jit
-        kernel -- the R10 pipeline always needs the host wrapper
-        (V9 plan M0a.2 / codex review 2026-05-27)."""
-        if not cand:
-            return False
-        if is_jit_decorated(kernel_path, cand):
-            return False
-        return _kernel_entrypoint_signature(kernel_path, cand) is not None
-
-    gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
-    if isinstance(gpu_triton, str) and "::" in gpu_triton:
-        _, _, fn = gpu_triton.partition("::")
-        if fn and fn != "placeholder" and _accept(fn):
-            return fn
-    tried_map = _load_resolve_tried_map()
-    if task_id in tried_map and tried_map[task_id]:
-        candidate = tried_map[task_id][0]
-        if _accept(candidate):
-            return candidate
-
-    # AST-based auto-detection: pick the non-jit def whose required-param
-    # set most overlaps oracle's input keys.
-    if oracle_input_keys:
-        oracle_set = set(oracle_input_keys)
-        non_jit = _enumerate_non_jit_module_defs(kernel_path)
-        scored: list[tuple[float, str]] = []
-        for name, req in non_jit:
-            if not req:
-                continue
-            req_set = set(req)
-            inter = len(oracle_set & req_set)
-            union = len(oracle_set | req_set)
-            if union == 0:
-                continue
-            jaccard = inter / union
-            # Bonus: prefer wrappers whose required params are subset of oracle inputs
-            subset_bonus = 0.2 if req_set.issubset(oracle_set) else 0.0
-            scored.append((jaccard + subset_bonus, name))
-        scored.sort(reverse=True)
-        if scored and scored[0][0] >= 0.3:
-            # ``_enumerate_non_jit_module_defs`` already filters JIT
-            # decorators, so the top scorer is host-wrapper-safe.
-            return scored[0][1]
-
-    meta_name = meta.get("name")
-    if not (isinstance(meta_name, str) and meta_name):
-        return None
-    base = meta_name
-    if base.endswith("_kernel"):
-        base = base[: -len("_kernel")]
-    base = base.lstrip("_")
-    pattern_candidates = [
-        base,
-        f"triton_{base}",
-        f"{base}_triton",
-        f"{base}_fast",
-        f"{base}_paged",
-        meta_name,
-    ]
-    seen: set[str] = set()
-    for cand in pattern_candidates:
-        if not cand or cand in seen:
-            continue
-        seen.add(cand)
-        if _accept(cand):
-            return cand
-    # Final fallback: refuse to return a JIT-decorated name -- that
-    # would silently route GPU verify to a raw kernel call. Better to
-    # return None and have the caller flag the task as
-    # "no host wrapper resolvable" than to ship a misleading verdict.
-    if _accept(meta_name):
-        return meta_name
-    return None
+    return resolve_kernel_entrypoint(
+        meta,
+        kernel_path,
+        task_id,
+        oracle_input_keys,
+        resolve_cache_path=REPO_ROOT / "results" / "resolve_all.json",
+    )
 
 
 def _audit_task(task_dir: Path) -> TaskAudit:
