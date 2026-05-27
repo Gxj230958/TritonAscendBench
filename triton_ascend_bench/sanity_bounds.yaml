@@ -1,0 +1,160 @@
+# sanity_bounds.yaml -- V9 plan M3.0 (R16 output sanity gate).
+#
+# Single central table of per-category sanity bounds. The R16 gate
+# runs against this table BEFORE any captured golden artifact is
+# manifest-signed (M3.2) -- gross-corruption defence (NaN / Inf /
+# shape / all-zero) for unverified upstream code that produced the
+# tensors.
+#
+# This table is NOT a substitute for R10 GPU equivalence (source ①)
+# nor for the signed manifest (R18). It is the cheap fail-fast that
+# blocks obviously-bad output from entering the trust chain.
+#
+# Schema (closed):
+#
+#   by_category:
+#     <category_name>:
+#       max_abs: <float>              # rejected if any |x| > max_abs
+#       forbid_all_zero: <bool>       # reject all-zero output if true
+#       allow_nan_rate: <float>       # reject if NaN_count / total > rate
+#       allow_inf_rate: <float>       # reject if Inf_count / total > rate
+#       must_match_input_rank: <bool> # output rank must equal input rank
+#
+# Numeric bounds reflect plausible *post-op* magnitudes for each op
+# family. Reviewers (per the V9 plan CODEOWNERS rule) MUST attest
+# these are domain-correct; downstream gates fail-closed on any
+# missing category to force a human review.
+#
+# `norm` is treated as a HIGH-risk math op (closed-form) so it is
+# excluded from the leaderboard but still gets a bound here -- the
+# gate is independent of leaderboard inclusion.
+
+schema_version: '1.0'
+
+by_category:
+
+  # ── normalization family ─────────────────────────────────────────
+  norm:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  normalization:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  # ── elementwise / activation ─────────────────────────────────────
+  elementwise:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  # ── attention / softmax ──────────────────────────────────────────
+  attention:
+    max_abs: 1.0e3
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  softmax:
+    max_abs: 1.0          # softmax outputs are bounded by [0, 1]
+    forbid_all_zero: false  # all-zero is meaningful (padding mask)
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  paged-attention:
+    max_abs: 1.0e3
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false  # paged kernels reshape extensively
+
+  # ── matmul / gemm ────────────────────────────────────────────────
+  gemm:
+    max_abs: 1.0e8
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  # ── MoE / experts ────────────────────────────────────────────────
+  moe:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  # ── SSM / recurrent / scan ───────────────────────────────────────
+  ssm:
+    max_abs: 1.0e4
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  scan:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  # ── quantization (int8 / int4 / fp8) ─────────────────────────────
+  quantization:
+    max_abs: 256.0          # int8 magnitude ceiling
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  # ── sampling RNG (bit_exact tolerance class) ─────────────────────
+  sampling:
+    max_abs: 1.0e6
+    forbid_all_zero: false  # output can be all-zero (cumulative probs)
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  rng:
+    max_abs: 1.0e6
+    forbid_all_zero: false
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  # ── convolution ──────────────────────────────────────────────────
+  convolution:
+    max_abs: 1.0e6
+    forbid_all_zero: true
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: true
+
+  # ── speculative decoding ─────────────────────────────────────────
+  spec_decode:
+    max_abs: 1.0e6
+    forbid_all_zero: false  # mask outputs can be zero
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
+
+  # ── catch-all ────────────────────────────────────────────────────
+  # `other` is intentionally bounded -- the gate fails-closed on
+  # uncategorised tasks (forces reviewer to add a proper category)
+  # but the explicit entry keeps the YAML close-set sane.
+  other:
+    max_abs: 1.0e6
+    forbid_all_zero: false
+    allow_nan_rate: 0.0
+    allow_inf_rate: 0.0
+    must_match_input_rank: false
