@@ -31,15 +31,26 @@ Everything under `<bench>/.loop/` on gpfs (which is `.gitignore`'d):
 
 **Prereq**: bench tree must exist at the gpfs path
 `/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/`.
-If it doesn't (first ever deploy), bootstrap from dev:
+If it doesn't (first ever deploy), bootstrap from dev. The rsync command
+below honors the local `.gitignore` via `--filter=dir-merge` so it does
+NOT push `.venv/`, `.pytest_cache/`, `.cache/`, `external/`, build
+artifacts, or `.loop/` runtime state to gpfs.
 
 ```bash
 # from dev, one-time bootstrap (push bench tree to gpfs via B tunnel)
-rsync -az --exclude '.git/' --exclude '__pycache__/' --exclude '.loop/' \
+cd /data1/code/agentic-rl/kernel/triton-ascend-bench
+rsync -az \
+    --filter='dir-merge,- .gitignore' \
+    --exclude '.git/' \
+    --exclude '.loop/' \
     -e 'ssh -p 2222' \
-    /data1/code/agentic-rl/kernel/triton-ascend-bench/ \
+    ./ \
     root@127.0.0.1:/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/
 ```
+
+(`.git/` is excluded explicitly because `.gitignore` itself doesn't
+ignore it; `.loop/` is excluded because we don't want to clobber the
+A-side runtime mailbox during bootstrap.)
 
 Then on A:
 

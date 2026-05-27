@@ -110,13 +110,23 @@ def cmd_submit(args: argparse.Namespace) -> int:
     # exist on either side. Otherwise an old done.flag can mask a fresh
     # failure or silently overwrite prior results.
     if not args.allow_recycle:
-        local_collisions = []
-        for sub in ("jobs", "results", "done", "dead"):
-            p = LOCAL_LOOP / sub / (f"{batch_id}.json" if sub == "jobs"
-                                     else f"{batch_id}.flag" if sub == "done"
-                                     else batch_id)
+        local_collisions: list[str] = []
+        # Static paths.
+        for name, sub in (
+            (f"{batch_id}.json", "jobs"),
+            (f"{batch_id}.json.taken", "jobs"),
+            (f"{batch_id}.flag", "done"),
+            (batch_id, "results"),
+        ):
+            p = LOCAL_LOOP / sub / name
             if p.exists():
                 local_collisions.append(str(p))
+        # dead/<id>.err  AND  dead/<id>.<reason>.err  variants (daemon
+        # writes e.g. .duplicate.err / .heartbeat.err / bare .err).
+        for p in (LOCAL_LOOP / "dead").glob(f"{batch_id}.err"):
+            local_collisions.append(str(p))
+        for p in (LOCAL_LOOP / "dead").glob(f"{batch_id}.*.err"):
+            local_collisions.append(str(p))
         if local_collisions:
             print(
                 f"batch_id {batch_id} already used locally: {local_collisions}. "
@@ -124,13 +134,17 @@ def cmd_submit(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 1
-        # Also probe remote.
+        # Also probe remote, including the same dead/<id>{,.*}.err variants.
+        bid = shlex.quote(batch_id)
+        bench = shlex.quote(REMOTE_BENCH)
         probe = _ssh(
             "set -e; "
-            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/jobs/{shlex.quote(batch_id)}.json && echo JOB; "
-            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/jobs/{shlex.quote(batch_id)}.json.taken && echo TAKEN; "
-            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/done/{shlex.quote(batch_id)}.flag && echo DONE; "
-            f"test -d {shlex.quote(REMOTE_BENCH)}/.loop/results/{shlex.quote(batch_id)} && echo RESULTS; "
+            f"test -f {bench}/.loop/jobs/{bid}.json && echo JOB; "
+            f"test -f {bench}/.loop/jobs/{bid}.json.taken && echo TAKEN; "
+            f"test -f {bench}/.loop/done/{bid}.flag && echo DONE; "
+            f"test -d {bench}/.loop/results/{bid} && echo RESULTS; "
+            f"test -f {bench}/.loop/dead/{bid}.err && echo DEAD_BARE; "
+            f"ls {bench}/.loop/dead/{bid}.*.err 2>/dev/null | head -1 && echo DEAD_REASONED; "
             "true"
         )
         remote_collision = probe.stdout.strip()
@@ -270,7 +284,15 @@ def cmd_collect(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """sync-code + submit + wait + collect, one shot."""
+    """sync-code + submit + wait + collect, one shot.
+
+    Exit-code mapping (from cmd_wait):
+      0 → success path: collect normally
+      3 → DEAD: still collect partial results so the operator sees
+          what made it before the crash, then propagate exit 3
+      2 (stale/timeout) / 4 (ssh transport) → skip collect (no
+          confidence in remote state), propagate as-is
+    """
     rc = cmd_sync_code(args)
     if rc != 0:
         return rc
@@ -279,10 +301,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     rc = cmd_submit(args)
     if rc != 0:
         return rc
-    rc = cmd_wait(args)
-    if rc != 0:
-        return rc
-    return cmd_collect(args)
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        return cmd_collect(args)
+    if wait_rc == 3:
+        # Partial results may still be on gpfs; pull them so the operator
+        # can diagnose, then propagate the DEAD signal.
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        return 3
+    return wait_rc
 
 
 def cmd_status(args: argparse.Namespace) -> int:
