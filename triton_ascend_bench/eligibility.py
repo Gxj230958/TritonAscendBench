@@ -164,6 +164,113 @@ def golden_artifact_usable(path) -> bool:
     return True
 
 
+def golden_integrity_chain_ok(task_dir, shape_ids: list[str]) -> bool:
+    """V9 plan M4.1: end-to-end R15 SHA + R18 signature chain check.
+
+    ``task_dir`` is the task's ``task_dir`` path (a ``pathlib.Path``);
+    the function never assumes the task lives under the real
+    ``tasks/level{1,2,3}/`` tree so synthetic test fixtures work too.
+
+    Returns ``True`` when the golden chain is intact. Three states:
+
+    1. Manifest + signature both present + signature verifies: the
+       chain is signed and intact.
+    2. Manifest present, signature absent (pre-M3.2 corpus): grace
+       period -- usability + SHA-against-manifest is required, but a
+       missing signature is not yet release-blocking.
+    3. Manifest absent (pre-R5 capture): no chain claim made; this
+       function returns ``True`` so the call site can fall back to
+       its other gates (release_ready_with_provenance etc.).
+
+    Tamper resistance: when the manifest exists, every artifact's
+    on-disk SHA-256 MUST match the manifest entry; any mismatch
+    returns ``False``.
+    """
+    import hashlib
+    import json
+    from pathlib import Path
+
+    td = Path(task_dir)
+    if not td.is_dir():
+        return False
+    manifest_path = td / "golden" / "manifest.json"
+    if not manifest_path.is_file():
+        return True  # pre-R5 / pre-M3.2 grace period
+
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    declared = {
+        a.get("shape_id"): a.get("sha256")
+        for a in manifest.get("artifacts") or []
+        if isinstance(a, dict)
+    }
+    for sid in shape_ids:
+        artifact_path = td / "golden" / f"{sid}.safetensors"
+        if not artifact_path.is_file():
+            return False
+        expected = declared.get(sid)
+        if expected is None:
+            return False  # manifest does not cover this shape
+        h = hashlib.sha256()
+        try:
+            with open(artifact_path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    h.update(chunk)
+        except OSError:
+            return False
+        if h.hexdigest() != expected:
+            return False
+
+    # Signature is optional in v1 (pre-M3.2 corpus); when present, verify.
+    sig_path = td / "provenance.sig"
+    if sig_path.is_file():
+        # Lazy-import the signature verifier so we don't take a
+        # cryptography hard dep here.
+        try:
+            from scripts.golden_manifest import (
+                build_envelope,
+                verify_envelope,
+            )
+        except ImportError:
+            # Test envs without scripts/ on sys.path -- treat as no
+            # signature claim (the SHA chain above still ran).
+            return True
+
+        sanity_path = (
+            Path(__file__).resolve().parent / "sanity_bounds.yaml"
+        )
+        pc_path = td / "provenance_commit.json"
+        try:
+            meta = json.loads((td / "meta.yaml").read_text())
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+        meta_prov_golden = (
+            (meta.get("provenance") or {}).get("golden") or {}
+        )
+        envelope = build_envelope(
+            manifest_path=manifest_path,
+            provenance_commit_path=pc_path,
+            sanity_bounds_path=sanity_path,
+            meta_provenance_golden=meta_prov_golden,
+        )
+        try:
+            sig_bytes = sig_path.read_bytes()
+        except OSError:
+            return False
+        # We don't know the key_id without provenance.golden -- iterate.
+        from scripts.golden_manifest import load_trust_roots
+        for k in (load_trust_roots().get("active_keys") or []):
+            kid = k.get("key_id")
+            if kid and verify_envelope(envelope, sig_bytes, key_id=kid):
+                return True
+        return False
+
+    return True
+
+
 def shapes_eval_ids(task: _TaskLike) -> list[str] | None:
     """Enumerate a task's public + hidden eval-shape ids from shapes.yaml.
 

@@ -682,6 +682,12 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     log = logging.getLogger("bench_evaluator_daemon")
+    # Parse args first so --help / argparse errors exit cleanly without
+    # tripping the R19 self-check (which would block --help with a
+    # confusing security error). The self-check runs ONLY before the
+    # daemon actually starts brokering jobs.
+    parser = _build_parser()
+    args = parser.parse_args(argv)
     ok, reason = _r19_startup_self_check()
     if not ok:
         log.error(reason)
@@ -690,8 +696,6 @@ def main(argv: list[str] | None = None) -> int:
         log.warning(reason)
     else:
         log.info(reason)
-    parser = _build_parser()
-    args = parser.parse_args(argv)
     ctx = _ctx_from_args(args)
     daemon = BenchEvaluatorDaemon(ctx)
     return daemon.run()

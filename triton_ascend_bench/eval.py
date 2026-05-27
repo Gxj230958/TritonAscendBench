@@ -756,6 +756,18 @@ def _apply_roofline(
 _UPSTREAM_ORACLE_TIER = "upstream_oracle_required"
 
 
+class GoldenIntegrityError(RuntimeError):
+    """V9 plan M4.1: raised when the golden chain fails R15/R18 verify.
+
+    Distinct from "golden missing" (a complete absence of artifacts,
+    handled via the ``blocked`` task_status). This exception is raised
+    only when a manifest exists but its SHA chain or signature does
+    not verify -- a tamper / corruption signal that must surface to
+    the submitter as "evaluation failed: golden integrity" instead of
+    silently downgrading to ``blocked``.
+    """
+
+
 def _resolve_golden(
     task,
     mode: str,
@@ -798,11 +810,11 @@ def _resolve_golden(
         return ("unsupported", "none", None)
 
     # upstream_oracle_required + verified: load the offline golden.
-    # R4-2: the "golden usable" judgement (path exists AND the
-    # safetensors file loads) is the SHARED `eligibility` predicate —
-    # `_resolve_golden` and `eligibility.golden_complete` must agree, or
-    # `evaluate()` blocks a task `compute_verified_blocked()` calls
-    # `evaluated` and `analyze` mis-scores it.
+    # V9 plan M4.1: run the R15 SHA + R18 signature integrity chain
+    # via `eligibility.golden_integrity_chain_ok`. Grace-period
+    # semantics: a pre-M3.2 manifest-less capture still loads; a
+    # present-but-bad manifest fails closed with GoldenIntegrityError
+    # (NOT "blocked" -- the submitter must see the integrity claim).
     golden_dir = task.task_dir / "golden"
     if not golden_dir.is_dir():
         # Pre-Phase-4 dev machine: no golden/ directory — fail-closed.
@@ -812,13 +824,20 @@ def _resolve_golden(
 
     from . import eligibility
 
+    if not eligibility.golden_integrity_chain_ok(
+        task.task_dir, eval_shape_ids
+    ):
+        raise GoldenIntegrityError(
+            f"task {task.task_id}: golden manifest SHA/signature chain "
+            "did not verify; evaluation refused"
+        )
+
     offline: dict[str, dict] = {}
     for sid in eval_shape_ids:
         artifact = golden_dir / f"{sid}.safetensors"
         if not eligibility.golden_artifact_usable(artifact):
-            # Missing OR corrupt / unreadable artifact — a graded shape
-            # has no usable golden. Fail-closed (same predicate as
-            # `eligibility.golden_complete`).
+            # Missing OR corrupt / unreadable artifact — fail-closed
+            # (same predicate as eligibility.golden_complete).
             logger.warning("offline golden missing/unusable for %s/%s",
                             task.task_id, sid)
             return ("blocked", "none", None)
