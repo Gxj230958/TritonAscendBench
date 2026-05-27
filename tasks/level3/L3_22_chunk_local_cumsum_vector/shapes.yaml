@@ -164,9 +164,13 @@ inputs:
   reverse:
     scalar_knob: REV
   chunk_size:
-    # Power-of-two BT that divides every shape's L value
-    # (16, 32, 64, 96, 128, 256, 512 are all multiples of 8 -- the
-    # smallest L is 16 = 8*2 so BT=8 is the safe pick).
-    scalar: 8
+    # Power-of-two BT that divides every shape's L AND clears Triton's
+    # ``tl.dot`` minimum of K >= 16. Every L in this task
+    # (16, 32, 64, 96, 128, 256, 512) is a multiple of 16. BT=8 built
+    # clean refs but failed Triton compile inside the kernel
+    # (``Input shapes should have M >= 1, N >= 1 and K >= 16`` at the
+    # ``tl.dot(m_s, b_s)`` line) -- 16 is the smallest power-of-two
+    # that satisfies both constraints.
+    scalar: 16
   head_first:
     scalar: true
