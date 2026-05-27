@@ -272,11 +272,6 @@ def test_l3_13_oracle_helper_exposes_k_rank_3():
 # ─────────────────────────────────────────────────────────────────────
 
 
-# Tasks still carrying a wrapper-contract rank mismatch (i.e. not yet
-# patched via auto_patch_shapes_from_wrapper / hand-patched shapes.yaml).
-# Patched ones (L3_21 / L3_22 / L3_23 -- solve_tril family + chunk_local_
-# cumsum) were taken off the list when their shapes.yaml was rewritten
-# in 2026-05-27 to the wrapper-honest 4-D layout.
 REAL_CORPUS_CASES = [
     # (task_id, key, wrapper_expected_rank, actual_rank)
     ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4, 3),
@@ -284,6 +279,8 @@ REAL_CORPUS_CASES = [
     ("L3_17_chunk_gla_fwd_kernel_o", "q", 4, 3),
     ("L3_18_chunk_scaled_dot_kkt_fwd", "k", 4, 3),
     ("L3_20_recompute_w_u_fwd", "k", 4, 3),
+    ("L3_22_chunk_local_cumsum_vector", "g", 4, 2),
+    ("L3_23_merge_16x16_to_32x32_inverse", "A", 4, 3),
 ]
 
 

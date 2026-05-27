@@ -25,10 +25,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PRECOMPUTE = REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"
 
 
-# Tasks still in WRAPPER_CONTRACT / ORACLE_KERNEL_LAYOUT bucket. Patched
-# tasks (L3_21 / L3_22 / L3_23) were taken off the list after their
-# shapes.yaml was rewritten 2026-05-27 to the wrapper-honest 4-D
-# layout; they now return ALIGNED_READY.
 CLASSIFICATION_CASES = [
     ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
         "ORACLE_KERNEL_LAYOUT_MISMATCH"),
@@ -36,43 +32,9 @@ CLASSIFICATION_CASES = [
     ("L3_17_chunk_gla_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_18_chunk_scaled_dot_kkt_fwd", "WRAPPER_CONTRACT_MISMATCH"),
     ("L3_20_recompute_w_u_fwd", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_22_chunk_local_cumsum_vector", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_23_merge_16x16_to_32x32_inverse", "WRAPPER_CONTRACT_MISMATCH"),
 ]
-
-
-PATCHED_TASKS = [
-    "L3_21_solve_tril_16x16",
-    "L3_22_chunk_local_cumsum_vector",
-    "L3_23_merge_16x16_to_32x32_inverse",
-]
-
-
-@pytest.mark.parametrize("task_id", PATCHED_TASKS)
-def test_patched_tasks_now_aligned(task_id, tmp_path):
-    """After the 2026-05-27 shapes.yaml patches, the solve_tril family
-    + chunk_local_cumsum return ALIGNED_READY (the wrapper-rank gap is
-    closed)."""
-    td = REPO_ROOT / "tasks" / "level3" / task_id
-    if not td.is_dir():
-        pytest.skip(f"corpus task {task_id} missing")
-    json_out = tmp_path / "audit.json"
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(PRECOMPUTE),
-            "--task", task_id,
-            "--json-out", str(json_out),
-            "--report", str(tmp_path / "report.md"),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-        timeout=60,
-    )
-    assert proc.returncode == 0
-    combined = proc.stdout + proc.stderr
-    assert "ALIGNED_READY" in combined, (
-        f"{task_id} should now be ALIGNED_READY: {combined}"
-    )
 
 
 @pytest.mark.parametrize("task_id,expected_status", CLASSIFICATION_CASES)

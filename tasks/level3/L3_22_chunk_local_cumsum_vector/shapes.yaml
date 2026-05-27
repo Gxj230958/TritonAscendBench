@@ -143,15 +143,7 @@ hidden_shapes:
     REV: 0
 inputs:
   g:
-    # V9 codex review 2026-05-27: wrapper `chunk_local_cumsum_vector`
-    # unpacks `g.shape` into 4 dims and dispatches on `head_first`.
-    # Picking `head_first=true` so the kernel sees `B, H, T, S =
-    # g.shape` AND the oracle's `torch.cumsum(g, dim=-2)` still lands
-    # on the sequence axis (axis -2 of `[B, H, L, D]` is `L` = `T`).
-    # `S` is per-head channel width; we reuse the existing `D` knob.
     dims:
-    - B
-    - H
     - L
     - D
     dtype: float32
@@ -160,5 +152,3 @@ inputs:
     scalar_knob: REV
   chunk_size:
     scalar: 64
-  head_first:
-    scalar: true
