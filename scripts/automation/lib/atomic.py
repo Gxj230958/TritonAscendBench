@@ -43,30 +43,54 @@ def _tmp_suffix() -> str:
 
 
 def _atomic_replace(path: Path, payload: str) -> None:
-    """Write ``payload`` to a tmp sibling, fsync, ``os.replace``, then
-    fsync the parent dir.
+    """Write ``payload`` (str -- UTF-8 encoded internally) atomically.
 
-    The full sequence is the only durability-correct one on POSIX:
-      1. open tmp + write bytes
-      2. ``flush()`` userspace buffer
-      3. ``os.fsync(tmp_fd)`` to push file data to disk
-      4. close tmp
-      5. ``os.replace(tmp, target)`` (atomic rename)
-      6. ``os.fsync(parent_dir_fd)`` so the directory entry itself is
-         durable -- without this a crash between (5) and the next dir
-         flush can leave the rename invisible after reboot.
-
-    Parent dir is created if missing.
+    Thin wrapper around :func:`atomic_write_bytes`; preserved for the
+    historical str-payload call sites. New binary writers should use
+    :func:`atomic_write_bytes` directly.
     """
+    atomic_write_bytes(path, payload.encode("utf-8"))
+
+
+def atomic_write_bytes(
+    path: os.PathLike[str] | str,
+    payload: bytes,
+    *,
+    mode: int = 0o644,
+) -> None:
+    """V9 plan M3.2: public atomic *bytes* writer.
+
+    Same durability-correct sequence as the historical
+    :func:`_atomic_replace` (tmp sibling -> fsync -> os.replace ->
+    parent dir fsync), now accepting a raw ``bytes`` payload so
+    callers writing safetensors / signature blobs don't need to
+    round-trip through str.
+
+    POSIX-atomic sequence:
+      1. open tmp + write bytes
+      2. ``os.fsync(tmp_fd)`` to push file data to disk
+      3. close tmp
+      4. ``os.replace(tmp, target)`` (atomic rename)
+      5. ``os.fsync(parent_dir_fd)`` so the directory entry is durable
+
+    Parent dir is created if missing. ``mode`` is the POSIX permission
+    bits applied at creation -- the M3.2 sealed_golden writer passes
+    ``0o600`` so the sealed artifact is unreadable by submitter uid.
+    """
+    if not isinstance(payload, (bytes, bytearray, memoryview)):
+        raise TypeError(
+            "atomic_write_bytes payload must be bytes-like (got "
+            f"{type(payload).__name__})"
+        )
+    path = Path(path)
     parent = path.parent
     parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + _tmp_suffix())
-    payload_bytes = payload.encode("utf-8")
     try:
-        # Step 1-4: write tmp + fsync data
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+        # Step 1-3: write tmp + fsync data
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
         try:
-            os.write(fd, payload_bytes)
+            os.write(fd, bytes(payload))
             os.fsync(fd)
         finally:
             os.close(fd)
