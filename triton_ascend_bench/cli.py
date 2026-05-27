@@ -97,6 +97,52 @@ def main() -> int:
     p_an.add_argument("--submitter")
     p_an.add_argument("--out", required=True)
 
+    # V9 plan M-CLI: provenance pipeline subcommands. Each is a thin
+    # dispatcher that calls the underlying script's ``main(argv)`` so
+    # the CLI surface and the script surface stay in lock-step.
+    p_census = sub.add_parser(
+        "census", help="static source provenance census (M0a.1)"
+    )
+    p_census.add_argument("--task")
+    p_census.add_argument("--task-list")
+    p_census.add_argument("--all", action="store_true")
+    p_census.add_argument("--report")
+    p_census.add_argument("--json-out")
+
+    p_pyref = sub.add_parser(
+        "oracle-pyref-precompute",
+        help="dev/CPU oracle_pytorch ref precompute (M2.1a)",
+    )
+    p_pyref.add_argument("--task")
+    p_pyref.add_argument("--all", action="store_true")
+    p_pyref.add_argument("--workers", type=int)
+    p_pyref.add_argument("--report")
+    p_pyref.add_argument("--json-out")
+
+    p_apply = sub.add_parser(
+        "apply-equivalence-verdict",
+        help="dev sync of GPU R10 verdict into meta.yaml (M2.1c)",
+    )
+    p_apply.add_argument("--verdict-dir")
+    p_apply.add_argument("--report")
+    p_apply.add_argument("--dry-run", action="store_true")
+
+    p_r12 = sub.add_parser(
+        "verify-commit-chain",
+        help="R12 SHA-chain integrity check (M2.0.5)",
+    )
+    p_r12.add_argument("--task")
+    p_r12.add_argument("--task-list")
+    p_r12.add_argument("--all", action="store_true")
+    p_r12.add_argument("--report")
+    p_r12.add_argument("--json-out")
+
+    p_r13c = sub.add_parser(
+        "r13c-gate",
+        help="R13c go/no-go release planning gate (M0a.2)",
+    )
+    p_r13c.add_argument("--json-out")
+
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -113,8 +159,82 @@ def main() -> int:
         "validate-result":     _cmd_validate_result,
         "static-check":        _cmd_static_check,
         "analyze":             _cmd_analyze,
+        # V9 plan M-CLI
+        "census":                       _cmd_census,
+        "oracle-pyref-precompute":      _cmd_oracle_pyref_precompute,
+        "apply-equivalence-verdict":    _cmd_apply_equivalence_verdict,
+        "verify-commit-chain":          _cmd_verify_commit_chain,
+        "r13c-gate":                    _cmd_r13c_gate,
     }
     return dispatch[args.cmd](args)
+
+
+def _argv_from(args, *keys: str) -> list[str]:
+    """Materialise ``args`` into a flat ``--key value`` argv list,
+    skipping ``None`` / ``False`` entries so the underlying script's
+    argparse sees only what the user actually passed.
+    """
+    out: list[str] = []
+    for k in keys:
+        v = getattr(args, k.replace("-", "_"), None)
+        if v is None or v is False:
+            continue
+        if v is True:
+            out.append(f"--{k}")
+            continue
+        out.extend([f"--{k}", str(v)])
+    return out
+
+
+def _cmd_census(args) -> int:
+    from pathlib import Path as _P
+    import sys as _sys
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from scripts.source_provenance_census import main as _main  # noqa: PLC0415
+
+    return _main(_argv_from(args, "task", "task-list", "all", "report", "json-out"))
+
+
+def _cmd_oracle_pyref_precompute(args) -> int:
+    from pathlib import Path as _P
+    import sys as _sys
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from scripts.oracle_pyref_precompute import main as _main  # noqa: PLC0415
+
+    return _main(
+        _argv_from(args, "task", "all", "workers", "report", "json-out")
+    )
+
+
+def _cmd_apply_equivalence_verdict(args) -> int:
+    from pathlib import Path as _P
+    import sys as _sys
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from scripts.apply_oracle_equivalence_verdict import main as _main  # noqa: PLC0415
+
+    return _main(
+        _argv_from(args, "verdict-dir", "report", "dry-run")
+    )
+
+
+def _cmd_verify_commit_chain(args) -> int:
+    from pathlib import Path as _P
+    import sys as _sys
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from scripts.verify_upstream_commit_chain import main as _main  # noqa: PLC0415
+
+    return _main(
+        _argv_from(args, "task", "task-list", "all", "report", "json-out")
+    )
+
+
+def _cmd_r13c_gate(args) -> int:
+    from pathlib import Path as _P
+    import sys as _sys
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    from scripts.provenance_release_planning_gate import main as _main  # noqa: PLC0415
+
+    return _main(_argv_from(args, "json-out"))
 
 
 def _cmd_init_solution(args) -> int:
