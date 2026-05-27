@@ -164,6 +164,16 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
     elif overall == "LAUNCH_BLOCKED":
         golden["golden_source"] = "blocked_kernel_launch"
         # Operator must triage launch_harness or upstream import
+    elif overall == "WRAPPER_CONTRACT_MISMATCH":
+        # shapes.yaml.inputs.dims disagrees with kernel wrapper unpack
+        # rank. Patching shapes is a candidate fix; oracle helper
+        # appears rank-agnostic. Route to scripts/auto_patch_shapes
+        # workflow or hand-patch and re-run R10.a + R10.b.
+        golden["golden_source"] = "blocked_wrapper_contract_mismatch"
+    elif overall == "ORACLE_KERNEL_LAYOUT_MISMATCH":
+        # Oracle helper and wrapper disagree on the input rank; patching
+        # shapes would break one to fix the other. Force source (2).
+        golden["golden_source"] = "blocked_oracle_kernel_layout_mismatch"
     elif overall == "SKIPPED":
         golden["golden_source"] = "skipped_no_pyref_artifacts"
 

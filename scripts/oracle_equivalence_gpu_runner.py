@@ -336,6 +336,42 @@ def _verify_one_task(
         log.info("  %s: cannot resolve kernel entrypoint", task_id)
         return verdict
 
+    # V9 codex review 2026-05-27: static wrapper-rank check BEFORE GPU
+    # import / kernel call. Many tasks LAUNCH_BLOCKED with stale
+    # `not enough values to unpack` because shapes.yaml.inputs.dims
+    # disagrees with the host wrapper's `.shape` unpack rank; that's a
+    # pre-existing R10.a classification (WRAPPER_CONTRACT_MISMATCH /
+    # ORACLE_KERNEL_LAYOUT_MISMATCH), NOT a runtime issue. Detect it
+    # statically + emit the right verdict so the operator sees the
+    # actionable reason instead of a misleading kernel-launch trace.
+    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+        check_against_inputs,
+        extract_wrapper_contract,
+    )
+
+    wrapper_contract = extract_wrapper_contract(kernel_path, fn_name)
+    oracle_helper_contract = None
+    if (
+        wrapper_contract is not None
+        and (wrapper_contract.accepted_ranks or wrapper_contract.min_ranks)
+        and oracle_path.exists()
+    ):
+        try:
+            otree = ast.parse(oracle_path.read_text())
+            helper_name = next(
+                (
+                    n.name for n in otree.body
+                    if isinstance(n, ast.FunctionDef) and n.name != "run"
+                ),
+                None,
+            )
+            if helper_name:
+                oracle_helper_contract = extract_wrapper_contract(
+                    oracle_path, helper_name
+                )
+        except (OSError, SyntaxError):
+            oracle_helper_contract = None
+
     try:
         kernel_fn = _import_kernel_function(kernel_path, fn_name, infer_root)
     except Exception as e:
@@ -379,6 +415,64 @@ def _verify_one_task(
             # This recovers non-tensor scalars (strings, bools) that safetensors
             # cannot persist.
             inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+        except Exception as e:
+            sv.status = "LAUNCH_BLOCKED"
+            sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"
+            n_blocked += 1
+            verdict.shapes.append(sv)
+            log.warning("  %s/%s: build_inputs fail: %s", task_id, sid, e)
+            continue
+
+        # V9 codex review 2026-05-27: static wrapper-rank pre-check.
+        # If build_inputs' tensor ranks disagree with the host wrapper's
+        # unpack ranks, emit WRAPPER_CONTRACT_MISMATCH (or
+        # ORACLE_KERNEL_LAYOUT_MISMATCH when the oracle helper sides
+        # with a different rank) instead of the misleading
+        # "kernel launch fail: not enough values to unpack" trace.
+        if wrapper_contract is not None and (
+            wrapper_contract.accepted_ranks or wrapper_contract.min_ranks
+        ):
+            cpu_ranks = {
+                k: v.ndim
+                for k, v in inputs_full.items()
+                if isinstance(v, torch.Tensor)
+            }
+            violations = check_against_inputs(wrapper_contract, cpu_ranks)
+            if violations:
+                conflict_keys: list[str] = []
+                if oracle_helper_contract is not None:
+                    for v in violations:
+                        oranks = (
+                            oracle_helper_contract.accepted_ranks.get(v.input_name)
+                            or set()
+                        )
+                        if oranks and not (oranks & v.expected_ranks):
+                            conflict_keys.append(v.input_name)
+                summary = "; ".join(
+                    f"{v.input_name}: wrapper expects rank "
+                    f"{sorted(v.expected_ranks) or f'>= {v.expected_min_rank}'}, "
+                    f"build_inputs gave {v.actual_rank}"
+                    for v in violations
+                )
+                if conflict_keys:
+                    sv.status = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+                    sv.blocker_reason = (
+                        f"oracle helper and wrapper disagree on rank for "
+                        f"{conflict_keys}; route to source (2). "
+                        f"Details: {summary}"
+                    )
+                else:
+                    sv.status = "WRAPPER_CONTRACT_MISMATCH"
+                    sv.blocker_reason = (
+                        f"shapes.yaml.inputs.dims rank disagrees with kernel "
+                        f"host wrapper `{fn_name}` unpack. Details: {summary}"
+                    )
+                n_blocked += 1
+                verdict.shapes.append(sv)
+                log.warning("  %s/%s: %s", task_id, sid, sv.status)
+                continue
+
+        try:
             # Move tensor inputs to GPU; keep non-tensor inputs (str, int,
             # float, etc.) as-is.
             inputs_gpu: dict[str, object] = {}
@@ -508,7 +602,25 @@ def _verify_one_task(
         )
 
     if n_blocked == len(verdict.shapes):
-        verdict.overall = "LAUNCH_BLOCKED"
+        # All shapes blocked. Distinguish wrapper-rank mismatches
+        # from real GPU launch failures so the operator sees the
+        # actionable verdict.
+        shape_statuses = {s.status for s in verdict.shapes}
+        if shape_statuses == {"WRAPPER_CONTRACT_MISMATCH"}:
+            verdict.overall = "WRAPPER_CONTRACT_MISMATCH"
+        elif shape_statuses == {"ORACLE_KERNEL_LAYOUT_MISMATCH"}:
+            verdict.overall = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+        elif shape_statuses <= {
+            "WRAPPER_CONTRACT_MISMATCH",
+            "ORACLE_KERNEL_LAYOUT_MISMATCH",
+        }:
+            # Mixed pre-check failures (different shapes hit different
+            # static-check buckets). Surface the stronger signal --
+            # any ORACLE_KERNEL_LAYOUT_MISMATCH means the task needs
+            # source ② regardless of how the other shape classified.
+            verdict.overall = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+        else:
+            verdict.overall = "LAUNCH_BLOCKED"
     elif n_failed == 0 and n_verified > 0:
         verdict.overall = "VERIFIED"
     elif n_verified == 0 and n_failed > 0:

@@ -41,9 +41,12 @@ VALID_TOLERANCE_SOURCE = frozenset({
     "migration_drift_budget",
 })
 # V4 of the plan added ``NEEDS_MANUAL`` for the R12 SHA-chain drift case.
+# V9 codex review 2026-05-27 added the wrapper-rank pre-check verdicts.
 VALID_ORACLE_KERNEL_EQUIVALENCE = frozenset({
     "VERIFIED", "FAILED", "MIXED", "SKIPPED", "NEEDS_MANUAL",
-    "LAUNCH_BLOCKED",  # written by oracle_equivalence_gpu_runner when the kernel cannot be invoked
+    "LAUNCH_BLOCKED",  # GPU couldn't invoke the kernel at all
+    "WRAPPER_CONTRACT_MISMATCH",  # shapes.yaml.inputs.dims disagree with wrapper unpack
+    "ORACLE_KERNEL_LAYOUT_MISMATCH",  # oracle and wrapper disagree fundamentally
 })
 VALID_GPU_KERNEL_CAPTURE_STATUS = frozenset({
     "PENDING", "DONE", "FAILED", "BLOCKED_NON_DETERMINISTIC",

@@ -338,21 +338,21 @@ def test_validate_partial_block_with_only_one_valid_field():
 # ─────────────────────────────────────────────────────────────────────
 
 
-def test_loader_field_default_is_none_for_legacy_corpus_tasks():
-    """All 100 existing corpus tasks have only top-level provenance keys,
-    so TaskDef.provenance_golden must be None for every one of them
-    (grace period must not break the loader).
-
-    This is a smoke check, not a full corpus walk -- pull one task that
-    we know has only the legacy provenance shape.
-    """
+def test_loader_returns_typed_spec_when_nested_block_present():
+    """After M2.1c apply has written a nested provenance.golden block,
+    TaskDef.provenance_golden surfaces as a typed ProvenanceGoldenSpec
+    (not None) so consumers can read fields directly without re-parsing
+    the raw meta dict."""
     from triton_ascend_bench.dataset import load_task
 
     td = load_task("L1_12_rms_norm")
-    # The corpus carries top-level provenance only; the nested block has
-    # not been backfilled yet (the M2.1c apply script will write it
-    # when the GPU verdict comes back).
-    assert td.provenance_golden is None
-    # The legacy top-level keys must still be reachable via meta:
     prov = td.meta.get("provenance") or {}
-    assert isinstance(prov, dict)
+    has_nested = isinstance(prov.get("golden"), dict)
+    if not has_nested:
+        # Pre-M2.1c state: the field stays None.
+        assert td.provenance_golden is None
+    else:
+        # Post-M2.1c state: typed view populated.
+        assert td.provenance_golden is not None
+        # Top-level legacy keys still reachable.
+        assert isinstance(prov, dict)
