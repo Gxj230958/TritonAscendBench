@@ -337,40 +337,126 @@ def _verify_one_task(
         return verdict
 
     # V9 codex review 2026-05-27: static wrapper-rank check BEFORE GPU
-    # import / kernel call. Many tasks LAUNCH_BLOCKED with stale
-    # `not enough values to unpack` because shapes.yaml.inputs.dims
-    # disagrees with the host wrapper's `.shape` unpack rank; that's a
-    # pre-existing R10.a classification (WRAPPER_CONTRACT_MISMATCH /
-    # ORACLE_KERNEL_LAYOUT_MISMATCH), NOT a runtime issue. Detect it
-    # statically + emit the right verdict so the operator sees the
-    # actionable reason instead of a misleading kernel-launch trace.
+    # import / kernel call. Many tasks previously fell through to
+    # `_import_kernel_function`, then LAUNCH_BLOCKED with stale
+    # `not enough values to unpack` tracebacks. Catching the rank
+    # mismatch statically gives an actionable verdict (shapes-patch
+    # candidate vs source-2 reroute) instead of a misleading runtime
+    # trace; AND when ALL shapes are static-blocked we skip kernel
+    # import entirely, so import-time failures cannot mask a clean
+    # static verdict (codex Medium #2).
     from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
         check_against_inputs,
+        extract_oracle_helper_contract,
         extract_wrapper_contract,
     )
 
     wrapper_contract = extract_wrapper_contract(kernel_path, fn_name)
-    oracle_helper_contract = None
-    if (
-        wrapper_contract is not None
-        and (wrapper_contract.accepted_ranks or wrapper_contract.min_ranks)
-        and oracle_path.exists()
+    # Shared oracle-helper extractor (codex Medium #3 -- de-duplicates
+    # the near-identical R10.a / R10.b inline walks).
+    oracle_helper_contract = (
+        extract_oracle_helper_contract(oracle_path)
+        if oracle_path.exists() else None
+    )
+
+    # Re-load shapes.yaml so we can rebuild inputs deterministically (the
+    # precompute step's safetensors only stores torch.Tensor values; string
+    # scalars like 'kv_cache_dtype' get dropped on save and would surface
+    # later as "missing 1 required positional argument").
+    shapes_doc = yaml.safe_load((task_dir / "shapes.yaml").read_text())
+
+    # Phase 1 (PRE-IMPORT): scan every shape's rebuilt inputs for
+    # wrapper-contract violations. Collect static verdicts + reusable
+    # inputs so we don't pay build_inputs twice.
+    all_shape_ids = [
+        f.stem.replace("ref_", "")
+        for f in sorted(ref_dir.glob("ref_*.safetensors"))
+    ]
+    per_shape_inputs: dict[str, dict] = {}
+    per_shape_static_verdict: dict[str, ShapeVerdict] = {}
+    if wrapper_contract is not None and (
+        wrapper_contract.accepted_ranks or wrapper_contract.min_ranks
     ):
-        try:
-            otree = ast.parse(oracle_path.read_text())
-            helper_name = next(
-                (
-                    n.name for n in otree.body
-                    if isinstance(n, ast.FunctionDef) and n.name != "run"
-                ),
-                None,
+        for sid in all_shape_ids:
+            try:
+                inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+            except Exception as e:
+                sv = ShapeVerdict(shape_id=sid, status="LAUNCH_BLOCKED")
+                sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"
+                per_shape_static_verdict[sid] = sv
+                continue
+            per_shape_inputs[sid] = inputs_full
+            cpu_ranks = {
+                k: v.ndim
+                for k, v in inputs_full.items()
+                if isinstance(v, torch.Tensor)
+            }
+            violations = check_against_inputs(wrapper_contract, cpu_ranks)
+            if not violations:
+                continue
+            # Classify by whether oracle agrees with wrapper.
+            conflict_keys: list[str] = []
+            if oracle_helper_contract is not None:
+                for v in violations:
+                    oranks = (
+                        oracle_helper_contract.accepted_ranks.get(v.input_name)
+                        or set()
+                    )
+                    if oranks and not (oranks & v.expected_ranks):
+                        conflict_keys.append(v.input_name)
+            details = "; ".join(
+                f"{v.input_name}: wrapper expects rank "
+                f"{sorted(v.expected_ranks) or f'>= {v.expected_min_rank}'}, "
+                f"build_inputs gave {v.actual_rank}"
+                for v in violations
             )
-            if helper_name:
-                oracle_helper_contract = extract_wrapper_contract(
-                    oracle_path, helper_name
+            sv = ShapeVerdict(shape_id=sid)
+            if conflict_keys:
+                sv.status = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+                sv.blocker_reason = (
+                    f"oracle helper and wrapper disagree on rank for "
+                    f"{conflict_keys}; route to source (2). "
+                    f"Details: {details}"
                 )
-        except (OSError, SyntaxError):
-            oracle_helper_contract = None
+            else:
+                sv.status = "WRAPPER_CONTRACT_MISMATCH"
+                sv.blocker_reason = (
+                    f"shapes.yaml.inputs.dims rank disagrees with kernel "
+                    f"host wrapper `{fn_name}` unpack. Details: {details}"
+                )
+            per_shape_static_verdict[sid] = sv
+
+    # If EVERY shape has a static verdict (any mix of WRAPPER_CONTRACT_
+    # MISMATCH / ORACLE_KERNEL_LAYOUT_MISMATCH / build-error
+    # LAUNCH_BLOCKED), skip kernel import entirely. This is the
+    # codex Medium #2 fix: an unrelated import-time crash can no
+    # longer mask a clean static verdict.
+    if (
+        per_shape_static_verdict
+        and len(per_shape_static_verdict) == len(all_shape_ids)
+    ):
+        for sid in all_shape_ids:
+            sv = per_shape_static_verdict[sid]
+            verdict.shapes.append(sv)
+            log.warning("  %s/%s: %s", task_id, sid, sv.status)
+        statuses = {s.status for s in verdict.shapes}
+        if statuses == {"WRAPPER_CONTRACT_MISMATCH"}:
+            verdict.overall = "WRAPPER_CONTRACT_MISMATCH"
+        elif statuses == {"ORACLE_KERNEL_LAYOUT_MISMATCH"}:
+            verdict.overall = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+        elif statuses <= {
+            "WRAPPER_CONTRACT_MISMATCH",
+            "ORACLE_KERNEL_LAYOUT_MISMATCH",
+        }:
+            verdict.overall = "ORACLE_KERNEL_LAYOUT_MISMATCH"
+        else:
+            verdict.overall = "LAUNCH_BLOCKED"
+        verdict.elapsed_s = time.time() - t0
+        log.info(
+            "  %s: %s (all %d shape(s) statically blocked; kernel import skipped)",
+            task_id, verdict.overall, len(all_shape_ids),
+        )
+        return verdict
 
     try:
         kernel_fn = _import_kernel_function(kernel_path, fn_name, infer_root)
@@ -384,12 +470,6 @@ def _verify_one_task(
     tolerance_class_name = meta.get("tolerance_class", "vector_reduce")
     tol = _tolerance_for(tolerance_class_name)
 
-    # Re-load shapes.yaml so we can rebuild inputs deterministically (the
-    # precompute step's safetensors only stores torch.Tensor values; string
-    # scalars like 'kv_cache_dtype' get dropped on save and would surface
-    # later as "missing 1 required positional argument").
-    shapes_doc = yaml.safe_load((task_dir / "shapes.yaml").read_text())
-
     import inspect
     sig = inspect.signature(kernel_fn)
     sig_param_names = set(sig.parameters.keys())
@@ -399,6 +479,17 @@ def _verify_one_task(
     n_blocked = 0
     for ref_file in sorted(ref_dir.glob("ref_*.safetensors")):
         sid = ref_file.stem.replace("ref_", "")
+
+        # Honor the Phase 1 static verdict for this shape if one exists
+        # (partial static block -- some shapes statically failed, others
+        # passed and need the GPU path).
+        if sid in per_shape_static_verdict:
+            sv = per_shape_static_verdict[sid]
+            n_blocked += 1
+            verdict.shapes.append(sv)
+            log.warning("  %s/%s: %s", task_id, sid, sv.status)
+            continue
+
         sv = ShapeVerdict(shape_id=sid)
 
         try:
@@ -410,66 +501,21 @@ def _verify_one_task(
             verdict.shapes.append(sv)
             continue
 
-        try:
-            # Rebuild inputs deterministically (same seed used by precompute).
-            # This recovers non-tensor scalars (strings, bools) that safetensors
-            # cannot persist.
-            inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
-        except Exception as e:
-            sv.status = "LAUNCH_BLOCKED"
-            sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"
-            n_blocked += 1
-            verdict.shapes.append(sv)
-            log.warning("  %s/%s: build_inputs fail: %s", task_id, sid, e)
-            continue
-
-        # V9 codex review 2026-05-27: static wrapper-rank pre-check.
-        # If build_inputs' tensor ranks disagree with the host wrapper's
-        # unpack ranks, emit WRAPPER_CONTRACT_MISMATCH (or
-        # ORACLE_KERNEL_LAYOUT_MISMATCH when the oracle helper sides
-        # with a different rank) instead of the misleading
-        # "kernel launch fail: not enough values to unpack" trace.
-        if wrapper_contract is not None and (
-            wrapper_contract.accepted_ranks or wrapper_contract.min_ranks
-        ):
-            cpu_ranks = {
-                k: v.ndim
-                for k, v in inputs_full.items()
-                if isinstance(v, torch.Tensor)
-            }
-            violations = check_against_inputs(wrapper_contract, cpu_ranks)
-            if violations:
-                conflict_keys: list[str] = []
-                if oracle_helper_contract is not None:
-                    for v in violations:
-                        oranks = (
-                            oracle_helper_contract.accepted_ranks.get(v.input_name)
-                            or set()
-                        )
-                        if oranks and not (oranks & v.expected_ranks):
-                            conflict_keys.append(v.input_name)
-                summary = "; ".join(
-                    f"{v.input_name}: wrapper expects rank "
-                    f"{sorted(v.expected_ranks) or f'>= {v.expected_min_rank}'}, "
-                    f"build_inputs gave {v.actual_rank}"
-                    for v in violations
-                )
-                if conflict_keys:
-                    sv.status = "ORACLE_KERNEL_LAYOUT_MISMATCH"
-                    sv.blocker_reason = (
-                        f"oracle helper and wrapper disagree on rank for "
-                        f"{conflict_keys}; route to source (2). "
-                        f"Details: {summary}"
-                    )
-                else:
-                    sv.status = "WRAPPER_CONTRACT_MISMATCH"
-                    sv.blocker_reason = (
-                        f"shapes.yaml.inputs.dims rank disagrees with kernel "
-                        f"host wrapper `{fn_name}` unpack. Details: {summary}"
-                    )
+        # Reuse Phase 1 build_inputs result when available; rebuild as a
+        # safety net for paths that didn't populate the cache (the
+        # wrapper had no rank constraints so Phase 1 short-circuited).
+        inputs_full = per_shape_inputs.get(sid)
+        if inputs_full is None:
+            try:
+                inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+            except Exception as e:
+                sv.status = "LAUNCH_BLOCKED"
+                sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"
                 n_blocked += 1
                 verdict.shapes.append(sv)
-                log.warning("  %s/%s: %s", task_id, sid, sv.status)
+                log.warning(
+                    "  %s/%s: build_inputs fail: %s", task_id, sid, e
+                )
                 continue
 
         try:

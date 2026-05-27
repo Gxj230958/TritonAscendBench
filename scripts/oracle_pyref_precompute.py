@@ -179,33 +179,15 @@ def _load_resolve_tried_map() -> dict[str, list[str]]:
 
 
 def _extract_oracle_helper_contract(oracle_path: Path):
-    """Find the oracle's internal helper (the def that takes tensor args,
-    not the thin ``run(inputs)`` wrapper) and return its WrapperContract.
-
-    Oracles by convention have one top-level ``_helper(...)`` def plus a
-    ``run(inputs)`` that calls it. The helper carries the tensor-shape
-    contract (``B, T, D = kf.shape`` etc.) while ``run`` is just a
-    dict-indexing thin shim. Returns ``None`` when no non-``run`` def
-    is found (oracle is purely top-level run, or file does not parse).
-    """
+    """Thin re-export of the shared ``wrapper_contract`` helper. Kept
+    as a module-local name so the original call sites in this script
+    keep working without touching imports (V9 codex review 2026-05-27
+    consolidated the implementation)."""
     from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
-        extract_wrapper_contract,
+        extract_oracle_helper_contract,
     )
 
-    if not oracle_path.exists():
-        return None
-    try:
-        tree = ast.parse(oracle_path.read_text())
-    except (OSError, SyntaxError):
-        return None
-    helper_name: str | None = None
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name != "run":
-            helper_name = node.name
-            break
-    if helper_name is None:
-        return None
-    return extract_wrapper_contract(oracle_path, helper_name)
+    return extract_oracle_helper_contract(oracle_path)
 
 
 def _enumerate_non_jit_module_defs(kernel_path: Path) -> list[tuple[str, list[str]]]:

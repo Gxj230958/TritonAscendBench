@@ -447,9 +447,44 @@ def check_against_inputs(
     return out
 
 
+def extract_oracle_helper_contract(oracle_path: Path) -> WrapperContract | None:
+    """V9 plan M0a.2 / codex review 2026-05-27: single shared
+    extractor for the oracle's internal helper contract.
+
+    Oracles by convention have one top-level helper function (any
+    ``def`` that is NOT named ``run``) that takes tensor args and a
+    thin ``run(inputs)`` shim that calls it. This helper carries the
+    real tensor-shape contract -- ``B, T, D = kf.shape`` etc. -- so
+    that's what R10.a / R10.b both consult to decide whether a
+    wrapper-vs-oracle rank conflict is fundamental
+    (ORACLE_KERNEL_LAYOUT_MISMATCH) or just a shapes.yaml typo
+    (WRAPPER_CONTRACT_MISMATCH).
+
+    Returns ``None`` when the oracle file has no non-``run`` def, or
+    if the file does not parse. Both R10.a and R10.b previously
+    inlined near-identical AST walks; consolidating here is the
+    single-source fix codex flagged as Medium-severity duplication.
+    """
+    if not oracle_path.exists():
+        return None
+    try:
+        tree = ast.parse(oracle_path.read_text())
+    except (OSError, SyntaxError):
+        return None
+    helper_name: str | None = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name != "run":
+            helper_name = node.name
+            break
+    if helper_name is None:
+        return None
+    return extract_wrapper_contract(oracle_path, helper_name)
+
+
 __all__ = [
     "WrapperContract",
     "Violation",
     "extract_wrapper_contract",
+    "extract_oracle_helper_contract",
     "check_against_inputs",
 ]

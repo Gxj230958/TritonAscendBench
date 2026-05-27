@@ -151,6 +151,16 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
             for sid, entry in per_shape.items()
         }
 
+    # V9 codex review 2026-05-27: clear stale ``golden_sha256`` whenever
+    # the new verdict is NOT ``VERIFIED``. Without this, switching from
+    # VERIFIED -> FAILED / BLOCKED / WRAPPER_*/ ORACLE_* would leave the
+    # previous successful run's hash hanging in meta -- a real provenance
+    # contamination: downstream gates would see ``oracle_kernel_equivalence
+    # != VERIFIED`` paired with a populated ``golden_sha256`` and could
+    # mis-trust it. Wipe before re-attesting only when verified.
+    if overall != "VERIFIED":
+        golden.pop("golden_sha256", None)
+
     if overall == "VERIFIED":
         # Promote oracle_pytorch.py to truth source
         sha = _ref_sha256(td)
