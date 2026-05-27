@@ -29,6 +29,20 @@ Everything under `<bench>/.loop/` on gpfs (which is `.gitignore`'d):
 
 ## One-time deploy on GPU A
 
+**Prereq**: bench tree must exist at the gpfs path
+`/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/`.
+If it doesn't (first ever deploy), bootstrap from dev:
+
+```bash
+# from dev, one-time bootstrap (push bench tree to gpfs via B tunnel)
+rsync -az --exclude '.git/' --exclude '__pycache__/' --exclude '.loop/' \
+    -e 'ssh -p 2222' \
+    /data1/code/agentic-rl/kernel/triton-ascend-bench/ \
+    root@127.0.0.1:/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/
+```
+
+Then on A:
+
 ```bash
 # (on A) ssh to A from wherever you have credentials
 cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench

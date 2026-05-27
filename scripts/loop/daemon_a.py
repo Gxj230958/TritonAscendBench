@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import re
 import subprocess
 import sys
 import threading
@@ -27,6 +28,27 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+# Strict batch_id whitelist: starts with 'b', alphanumeric / dash / underscore,
+# max 64 chars. Rejects path traversal ('../...'), shell metacharacters,
+# absolute paths, and excessively long ids. Both dev and A enforce this.
+_BATCH_ID_RE = re.compile(r"^b[A-Za-z0-9_\-]{1,63}$")
+# Strict task_id whitelist matches the bench naming convention L<level>_<idx>_<name>.
+_TASK_ID_RE = re.compile(r"^L[1-3]_[0-9]{1,3}_[A-Za-z0-9_]+$")
+
+
+def _validate_batch_id(batch_id: str) -> None:
+    if not isinstance(batch_id, str) or not _BATCH_ID_RE.match(batch_id):
+        raise ValueError(
+            f"invalid batch_id {batch_id!r} -- must match {_BATCH_ID_RE.pattern}"
+        )
+
+
+def _validate_task_id(task_id: str) -> None:
+    if not isinstance(task_id, str) or not _TASK_ID_RE.match(task_id):
+        raise ValueError(
+            f"invalid task_id {task_id!r} -- must match {_TASK_ID_RE.pattern}"
+        )
 
 BENCH_ROOT = Path(__file__).resolve().parents[2]
 LOOP_DIR = BENCH_ROOT / ".loop"
@@ -103,15 +125,18 @@ def _run_verify_one(
     except Exception as e:
         err = f"{type(e).__name__}: {e}"
 
-    # Parse the "verify <task>: <STATUS> -- <reason>" line.
+    # Parse the "verify <task>: <STATUS> -- <reason>" line. cmd_verify
+    # prints exactly one colon between task_id and STATUS (codex review
+    # caught the prior 3-field split bug that left verdict_status empty
+    # for normal PASS / BLOCKED runs).
     verdict_status = ""
     verdict_line = ""
+    prefix = f"verify {task_id}: "
     for line in stdout.splitlines():
-        if line.startswith(f"verify {task_id}:"):
+        if line.startswith(prefix):
             verdict_line = line
-            parts = line.split(":", 2)
-            if len(parts) >= 3:
-                verdict_status = parts[2].strip().split(" ", 1)[0]
+            rest = line[len(prefix):].strip()
+            verdict_status = rest.split(" ", 1)[0]
             break
 
     return {
@@ -131,11 +156,45 @@ def _run_verify_one(
 def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
     """Run every task in a claimed spec; write results + heartbeat + done flag."""
     spec = json.loads(spec_path.read_text())
-    batch_id = spec["batch_id"]
-    tasks = spec["tasks"]
+    # Authoritative batch_id = the claimed FILENAME stem, not the JSON
+    # payload (which an attacker could set to '../etc/passwd' to redirect
+    # heartbeat/results outside .loop/). Codex FAIL #1 fix.
+    batch_id = spec_path.stem
+    if batch_id.endswith(TAKEN_SUFFIX.lstrip(".")):
+        batch_id = batch_id[: -len(TAKEN_SUFFIX.lstrip("."))]
+    _validate_batch_id(batch_id)
+    payload_batch = spec.get("batch_id")
+    if payload_batch != batch_id:
+        print(
+            f"[{batch_id}] payload.batch_id={payload_batch!r} != filename stem; "
+            f"using filename stem as authoritative.",
+            flush=True,
+        )
+    tasks = spec.get("tasks") or []
+    for t in tasks:
+        _validate_task_id(t)
     accept_stale = bool(spec.get("accept_stale_cache", True))
     skip_smoke = bool(spec.get("skip_smoke", False))
     results_dir = RESULTS / batch_id
+    done_flag = DONE / f"{batch_id}.flag"
+
+    # Idempotency / re-submit guard (Codex FAIL #2). Refuse to re-process
+    # a batch whose done flag already exists -- dev side must use a new
+    # batch_id, NOT recycle a stale one. Without this an old success
+    # marker could mask a fresh failure when the same batch_id is sent
+    # twice (also the per-task results would be silently overwritten).
+    if done_flag.exists():
+        print(
+            f"[{batch_id}] REFUSED: done.flag already exists; "
+            f"submit with a fresh batch_id instead. spec moved to dead/.",
+            flush=True,
+        )
+        _atomic_write(
+            DEAD / f"{batch_id}.duplicate.err",
+            f"duplicate batch_id (done.flag exists): {spec_path}\n",
+        )
+        return
+
     results_dir.mkdir(parents=True, exist_ok=True)
 
     print(
@@ -146,10 +205,23 @@ def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
     _heartbeat(batch_id)
 
     hb_stop = threading.Event()
+    hb_fail = threading.Event()
 
     def _hb_pulse() -> None:
+        # Codex REFINE: catch heartbeat write failures so a silently
+        # dying pulse thread does not leave wait() guessing whether the
+        # daemon is dead vs healthy. Any exception flips hb_fail so the
+        # batch is marked dead at completion.
         while not hb_stop.is_set():
-            _heartbeat(batch_id)
+            try:
+                _heartbeat(batch_id)
+            except Exception as e:
+                print(
+                    f"[{batch_id}] heartbeat write failed: {type(e).__name__}: {e}",
+                    flush=True,
+                )
+                hb_fail.set()
+                return
             time.sleep(10)
 
     hb_thread = threading.Thread(target=_hb_pulse, daemon=True)
@@ -183,6 +255,13 @@ def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
         hb_stop.set()
         hb_thread.join(timeout=2)
 
+    if hb_fail.is_set():
+        _atomic_write(
+            DEAD / f"{batch_id}.heartbeat.err",
+            "heartbeat thread failed mid-batch; results may be incomplete.\n",
+        )
+        print(f"[{batch_id}] HEARTBEAT FAILED (see dead/)", flush=True)
+        return
     _atomic_write(DONE / f"{batch_id}.flag", _utc_now() + "\n")
     print(f"[{batch_id}] DONE", flush=True)
 

@@ -22,10 +22,31 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import re
+import secrets
+import shlex
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+# Strict whitelist (kept in sync with daemon_a.py).
+_BATCH_ID_RE = re.compile(r"^b[A-Za-z0-9_\-]{1,63}$")
+_TASK_ID_RE = re.compile(r"^L[1-3]_[0-9]{1,3}_[A-Za-z0-9_]+$")
+
+
+def _validate_batch_id(batch_id: str) -> None:
+    if not isinstance(batch_id, str) or not _BATCH_ID_RE.match(batch_id):
+        raise ValueError(
+            f"invalid batch_id {batch_id!r} -- must match {_BATCH_ID_RE.pattern}"
+        )
+
+
+def _validate_task_id(task_id: str) -> None:
+    if not isinstance(task_id, str) or not _TASK_ID_RE.match(task_id):
+        raise ValueError(
+            f"invalid task_id {task_id!r} -- must match {_TASK_ID_RE.pattern}"
+        )
 
 LOCAL_BENCH = Path(__file__).resolve().parents[2]
 LOCAL_LOOP = LOCAL_BENCH / ".loop"
@@ -81,6 +102,46 @@ def cmd_sync_code(args: argparse.Namespace) -> int:
 def cmd_submit(args: argparse.Namespace) -> int:
     """Write a batch spec into local .loop/jobs/ + rsync to gpfs."""
     batch_id = args.batch_id or _new_batch_id()
+    _validate_batch_id(batch_id)
+    for t in args.tasks:
+        _validate_task_id(t)
+
+    # Codex FAIL #2: refuse to reuse a batch_id whose artifacts already
+    # exist on either side. Otherwise an old done.flag can mask a fresh
+    # failure or silently overwrite prior results.
+    if not args.allow_recycle:
+        local_collisions = []
+        for sub in ("jobs", "results", "done", "dead"):
+            p = LOCAL_LOOP / sub / (f"{batch_id}.json" if sub == "jobs"
+                                     else f"{batch_id}.flag" if sub == "done"
+                                     else batch_id)
+            if p.exists():
+                local_collisions.append(str(p))
+        if local_collisions:
+            print(
+                f"batch_id {batch_id} already used locally: {local_collisions}. "
+                f"Use a fresh id, or pass --allow-recycle (dangerous).",
+                file=sys.stderr,
+            )
+            return 1
+        # Also probe remote.
+        probe = _ssh(
+            "set -e; "
+            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/jobs/{shlex.quote(batch_id)}.json && echo JOB; "
+            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/jobs/{shlex.quote(batch_id)}.json.taken && echo TAKEN; "
+            f"test -f {shlex.quote(REMOTE_BENCH)}/.loop/done/{shlex.quote(batch_id)}.flag && echo DONE; "
+            f"test -d {shlex.quote(REMOTE_BENCH)}/.loop/results/{shlex.quote(batch_id)} && echo RESULTS; "
+            "true"
+        )
+        remote_collision = probe.stdout.strip()
+        if remote_collision:
+            print(
+                f"batch_id {batch_id} already exists remote: {remote_collision}. "
+                f"Use a fresh id.",
+                file=sys.stderr,
+            )
+            return 1
+
     spec = {
         "batch_id": batch_id,
         "submitted_at": _utc_now(),
@@ -107,20 +168,51 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 
 def cmd_wait(args: argparse.Namespace) -> int:
-    """Poll <gpfs>/.loop/done/<batch>.flag with heartbeat-staleness guard."""
+    """Poll <gpfs>/.loop/done/<batch>.flag with heartbeat-staleness guard.
+
+    Exits:
+      0 = batch completed (done.flag present)
+      2 = heartbeat stale / never appeared / timeout
+      3 = dead/<batch>.err present (daemon crashed mid-batch)
+      4 = ssh tunnel failure (transport error)
+    """
     batch_id = args.batch_id
+    _validate_batch_id(batch_id)
     timeout = args.timeout
     interval = args.interval
     stale_after = args.stale_after
     start = time.time()
     last_print = 0.0
+    bid = shlex.quote(batch_id)
+    bench = shlex.quote(REMOTE_BENCH)
+    probe_cmd = (
+        f"set -e; "
+        f"if ls {bench}/.loop/dead/{bid}.*.err 2>/dev/null; then exit 0; fi; "
+        f"if test -f {bench}/.loop/dead/{bid}.err; then echo DEAD; exit 0; fi; "
+        f"if test -f {bench}/.loop/done/{bid}.flag; then echo DONE; exit 0; fi; "
+        f"stat -c '%Y' {bench}/.loop/heartbeat/{bid}.txt 2>/dev/null || echo MISSING"
+    )
     while time.time() - start < timeout:
-        r = _ssh(
-            f"test -f {REMOTE_BENCH}/.loop/done/{batch_id}.flag && echo DONE || "
-            f"stat -c '%Y' {REMOTE_BENCH}/.loop/heartbeat/{batch_id}.txt 2>/dev/null || echo MISSING"
-        )
+        r = _ssh(probe_cmd)
+        if r.returncode != 0:
+            print(
+                f"{batch_id}: ssh probe rc={r.returncode}: "
+                f"{(r.stderr or '').strip()[:200]}",
+                file=sys.stderr,
+            )
+            return 4
         out = r.stdout.strip()
-        if out == "DONE":
+        # dead/<id>.*.err lines are listed first; if any present, fail fast.
+        if ".err" in out:
+            print(
+                f"{batch_id}: DEAD (see {out.splitlines()[0]})",
+                file=sys.stderr,
+            )
+            return 3
+        if "DEAD" in out:
+            print(f"{batch_id}: DEAD (dead/{batch_id}.err present)", file=sys.stderr)
+            return 3
+        if "DONE" in out:
             print(f"{batch_id}: DONE")
             return 0
         if out.isdigit():
@@ -153,6 +245,7 @@ def cmd_wait(args: argparse.Namespace) -> int:
 def cmd_collect(args: argparse.Namespace) -> int:
     """rsync <gpfs>/.loop/results/<batch>/ back to local; print verdict summary."""
     batch_id = args.batch_id
+    _validate_batch_id(batch_id)
     local_dir = LOCAL_LOOP / "results" / batch_id
     local_dir.mkdir(parents=True, exist_ok=True)
     rc = _rsync(
@@ -210,7 +303,15 @@ def _utc_now() -> str:
 
 
 def _new_batch_id() -> str:
-    return "b" + datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    # Higher-entropy id: timestamp + 6 random hex chars (Codex FAIL #2 fix).
+    # Reduces accidental collisions when two submits land within the same
+    # second on busy days.
+    return (
+        "b"
+        + datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        + "-"
+        + secrets.token_hex(3)
+    )
 
 
 def main() -> int:
@@ -224,6 +325,12 @@ def main() -> int:
     s.add_argument("--batch-id", default=None)
     s.add_argument("--tasks", nargs="+", required=True)
     s.add_argument("--skip-smoke", action="store_true")
+    s.add_argument(
+        "--allow-recycle",
+        action="store_true",
+        help="DANGEROUS: allow reusing a batch_id whose artifacts already "
+        "exist (may overwrite results / mask success-flag race).",
+    )
     s.set_defaults(func=cmd_submit)
 
     s = sub.add_parser("wait", help="poll for done flag")
@@ -241,6 +348,7 @@ def main() -> int:
     s.add_argument("--batch-id", default=None)
     s.add_argument("--tasks", nargs="+", required=True)
     s.add_argument("--skip-smoke", action="store_true")
+    s.add_argument("--allow-recycle", action="store_true")
     s.add_argument("--timeout", type=int, default=7200)
     s.add_argument("--interval", type=int, default=10)
     s.add_argument("--stale-after", type=int, default=300)
