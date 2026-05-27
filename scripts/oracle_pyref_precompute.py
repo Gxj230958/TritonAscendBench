@@ -222,15 +222,29 @@ def _resolve_kernel_entrypoint(
        ``bmm_kernel`` → ``bmm_batch_invariant``).
     4. Pattern fallback from ``meta.name`` (last resort).
     """
+    # Lazy import so the helper module stays optional during unit tests
+    # that monkeypatch the shared functions.
+    from triton_ascend_bench.kernel_resolver import is_jit_decorated  # noqa: PLC0415
+
+    def _accept(cand: str) -> bool:
+        """Reject any candidate that turns out to be a @triton.jit
+        kernel -- the R10 pipeline always needs the host wrapper
+        (V9 plan M0a.2 / codex review 2026-05-27)."""
+        if not cand:
+            return False
+        if is_jit_decorated(kernel_path, cand):
+            return False
+        return _kernel_entrypoint_signature(kernel_path, cand) is not None
+
     gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
     if isinstance(gpu_triton, str) and "::" in gpu_triton:
         _, _, fn = gpu_triton.partition("::")
-        if fn and fn != "placeholder":
+        if fn and fn != "placeholder" and _accept(fn):
             return fn
     tried_map = _load_resolve_tried_map()
     if task_id in tried_map and tried_map[task_id]:
         candidate = tried_map[task_id][0]
-        if _kernel_entrypoint_signature(kernel_path, candidate) is not None:
+        if _accept(candidate):
             return candidate
 
     # AST-based auto-detection: pick the non-jit def whose required-param
@@ -253,6 +267,8 @@ def _resolve_kernel_entrypoint(
             scored.append((jaccard + subset_bonus, name))
         scored.sort(reverse=True)
         if scored and scored[0][0] >= 0.3:
+            # ``_enumerate_non_jit_module_defs`` already filters JIT
+            # decorators, so the top scorer is host-wrapper-safe.
             return scored[0][1]
 
     meta_name = meta.get("name")
@@ -275,9 +291,15 @@ def _resolve_kernel_entrypoint(
         if not cand or cand in seen:
             continue
         seen.add(cand)
-        if _kernel_entrypoint_signature(kernel_path, cand) is not None:
+        if _accept(cand):
             return cand
-    return meta_name
+    # Final fallback: refuse to return a JIT-decorated name -- that
+    # would silently route GPU verify to a raw kernel call. Better to
+    # return None and have the caller flag the task as
+    # "no host wrapper resolvable" than to ship a misleading verdict.
+    if _accept(meta_name):
+        return meta_name
+    return None
 
 
 def _audit_task(task_dir: Path) -> TaskAudit:

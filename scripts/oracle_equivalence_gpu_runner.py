@@ -156,10 +156,22 @@ def _resolve_kernel_entrypoint(
     -> AST-based wrapper auto-detection (max-jaccard with oracle inputs)
     -> pattern variants -> raw meta.name fallback.
     """
+    from triton_ascend_bench.kernel_resolver import is_jit_decorated  # noqa: PLC0415
+
+    def _accept(cand: str) -> bool:
+        """Reject @triton.jit-decorated candidates -- the R10 pipeline
+        wants the host wrapper, not the raw kernel (V9 codex review
+        2026-05-27)."""
+        if not cand:
+            return False
+        if is_jit_decorated(kernel_path, cand):
+            return False
+        return _kernel_has_function(kernel_path, cand)
+
     gpu_triton = (meta.get("oracle") or {}).get("gpu_triton", "") or ""
     if isinstance(gpu_triton, str) and "::" in gpu_triton:
         _, _, fn = gpu_triton.partition("::")
-        if fn and fn != "placeholder":
+        if fn and fn != "placeholder" and _accept(fn):
             return fn
     # Load resolve cache (gitignored;may be absent on GPU host)
     rj = REPO_ROOT / "results" / "resolve_all.json"
@@ -169,7 +181,7 @@ def _resolve_kernel_entrypoint(
             for v in d.get("verdicts", []):
                 if v.get("task_id") == task_id:
                     tried = v.get("tried") or []
-                    if tried and _kernel_has_function(kernel_path, tried[0]):
+                    if tried and _accept(tried[0]):
                         return tried[0]
                     break
         except Exception:
@@ -193,6 +205,8 @@ def _resolve_kernel_entrypoint(
             scored.append((jaccard + subset_bonus, name))
         scored.sort(reverse=True)
         if scored and scored[0][0] >= 0.3:
+            # ``_enumerate_non_jit_module_defs`` already excludes JIT
+            # decorators, so the top scorer is host-wrapper-safe.
             return scored[0][1]
 
     meta_name = meta.get("name", "") or ""
@@ -215,9 +229,15 @@ def _resolve_kernel_entrypoint(
         if not cand or cand in seen:
             continue
         seen.add(cand)
-        if _kernel_has_function(kernel_path, cand):
+        if _accept(cand):
             return cand
-    return meta_name
+    # Final fallback: refuse to return a JIT-decorated name -- silently
+    # invoking a Triton kernel with bare tensor args fails with stale
+    # tracebacks (V9 codex review). Better to return None and have the
+    # caller flag the task than ship a misleading verdict.
+    if _accept(meta_name):
+        return meta_name
+    return None
 
 
 def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):
