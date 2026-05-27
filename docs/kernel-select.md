@@ -189,4 +189,4 @@
 | `L3_20_recompute_w_u_fwd_kernel` | vLLM | CV | other | high | `vllm/model_executor/layers/fla/ops/kda.py` |
 | `L3_21_solve_tril_16x16_kernel` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/fla/ops/solve_tril.py` |
 | `L3_22_chunk_local_cumsum_vector_kernel` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/` |
-| `L3_23_merge_16x16_to_32x32_inverse_kernel` | vLLM | CV | elementwise | high | `vllm/model_executor/layers/fla/ops/` |
+| `L3_23_merge_16x16_to_32x32_inverse_kernel` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/` |

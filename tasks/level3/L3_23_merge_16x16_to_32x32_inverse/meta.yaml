@@ -6,7 +6,7 @@ idx: 23
 name: merge_16x16_to_32x32_inverse_kernel
 repo: vLLM
 dtype_class: CV
-category: elementwise
+category: ssm
 npu_difficulty: high
 upstream:
   repo: vllm-project/vllm
@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
-tolerance_class: elementwise
+tolerance_class: recurrent_chunk
 cost_model:
   flops:
     vector: B*D*D*D/6
@@ -68,7 +68,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: VERIFIED
     verified_at: '2026-05-27T13:53:50Z'
-    tolerance_class_used: elementwise
+    tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
         status: VERIFIED
