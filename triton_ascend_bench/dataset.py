@@ -18,6 +18,10 @@ from typing import Any
 import yaml
 
 from triton_ascend_bench.cost_model import CostModel, CostModelError, parse_cost_model
+from triton_ascend_bench.provenance import (
+    ProvenanceGoldenSpec,
+    parse_provenance_golden,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +67,17 @@ class TaskDef:
     # backward compatible. `loader-lenient / validator-strict`: presence and
     # schema are enforced only by `scripts/validate_tasks.py`.
     param_constraints: dict[str, Any] | None = None
+    # V9 plan M1.2: typed view of nested ``meta.provenance.golden:``
+    # (the baseline trust chain). ``None`` when the nested block is
+    # absent (legacy task; grace period until R10/R5 capture has run).
+    # The full ``provenance:`` dict (including the legacy top-level
+    # keys ``added_in`` / ``authors`` / ``last_modified``) remains
+    # reachable via ``self.meta['provenance']``; this field is the
+    # typed view of only the new nested ``golden:`` sub-block. Same
+    # loader-lenient / validator-strict split as ``cost_model``:
+    # presence and closed-enum shape are enforced by
+    # ``scripts.validate_tasks``, never by the loader.
+    provenance_golden: ProvenanceGoldenSpec | None = None
 
     @property
     def tolerance_class(self) -> str:
@@ -156,6 +171,11 @@ def load_task(task_id: str) -> TaskDef:
             )
             param_constraints = {"__raw__": raw_param_constraints}
 
+    # V9 plan M1.2: typed view of the nested ``provenance.golden:`` sub-
+    # block. Returns ``None`` when the block is absent -- the validator
+    # gates presence, not the loader.
+    provenance_golden = parse_provenance_golden(meta)
+
     return TaskDef(
         task_id=task_id,
         level=level_int,
@@ -167,6 +187,7 @@ def load_task(task_id: str) -> TaskDef:
         kernel_py_sha256=_sha256_text(kernel_py),
         cost_model=cost_model,
         param_constraints=param_constraints,
+        provenance_golden=provenance_golden,
     )
 
 

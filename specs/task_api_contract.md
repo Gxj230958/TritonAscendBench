@@ -475,6 +475,75 @@ is a deliberately-crafted trap, and is never score-eligible. `validate_tasks`
 In short: a missing or malformed `param_constraints` is *not an error to
 load* but *is an error to release*.
 
+### 5d. `provenance.golden` schema (baseline trust chain — V9 plan M1.2)
+
+The `provenance:` top-level block carries the *content* metadata
+historically (`added_in`, `authors`, `last_modified`). V9 adds a
+nested `golden:` sub-block that records the *baseline trust chain* —
+HOW a task's reference values were produced, verified, and signed.
+Top-level keys are untouched; the nested block is purely additive.
+
+```yaml
+provenance:
+  added_in: v0.1                   # existing top-level metadata, untouched
+  authors: [...]                   # existing
+  last_modified: '2026-05-26'      # existing
+  golden:                          # nested baseline trust chain (V9 M1.2)
+    source: upstream_author_test | gpu_kernel_rerun
+    tolerance_source: upstream_test_explicit | upstream_test_default | migration_drift_budget
+    atol: 1.0e-5                   # pinned from upstream test
+    rtol: 1.0e-5
+    ref_path: tasks/<id>/upstream_ref.py     # source ① only — vendored author test ref
+    test_file_path: <relative to infer/{repo}>  # source ① only
+    test_capture_sha: <40 hex>     # source ① only — author test git SHA
+    golden_sha256: <64 hex>        # SHA of the captured ref artifact (R5)
+    oracle_kernel_equivalence: VERIFIED | FAILED | MIXED | SKIPPED | NEEDS_MANUAL | LAUNCH_BLOCKED
+    gpu_kernel_capture_status: PENDING | DONE | FAILED | BLOCKED_NON_DETERMINISTIC
+    gpu_kernel_deterministic: true   # R20 N=3 bit-identity check
+    upstream_closure_fingerprint: <64 hex>  # cache invalidation key
+    reviewers: [<name1>, <name2>]    # R8 reviewer attestation
+    reconstructability_risk: low | medium | high  # M0a.1 6th-dim risk score
+```
+
+**Closed enums** (validator-strict; see `triton_ascend_bench/provenance.py`):
+
+| Field | Allowed values |
+|-------|----------------|
+| `source` | `upstream_author_test`, `gpu_kernel_rerun` |
+| `tolerance_source` | `upstream_test_explicit`, `upstream_test_default`, `migration_drift_budget` |
+| `oracle_kernel_equivalence` | `VERIFIED`, `FAILED`, `MIXED`, `SKIPPED`, `NEEDS_MANUAL`, `LAUNCH_BLOCKED` |
+| `gpu_kernel_capture_status` | `PENDING`, `DONE`, `FAILED`, `BLOCKED_NON_DETERMINISTIC` |
+| `reconstructability_risk` | `low`, `medium`, `high` |
+
+**Hash field constraints** (length + hex):
+
+| Field | Required hex length |
+|-------|--------------------|
+| `golden_sha256` | 64 |
+| `upstream_closure_fingerprint` | 64 |
+| `test_capture_sha` | 40 |
+
+**Open / operational extras** (preserved verbatim by the loader, NOT
+closed-enum checked — these are pipeline artifacts written by
+`scripts/apply_oracle_equivalence_verdict.py` and similar):
+`verified_at`, `tolerance_class_used`, `equivalence_per_shape`,
+`golden_source`.
+
+**Grace period**: the validator accepts an absent `golden:` block on
+any task (legacy meta + tasks that have not yet run R10/R5 capture).
+This is documented as a *warning concern* in the release-gate report
+but not a release-blocking error. Once the block is present, every
+closed enum and hash-length value MUST conform — a malformed value
+IS release-blocking, because the release gate, eval boundary, and
+GoldenStore all read these fields directly.
+
+**Loader contract**: `triton_ascend_bench.dataset.TaskDef` carries a
+typed view of the nested block via `provenance_golden:
+ProvenanceGoldenSpec | None` (loader-lenient, same pattern as
+`cost_model` / `param_constraints`); the raw YAML structure stays
+reachable through `TaskDef.meta['provenance']` for forward
+compatibility.
+
 ## 6. Authority + Cross-File Consistency
 
 - `meta.yaml` is **source of truth** for all machine-readable fields.

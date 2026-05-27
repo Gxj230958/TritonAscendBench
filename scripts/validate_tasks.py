@@ -906,6 +906,27 @@ def _validate_phase_b_capture(tid: str, meta: dict) -> list[str]:
     return errs
 
 
+def _validate_provenance_golden(tid: str, meta: dict) -> list[str]:
+    """V9 plan M1.2 -- closed-enum + shape check on ``provenance.golden:``.
+
+    Delegates to ``triton_ascend_bench.provenance.validate_provenance_golden``,
+    which is the single source of truth for the schema. Grace period:
+    when the nested ``golden:`` block is absent the validator returns
+    cleanly; when present, every closed enum and hash-length field
+    must conform.
+    """
+    # Import lazily so this script stays importable in environments
+    # where the package's optional deps aren't installed (the
+    # cli/dataset path imports torch transitively; this validator
+    # script is run from CI on minimal envs).
+    from triton_ascend_bench.provenance import (  # noqa: PLC0415
+        validate_provenance_golden,
+    )
+
+    raw_errs = validate_provenance_golden(meta)
+    return [f"{tid}: meta.yaml {e}" for e in raw_errs]
+
+
 def _validate_metamorphic_checks(tid: str, meta: dict) -> list[str]:
     """`runner_checks.metamorphic_checks` names must be in the known registry.
 
@@ -1217,6 +1238,18 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     errs.extend(_validate_release_scope(tid, meta))
     errs.extend(_validate_phase_a_skip_invocation(tid, meta))
     errs.extend(_validate_phase_b_capture(tid, meta))
+
+    # Step 7h: V9 plan M1.2 -- closed-enum + shape check on the nested
+    # ``provenance.golden:`` sub-block. Top-level ``provenance:`` keys
+    # (``added_in`` / ``authors`` / ``last_modified``) are NOT touched
+    # here; this gate is for the V9 trust-chain fields populated by
+    # R10/R5 capture (oracle equivalence verdict, captured golden
+    # SHA, signed manifest, reviewer attestation, ...). Grace-period
+    # semantics: an absent ``golden:`` block is allowed (legacy task
+    # / pre-R10). When the block IS present, every closed-enum value
+    # must conform -- a malformed value here is a release-blocking
+    # error because the release gate reads these fields directly.
+    errs.extend(_validate_provenance_golden(tid, meta))
 
     # Step 8: PHASE-AWARE hash integrity (plan U5 codex-cep-r2 must-fix).
     # If the task has been Phase-A'-processed it carries
