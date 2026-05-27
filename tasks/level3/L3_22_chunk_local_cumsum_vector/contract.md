@@ -25,14 +25,26 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-Per-chunk local cumulative sum along the sequence axis (FLA).
-g: [..., L, D]. reverse ⇒ suffix cumsum.
+Per-chunk local cumulative sum along the sequence axis (FLA). The
+cumsum **resets at every `chunk_size` boundary** -- equivalent to
+
+    g.view(B, H, NT, BT, S).cumsum(-2).view(B, H, T, S)
+
+(reverse ⇒ suffix cumsum within each chunk via flip-cumsum-flip).
+
+`g`: 4-D `[B, H, T, S]` when `head_first=True` (the pinned variant
+this task exercises); `[B, T, H, S]` when `head_first=False` (oracle
+transposes internally before chunking). `chunk_size` (BT) must be a
+power of 2 that divides `T`, and ≥ 16 to satisfy the Triton
+`tl.dot` minimum.
 
 ## I/O contract
 
 `oracle_pytorch.run(inputs: dict) -> dict`. Inputs (keys consumed):
-- `g`
-- `reverse`
+- `g` — 4-D tensor, layout selected by `head_first`
+- `reverse` — bool / 0-or-1; suffix cumsum within each chunk
+- `chunk_size` — int; BT block size (power of 2, ≥ 16, divides T)
+- `head_first` — bool; pinned `True` in this task's `shapes.yaml`
 
 Concrete per-shape tensors are built by
 `triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
@@ -63,8 +75,11 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `L >= 1`
+- `B >= 1`
+- `H >= 1`
+- `L >= 16`
 - `D >= 1`
+- `L % chunk_size == 0`
 
 ### Input dtypes (`dtypes`)
 
@@ -77,6 +92,8 @@ Knob grid in `shapes.yaml`.
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `reverse`: `reverse in [0, 1]`
+- `chunk_size`: `chunk_size in {16, 32, 64, 128, 256, 512}`
+- `head_first`: `head_first == True`
 
 ### Tensor invariants (`tensor_invariants`)
 

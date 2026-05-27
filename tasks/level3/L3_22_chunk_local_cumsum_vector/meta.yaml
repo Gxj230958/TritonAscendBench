@@ -76,9 +76,19 @@ provenance:
 # Operator input contract (WA.1, specs/task_api_contract.md §5.2). Per-chunk local cumulative sum of g [L, D] along the sequence axis. reverse selects suffix cumsum; it is driven by the per-row REV knob (0/1) so both the prefix-cumsum and suffix-cumsum oracle branches are exercised across shape rows (the fixed scalar:false scaffold value left the reverse branch untested; WB.1 knob fix). g uses randn (the `ones` scaffold dist was a degenerate cumsum test point; WB.1 dist fix).
 param_constraints:
   scaffold: false
+  # Updated 2026-05-27: g is now a 4-D tensor matching the wrapper's
+  # head_first=True unpack `B, H, T, S = g.shape`. chunk_size must be
+  # a power-of-two divisor of T (= L) and >= 16 (Triton tl.dot K-min).
+  # head_first is pinned true so wrapper and oracle take the same
+  # [B, H, T, S] layout without a transpose round-trip. reverse stays
+  # driven by the REV knob so both prefix- and suffix-cumsum branches
+  # are exercised.
   dims:
-  - L >= 1
+  - B >= 1
+  - H >= 1
+  - L >= 16
   - D >= 1
+  - L % chunk_size == 0
   dtypes:
     g: float32
   dists:
@@ -86,4 +96,6 @@ param_constraints:
       kind: randn
   scalars:
     reverse: reverse in [0, 1]
+    chunk_size: chunk_size in {16, 32, 64, 128, 256, 512}
+    head_first: head_first == True
   tensor_invariants: []
