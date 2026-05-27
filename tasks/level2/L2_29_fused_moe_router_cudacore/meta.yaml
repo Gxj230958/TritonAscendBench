@@ -29,28 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). MoE router: logits = x @ W^T (+softcap
-  # +bias), softmax, top-k. shapes.yaml binds: B -> num_tokens (x dim 0,
-  # the kernel's per-token grid), D -> hidden_dim (x dim 1 == router_weight
-  # dim 1, the kernel hidden_dim constexpr / reduction axis). The expert
-  # count is the literal 8 (router_weight is declared [8, D]) and topk=2.
-  # Single compute class -> scalar form. This is the cudacore variant: the
-  # kernel computes logits with tl.sum(w_router * x[None,:], axis=-1)
-  # ("# todo: tl.dot?") — an elementwise-multiply + reduce, NOT tl.dot —
-  # so the routing GEMM runs on the 910B Vector unit; flops_class vector.
-  # FLOPs(vector) per token: logits = sum_D(w*x) over 8 experts is mul+add
-  # over 8*D -> 2*8*D = 16*D (always-on). bias add over 8, softmax over the
-  # 8 logits (max, exp, sum, div) ~4 ops over 8, topk-2 select + renorm a
-  # few ops over 8 -> ~80 always-on. The softcap c*tanh(l/c) (~5 ops over 8
-  # -> ~40) is NOT always-on: the kernel guards it with `if moe_softcapping
-  # == 0` (kernel.py L52) and the oracle with `if moe_softcapping > 0`, so
-  # the epilogue runs ONLY when the SOFTCAP knob is non-zero. SOFTCAP is in
-  # {0, 30} across the shape grid, so min(SOFTCAP, 1) is an exact 0/1 truth
-  # gate on that branch. Total: B*(16*D + 80 + 40*min(SOFTCAP, 1)).
-  # bytes(hbm): read x [B,D] + router_weight [8,D] + correction_bias [8],
-  # write topk_weights [B,2] + topk_ids [B,2]; x/router_weight/bias are
-  # float32 primary family -> dtype_size; topk_ids is int32 (non-primary,
-  # approach §3.2) -> literal *4.
   flops: B*(16*D + 80 + 40*min(SOFTCAP, 1))
   flops_class: vector
   bytes: (B*D + 8*D + 8 + 2*B) * dtype_size + 2*B*4
@@ -86,7 +64,24 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-29
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). MoE router: x [n_tokens, D] projected by router_weight [n_experts=8, D], optional softcap (moe_softcapping) and correction_bias [8]; emits topk routing weights+ids. topk is the routed-expert count.
+  golden:
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        max_abs: 0.06004011631011963
+        max_rel: 0.08947331458330154
+        blocker: 'topk_weights: atol/rtol: max_abs=0.06, max_rel=0.0895 (max_abs=0.06004011631011963,
+          max_rel=0.08947331458330154, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
+      P2:
+        status: FAILED
+        max_abs: 0.13779795169830322
+        max_rel: 0.191780686378479
+        blocker: 'topk_weights: atol/rtol: max_abs=0.138, max_rel=0.192 (max_abs=0.13779795169830322,
+          max_rel=0.191780686378479, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
+    golden_source: fallback_to_gpu_capture_pending
 param_constraints:
   scaffold: false
   dims:

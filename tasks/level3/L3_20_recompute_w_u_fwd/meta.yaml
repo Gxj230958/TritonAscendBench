@@ -29,30 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). GDN/KDA W/U recompute: the kernel
-  # produces u = A @ (beta*v) and w = A @ (beta*k*exp(g_cumsum)).
-  # cost_model reflects the two tl.dot's in kernel.py (the frozen upstream
-  # ground truth). Known issue (out-of-scope follow-up): oracle_pytorch.py
-  # currently omits the left-multiply by A for w (it returns
-  # beta*k*exp(g_cumsum)), which is inconsistent with the kernel semantics --
-  # an oracle/kernel provenance consistency issue, out of scope for the
-  # cost_model fill; cost_model is keyed to the kernel.
-  # shapes.yaml binds: B -> n_chunks (k/v/beta/g_cumsum/A dim 0, the
-  # oracle's leading `...` batch axis), L -> chunk length (k/v dim 1,
-  # beta/g_cumsum dim 1, A dims 1&2; the kernel's BT tile axis, the
-  # einsum indices `l` & `s`), D -> feature dim (k/v dim 2; the kernel
-  # K/BK and V/BV axes — k and v share the D knob here).
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
-  # tl.dot's — b_u = tl.dot(b_A, b_vb) and b_w = tl.dot(b_A, b_kb), each
-  # per chunk an [L,L]@[L,D] matmul = 2*L*L*D; over B chunks ->
-  # 4*B*L*L*D. float32 operands run on the 910B Cube unit, peak_table
-  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
-  # FLOPs(vector): the GEMM operands are pre-scaled — beta*v and
-  # beta*k*exp(g_cumsum) — ~3 ops over B*L*D (exp(g) + the beta muls)
-  # -> 3*B*L*D.
-  # bytes(hbm): read k/v [B,L,D] + beta [B,L] + g_cumsum [B,L] + A
-  # [B,L,L], write w [B,L,D] + u [B,L,D]; all float32 primary family ->
-  # dtype_size.
   flops:
     fp16_cube: 4*B*L*L*D
     vector: 3*B*L*D
@@ -89,7 +65,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-20
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Delta-rule w/u recomputation: k / v [B, L, D], per-step beta / g_cumsum [B, L], and the intra-chunk attention A [B, L, L]. fp32.
+  golden:
+    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `recompute_w_u_fwd` unpack. Details: k: wrapper expects rank [4], build_inputs
+          gave 3'
+      P2:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `recompute_w_u_fwd` unpack. Details: k: wrapper expects rank [4], build_inputs
+          gave 3'
+    golden_source: blocked_wrapper_contract_mismatch
 param_constraints:
   scaffold: false
   dims:

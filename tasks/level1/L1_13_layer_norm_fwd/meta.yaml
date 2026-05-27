@@ -15,7 +15,7 @@ upstream:
   file_sha256: fb194853f5ad6a9f3ea28cb245c7c3fa3f0708458529c92936d8f95eedcd685a
   function_hash: fb194853f5ad6a9f3ea28cb245c7c3fa3f0708458529c92936d8f95eedcd685a
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L1_13_layer_norm_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,16 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). LayerNorm forward: per row mean/var over the
-  # last dim, normalise, then affine weight/bias. The kernel runs one program
-  # per row. Symbol map: B -> x rows (x dim 0, kernel grid extent), D ->
-  # hidden size (x dim 1 == weight/bias length, per-row reduction extent). eps
-  # is a scalar literal.
-  # FLOPs (vector): per element ~8 ops — mean reduction (~1), centred-square
-  # for var (sub + mul, ~2), rsqrt+eps amortised (~1), normalise mul (~1),
-  # weight mul (~1), bias add (~1) -> ~8*B*D (LayerNorm ~8 ops/element).
-  # bytes (hbm): read x[B,D] + weight[D] + bias[D], write output[B,D] ->
-  # (2*B*D + 2*D) elements; all float32 primary family -> dtype_size.
   flops: 8*B*D
   flops_class: vector
   bytes: (2*B*D + 2*D) * dtype_size
@@ -74,6 +64,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-13
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

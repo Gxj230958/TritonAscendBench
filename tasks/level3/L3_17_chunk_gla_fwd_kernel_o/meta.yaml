@@ -15,7 +15,7 @@ upstream:
   file_sha256: fa84f2c6462cafbe828e4048fb27f938f723a1c97aee01d65c055c5d4eef869c
   function_hash: fa84f2c6462cafbe828e4048fb27f938f723a1c97aee01d65c055c5d4eef869c
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L3_17_chunk_gla_fwd_kernel_o_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,23 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). GLA chunk output: o = intra(A.v) +
-  # inter((q.exp(g)).h), with A the precomputed intra-chunk score matrix.
-  # shapes.yaml binds: B -> n_chunks (q/v/g/A/h dim 0, oracle einsum
-  # index `n`), L -> chunk length (q/v/g dim 1, A dims 1&2; the kernel's
-  # BT tile axis, oracle indices `l` & `s`), D -> key/query feature dim
-  # (q/g dim 2, h dim 1, the kernel K/BK axis), Dv -> value dim (v dim 2,
-  # h dim 2, the kernel V/BV axis).
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
-  # tl.dot's for the output — intra = einsum("nls,nsd->nld", A, v) is per
-  # chunk [L,L]@[L,Dv] = 2*L*L*Dv; inter = einsum("nld,ndv->nlv",
-  # q*exp(g)*scale, h) is per chunk [L,D]@[D,Dv] = 2*L*D*Dv. Over B
-  # chunks -> 2*B*L*L*Dv + 2*B*L*D*Dv. float32 operands run on the 910B
-  # Cube unit, peak_table exposes no fp32 cube class so cube matmul is
-  # keyed to fp16_cube. FLOPs(vector): the gating q*exp(g)*scale is
-  # exp + 2 muls over B*L*D (~3*B*L*D); intra+inter add over B*L*Dv.
-  # bytes(hbm): read q/g [B,L,D] + v [B,L,Dv] + A [B,L,L] + h [B,D,Dv],
-  # write output [B,L,Dv]; all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 2*B*L*L*Dv + 2*B*L*D*Dv
     vector: 3*B*L*D + B*L*Dv
@@ -82,6 +65,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-17
+  golden:
+    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `chunk_gla_fwd_o_gk` unpack. Details: q: wrapper expects rank [4], build_inputs
+          gave 3'
+      P2:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `chunk_gla_fwd_o_gk` unpack. Details: q: wrapper expects rank [4], build_inputs
+          gave 3'
+    golden_source: blocked_wrapper_contract_mismatch
 param_constraints:
   scaffold: false
   dims:

@@ -29,18 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). SiLU·mul gate followed by static per-tensor
-  # INT8 quant: z = silu(gate)*up, q = round(z/scale) clamped to [-128,127].
-  # One program per row. Symbol map: B -> input rows (input dim 0, kernel grid
-  # extent), D -> input dim 1 (full inner axis); the output is [B, D//2] since
-  # the gate splits D in half. scale is a 1-element static tensor.
-  # FLOPs (vector): per output element silu(gate)*up ~= 6 ops (silu ~5 + mul)
-  # plus the static quant divide + round + clamp ~= 3 -> ~9 ops over B*(D//2)
-  # output elements -> 9*B*D/2.
-  # bytes (hbm): float32 primary family (input declared first) -> dtype_size=4.
-  # fp32-width terms: read input[B,D] + read scale[1] fp32 -> (B*D + 1)*
-  # dtype_size. output[B,D//2] is the int8 quant output (non-primary dtype,
-  # approach §3.2) -> literal byte width *1 -> + B*D/2.
   flops: 9*B*D/2
   flops_class: vector
   bytes: (B*D + 1)*dtype_size + B*D/2
@@ -76,7 +64,18 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-34
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SiLU-gated mul followed by static per-tensor int8 quant. input [n_tokens, D] is split on the last axis into gate/value halves (D must be even); scale [1] is the per-tensor quant scale (positive).
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: 'AssertionError: '
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: 'AssertionError: '
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

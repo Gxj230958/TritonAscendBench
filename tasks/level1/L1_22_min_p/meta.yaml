@@ -29,18 +29,6 @@ oracle:
   gpu_triton: kernel.py::apply_min_p
 tolerance_class: sampling_rng
 cost_model:
-  # Symbol audit (approach §3.4). min-p filter: per row softmax over the vocab,
-  # find max prob, then mask positions whose prob < min_p*max_prob to -inf. One
-  # program per token row. Symbol map: B -> n_tokens (logits dim 0, kernel grid
-  # extent), N -> vocab size (logits dim 1, the per-row softmax-reduction
-  # extent), E -> n_reqs (min_p length, indexed by expanded_idx_mapping).
-  # FLOPs (vector): softmax over the vocab ~ max + (sub+exp) + sum + div ~= 5
-  # ops/element, then a per-row max-prob reduction (~1) and the threshold
-  # compare (~1) -> ~7*B*N.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 logits -> dtype_size; read+write logits[B,N] -> 2*B*N. The int64
-  # expanded_idx_mapping[B] uses literal *8 -> 8*B; the float32 min_p[E] uses
-  # literal *4 -> 4*E.
   flops: 7*B*N
   flops_class: vector
   bytes: 2*B*N*dtype_size + 8*B + 4*E
@@ -76,7 +64,18 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-22
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Min-p logit filtering: each row of logits [B, N] is masked by a per-request min_p [E] threshold, routed via expanded_idx_mapping [B] (token->request id in [0, E)). min_p is a probability in [0, 1).
+  golden:
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: sampling_rng
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+      P2:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+    golden_source: fallback_to_gpu_capture_pending
 param_constraints:
   scaffold: false
   dims:

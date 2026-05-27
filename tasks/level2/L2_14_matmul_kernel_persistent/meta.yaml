@@ -29,25 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Persistent-tiled GEMM with optional
-  # bias epilogue (oracle _matmul, kernel matmul_kernel_persistent):
-  # C = a @ b (+ bias). 'persistent' is only a tile-scheduling strategy;
-  # numerically a plain GEMM. shapes.yaml: a is [B, D], b is [D, N],
-  # bias is [N], output C is [B, N]. GEMM dims: M = B (a rows = C rows),
-  # K = D (a cols = b rows = contracted dim), N = N (b cols = C cols).
-  # Symbol map: B -> GEMM M, D -> contracted dim (GEMM K), N -> GEMM N.
-  # FLOPs split into two compute classes (map form, approach §3.1):
-  #  - fp16_cube: the matmul a @ b -> 2*B*D*N (2 = multiply +
-  #    accumulate). float32 operands; the 910B Cube unit has no fp32
-  #    cube class, so keyed to fp16_cube (Unit 1 paradigm). This
-  #    matches the upstream kernel's own _matmul_launch_metadata:
-  #    flops = 2.0*m*n*k.
-  #  - vector: the bias epilogue accumulator += bias, one add per
-  #    output element over C [B,N] -> B*N. Runs on the Vector unit.
-  # bytes (hbm): read a [B,D] + b [D,N] + bias [N], write C [B,N];
-  # all float32 primary family -> dtype_size. Matches the upstream
-  # _matmul_launch_metadata bytes = bytes_per_elem*(m*k + n*k + m*n),
-  # plus the [N] bias vector.
   flops:
     fp16_cube: 2*B*D*N
     vector: B*N
@@ -84,7 +65,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-14
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Persistent matmul C = a @ b + bias: a is [M, K]=[B, D], b is [K, N]=[D, N], bias is [N]. The contracted dim D must agree. fp32 operands; bias is non-negative uniform.
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

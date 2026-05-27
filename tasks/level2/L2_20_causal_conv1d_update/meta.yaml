@@ -15,7 +15,7 @@ upstream:
   file_sha256: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
   function_hash: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_20_causal_conv1d_update_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,18 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Single-step decode causal conv1d state
-  # update: roll the [batch,dim,state_len] window, append the new token, then
-  # conv = sum(window*weight) + bias and optional SiLU. Symbol map: B -> batch
-  # (x/conv_state/bias dim 0, kernel grid extent), D -> dim AND state_len ==
-  # KERNEL_WIDTH (conv_state is [B,D,D] and weight is [D,D]; both the channel
-  # axis and the conv window are the D knob). activation is a scalar literal.
-  # FLOPs (vector): per (batch,dim) output a length-D window dot product ~
-  # 2*D mul-adds, plus the bias add and SiLU (~6) -> B*D*(2*D + 6); this is
-  # an elementwise/reduce depthwise conv, not a cube matmul.
-  # bytes (hbm): read x[B,D] + conv_state[B,D,D] + weight[D,D] + bias[B,D],
-  # write output[B,D] + conv_state[B,D,D] -> (2*B*D*D + D*D + 3*B*D) elements;
-  # all float32 primary family -> dtype_size.
   flops: B*D*(2*D + 6)
   flops_class: vector
   bytes: (2*B*D*D + D*D + 3*B*D) * dtype_size
@@ -76,6 +64,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-20
+  golden:
+    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `causal_conv1d_update` unpack. Details: x: wrapper expects rank [3], build_inputs
+          gave 2'
+      P2:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `causal_conv1d_update` unpack. Details: x: wrapper expects rank [3], build_inputs
+          gave 2'
+    golden_source: blocked_wrapper_contract_mismatch
 param_constraints:
   scaffold: false
   dims:

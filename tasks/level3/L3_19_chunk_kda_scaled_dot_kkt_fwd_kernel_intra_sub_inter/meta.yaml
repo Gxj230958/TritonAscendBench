@@ -29,49 +29,15 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). KDA inter-sub scaled-dot KKT:
-  # A_{ij} = scale*beta_i*(q_i.k_j)*exp(gk_i - gk_j), causal. shapes.yaml
-  # binds: C -> n_chunks (q/k/gk/beta dim 0, the oracle's leading `...`
-  # batch axis), L -> chunk length (q/k dim 1, gk/beta dim 1; the kernel's
-  # BT chunk axis), D -> feature dim (q/k dim 2, the kernel K/BK
-  # contraction axis).
-  # Block structure: this task evaluates the raw kernel
-  # chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter. The kernel tiles
-  # each chunk's [L,L] score grid into BC-sized sub-blocks, with
-  # BC = min(16, BT) = min(16, L) and NC = ceil(BT / BC) = ceil(L / BC)
-  # sub-blocks per chunk axis (chunk_kda_scaled_dot_kkt_fwd: BC=min(16,BT),
-  # NC=cdiv(BT,BC)). It is launched on the NC*NC sub-block-pair grid but
-  # processes ONLY strict off-diagonal pairs: `if i_i <= i_j: return`
-  # drops every i_i <= i_j pair, leaving NC*(NC-1)/2 surviving pairs per
-  # chunk. Each surviving pair is a FULL, fully-causal BC*BC block (no
-  # intra-block masking — the whole block is below the chunk diagonal).
-  # The diagonal sub-blocks (i_i == i_j) are NOT this kernel's work: they
-  # are handled by a separate path, chunk_kda_scaled_dot_kkt_fwd_kernel_
-  # intra_sub_intra, which uses tl.sum instead of tl.dot. So flops/bytes
-  # here are billed for OFF-DIAGONAL blocks only, NOT the full strict
-  # triangle L*(L-1)/2 (that sum also covers the diagonal-block interiors
-  # owned by the other kernel). The off-diagonal score-entry count per
-  # chunk is BC*BC * NC*(NC-1)/2; for L <= 16 -> NC == 1 -> zero off-diag
-  # work, faithfully matching the kernel returning early on every pair.
-  # Mixed compute -> map form. FLOPs(fp16_cube): per surviving pair the
-  # K loop issues two tl.dot's — b_A += tl.dot(b_k, b_ktg) for the k.k
-  # score and b_Aqk += tl.dot(b_qg, b_ktg) for the q.k score; summed over
-  # the K loop each dot contracts the full D, so each off-diagonal score
-  # entry costs 4*D fused mul-add FLOPs (2 dots * 2 mul-add). float32
-  # operands run on the 910B Cube unit; peak_table exposes no fp32 cube
-  # class so cube matmul is keyed to fp16_cube.
-  # FLOPs(vector): per surviving pair, the decay gating recomputes
-  # b_k = k*exp(g-gn), b_qg = q*exp(g-gn)*scale and b_ktg = kt*exp(gn-gk)
-  # — ~3 sub+exp+mul passes over BC*D elements (~10*BC*D ops), plus the
-  # b_A *= beta scaling over the BC*BC output entries.
-  # bytes(hbm): per surviving off-diagonal pair the kernel reads q/k/g
-  # sub-blocks (3 * BC*D), reads beta (BC) and writes BOTH outputs A and
-  # Aqk (2 * BC*BC). All float32 primary family -> dtype_size.
   flops:
-    fp16_cube: 4 * D * C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2)
-    vector: 10 * D * min(16, L) * C * (ceil(L / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2) + C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2)
+    fp16_cube: 4 * D * C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L
+      / min(16, L)) - 1) / 2)
+    vector: 10 * D * min(16, L) * C * (ceil(L / min(16, L)) * (ceil(L / min(16, L))
+      - 1) / 2) + C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L /
+      min(16, L)) - 1) / 2)
   bytes:
-    hbm: (3 * D * min(16, L) + min(16, L) + 2 * min(16, L) * min(16, L)) * C * (ceil(L / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2) * dtype_size
+    hbm: (3 * D * min(16, L) + min(16, L) + 2 * min(16, L) * min(16, L)) * C * (ceil(L
+      / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -103,7 +69,15 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-19
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). KDA chunked scaled K·K^T forward (intra/inter): q / k [C, L, D], per-step gate gk [C, L], per-step beta [C, L]. scale is the QK scale, derived as 1/sqrt(D) (was a 0.125 placeholder; WB.1 derive-form fix).
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      '*':
+        status: LAUNCH_BLOCKED
+        blocker: 'Duplicate op name: fused_rms_norm_gated'
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

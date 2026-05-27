@@ -29,27 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). FLA block-lower-triangular inverse merge: the
-  # 32x32 inverse of a block-tri matrix from its two diagonal-block inverses
-  # plus the off-diagonal term -A22^-1 @ A21 @ A11^-1. Symbol map: B -> A dim
-  # 0 (batch of matrices, kernel grid extent), D -> A dims 1 and 2 (the square
-  # matrix side; param_constraints pin D == 32, the 16 in the kernel name is a
-  # fixed sub-tile).
-  # Mixed compute -> map form. The vendored merge_16x16_to_32x32_inverse_kernel
-  # is NOT vector-only: it does (a) two 16x16 forward-substitution triangular
-  # inversions for A11/A22 (the `for i in range(...)` loops with tl.sum
-  # reductions, kernel.py L181-189) — vector-unit work; and (b) the chained
-  # off-diagonal term b_Ai_21 = -tl.dot(tl.dot(b_Ai_22, b_A_21), b_Ai_11)
-  # (kernel.py L199-203) — two 16x16 matmuls on the Cube unit.
-  # FLOPs(vector): two 16x16 triangular inversions, each a forward-substitution
-  # over the strictly lower triangle accumulating length-up-to-16 dots — order
-  # 16^3/6 per inverse. With D == 32 the two-inverse total is ~B*D*D*D/6.
-  # FLOPs(fp16_cube): two 16x16x16 matmuls, 2*16^3 each (multiply+accumulate).
-  # With D == 32 the two-matmul total is exactly B*D*D*D/2 (2*2*16^3 == 32^3/2).
-  # float32 operands run on the 910B Cube unit; peak_table exposes no fp32 cube
-  # class so the matmul is keyed to fp16_cube.
-  # bytes (hbm): read A[B,D,D], write output[B,D,D] -> 2*B*D*D elements; all
-  # float32 primary family -> dtype_size.
   flops:
     vector: B*D*D*D/6
     fp16_cube: B*D*D*D/2
@@ -86,18 +65,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-23
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). FLA chunk
-# solve_tril BT=32 path: kernel.py:521 wrapper `solve_tril(A, ...)` expects
-# A.shape == [B, T, H, BT] and dispatches to merge_16x16_to_32x32_inverse_kernel
-# when BT == 32 (kernel.py:556). The kernel implements the 32x32 inverse via
-# a 16x16 merge formula internally, but at the wrapper level the operator is
-# the same (I + tril(A, -1))^{-1} as L3_21. Kernel grid is [NT, B*H] with
-# NT = cdiv(T, BT); each program inverts an independent 32x32 chunk along T.
-# The formula_exact_manual oracle (_solve_tril) reshapes T -> (NT, BT) and
-# computes the per-chunk inverse via batched solve_triangular; mathematically
-# equivalent to the kernel's internal merge strategy. BT is fixed at 32; T
-# must be a multiple of BT (tail-chunk support is a known follow-up).
-# 2026-05-27 patched out of the WRAPPER_CONTRACT_MISMATCH bucket.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 1.1920928955078125e-07
+        max_rel: 3.491009294975811e-07
+    golden_sha256: 446a68d9df398bceeab1fa6c35e13db9772686ac8dfdbcd0ae3784ed4af64758
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

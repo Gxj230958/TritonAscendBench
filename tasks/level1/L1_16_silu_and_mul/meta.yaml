@@ -35,20 +35,7 @@ oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::silu_and_mul_triton
 tolerance_class: elementwise
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). silu_and_mul
-# takes a single [B, 2*D] tensor: the kernel splits it into halves x1 / x3 on
-# the last axis, so the inner dim must be even (2*D is even by construction).
-# Hand-reconciled WA.1 sample task.
 cost_model:
-  # Symbol audit (approach §3.4). silu_and_mul_kernel launches one program per
-  # row (grid = bs = B) and each program processes hidden_dim = D output
-  # columns. Symbol map: B -> bs (grid extent, hidden_states dim 0),
-  # D -> hidden_dim (output dim 1 == half of the input's 2*D inner axis).
-  # FLOPs (vector): elementwise over B*D output elements; per element
-  # silu(x1)=x1*sigmoid(x1) costs ~1 sigmoid (neg+exp+add+recip ~= 4) + 1 mul,
-  # then the gate `* x3` is 1 mul -> ~6 ops -> 6*B*D.
-  # bytes (hbm): read hidden_states [B, 2*D] (2*B*D) + write output [B, D]
-  # (B*D) -> 3*B*D; single float32 primary family -> dtype_size.
   flops: 6*B*D
   flops_class: vector
   bytes: 3*B*D*dtype_size
@@ -57,13 +44,13 @@ cost_model:
 param_constraints:
   scaffold: false
   dims:
-    # The fused gate splits the last axis into two equal halves.
-    - "D >= 4"
-    - "B >= 1"
+  - D >= 4
+  - B >= 1
   dtypes:
     hidden_states: float32
   dists:
-    hidden_states: {kind: randn}
+    hidden_states:
+      kind: randn
   scalars: {}
   tensor_invariants: []
 oracle_simplified: simple_pytorch_ok
@@ -98,3 +85,18 @@ provenance:
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.1920928955078125e-07
+        max_rel: 2.3561410955608153e-07
+      P2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 3.518943856306578e-07
+    golden_sha256: 77913be3974b36be75ed3ac8692ca242ce3953612bcf8850c5d3a216fd758253
+    golden_source: oracle_pytorch_verified

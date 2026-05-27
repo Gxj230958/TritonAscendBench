@@ -38,27 +38,6 @@ oracle:
   gpu_triton: kernel.py::w8a8_block_int8_matmul
 tolerance_class: int8_w8a8
 cost_model:
-  # Symbol audit (approach §3.4). Block-wise W8A8 INT8 GEMM (oracle
-  # oracle_w8a8_block_int8_matmul, kernel _w8a8_block_int8_matmul):
-  # C = A_dequant @ B_dequant^T with per-(token, k-group) scale As and
-  # per-(n-block, k-group) scale Bs. shapes.yaml: A is [B, D] int8,
-  # B is [N, D] int8, output C is [B, N]. The GEMM is [B, D] @ [D, N]
-  # (B's D axis is the contracted dim, B^T gives the N output dim).
-  # GEMM dims: M = B (A rows = C rows), K = D (contracted dim = A dim 1
-  # = B dim 1), N = N (B dim 0 = C cols). Symbol map: B -> token rows
-  # (GEMM M), D -> contracted feature dim (GEMM K), N -> output dim
-  # (GEMM N). As is [B, D//8], Bs is [N//8, D//8].
-  # FLOPs (cube): 2*B*N*D (2 = multiply + accumulate). The per-K-block
-  # scale multiply (accumulator * a_s * b_s) is a small vector op vs
-  # the int8 matmul and folded into the cube cost.
-  # flops_class: int8 — A and B are int8 quantised operands, so the
-  # matmul runs on the 910B Cube unit's int8 pipe (approach §3.1
-  # decision table).
-  # bytes (hbm): read A [B,D] + B [N,D] int8 primary family ->
-  # dtype_size (= 1). The float32 scale tensors As [B,D//8] and Bs
-  # [N//8,D//8] are non-primary dtype, counted at the literal 4-byte
-  # width. Output C [B,N] is written in the fp16 default output dtype,
-  # counted at literal 2 bytes.
   flops: 2*B*N*D
   flops_class: int8
   bytes: (B*D + N*D) * dtype_size + B*(D//8)*4 + (N//8)*(D//8)*4 + B*N*2
@@ -101,7 +80,22 @@ provenance:
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). W8A8 block-quantised int8 matmul: A [B, D] @ B^T [N, D] with per-block scale tensors As [B, D/8] / Bs [N/8, D/8]. block_size = [block_n, block_k]; the //8 scale-tensor layout pins block_n == 8 and block_k == 8 exactly (kernel.py:106,111-112 assert cdiv(K,block_k)==As.cols and cdiv(N,block_n)==Bs.rows). D % 8 == 0 / N % 8 == 0.
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: int8_w8a8
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: "CompilationError: at 57:23:\n\n    accumulator = tl.zeros((BLOCK_SIZE_M,\
+          \ BLOCK_SIZE_N), dtype=tl.float32)\n    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):\n\
+          \        a = tl.load(a_ptrs, mask=offs_k[None, :"
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: "CompilationError: at 57:23:\n\n    accumulator = tl.zeros((BLOCK_SIZE_M,\
+          \ BLOCK_SIZE_N), dtype=tl.float32)\n    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):\n\
+          \        a = tl.load(a_ptrs, mask=offs_k[None, :"
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

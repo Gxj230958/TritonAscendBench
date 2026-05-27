@@ -29,18 +29,6 @@ oracle:
   gpu_triton: kernel.py::merge_state_triton
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Same FlashAttention split-KV LSE merge as
-  # L1_25 (online-softmax recombination of two partial states). One program per
-  # (token, head). Symbol map: B -> n_tokens (prefix_output dim 0, kernel grid
-  # extent), H -> n_heads (prefix_output dim 1 == lse dim 1), D -> head_size
-  # (prefix_output last dim, the per-(token,head) elementwise extent).
-  # FLOPs (vector): per (token,head) LSE prologue (max, two exp, denom, log) is
-  # O(1); the dominant work is the per-element merge (po*p_w + so*s_w)/denom
-  # ~ 3 ops over B*H*D output elements -> ~3*B*H*D, plus ~6*B*H prologue.
-  # bytes (hbm): read prefix_output + suffix_output [B,H,D] (2*B*H*D) +
-  # prefix_lse + suffix_lse [B,H] (2*B*H), write output[B,H,D] + output_lse
-  # [B,H] -> (3*B*H*D + 3*B*H) elements; all float32 primary family ->
-  # dtype_size.
   flops: 3*B*H*D + 6*B*H
   flops_class: vector
   bytes: (3*B*H*D + 3*B*H) * dtype_size
@@ -76,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-26
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Online-softmax LSE merge of two attention partial states (same math as merge_attn_states). *_output [n_tokens, n_heads, head_size], *_lse [n_tokens, n_heads]. All fp32 randn.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 4.511984661803581e-05
+      P2:
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 0.0014901140239089727
+    golden_sha256: 5fd9a829dba39e5976534476d2720fb227a6526ed4ef5cfd38db8f8efb8b74e4
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

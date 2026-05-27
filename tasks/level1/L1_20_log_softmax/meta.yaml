@@ -29,14 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Numerically-stable log_softmax over the last
-  # dim. One program per row. Symbol map: B -> input rows (input dim 0, kernel
-  # grid extent), D -> input dim 1 (the per-row softmax-reduction extent). dim
-  # is a scalar literal (-1, the last axis).
-  # FLOPs (vector): per element ~ max reduction + (sub+exp) + sum reduction +
-  # log + final sub ~= 4 ops -> 4*B*D.
-  # bytes (hbm): read input[B,D], write output[B,D] -> 2*B*D elements;
-  # float32 primary family -> dtype_size.
   flops: 4*B*D
   flops_class: vector
   bytes: 2*B*D*dtype_size
@@ -72,7 +64,24 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-20
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). log_softmax over the last (D) axis of a [B, D] logit matrix. The reduction axis must be non-trivial; dim selects the softmax axis (last axis only for this kernel).
+  golden:
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        max_abs: 7.308230400085449
+        max_rel: 1.1546756029129028
+        blocker: 'output: atol/rtol: max_abs=7.31, max_rel=1.15 (max_abs=7.308230400085449,
+          max_rel=1.1546756029129028, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P2:
+        status: FAILED
+        max_abs: 10.099743843078613
+        max_rel: 1.047157883644104
+        blocker: 'output: atol/rtol: max_abs=10.1, max_rel=1.05 (max_abs=10.099743843078613,
+          max_rel=1.047157883644104, tol=vector_reduce atol=0.001 rtol=0.001)'
+    golden_source: fallback_to_gpu_capture_pending
 param_constraints:
   scaffold: false
   dims:

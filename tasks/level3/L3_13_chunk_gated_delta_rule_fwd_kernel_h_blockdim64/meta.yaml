@@ -29,26 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). Gated DeltaNet chunk-level state
-  # recurrence: per timestep S = exp(g_t)*S + k_t^T(u_t - w_t*S); output
-  # is the stacked per-step states. shapes.yaml binds: B -> batch
-  # (k/w/u dim 0, g dim 0, the kernel's batch axis), T -> sequence length
-  # (k/w/u dim 1, g dim 1, the kernel's NT chunk loop covers it),
-  # D -> feature dim (k/w/u dim 2; the oracle's state S is [B,D,Du] with
-  # Du = u.shape[-1] = D, so both state axes are the D knob — the kernel
-  # blockdim64 splits this D into 64-wide head blocks b_h1..b_h4).
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel does the
-  # chunk-level state matmuls with tl.dot — b_v = tl.dot(b_w, trans(b_h))
-  # and b_h += trans(tl.dot(b_k, b_v)). Analytically this equals the
-  # recurrence's two contractions: kS = einsum("bd,bde->be", w, S) is a
-  # [D]x[D,D] matvec = 2*D*D per (b,t); the state outer-product update
-  # k_t (x) delta is 2*D*D per (b,t). Over B*T -> 4*B*T*D*D. float32
-  # operands run on the 910B Cube unit, peak_table exposes no fp32 cube
-  # class so cube matmul is keyed to fp16_cube. FLOPs(vector): decay =
-  # exp(g_t) over B*T, delta = u_t - kS over B*T*D, decay*S mul and the
-  # state add over B*T*D*D -> ~2*B*T*D*D + B*T*D.
-  # bytes(hbm): read k/w/u [B,T,D] + g [B,T], write output (stacked
-  # states) [B,T,D,D]; all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 4*B*T*D*D
     vector: 2*B*T*D*D + B*T*D
@@ -85,7 +65,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-13
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Chunked gated delta-rule forward (state-h path): k / w / u [B, T, D] and the per-step gate g [B, T]. fp32; g uniform in [0, 1). The kernel (chunk_gated_delta_rule_fwd_kernel_h_blockdim64) tiles the K axis (D) into 64-wide blocks with at most four guarded tiles (kernel.py: `if K > 64/128/192`), so D <= 256.
+  golden:
+    oracle_kernel_equivalence: ORACLE_KERNEL_LAYOUT_MISMATCH
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: ORACLE_KERNEL_LAYOUT_MISMATCH
+        blocker: 'oracle helper and wrapper disagree on rank for [''k'']; route to
+          source (2). Details: k: wrapper expects rank [4], build_inputs gave 3'
+      P2:
+        status: ORACLE_KERNEL_LAYOUT_MISMATCH
+        blocker: 'oracle helper and wrapper disagree on rank for [''k'']; route to
+          source (2). Details: k: wrapper expects rank [4], build_inputs gave 3'
+    golden_source: blocked_oracle_kernel_layout_mismatch
 param_constraints:
   scaffold: false
   dims:

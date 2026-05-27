@@ -29,20 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). DeepSeek decode page-table transform: map
-  # each selected token index t to a physical KV slot result =
-  # page_table[i, t//ps]*ps + t%ps (negative t -> -1 padding). Symbol map:
-  # B -> page_table/topk_indices dim 0 (request rows, kernel grid extent),
-  # D -> page_table/topk_indices dim 1 (per-row index count). page_size is a
-  # scalar literal.
-  # FLOPs (vector): pure integer index arithmetic (floor-div, mod, mul, add,
-  # where) — no floating-point work. Reported as the small constant 5*B*D
-  # (~5 int ops per entry); the dominant cost is bytes.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (page_table declared first) -> dtype_size=8 for the int64 reads
-  # page_table[B,D] + topk_indices[B,D] -> 2*B*D*dtype_size. result[B,D] is
-  # int32 (oracle returns .to(int32), non-primary dtype) -> literal byte width
-  # *4 -> + B*D*4.
   flops: 5*B*D
   flops_class: vector
   bytes: 2*B*D*dtype_size + B*D*4
@@ -78,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-34
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Transforms a decode-step page table [B, D] by topk_indices [B, D]; page_size is the KV page granularity. All int64.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: efa0f2027f2276724c10f1ddbc2cb5997b598b5ad7d5dc1a15c5c4ce0ffb07bb
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

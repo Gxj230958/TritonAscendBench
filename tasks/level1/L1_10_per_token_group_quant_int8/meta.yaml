@@ -29,17 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: int8_quant_round
 cost_model:
-  # Symbol audit (approach §3.4). Symmetric per-(token,group) INT8 quant: per
-  # contiguous group of group_size elements s = amax(|g|)/127; q = round(g/s)
-  # clamped to [-128,127]. Symbol map: B -> token rows (x dim 0, kernel grid
-  # extent), D -> N (x last dim, divisible by group_size). group_size / eps are
-  # scalar literals; output scale has D//group_size columns.
-  # FLOPs (vector): per element ~ abs + group-amax reduction + divide + round
-  # ~= 4 ops -> ~4*B*D.
-  # bytes (hbm): float32 primary family (x) -> dtype_size=4. fp32-width terms:
-  # read x[B,D] + write scale[B,D//8] fp32 -> (B*D + B*D/8)*dtype_size. q[B,D]
-  # is the int8 quant output (non-primary dtype, approach §3.2) -> literal byte
-  # width *1 -> + B*D.
   flops: 4*B*D
   flops_class: vector
   bytes: (B*D + B*D/8)*dtype_size + B*D
@@ -75,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-10
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Per-token group int8 quantisation: x [B, D] is split into D/group_size groups along D, each group quantised by its own scale. group_size is fixed at 8 here, so D must be a multiple of 8. eps is the scale-divide floor.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: int8_quant_round
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.0
+        max_rel: 1.0
+      P2:
+        status: VERIFIED
+        max_abs: 1.0
+        max_rel: 1.0
+    golden_sha256: b82abcff12dc0cd33d1506f2173bc72285a02fec2555c726e86d0a22796ddf26
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

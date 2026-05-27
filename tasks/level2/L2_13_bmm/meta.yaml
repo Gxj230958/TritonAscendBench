@@ -29,23 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Batched matmul C = a @ b with
-  # a [B, L, D], b [B, D, N], C [B, L, N] (see oracle_pytorch._bmm and the
-  # WA.1 input-contract comment). Per-batch matmul [L,D]@[D,N] has GEMM dims
-  # M=L, K=D, N=N. Symbol map: B -> batch (a/b/C dim 0),
-  # L -> GEMM M (a dim 1, C dim 1), D -> GEMM K (contracted dim, a dim 2 ==
-  # b dim 1), N -> GEMM N (b dim 2, C dim 2).
-  # FLOPs (cube): per batch 2*L*N*D (2 = multiply + accumulate); over B
-  # batches -> 2*B*L*N*D. This matches the upstream kernel's own
-  # _matmul_launch_metadata: flops = 2.0*m*n*k.
-  # flops_class: operands are float32; the 910B Cube unit runs matmul on the
-  # cube pipe and peak_table_910b.toml exposes no separate fp32 cube class,
-  # so cube matmul is keyed to fp16_cube (the cube matmul peak class;
-  # fp16/bf16 cube share 256 TFLOPS). Numeric accuracy is the W4.2 GPU
-  # cross-check's job.
-  # bytes (hbm): read a [B,L,D] + b [B,D,N], write C [B,L,N]; all float32
-  # primary family -> dtype_size. Matches _matmul_launch_metadata's
-  # bytes = bytes_per_elem*(m*k + n*k + m*n).
   flops: 2*B*L*N*D
   flops_class: fp16_cube
   bytes: (B*L*D + B*D*N + B*L*N) * dtype_size
@@ -81,7 +64,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-13
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Batched matmul C = a @ b: a is [B, L, D], b is [B, D, N]; the contracted dim D must agree. fp32 randn operands.
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: 'NotImplementedError: num_compute_units is not implemented for the
+          current platform.'
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

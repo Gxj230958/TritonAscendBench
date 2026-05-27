@@ -29,27 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). FLA chunk output:
-  # o = intra(causal (q.k) decay v) + inter(q.h state). shapes.yaml binds:
-  # C -> n_chunks (q/k/v/h/g dim 0, oracle einsum index `n`), L -> chunk
-  # length (q/k/v dim 1, g dim 1; the kernel's BT tile axis, oracle
-  # indices `l` & `s`), D -> feature dim (q/k/v dim 2; h is declared
-  # [C,D,D] so its state and value axes are both the D knob, the kernel
-  # K/BK contraction axis).
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues three
-  # tl.dot's — b_A += tl.dot(b_q,b_k) forms qk = einsum("nld,nsd->nls")
-  # = per chunk [L,D]@[D,L] = 2*L*L*D; tl.dot(b_A,b_v) forms intra =
-  # einsum("nls,nsd->nld") = per chunk [L,L]@[L,D] = 2*L*L*D; b_o +=
-  # tl.dot(b_q,trans(b_h)) forms inter = einsum("nld,ndv->nlv") = per
-  # chunk [L,D]@[D,D] = 2*L*D*D. Over C chunks -> 4*C*L*L*D + 2*C*L*D*D
-  # (dense analytic upper bound; the causal decay mask zeros ~half of
-  # intra). float32 operands run on the 910B Cube unit, peak_table
-  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
-  # FLOPs(vector): decay = exp(g_i - g_j)*causal ~3 ops over C*L*L,
-  # qk*decay 1 mul over C*L*L (~4*C*L*L); exp(g) over C*L; intra+inter
-  # add over C*L*D.
-  # bytes(hbm): read q/k/v [C,L,D] + h [C,D,D] + g [C,L], write output
-  # [C,L,D]; all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 4*C*L*L*D + 2*C*L*D*D
     vector: 4*C*L*L + C*L + C*L*D
@@ -86,7 +65,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-16
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Chunked attention output forward: q / k / v [C, L, D], carried state h [C, D, D], per-step gate g [C, L]. scale is the QK softmax scale, derived as 1/sqrt(D) (was a 0.125 placeholder; WB.1 derive-form fix).
+  golden:
+    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `chunk_fwd_o` unpack. Details: q: wrapper expects rank [4], build_inputs
+          gave 3'
+      P2:
+        status: WRAPPER_CONTRACT_MISMATCH
+        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
+          `chunk_fwd_o` unpack. Details: q: wrapper expects rank [4], build_inputs
+          gave 3'
+    golden_source: blocked_wrapper_contract_mismatch
 param_constraints:
   scaffold: false
   dims:

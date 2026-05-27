@@ -29,17 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Per-expert segment offsets: count how many
-  # topk_ids fall in each expert, then prefix-sum into indptr. Symbol map:
-  # B -> topk_ids dim 0 (token rows), D -> topk_ids dim 1 (topk per token);
-  # the [B,D] selection matrix is histogrammed. num_experts is a scalar literal
-  # (4); the output indptr has num_experts+1 entries.
-  # FLOPs (vector): one bincount increment per selection entry plus the
-  # cumsum — pure integer arithmetic, ~2*B*D int ops; no floating-point work.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (topk_ids) -> dtype_size=8 for the read topk_ids[B,D] -> B*D*dtype_size.
-  # indptr (~5 entries: num_experts+1) is int32 (oracle allocs torch.int32,
-  # non-primary dtype) -> literal byte width *4 -> + 5*4.
   flops: 2*B*D
   flops_class: vector
   bytes: B*D*dtype_size + 5*4
@@ -75,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-36
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Computes the per-expert segment indptr from topk_ids [B, D] (each entry an expert id). num_experts is the expert count.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: d6168382145848d1704d5b43fb1e2f8ac8eaf8a018d8986ff6ea562b6a818fe7
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

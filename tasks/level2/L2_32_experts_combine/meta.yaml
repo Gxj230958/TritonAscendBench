@@ -29,15 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Residual combine of the MoE and shared-MLP
-  # branch outputs: output = moe_hidden + mlp_hidden — a pure elementwise add.
-  # One program per row. Symbol map: B -> row count (moe/mlp_hidden_states
-  # dim 0, kernel grid extent), D -> their dim 1 (the per-row elementwise
-  # extent).
-  # FLOPs (vector): one add per element -> B*D.
-  # bytes (hbm): read moe_hidden_states + mlp_hidden_states [B,D] (2*B*D),
-  # write output[B,D] -> 3*B*D elements; all float32 primary family ->
-  # dtype_size.
   flops: B*D
   flops_class: vector
   bytes: 3*B*D*dtype_size
@@ -73,7 +64,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-32
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Elementwise residual combine of the MoE and MLP expert outputs; both are [n_tokens, hidden]=[B, D] and must share shape. fp32 randn.
+  golden:
+    oracle_kernel_equivalence: LAUNCH_BLOCKED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: LAUNCH_BLOCKED
+        blocker: 'RuntimeError: sglang::experts_combine_triton() is missing value
+          for argument ''moe_hidden_states''. Declaration: sglang::experts_combine_triton(Tensor
+          moe_hidden_states, Tensor mlp_hidden_states, Tensor'
+      P2:
+        status: LAUNCH_BLOCKED
+        blocker: 'RuntimeError: sglang::experts_combine_triton() is missing value
+          for argument ''moe_hidden_states''. Declaration: sglang::experts_combine_triton(Tensor
+          moe_hidden_states, Tensor mlp_hidden_states, Tensor'
+    golden_source: blocked_kernel_launch
 param_constraints:
   scaffold: false
   dims:

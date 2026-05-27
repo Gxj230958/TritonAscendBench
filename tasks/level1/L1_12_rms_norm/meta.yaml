@@ -43,16 +43,6 @@ oracle:
   gpu_triton: kernel.py::rms_norm
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). kernel.py reshapes input to [n_rows, n_cols]
-  # = [B, D] and runs one program per row over n_cols=D columns; oracle does
-  # the same reshape(-1, D). The corrected formulas drop the spurious `L` the
-  # earlier draft carried — input/weight/output are 2-D [B,D]/[D]/[B,D] with
-  # no sequence axis. Symbol map: B -> n_rows (program grid extent),
-  # D -> n_cols (per-row loop extent, == weight length).
-  # FLOPs (vector): per row ~4*D — pass 1 x*x + accumulate (2*D), pass 2
-  # vals*inv_rms*weight (2*D); the per-row scalar mean/sqrt/eps is O(1).
-  # bytes (hbm): read input [B,D] + weight [D], write output [B,D]; all
-  # float32 primary family -> dtype_size.
   flops:
     vector: 4*B*D
   bytes:
@@ -114,3 +104,18 @@ provenance:
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 2.408851571544801e-07
+    golden_sha256: 99cd88d58e8cbee3ec588a01b03d47c5575eb09b572a56ee3f81897b60bb58e2
+    golden_source: oracle_pytorch_verified

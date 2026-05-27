@@ -41,34 +41,6 @@ oracle:
   gpu_triton: kernel.py::context_attention_fwd
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). FlashAttention-style prefill attention.
-  # q/k/v/o are [B*L, H, D] (total_tokens=B*L packed sequences, H heads,
-  # head_dim=D); b_seq_len is `full:L` so every sequence has length L.
-  # The kernel grid is (batch, head, M-tiles): per (batch, head) it streams
-  # tl.dot(q,k) [QK^T] then tl.dot(p,v) [P@V] over the sequence. Symbol map:
-  # B -> batch (b_seq_len length, sequence count), L -> per-sequence length
-  # (b_seq_len value == seqlen the kernel loops over, == q/k/v dim-0 stride
-  #  block per sequence), H -> head count (q/k/v dim 1, grid axis 1),
-  # D -> head_dim (q/k/v dim 2, BLOCK_DMODEL). kv heads == H here so
-  # kv_group_num = 1, no GQA expansion of the FLOPs count.
-  # CAUSAL -> the `is_causal` scalar_knob in [0,1]; the kernel/oracle mask
-  # the upper triangle when set, computing strictly less work, so the
-  # formula is conditioned on it rather than always billing the dense
-  # estimate. The score matrix per (batch,head) is [L,L] non-causal but the
-  # causal lower-triangle keeps only L*(L+1)/2 entries; the active
-  # score-entry count is (L*L - CAUSAL*L*(L-1)/2).
-  # Mixed compute -> map form. FLOPs(fp16_cube): per (batch,head) QK^T
-  # contracts D and P@V contracts the score axis -> 4*D fused mul-add
-  # FLOPs per active score entry; over B*H ->
-  # 4*B*H*D*(L*L - CAUSAL*L*(L-1)/2). flops_class fp16_cube: float32
-  # operands run on the 910B Cube unit and peak_table_910b.toml exposes no
-  # fp32 cube class; cube matmul is keyed to fp16_cube (fp16/bf16 cube
-  # share 256 TFLOPS). FLOPs(vector): online softmax over the active score
-  # entries per (batch,head) — scale, max-reduce, exp, sum-reduce, p/acc
-  # rescale ~8 ops/entry -> 8*B*H*(L*L - CAUSAL*L*(L-1)/2).
-  # bytes (hbm): read q,k,v [B*L,H,D] + write o [B*L,H,D] -> 4*B*L*H*D, all
-  # float32 primary family -> dtype_size. b_start_loc [B+1] and b_seq_len [B]
-  # are int64 index tensors (non-primary, approach §3.2) -> literal *8.
   flops:
     fp16_cube: 4*B*H*D*(L*L - CAUSAL*L*(L-1)/2)
     vector: 8*B*H*(L*L - CAUSAL*L*(L-1)/2)
@@ -92,14 +64,21 @@ runner_checks:
   - online_softmax_present
   metamorphic_checks:
   - name: qk_scale_inverse
-    description: "Replacing (Q, K) with (\u03B1Q, K/\u03B1) for scalar \u03B1>0 leaves\
-      \ output\nunchanged (q\xB7k product preserved exactly in fp32, modulo the\n\
-      final cast).\n"
+    description: 'Replacing (Q, K) with (αQ, K/α) for scalar α>0 leaves output
+
+      unchanged (q·k product preserved exactly in fp32, modulo the
+
+      final cast).
+
+      '
   - name: zero_v_yields_zero
-    description: "v = 0 \u21D2 o = 0 regardless of q, k."
+    description: v = 0 ⇒ o = 0 regardless of q, k.
   - name: single_token_per_seq_equals_v
-    description: "Every b_seq_len[i] = 1 \u21D2 softmax over a single logit = 1 \u21D2\
-      \noutput equals v exactly.\n"
+    description: 'Every b_seq_len[i] = 1 ⇒ softmax over a single logit = 1 ⇒
+
+      output equals v exactly.
+
+      '
   shape_coverage:
     public: 6
     hidden: 5
@@ -109,13 +88,28 @@ hardware:
   npu: 910b
   ub_budget_kb: 180
   fp8_required: false
-  notes: "head_dim \u2264 128 at v0.1. Larger head_dim (DeepSeek MLA) belongs to a\n\
-    separate task variant.\n"
+  notes: 'head_dim ≤ 128 at v0.1. Larger head_dim (DeepSeek MLA) belongs to a
+
+    separate task variant.
+
+    '
 provenance:
   added_in: v0.1
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+  golden:
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+      P2:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+    golden_source: fallback_to_gpu_capture_pending
 param_constraints:
   scaffold: false
   dims:

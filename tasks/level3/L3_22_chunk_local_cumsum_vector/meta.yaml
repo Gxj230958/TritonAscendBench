@@ -29,15 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). FLA per-chunk local cumulative sum along the
-  # sequence axis: out = cumsum(g, dim=-2) (reverse => suffix cumsum). Symbol
-  # map: L -> g dim -2 (the sequence axis the cumsum runs over), D -> g dim -1
-  # (the per-position feature width, parallel across the cumsum). reverse is a
-  # scalar_knob (REV).
-  # FLOPs (vector): one accumulate add per element along the prefix sum ->
-  # L*D.
-  # bytes (hbm): read g[L,D], write output[L,D] -> 2*L*D elements; float32
-  # primary family -> dtype_size.
   flops: L*D
   flops_class: vector
   bytes: 2*L*D*dtype_size
@@ -73,16 +64,23 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-22
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Per-chunk local cumulative sum of g [L, D] along the sequence axis. reverse selects suffix cumsum; it is driven by the per-row REV knob (0/1) so both the prefix-cumsum and suffix-cumsum oracle branches are exercised across shape rows (the fixed scalar:false scaffold value left the reverse branch untested; WB.1 knob fix). g uses randn (the `ones` scaffold dist was a degenerate cumsum test point; WB.1 dist fix).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.430511474609375e-06
+        max_rel: 0.007874015718698502
+      P2:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 0.008163264952600002
+    golden_sha256: 1e1710e522cc2786f3672fd863df5344039ea010913bc44f01063febd55da669
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
-  # Updated 2026-05-27: g is now a 4-D tensor matching the wrapper's
-  # head_first=True unpack `B, H, T, S = g.shape`. chunk_size must be
-  # a power-of-two divisor of T (= L) and >= 16 (Triton tl.dot K-min).
-  # head_first is pinned true so wrapper and oracle take the same
-  # [B, H, T, S] layout without a transpose round-trip. reverse stays
-  # driven by the REV knob so both prefix- and suffix-cumsum branches
-  # are exercised.
   dims:
   - B >= 1
   - H >= 1

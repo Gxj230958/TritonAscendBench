@@ -39,30 +39,11 @@ oracle:
   gpu_triton: kernel.py::apply_logit_bias
 tolerance_class: elementwise_exact_or_inf_safe
 cost_model:
-  # Symbol audit (approach §3.4). apply_logit_bias launches one program per
-  # token over the [B, N] logits (grid = num_tokens = B). Symbol map:
-  # B -> num_tokens (kernel grid extent, == logits dim 0),
-  # N -> vocab_size (logits dim 1, the full-vocab mask loop extent),
-  # E -> request-state count (rows of the allowed/bias/stop tables);
-  # literals 8/4 are the fixed max-list lengths the kernel unrolls over
-  # (see the WA.1 input-contract comment below), not size knobs.
-  # FLOPs (vector): the only floating-point arithmetic is stage 2's additive
-  # bias `logits += bias`, at most 8 adds per token -> 8*B. Stages 1 & 3 are
-  # pure -inf stores (masking), no arithmetic.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 `logits` -> dtype_size; dominant term is stage 1's full-vocab
-  # row read+write 2*B*N. Auxiliary int64 index tensors use literal *8:
-  # expanded_idx_mapping[B] + pos[B] (2*B) plus the per-request-state tables
-  # num_allowed/num_logit_bias/num_stop/min_lens[E] (4*E),
-  # allowed_token_ids/logit_bias_token_ids[E,8] (16*E),
-  # stop_token_ids[E,4] (4*E) -> (2*B + 24*E)*8. logit_bias[E,8] is float32
-  # -> literal *4 -> 32*E.
   flops: 8*B
   flops_class: vector
   bytes: 2*B*N*dtype_size + (2*B + 24*E)*8 + 32*E
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). apply_logit_bias: logits [B, N] biased per-request via expanded_idx_mapping [B] (token->request id in [0, E)). The allowed/stop/bias token-id tables are [E, 8] / [E, 4] with companion count vectors [E]; the trailing 8 / 4 are the fixed max-list-length the kernel unrolls over.
 param_constraints:
   scaffold: false
   dims:
@@ -171,3 +152,15 @@ provenance:
   authors:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
+  golden:
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-05-27T13:53:50Z'
+    tolerance_class_used: elementwise_exact_or_inf_safe
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+      P2:
+        status: FAILED
+        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+    golden_source: fallback_to_gpu_capture_pending
