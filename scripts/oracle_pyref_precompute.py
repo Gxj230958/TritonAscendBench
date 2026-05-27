@@ -272,8 +272,24 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         meta, kernel_path, task_id, oracle_input_keys=audit.oracle_input_keys
     )
     if not fn_name:
-        audit.status = "KERNEL_PARSE_ERROR"
-        audit.runtime_error = "could not resolve kernel entrypoint from meta"
+        # Distinguish two cases (P5.2 jaccard fix surface):
+        # 1. oracle declares input keys but no kernel non-jit wrapper has
+        #    sufficient overlap with them -> NEEDS_BRIDGE (oracle and
+        #    kernel work on different input schemas; source ② route).
+        # 2. oracle has no input keys (or AST/file genuinely unparseable)
+        #    -> KERNEL_PARSE_ERROR (the historical bucket).
+        if audit.oracle_input_keys:
+            audit.status = "NEEDS_BRIDGE"
+            audit.runtime_error = (
+                "resolver found no kernel host wrapper whose required-"
+                "param set overlaps the oracle's input keys "
+                f"({sorted(audit.oracle_input_keys)}); oracle and "
+                "kernel work on different input schemas, route to "
+                "source ② or rewrite the oracle to match the wrapper."
+            )
+        else:
+            audit.status = "KERNEL_PARSE_ERROR"
+            audit.runtime_error = "could not resolve kernel entrypoint from meta"
         return audit
 
     sig = _kernel_entrypoint_signature(kernel_path, fn_name)
