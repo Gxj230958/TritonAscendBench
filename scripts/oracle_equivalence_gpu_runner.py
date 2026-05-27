@@ -701,12 +701,25 @@ def main(argv: list[str] | None = None) -> int:
             "MIXED": "mixed",
             "LAUNCH_BLOCKED": "blocked",
             "SKIPPED": "skipped",
+            "WRAPPER_CONTRACT_MISMATCH": "wrapper_contract_mismatch",
+            "ORACLE_KERNEL_LAYOUT_MISMATCH": "oracle_kernel_layout_mismatch",
         }.get(v.overall, "blocked")
         summary[key] += 1
 
     log.info("--- summary ---")
     for k, n in summary.items():
         log.info("  %s: %d", k, n)
+    # Aggregate "needs human action" tally for the operator at a glance.
+    actionable_block = (
+        summary.get("wrapper_contract_mismatch", 0)
+        + summary.get("oracle_kernel_layout_mismatch", 0)
+    )
+    if actionable_block:
+        log.info(
+            "  (note: %d task(s) flagged statically -- shapes.yaml patch "
+            "or source-2 reroute, NOT a GPU launch failure)",
+            actionable_block,
+        )
     return 0
 
 
