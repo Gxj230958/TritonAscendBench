@@ -47,6 +47,126 @@ def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
     return out
 
 
+@dataclass(frozen=True)
+class ToleranceSpec:
+    """Unified tolerance spec for a task -- V9 plan M0.0 authority.
+
+    ``for_task(task)`` consults the nested
+    ``provenance.golden.tolerance_source`` (when present) to pick the
+    right source:
+
+    * ``upstream_test_explicit`` -- use the atol/rtol pinned in
+      ``provenance.golden.atol`` / ``provenance.golden.rtol``
+    * ``upstream_test_default`` -- fall back to the corpus
+      ``tolerance_class`` (the historical default; was always the only
+      source pre-M0.0)
+    * ``migration_drift_budget`` -- R11 v2 follow-up; v1 not
+      release-ready (``is_provenance_eligible`` excludes these tasks)
+
+    When ``provenance.golden`` is absent the spec is built purely
+    from ``meta.tolerance_class`` -- same behaviour as the previous
+    direct ``load_policy()[task.tolerance_class]`` callers, so this
+    is backward-compatible during the schema rollout.
+    """
+
+    tolerance_class_name: str
+    cls: ToleranceClass
+    # one of: upstream_test_explicit / upstream_test_default / migration_drift_budget
+    source: str
+    atol: float
+    rtol: float
+    # True iff source == upstream_test_explicit AND values were pinned
+    pinned_from_upstream: bool
+
+
+def for_task(
+    task, *, policy: dict[str, ToleranceClass] | None = None
+) -> ToleranceSpec:
+    """Build the unified :class:`ToleranceSpec` for a task.
+
+    ``task`` is duck-typed: needs ``.tolerance_class`` (str) and
+    ``.meta`` (dict). Both ``triton_ascend_bench.dataset.TaskDef`` and
+    raw-meta callers fit.
+
+    Precedence (V9 plan M0.0):
+
+    1. ``meta.provenance.golden.tolerance_source == upstream_test_explicit``
+       AND ``atol`` / ``rtol`` present -> pinned from the upstream test;
+       ``pinned_from_upstream = True``.
+    2. Otherwise the task's declared ``tolerance_class`` is looked up
+       in ``tolerance_policy.yaml`` and used as the default. The spec's
+       ``source`` is reported faithfully (``upstream_test_default``
+       when the schema declares it, also when the nested block is
+       absent -- the pre-V9 schema always carried the default
+       implicitly).
+    3. ``migration_drift_budget`` is recognised as a source but its
+       v1 implementation is "not release-ready"; the spec is still
+       returned (callers gate on ``is_provenance_eligible`` separately).
+    """
+    if policy is None:
+        policy = load_policy()
+    cls_name = getattr(task, "tolerance_class", None) or (
+        getattr(task, "meta", {}) or {}
+    ).get("tolerance_class")
+    if not cls_name or cls_name not in policy:
+        raise KeyError(
+            f"task {getattr(task, 'task_id', '?')!r} has no usable "
+            f"tolerance_class (got {cls_name!r})"
+        )
+    base_cls = policy[cls_name]
+    meta = getattr(task, "meta", {}) or {}
+    golden = (meta.get("provenance") or {}).get("golden") or {}
+    source = golden.get("tolerance_source")
+
+    if source == "upstream_test_explicit":
+        atol_pinned = golden.get("atol")
+        rtol_pinned = golden.get("rtol")
+        if atol_pinned is not None and rtol_pinned is not None:
+            return ToleranceSpec(
+                tolerance_class_name=cls_name,
+                cls=ToleranceClass(
+                    name=cls_name,
+                    atol=float(atol_pinned),
+                    rtol=float(rtol_pinned),
+                    inf_must_match=base_cls.inf_must_match,
+                    nan_must_match=base_cls.nan_must_match,
+                    sample_fraction=base_cls.sample_fraction,
+                    bit_exact=base_cls.bit_exact,
+                ),
+                source="upstream_test_explicit",
+                atol=float(atol_pinned),
+                rtol=float(rtol_pinned),
+                pinned_from_upstream=True,
+            )
+        # explicit declared but no values -> fall through to default;
+        # report the actual effective source (default), not the
+        # claimed-but-unfulfilled "explicit". The schema validator
+        # accepts the partial declaration during pipeline progress;
+        # the runtime reports what it actually used.
+        source = None
+
+    if source == "migration_drift_budget":
+        # v1: not release-ready; spec still returned for visibility but
+        # callers should gate on ``is_provenance_eligible``.
+        return ToleranceSpec(
+            tolerance_class_name=cls_name,
+            cls=base_cls,
+            source="migration_drift_budget",
+            atol=base_cls.atol,
+            rtol=base_cls.rtol,
+            pinned_from_upstream=False,
+        )
+
+    return ToleranceSpec(
+        tolerance_class_name=cls_name,
+        cls=base_cls,
+        source="upstream_test_default" if source is None else source,
+        atol=base_cls.atol,
+        rtol=base_cls.rtol,
+        pinned_from_upstream=False,
+    )
+
+
 @dataclass
 class ComparisonResult:
     passed: bool

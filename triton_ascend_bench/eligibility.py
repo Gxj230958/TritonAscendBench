@@ -321,6 +321,151 @@ def release_status_pass(meta: dict | None) -> bool:
     return True
 
 
+# ── V9 plan M0.0: ProvenanceEligibility authority ───────────────────
+#
+# The release gate previously asked only "is the task PHASE A' + cost-
+# model PASS?" (``release_status_pass``). V9 adds a second gate: the
+# baseline must have a verified trust chain (oracle equivalence VERIFIED
+# OR GPU capture DONE) and the tolerance source must not be the v1-
+# deferred ``migration_drift_budget`` fallback.
+#
+# Same loader-lenient / validator-strict split as the rest of the
+# eligibility predicates: these read raw ``meta`` dicts (NO load_task /
+# safetensors I/O) so they can be called from any pure-Python context.
+
+
+def is_provenance_eligible(meta: dict | None) -> bool:
+    """V9 plan M0.0 predicate: True iff a task's baseline trust chain
+    is release-ready.
+
+    Definition (V9 plan, v1 scope):
+
+    * ``provenance.golden.oracle_kernel_equivalence == VERIFIED`` (the
+      corpus oracle_pytorch.py has been GPU-equivalence-verified, R10
+      stage 3), OR
+    * ``provenance.golden.gpu_kernel_capture_status == DONE`` (the
+      provider GPU rerun has been captured + manifest-signed, R5/R20)
+
+    AND
+
+    * ``provenance.golden.tolerance_source != migration_drift_budget``
+      (v1 does not implement the migration-drift budget path; tasks
+      with this source are not release-ready until v2 lands)
+
+    Grace period: an absent ``provenance.golden:`` block returns
+    ``False`` (the task has not yet had its baseline trust chain
+    established). This is the expected pre-R10 state for legacy
+    corpus tasks.
+
+    Loader-lenient: caller pre-pulls the raw ``meta`` dict; no Python
+    object construction, no validation, no file I/O.
+    """
+    m = meta or {}
+    prov = m.get("provenance")
+    if not isinstance(prov, dict):
+        return False
+    golden = prov.get("golden")
+    if not isinstance(golden, dict):
+        return False
+
+    tol_src = golden.get("tolerance_source")
+    if tol_src == "migration_drift_budget":
+        # v1 deferred -- task is NOT release-ready until R11 v2 lands.
+        return False
+
+    oke = golden.get("oracle_kernel_equivalence")
+    gkcs = golden.get("gpu_kernel_capture_status")
+    return oke == "VERIFIED" or gkcs == "DONE"
+
+
+def release_ready_with_provenance(meta: dict | None) -> bool:
+    """V9 plan M0.0 composite predicate: PHASE A' + cost_model + R10/R5
+    trust chain all green.
+
+    Tightening of :func:`release_status_pass` with the V9 provenance
+    gate. Used by ``cli analyze`` and ``validate_tasks --release-gate``
+    once the V9 schema has been backfilled. Until then, callers can
+    keep using ``release_status_pass`` directly (backward-compatible).
+    """
+    return release_status_pass(meta) and is_provenance_eligible(meta)
+
+
+def compute_release_ready_eligible(
+    tasks: Iterable[_TaskLike],
+) -> set[str]:
+    """Return the V9 release-ready set: score-eligible AND provenance-eligible.
+
+    Defined as ``compute_score_eligible(tasks) ∩ {t : is_provenance_eligible(t.meta)}``.
+
+    ``compute_score_eligible`` (the historical denominator authority) is
+    UNCHANGED -- this is a new conjunctive helper layered on top.
+    Callers that still need the pre-V9 denominator keep their existing
+    call.
+    """
+    materialised = list(tasks)
+    score_eligible = compute_score_eligible(materialised)
+    return {
+        t.task_id
+        for t in materialised
+        if t.task_id in score_eligible
+        and is_provenance_eligible(getattr(t, "meta", None))
+    }
+
+
+def projected_eligible(
+    tasks: Iterable[_TaskLike],
+    *,
+    exclude_r11_pending: bool = True,
+    exclude_r17_high: bool = True,
+) -> set[str]:
+    """V9 R13c gate input: the set of tasks projected to be release-ready
+    after R10 / R5 finish.
+
+    ``exclude_r11_pending=True`` (default): drop tasks whose
+    ``tolerance_source == migration_drift_budget`` (R11 v2 path not
+    landed; these tasks are not release-ready in v1 even after R10/R5
+    pass).
+
+    ``exclude_r17_high=True`` (default): drop tasks with
+    ``provenance.golden.reconstructability_risk == high`` (math
+    closed-form ops -- elementwise/norm/gemm/sampling; leaderboard-
+    excluded so a determined adversary cannot replay the math
+    perfectly).
+
+    Returns ``set[str]`` of task ids. Pre-R10 / pre-schema-backfill
+    tasks (no nested ``golden:`` block) are excluded -- they have no
+    trust chain claim yet.
+    """
+    out: set[str] = set()
+    for t in tasks:
+        m = getattr(t, "meta", None) or {}
+        prov = m.get("provenance")
+        if not isinstance(prov, dict):
+            continue
+        golden = prov.get("golden")
+        if not isinstance(golden, dict):
+            continue
+
+        tol_src = golden.get("tolerance_source")
+        if exclude_r11_pending and tol_src == "migration_drift_budget":
+            continue
+
+        risk = golden.get("reconstructability_risk")
+        if exclude_r17_high and risk == "high":
+            continue
+
+        oke = golden.get("oracle_kernel_equivalence")
+        gkcs = golden.get("gpu_kernel_capture_status")
+        # Projected: VERIFIED OR PENDING (R10 might still be running) /
+        # DONE captures count too. STOP states (FAILED / SKIPPED /
+        # NEEDS_MANUAL / LAUNCH_BLOCKED / BLOCKED_NON_DETERMINISTIC)
+        # are excluded -- they will NOT become release-ready without
+        # human triage.
+        if oke in {"VERIFIED"} or gkcs in {"DONE", "PENDING"}:
+            out.add(t.task_id)
+    return out
+
+
 def compute_release_blocking(
     tasks: Iterable[_TaskLike], eligible_ids: set[str]
 ) -> list[str]:
