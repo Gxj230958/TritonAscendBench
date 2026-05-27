@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::placeholder
-tolerance_class: vector_reduce
+tolerance_class: int8_quant_round
 cost_model:
   # Symbol audit (approach §3.4). Symmetric per-(token,group) INT8 quant: per
   # contiguous group of group_size elements s = amax(|g|)/127; q = round(g/s)

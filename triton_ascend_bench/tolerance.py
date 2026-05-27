@@ -29,12 +29,30 @@ class ToleranceClass:
     nan_must_match: bool = True
     sample_fraction: float = 1.0     # 1.0 == compare full tensor
     bit_exact: bool = False          # integer / bool / sampling_rng → torch.equal
+    # V9 codex review 2026-05-27: per-class explicit integer-output
+    # tolerance. When ``None`` (default), integer dtypes go through
+    # bit-exact equality -- the historical safe behaviour for
+    # sampling_rng / int64 ULP-sensitive ops. When set to a positive
+    # int, integer outputs are compared with ``(actual - expected).abs()
+    # <= int_atol`` instead, which is what int8 quantization rounding
+    # actually needs (fp32 -> int8 banker's-rounding vs Triton native
+    # rounding routinely differs by 1 step in ties).
+    int_atol: int | None = None
 
 
 def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
     doc = yaml.safe_load(Path(path).read_text())
     out: dict[str, ToleranceClass] = {}
     for name, cfg in doc.get("classes", {}).items():
+        raw_int_atol = cfg.get("int_atol")
+        int_atol: int | None = None
+        if raw_int_atol is not None:
+            int_atol = int(raw_int_atol)
+            if int_atol < 0:
+                raise ValueError(
+                    f"tolerance class {name!r}: int_atol must be >= 0 "
+                    f"(got {int_atol})"
+                )
         out[name] = ToleranceClass(
             name=name,
             atol=float(cfg["atol"]),
@@ -43,6 +61,7 @@ def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
             nan_must_match=bool(cfg.get("nan_must_match", True)),
             sample_fraction=float(cfg.get("sample_fraction", 1.0)),
             bit_exact=bool(cfg.get("bit_exact", False)),
+            int_atol=int_atol,
         )
     return out
 
@@ -132,6 +151,13 @@ def for_task(
                     nan_must_match=base_cls.nan_must_match,
                     sample_fraction=base_cls.sample_fraction,
                     bit_exact=base_cls.bit_exact,
+                    # Codex review 2026-05-27: clone *all* class fields so
+                    # tasks that pin atol/rtol from an upstream test keep
+                    # their integer-output ULP tolerance. Without this an
+                    # explicitly pinned int8/int32 task would silently
+                    # fall back to bit-exact even when the policy class
+                    # declares int_atol.
+                    int_atol=base_cls.int_atol,
                 ),
                 source="upstream_test_explicit",
                 atol=float(atol_pinned),
@@ -224,6 +250,40 @@ _INTEGER_DTYPES = {
 }
 
 
+def _int_atol_compare(
+    a: torch.Tensor, e: torch.Tensor, atol: int,
+) -> ComparisonResult:
+    """V9 codex review 2026-05-27: integer-typed compare with explicit
+    ULP tolerance. ``|a - e| <= atol`` element-wise, with diff
+    computed in widened int64 so the subtraction itself does not
+    overflow the input dtype.
+    """
+    if a.dtype != e.dtype:
+        return ComparisonResult(
+            passed=False,
+            reason=f"dtype mismatch under int_atol: {a.dtype} vs {e.dtype}",
+            max_abs_diff=float("inf"), max_rel_diff=float("inf"),
+            inf_mismatch_count=-1, nan_mismatch_count=-1,
+        )
+    a_i = a.detach().cpu().to(torch.int64)
+    e_i = e.detach().cpu().to(torch.int64)
+    diff = (a_i - e_i).abs()
+    max_abs = int(diff.max().item()) if diff.numel() else 0
+    passed = bool((diff <= atol).all().item())
+    return ComparisonResult(
+        passed=passed,
+        reason=(
+            None if passed
+            else f"int_atol fail: max_abs={max_abs} > int_atol={atol}"
+        ),
+        max_abs_diff=float(max_abs),
+        # rel_diff is meaningless for tiny-integer outputs (would
+        # explode near zero); report 0 on pass / inf on fail.
+        max_rel_diff=0.0 if passed else float("inf"),
+        inf_mismatch_count=0, nan_mismatch_count=0,
+    )
+
+
 def _bit_exact_compare(
     a: torch.Tensor, e: torch.Tensor
 ) -> ComparisonResult:
@@ -273,7 +333,16 @@ def compare(
 
     is_integer_actual = actual.dtype in _INTEGER_DTYPES
     is_integer_expected = expected.dtype in _INTEGER_DTYPES
-    if cls.bit_exact or is_integer_actual or is_integer_expected:
+    if is_integer_actual or is_integer_expected:
+        # Integer outputs: ``int_atol`` set on the class -> ULP-tolerant
+        # compare (the quantization-rounding path); otherwise the
+        # historical bit-exact path (sampling_rng / int64 ULP-sensitive
+        # ops). ``cls.bit_exact=True`` always forces bit-exact even if
+        # int_atol is set (explicit user intent wins).
+        if cls.bit_exact or cls.int_atol is None:
+            return _bit_exact_compare(actual, expected)
+        return _int_atol_compare(actual, expected, cls.int_atol)
+    if cls.bit_exact:
         return _bit_exact_compare(actual, expected)
 
     a_full = actual.detach().to(torch.float32).cpu()
