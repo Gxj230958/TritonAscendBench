@@ -162,11 +162,10 @@ def cmd_submit(args: argparse.Namespace) -> int:
         # Also probe remote, including the same dead/<id>{,.*}.err variants.
         # Each test line ends with `|| true` so a single failed test does NOT
         # abort the probe; the script collects echoes from successful checks.
-        # The prior `ls dead/<id>.*.err | head -1 && echo` pattern was
-        # broken: head exits 0 on empty stdin, so the && echo always fired
-        # and every fresh batch_id was incorrectly reported as collision
-        # (round-3 codex finding). Use POSIX `find -print -quit` to detect
-        # "any match exists" without shell-pipeline traps.
+        # NOTE: do NOT use `ls dead/<id>.*.err | head -1 && echo` to detect
+        # the suffixed variant -- `head` exits 0 on empty stdin, so the &&
+        # echo always fires and reports every fresh batch_id as a collision.
+        # POSIX `find -print -quit` gives "match exists?" without that trap.
         bid = shlex.quote(batch_id)
         loop = shlex.quote(REMOTE_LOOP)
         bid_inner = batch_id  # already validated by regex; safe for -name glob
@@ -360,7 +359,8 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def _utc_now() -> str:
-    return datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    # `isoformat() + "Z"` would emit invalid `...+00:00Z`; use strftime for `...Z`.
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _new_batch_id() -> str:
@@ -369,7 +369,7 @@ def _new_batch_id() -> str:
     # second on busy days.
     return (
         "b"
-        + datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+        + datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
         + "-"
         + secrets.token_hex(3)
     )

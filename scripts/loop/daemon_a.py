@@ -74,7 +74,8 @@ TAKEN_SUFFIX = ".taken"
 
 
 def _utc_now() -> str:
-    return datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    # `isoformat() + "Z"` would emit invalid `...+00:00Z`; use strftime for `...Z`.
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _atomic_write(dest: Path, content: str) -> None:
@@ -139,9 +140,9 @@ def _run_verify_one(
         err = f"{type(e).__name__}: {e}"
 
     # Parse the "verify <task>: <STATUS> -- <reason>" line. cmd_verify
-    # prints exactly one colon between task_id and STATUS (codex review
-    # caught the prior 3-field split bug that left verdict_status empty
-    # for normal PASS / BLOCKED runs).
+    # prints exactly one colon between task_id and STATUS, so split on
+    # the first ":" only -- a 3-field split leaves verdict_status empty
+    # for normal PASS / BLOCKED runs.
     verdict_status = ""
     verdict_line = ""
     prefix = f"verify {task_id}: "
@@ -169,12 +170,19 @@ def _run_verify_one(
 def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
     """Run every task in a claimed spec; write results + heartbeat + done flag."""
     spec = json.loads(spec_path.read_text())
-    # Authoritative batch_id = the claimed FILENAME stem, not the JSON
-    # payload (which an attacker could set to '../etc/passwd' to redirect
-    # heartbeat/results outside the mailbox).
-    batch_id = spec_path.stem
-    if batch_id.endswith(TAKEN_SUFFIX.lstrip(".")):
-        batch_id = batch_id[: -len(TAKEN_SUFFIX.lstrip("."))]
+    # Authoritative batch_id = claimed filename with `.json[.taken]` stripped,
+    # not the JSON payload (which an attacker could set to '../etc/passwd' to
+    # redirect heartbeat/results outside the mailbox). Path.stem only strips
+    # the LAST suffix, so a ``<id>.json.taken`` spec needs both removed.
+    name = spec_path.name
+    if name.endswith(".json" + TAKEN_SUFFIX):
+        batch_id = name[: -len(".json" + TAKEN_SUFFIX)]
+    elif name.endswith(".json"):
+        batch_id = name[: -len(".json")]
+    else:
+        raise ValueError(
+            f"unexpected spec filename {name!r}; expected *.json or *.json{TAKEN_SUFFIX}"
+        )
     _validate_batch_id(batch_id)
     payload_batch = spec.get("batch_id")
     if payload_batch != batch_id:
