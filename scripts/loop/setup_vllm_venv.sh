@@ -36,6 +36,12 @@ VLLM_SRC="${VLLM_SRC:-$BENCH_PARENT/infer/vllm}"
 TORCH_VERSION="${TORCH_VERSION:-2.11.0}"
 MAX_JOBS="${MAX_JOBS:-8}"
 BUILD_LOG="${BUILD_LOG:-/tmp/vllm_build.log}"
+# Default torch install uses pip's normal resolution, i.e. whatever
+# PIP_INDEX_URL / pip.conf the operator has configured (typically an
+# internal mirror like Nexus on closed networks). The fallback below
+# only fires if that install yields a CPU-only or wrong-version wheel;
+# if you have a CUDA-tagged wheel index, set TORCH_INDEX_URL to it.
+TORCH_INDEX_URL="${TORCH_INDEX_URL:-}"
 
 echo "=== layout ==="
 echo "  BENCH_ROOT   = $BENCH_ROOT"
@@ -119,10 +125,18 @@ PY
 }
 
 if ! _install_and_validate_torch; then
-    echo "  default install was CPU-only or wrong version;" \
-         "retrying via pytorch.org cu${CUDA_VER}"
+    if [ -z "$TORCH_INDEX_URL" ]; then
+        cat >&2 <<EOF
+FATAL: default pip install produced a CPU-only or wrong-version torch.
+Set TORCH_INDEX_URL to a CUDA-tagged wheel index and re-run, e.g.:
+    export TORCH_INDEX_URL=https://download.pytorch.org/whl/cu${CUDA_VER}
+or point at an internal mirror that serves the cu${CUDA_VER} build.
+EOF
+        exit 2
+    fi
+    echo "  retrying via TORCH_INDEX_URL=$TORCH_INDEX_URL"
     "$VENV_DIR/bin/pip" uninstall -y torch || true
-    _install_and_validate_torch "https://download.pytorch.org/whl/cu${CUDA_VER}"
+    _install_and_validate_torch "$TORCH_INDEX_URL"
 fi
 
 # ===== 3. vllm build + runtime requirements =====
