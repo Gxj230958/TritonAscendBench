@@ -24,4 +24,9 @@ def _softcap(x: torch.Tensor, cap: float) -> torch.Tensor:
 
 
 def run(inputs: dict) -> dict:
-    return {"output": _softcap(inputs["x"], cap=float(inputs.get("cap", 30.0)))}
+    return {
+        "output": _softcap(
+            inputs["full_logits"],
+            cap=float(inputs.get("final_logit_softcapping", 30.0)),
+        )
+    }
