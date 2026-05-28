@@ -1657,14 +1657,18 @@ def s2_verify_task(td: Path) -> S2Result:
         res.reason = f"could not build staged candidate: {type(e).__name__}: {e}"
         return res
 
-    # 2. S2-smoke: REAL CPU / TRITON_INTERPRET pre-filter (GPU-FREE,
-    #    runs on THIS box). A mismatch is an EARLY BLOCKED -- NEVER PASS.
-    #    Per-invocation human bypass (PA_SKIP_S2_SMOKE=1 set by
-    #    --skip-smoke) when the user knows the smoke MISMATCH is a CPU-
-    #    interpreter limitation (e.g. 0-dim arrays, missing builder
-    #    methods) rather than a real kernel bug.
-    if os.environ.get("PA_SKIP_S2_SMOKE") == "1":
-        sm_eq, sm_why, sm_phase = True, "skipped (--skip-smoke)", "skipped"
+    # 2. S2-smoke (CPU / TRITON_INTERPRET) pre-filter. The same _run_s2_pair
+    #    machinery runs at S2-gpu-authoritative below; only the device differs
+    #    and the severed leak / audit_leak detection lives in the subprocess
+    #    runner itself, not in smoke-specific code. So on a CUDA host smoke
+    #    gives no unique correctness coverage and only adds false-positive
+    #    BLOCKs from CPU-interpret limitations (fp8, atomics, vllm._C imports,
+    #    etc.). Default: skip smoke when CUDA is available; opt back in with
+    #    --require-smoke (PA_REQUIRE_S2_SMOKE=1) for paranoid runs.
+    cuda_ok = _cuda_available()
+    require_smoke = os.environ.get("PA_REQUIRE_S2_SMOKE") == "1"
+    if cuda_ok and not require_smoke:
+        sm_eq, sm_why, sm_phase = True, "skipped (CUDA host, default)", "skipped"
         _sm_o, sm_s = None, None
         res.smoke_ran = False
     else:
@@ -1689,44 +1693,18 @@ def s2_verify_task(td: Path) -> S2Result:
         res.reason = f"S2-smoke: {sm_why}"
         return res
     if not sm_eq:
-        # Auto-skip smoke when its failure is CLEARLY a CPU-interpreter
-        # limitation rather than a real kernel bug AND we are on a GPU
-        # host (so the authoritative GPU run can proceed). Three known
-        # CPU-only failure signatures from real verdicts:
-        #   - "Expected a cuda device" -- kernel requires CUDA backend
-        #     (fp8 ops, cuda allocator, etc.); CPU interpret cannot run
-        #   - "only 0-dimensional arrays can be converted" -- Triton
-        #     interpreter limitation on multi-dim scalar conversion
-        #   - "InterpreterBuilder ... has no attribute" -- the bundled
-        #     Triton interpreter lacks methods the real GPU builder has
-        cpu_interp_signatures = (
-            "Expected a cuda device",
-            "only 0-dimensional arrays",
-            "InterpreterBuilder",
-            "AttributeError: 'InterpreterBuilder'",
+        # Smoke ran (no CUDA host, or --require-smoke) and MISMATCHED. There
+        # is no auto-rescue: on a CUDA host we would never have reached here
+        # (smoke was skipped), so a CPU/no-GPU host hitting this is the
+        # honest blocked verdict -- the staged candidate disagrees with the
+        # upstream under interpret and we cannot fall back to GPU here.
+        res.status = "BLOCKED"
+        res.reason = (
+            f"S2-smoke MISMATCH (CPU/TRITON_INTERPRET pre-filter, "
+            f"phase={sm_phase}): {sm_why} -- staged candidate "
+            f"discarded, real kernel.py untouched (smoke NEVER PASS)"
         )
-        sm_why_str = str(sm_why or "")
-        if (
-            _cuda_available()
-            and any(sig in sm_why_str for sig in cpu_interp_signatures)
-        ):
-            # GPU host + interpreter-specific failure: smoke is a false
-            # negative. Skip and proceed to the GPU-authoritative run.
-            # NOT a silent override: log it so the operator sees the auto-skip.
-            print(
-                f"[{td.name}] S2-smoke auto-skip: GPU host + CPU-interpreter "
-                f"failure signature ({sm_why_str[:120]!r}) -- proceeding to "
-                f"S2-gpu-authoritative",
-                file=sys.stderr,
-            )
-        else:
-            res.status = "BLOCKED"
-            res.reason = (
-                f"S2-smoke MISMATCH (CPU/TRITON_INTERPRET pre-filter, "
-                f"phase={sm_phase}): {sm_why} -- staged candidate "
-                f"discarded, real kernel.py untouched (smoke NEVER PASS)"
-            )
-            return res
+        return res
 
     # 3. The ONLY honest short-circuit: real CUDA-absence check. Smoke
     #    PASSED (real work) but the AUTHORITATIVE verdict needs a GPU.
@@ -3823,16 +3801,16 @@ def build_parser() -> argparse.ArgumentParser:
         "OTHER tasks may reflect older verdicts.",
     )
     ap.add_argument(
-        "--skip-smoke",
+        "--require-smoke",
         action="store_true",
-        help="(per-invocation human override) skip the S2-smoke CPU/"
-        "TRITON_INTERPRET pre-filter and go directly to the GPU-authoritative "
-        "S2 run. Use this when the smoke MISMATCH is a known CPU-interpreter "
-        "limitation (e.g. 'only 0-dimensional arrays can be converted', "
-        "'InterpreterBuilder has no attribute get_int1_ty') rather than a "
-        "real kernel bug. The GPU run still executes; smoke just no longer "
-        "gates it. Risk: a real kernel bug that smoke would have caught "
-        "now wastes a GPU run.",
+        help="Force the S2-smoke CPU/TRITON_INTERPRET pre-filter to run "
+        "even when a CUDA device is available. Default behavior is to skip "
+        "smoke on CUDA hosts because S2-gpu-authoritative uses the same "
+        "_run_s2_pair() compare path (only the device differs) and the "
+        "severed leak / audit_leak detection lives in the subprocess runner, "
+        "not in smoke-specific code. Pass --require-smoke when you want to "
+        "validate that a candidate also runs cleanly under TRITON_INTERPRET "
+        "or to save GPU time when many candidates are likely broken.",
     )
     ap.add_argument(
         "--resolve-entrypoint",
@@ -3862,9 +3840,10 @@ def main(argv: list[str] | None = None) -> int:
         # Translate the CLI flag into the env var the loader reads.
         # Set here, BEFORE any code path imports / triggers the loader.
         os.environ["PA_ACCEPT_STALE_CACHE"] = "1"
-    if getattr(args, "skip_smoke", False):
+    if getattr(args, "require_smoke", False):
         # Translate to env var s2_verify_task reads at smoke pre-filter step.
-        os.environ["PA_SKIP_S2_SMOKE"] = "1"
+        # Default is "skip smoke when CUDA is available"; this forces it on.
+        os.environ["PA_REQUIRE_S2_SMOKE"] = "1"
     if not VLLM_ROOT.is_dir() or not SGLANG_ROOT.is_dir():
         print(
             f"warning: infer roots missing ({VLLM_ROOT} / {SGLANG_ROOT}); "

@@ -108,7 +108,7 @@ def _run_verify_one(
     task_id: str,
     batch_id: str,
     accept_stale_cache: bool,
-    skip_smoke: bool,
+    require_smoke: bool,
     timeout_s: int,
     gpu_pool: "queue.Queue[int] | None",
 ) -> dict:
@@ -130,8 +130,8 @@ def _run_verify_one(
     ]
     if accept_stale_cache:
         cmd.append("--accept-stale-cache")
-    if skip_smoke:
-        cmd.append("--skip-smoke")
+    if require_smoke:
+        cmd.append("--require-smoke")
     rc = None
     stdout = ""
     stderr = ""
@@ -227,7 +227,7 @@ def _handle_batch(
     for t in tasks:
         _validate_task_id(t)
     accept_stale = bool(spec.get("accept_stale_cache", True))
-    skip_smoke = bool(spec.get("skip_smoke", False))
+    require_smoke = bool(spec.get("require_smoke", False))
     results_dir = RESULTS / batch_id
     done_flag = DONE / f"{batch_id}.flag"
 
@@ -252,7 +252,7 @@ def _handle_batch(
 
     print(
         f"[{batch_id}] start n={len(tasks)} workers={workers} "
-        f"accept_stale={accept_stale} skip_smoke={skip_smoke}",
+        f"accept_stale={accept_stale} require_smoke={require_smoke}",
         flush=True,
     )
     _heartbeat(batch_id)
@@ -288,7 +288,7 @@ def _handle_batch(
                     t,
                     batch_id,
                     accept_stale,
-                    skip_smoke,
+                    require_smoke,
                     timeout_s,
                     gpu_pool,
                 ): t

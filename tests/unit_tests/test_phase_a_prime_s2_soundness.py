@@ -362,12 +362,13 @@ def test_smoke_pass_stays_cpu_no_cuda_move(monkeypatch):
     assert rc == 0, rc
 
 
-def test_authoritative_pass_carries_cuda_spec_smoke_carries_cpu(monkeypatch):
-    """Secondary (spec-level) check kept from BLOCKER 1: ``s2_verify_task``
-    instructs the authoritative subprocess with device='cuda' and the
-    smoke subprocess with device='cpu'. (The strong fails-on-revert
-    assertion is the in-process ``test_authoritative_pass_actually_
-    moves_inputs_to_cuda`` above; this just guards the spec wiring.)"""
+def test_cuda_host_skips_smoke_by_default_only_gpu_spec(monkeypatch):
+    """On a CUDA host, ``s2_verify_task`` skips the CPU/TRITON_INTERPRET
+    smoke pre-filter by default (no device='cpu' spec spawned). Smoke
+    gives no unique correctness coverage over S2-gpu-authoritative
+    (same _run_s2_pair, severed-leak detection lives in the subprocess
+    runner not in smoke-specific code), so paying for it on every CUDA
+    host only widens the false-positive surface."""
     import json as _json
     import subprocess as _sp
 
@@ -382,13 +383,43 @@ def test_authoritative_pass_carries_cuda_spec_smoke_carries_cpu(monkeypatch):
 
     monkeypatch.setattr(_sp, "run", _spy_run)
     monkeypatch.setattr(pap, "_cuda_available", lambda: True)
+    monkeypatch.delenv("PA_REQUIRE_S2_SMOKE", raising=False)
     src = "import torch\ndef ent(x):\n    x.add_(1.0)\n"
     pap.s2_verify_task(_mk_task(src))
 
     smoke = [s for sd, s in seen_specs if s.get("device") == "cpu"]
     gpu = [s for sd, s in seen_specs if s.get("device") == "cuda"]
-    assert smoke, [s.get("device") for _sd, s in seen_specs]
+    assert not smoke, (
+        f"smoke must not run by default on CUDA host: {[s.get('device') for _sd, s in seen_specs]}"
+    )
     assert gpu, [s.get("device") for _sd, s in seen_specs]
+
+
+def test_require_smoke_opt_in_brings_back_cpu_spec(monkeypatch):
+    """``PA_REQUIRE_S2_SMOKE=1`` (set by --require-smoke) forces the CPU
+    smoke spec to spawn alongside the CUDA spec, for operators who want
+    the pre-filter despite running on a GPU host."""
+    import json as _json
+    import subprocess as _sp
+
+    seen_specs: list[tuple[str, dict]] = []
+    real_run = _sp.run
+
+    def _spy_run(cmd, *a, **kw):
+        spec_path = cmd[cmd.index("--spec") + 1]
+        seen_specs.append(_json.loads(Path(spec_path).read_text()))
+        return real_run(cmd, *a, **kw)
+
+    monkeypatch.setattr(_sp, "run", _spy_run)
+    monkeypatch.setattr(pap, "_cuda_available", lambda: True)
+    monkeypatch.setenv("PA_REQUIRE_S2_SMOKE", "1")
+    src = "import torch\ndef ent(x):\n    x.add_(1.0)\n"
+    pap.s2_verify_task(_mk_task(src))
+
+    smoke = [s for s in seen_specs if s.get("device") == "cpu"]
+    gpu = [s for s in seen_specs if s.get("device") == "cuda"]
+    assert smoke, [s.get("device") for s in seen_specs]
+    assert gpu, [s.get("device") for s in seen_specs]
 
 
 def test_authoritative_runner_refuses_cuda_when_absent_no_silent_fake():

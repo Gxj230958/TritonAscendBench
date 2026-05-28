@@ -192,7 +192,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
         "submitted_at": _utc_now(),
         "tasks": args.tasks,
         "accept_stale_cache": True,
-        "skip_smoke": bool(args.skip_smoke),
+        "require_smoke": bool(args.require_smoke),
     }
     (LOCAL_LOOP / "jobs").mkdir(parents=True, exist_ok=True)
     spec_path = LOCAL_LOOP / "jobs" / f"{batch_id}.json"
@@ -385,7 +385,13 @@ def main() -> int:
     s = sub.add_parser("submit", help="submit a batch spec")
     s.add_argument("--batch-id", default=None)
     s.add_argument("--tasks", nargs="+", required=True)
-    s.add_argument("--skip-smoke", action="store_true")
+    s.add_argument(
+        "--require-smoke",
+        action="store_true",
+        help="Force S2-smoke (CPU/TRITON_INTERPRET) pre-filter to run on "
+        "the GPU host. Default skips it because the GPU run is the "
+        "authoritative verdict and uses the same compare path.",
+    )
     s.add_argument(
         "--allow-recycle",
         action="store_true",
@@ -408,7 +414,7 @@ def main() -> int:
     s = sub.add_parser("run", help="sync-code + submit + wait + collect")
     s.add_argument("--batch-id", default=None)
     s.add_argument("--tasks", nargs="+", required=True)
-    s.add_argument("--skip-smoke", action="store_true")
+    s.add_argument("--require-smoke", action="store_true")
     s.add_argument("--allow-recycle", action="store_true")
     s.add_argument("--timeout", type=int, default=7200)
     s.add_argument("--interval", type=int, default=10)
