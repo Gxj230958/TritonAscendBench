@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::awq_dequantize_triton
 tolerance_class: vector_reduce
 cost_model:
   # Symbol audit (approach §3.4). AWQ dequant: unpack 8 int4 lanes per packed
@@ -39,15 +39,15 @@ cost_model:
   # ops over N*E*8 elements -> 16*N*E. The int4 unpack (shift/mask) is integer
   # work, not counted.
   # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # int64 qweight -> dtype_size. The int64 inputs read qweight[N,E] +
-  # zeros[N//8,E] -> (N*E + N*E/8) elements at dtype_size. The dequantised
-  # output[N,E*8] is float32 (oracle returns scales.dtype, not the int64
+  # int32 qweight -> dtype_size. The int32 inputs read qweight[N,E] +
+  # zeros[N//32,E] -> (N*E + N*E/32) elements at dtype_size. The dequantised
+  # output[N,E*8] is float32 (oracle returns scales.dtype, not the int32
   # input dtype), so it is billed at the literal float32 width *4 ->
-  # 8*N*E*4, NOT at the int64 dtype_size. scales is float32 [N//8, E*8] ->
-  # literal *4 -> 4*N*E.
+  # 8*N*E*4, NOT at the int32 dtype_size. scales is float32 [N//32, E*8] ->
+  # literal *4 -> N*E.
   flops: 16*N*E
   flops_class: vector
-  bytes: (N*E + N*E/8)*dtype_size + 8*N*E*4 + 4*N*E
+  bytes: (N*E + N*E/32)*dtype_size + 8*N*E*4 + N*E
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -84,26 +84,26 @@ provenance:
 param_constraints:
   scaffold: false
   dims:
-  - N % 8 == 0
-  - N >= 8
+  - N % 32 == 0
+  - N >= 32
   - E >= 1
   dtypes:
-    qweight: int64
+    qweight: int32
     scales: float32
-    zeros: int64
+    zeros: int32
   dists:
     qweight:
       kind: randint
       args:
         lo: '0'
-        hi: '65535'
+        hi: '2147483648'
     scales:
       kind: rand
     zeros:
       kind: randint
       args:
         lo: '0'
-        hi: '65535'
+        hi: '2147483648'
   scalars:
-    group_size: group_size == 8
+    group_size: group_size in [32, 64, 128]
   tensor_invariants: []
