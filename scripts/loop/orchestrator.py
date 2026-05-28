@@ -7,21 +7,29 @@ mounted at the same path as A.
 Subcommands:
   sync-code        rsync local working tree (tasks/ scripts/ pyproject.toml +
                    tasks/_frozen_shim) to gpfs so the daemon sees latest code
-  submit           write a batch spec to gpfs <bench>/.loop/jobs/<id>.json
-  wait             poll <bench>/.loop/done/<id>.flag (heartbeat-aware)
-  collect          rsync <bench>/.loop/results/<id>/ back to local
+  submit           write a batch spec to <loop_mailbox>/jobs/<id>.json
+  wait             poll <loop_mailbox>/done/<id>.flag (heartbeat-aware)
+  collect          rsync <loop_mailbox>/results/<id>/ back to local
   run              sync-code + submit + wait + collect in one shot
   status           list jobs / running / done on gpfs
 
 Convention:
-  REMOTE_BENCH = /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
+  REMOTE_BENCH = /inspire/hdd/.../kernel/TritonAscendBench   (overridable env: LOOP_REMOTE_BENCH)
+  REMOTE_LOOP  = /inspire/hdd/.../kernel/loop_mailbox        (overridable env: LOOP_MAILBOX_REMOTE)
+  LOCAL_LOOP   = /data1/code/.../kernel/loop_mailbox         (overridable env: LOOP_MAILBOX_LOCAL)
   SSH = ssh -p 2222 root@127.0.0.1
+
+The loop mailbox lives OUTSIDE the bench repo (sibling of TritonAscendBench/)
+so runtime artifacts cannot pollute git status or get clobbered by
+`git clean`. Both A's gpfs view and dev's local view default to the
+same relative location.
 """
 from __future__ import annotations
 
 import argparse
 import datetime
 import json
+import os
 import re
 import secrets
 import shlex
@@ -49,8 +57,22 @@ def _validate_task_id(task_id: str) -> None:
         )
 
 LOCAL_BENCH = Path(__file__).resolve().parents[2]
-LOCAL_LOOP = LOCAL_BENCH / ".loop"
-REMOTE_BENCH = "/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench"
+# Loop mailbox lives OUTSIDE the bench repo (decouple runtime state).
+# Both sides default to <kernel>/loop_mailbox/ -- on dev that's
+# /data1/code/agentic-rl/kernel/loop_mailbox/, on A's gpfs view that's
+# /inspire/hdd/.../kernel/loop_mailbox/. Override via env var without
+# editing the script.
+LOCAL_LOOP = Path(
+    os.environ.get("LOOP_MAILBOX_LOCAL") or (LOCAL_BENCH.parent / "loop_mailbox")
+)
+REMOTE_BENCH = os.environ.get(
+    "LOOP_REMOTE_BENCH",
+    "/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench",
+)
+REMOTE_LOOP = os.environ.get(
+    "LOOP_MAILBOX_REMOTE",
+    "/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/loop_mailbox",
+)
 SSH_PORT = "2222"
 SSH_HOST = "root@127.0.0.1"
 SSH_RSH = f"ssh -p {SSH_PORT} -o BatchMode=yes -o StrictHostKeyChecking=no"
@@ -94,13 +116,16 @@ def cmd_sync_code(args: argparse.Namespace) -> int:
         else:
             dst = f"{SSH_HOST}:{REMOTE_BENCH}/{p}"
         print(f"rsync {src} -> {dst}")
+        # .loop/ excluded as defense-in-depth: mailbox now lives at
+        # <bench_parent>/loop_mailbox/ outside bench, but if anyone
+        # accidentally creates a local .loop/ in bench it stays local.
         rc = _rsync(src, dst, exclude=[".loop/", "__pycache__/", "*.pyc"])
         rc_total |= rc
     return rc_total
 
 
 def cmd_submit(args: argparse.Namespace) -> int:
-    """Write a batch spec into local .loop/jobs/ + rsync to gpfs."""
+    """Write a batch spec into local loop_mailbox/jobs/ + rsync to gpfs."""
     batch_id = args.batch_id or _new_batch_id()
     _validate_batch_id(batch_id)
     for t in args.tasks:
@@ -143,15 +168,15 @@ def cmd_submit(args: argparse.Namespace) -> int:
         # (round-3 codex finding). Use POSIX `find -print -quit` to detect
         # "any match exists" without shell-pipeline traps.
         bid = shlex.quote(batch_id)
-        bench = shlex.quote(REMOTE_BENCH)
+        loop = shlex.quote(REMOTE_LOOP)
         bid_inner = batch_id  # already validated by regex; safe for -name glob
         probe = _ssh(
-            f"test -f {bench}/.loop/jobs/{bid}.json && echo JOB || true; "
-            f"test -f {bench}/.loop/jobs/{bid}.json.taken && echo TAKEN || true; "
-            f"test -f {bench}/.loop/done/{bid}.flag && echo DONE || true; "
-            f"test -d {bench}/.loop/results/{bid} && echo RESULTS || true; "
-            f"test -f {bench}/.loop/dead/{bid}.err && echo DEAD_BARE || true; "
-            f"[ -n \"$(find {bench}/.loop/dead -maxdepth 1 -name '{bid_inner}.*.err' -print -quit 2>/dev/null)\" ] "
+            f"test -f {loop}/jobs/{bid}.json && echo JOB || true; "
+            f"test -f {loop}/jobs/{bid}.json.taken && echo TAKEN || true; "
+            f"test -f {loop}/done/{bid}.flag && echo DONE || true; "
+            f"test -d {loop}/results/{bid} && echo RESULTS || true; "
+            f"test -f {loop}/dead/{bid}.err && echo DEAD_BARE || true; "
+            f"[ -n \"$(find {loop}/dead -maxdepth 1 -name '{bid_inner}.*.err' -print -quit 2>/dev/null)\" ] "
             f"&& echo DEAD_REASONED || true"
         )
         remote_collision = probe.stdout.strip()
@@ -178,7 +203,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
     # Push to gpfs.
     rc = _rsync(
         str(spec_path),
-        f"{SSH_HOST}:{REMOTE_BENCH}/.loop/jobs/{batch_id}.json",
+        f"{SSH_HOST}:{REMOTE_LOOP}/jobs/{batch_id}.json",
     )
     if rc != 0:
         print(f"rsync FAILED rc={rc}", file=sys.stderr)
@@ -189,7 +214,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 
 def cmd_wait(args: argparse.Namespace) -> int:
-    """Poll <gpfs>/.loop/done/<batch>.flag with heartbeat-staleness guard.
+    """Poll <gpfs>/loop_mailbox/done/<batch>.flag with heartbeat-staleness guard.
 
     Exits:
       0 = batch completed (done.flag present)
@@ -205,13 +230,13 @@ def cmd_wait(args: argparse.Namespace) -> int:
     start = time.time()
     last_print = 0.0
     bid = shlex.quote(batch_id)
-    bench = shlex.quote(REMOTE_BENCH)
+    loop = shlex.quote(REMOTE_LOOP)
     probe_cmd = (
         f"set -e; "
-        f"if ls {bench}/.loop/dead/{bid}.*.err 2>/dev/null; then exit 0; fi; "
-        f"if test -f {bench}/.loop/dead/{bid}.err; then echo DEAD; exit 0; fi; "
-        f"if test -f {bench}/.loop/done/{bid}.flag; then echo DONE; exit 0; fi; "
-        f"stat -c '%Y' {bench}/.loop/heartbeat/{bid}.txt 2>/dev/null || echo MISSING"
+        f"if ls {loop}/dead/{bid}.*.err 2>/dev/null; then exit 0; fi; "
+        f"if test -f {loop}/dead/{bid}.err; then echo DEAD; exit 0; fi; "
+        f"if test -f {loop}/done/{bid}.flag; then echo DONE; exit 0; fi; "
+        f"stat -c '%Y' {loop}/heartbeat/{bid}.txt 2>/dev/null || echo MISSING"
     )
     while time.time() - start < timeout:
         r = _ssh(probe_cmd)
@@ -264,13 +289,13 @@ def cmd_wait(args: argparse.Namespace) -> int:
 
 
 def cmd_collect(args: argparse.Namespace) -> int:
-    """rsync <gpfs>/.loop/results/<batch>/ back to local; print verdict summary."""
+    """rsync <gpfs>/loop_mailbox/results/<batch>/ back to local; print verdict summary."""
     batch_id = args.batch_id
     _validate_batch_id(batch_id)
     local_dir = LOCAL_LOOP / "results" / batch_id
     local_dir.mkdir(parents=True, exist_ok=True)
     rc = _rsync(
-        f"{SSH_HOST}:{REMOTE_BENCH}/.loop/results/{batch_id}/",
+        f"{SSH_HOST}:{REMOTE_LOOP}/results/{batch_id}/",
         str(local_dir) + "/",
     )
     if rc != 0:
@@ -321,12 +346,13 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
+    loop = shlex.quote(REMOTE_LOOP)
     r = _ssh(
-        f"echo === jobs ===; ls -la {REMOTE_BENCH}/.loop/jobs/ 2>/dev/null; "
-        f"echo === done ===; ls -la {REMOTE_BENCH}/.loop/done/ 2>/dev/null; "
-        f"echo === results ===; ls -la {REMOTE_BENCH}/.loop/results/ 2>/dev/null; "
-        f"echo === heartbeat ===; ls -la {REMOTE_BENCH}/.loop/heartbeat/ 2>/dev/null; "
-        f"echo === dead ===; ls -la {REMOTE_BENCH}/.loop/dead/ 2>/dev/null"
+        f"echo === jobs ===; ls -la {loop}/jobs/ 2>/dev/null; "
+        f"echo === done ===; ls -la {loop}/done/ 2>/dev/null; "
+        f"echo === results ===; ls -la {loop}/results/ 2>/dev/null; "
+        f"echo === heartbeat ===; ls -la {loop}/heartbeat/ 2>/dev/null; "
+        f"echo === dead ===; ls -la {loop}/dead/ 2>/dev/null"
     )
     sys.stdout.write(r.stdout)
     sys.stderr.write(r.stderr)

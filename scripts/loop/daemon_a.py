@@ -1,16 +1,22 @@
-"""GPU A side: poll <bench>/.loop/jobs/ for batch specs, run phase_a_prime --verify per task.
+"""GPU A side: poll <loop_mailbox>/jobs/ for batch specs, run phase_a_prime --verify per task.
+
+The loop mailbox lives OUTSIDE the bench repo at <bench_parent>/loop_mailbox/
+(sibling of TritonAscendBench/). On gpfs that resolves to
+/inspire/hdd/.../kernel/loop_mailbox/. Override via env var LOOP_MAILBOX_DIR.
 
 Deployment (one-time on GPU A):
 
     cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
+    mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
     tmux new-session -d -s loop_daemon \
-        'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a .loop/daemon.log'
+        'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a ../loop_mailbox/daemon.log'
 
-The daemon polls .loop/jobs/<batch_id>.json, claims via atomic rename to
-.taken, runs each task in the spec (concurrent up to --workers), writes
-per-task JSON verdicts to .loop/results/<batch_id>/<task_id>.json, refreshes
-.loop/heartbeat/<batch_id>.txt every 10s, then writes .loop/done/<batch_id>.flag
-when the batch is fully drained. Crashes are captured to .loop/dead/<id>.err.
+The daemon polls <loop_mailbox>/jobs/<batch_id>.json, claims via atomic rename
+to .taken, runs each task in the spec (concurrent up to --workers), writes
+per-task JSON verdicts to <loop_mailbox>/results/<batch_id>/<task_id>.json,
+refreshes <loop_mailbox>/heartbeat/<batch_id>.txt every 10s, then writes
+<loop_mailbox>/done/<batch_id>.flag when the batch is fully drained. Crashes
+are captured to <loop_mailbox>/dead/<id>.err.
 
 The daemon does NOT git-pull: it runs whatever is currently in the on-disk
 working tree (dev side rsyncs new code into gpfs before submitting a batch).
@@ -50,8 +56,15 @@ def _validate_task_id(task_id: str) -> None:
             f"invalid task_id {task_id!r} -- must match {_TASK_ID_RE.pattern}"
         )
 
+import os
+
 BENCH_ROOT = Path(__file__).resolve().parents[2]
-LOOP_DIR = BENCH_ROOT / ".loop"
+# Loop mailbox lives OUTSIDE the bench repo so runtime artifacts cannot
+# pollute git status / get clobbered by repo cleanup. Default location:
+# the bench's parent directory (sibling of TritonAscendBench/), which is
+# the kernel/ root on gpfs and on dev. Overridable via env var for
+# alternate deployments without touching the script.
+LOOP_DIR = Path(os.environ.get("LOOP_MAILBOX_DIR") or (BENCH_ROOT.parent / "loop_mailbox"))
 JOBS = LOOP_DIR / "jobs"
 RESULTS = LOOP_DIR / "results"
 HEARTBEAT = LOOP_DIR / "heartbeat"
@@ -158,7 +171,7 @@ def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
     spec = json.loads(spec_path.read_text())
     # Authoritative batch_id = the claimed FILENAME stem, not the JSON
     # payload (which an attacker could set to '../etc/passwd' to redirect
-    # heartbeat/results outside .loop/). Codex FAIL #1 fix.
+    # heartbeat/results outside the mailbox).
     batch_id = spec_path.stem
     if batch_id.endswith(TAKEN_SUFFIX.lstrip(".")):
         batch_id = batch_id[: -len(TAKEN_SUFFIX.lstrip("."))]

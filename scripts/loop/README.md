@@ -8,63 +8,63 @@ dev (no gpfs visibility) ──ssh -p 2222 root@127.0.0.1──> GPU B ──gpf
 
 - dev: my workstation. Cannot mount gpfs. All file movement goes through B.
 - B: jumphost on `127.0.0.1:2222` (reverse tunnel). gpfs mounted at the same
-  bench path as A. dev rsyncs into B's local path = lands on gpfs = A sees it.
+  path A sees. dev rsyncs to B's local path → lands on gpfs → A sees it.
 - A: GPU host where `phase_a_prime --verify` actually executes. No GitHub
   auth on A; we never `git pull` on A. Code arrives via dev → B rsync.
 
-## File-based mailbox
+## File-based mailbox -- OUTSIDE the bench repo
 
-Everything under `<bench>/.loop/` on gpfs (which is `.gitignore`'d):
+Mailbox is at **`<bench_parent>/loop_mailbox/`**, sibling of TritonAscendBench.
+This decouples runtime state from the git tree (no `git status` noise; no
+`git clean` clobbers; smaller backup surface).
+
+- dev local: `/data1/code/agentic-rl/kernel/loop_mailbox/`
+- gpfs / A: `/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/loop_mailbox/`
+
+Override via env vars `LOOP_MAILBOX_LOCAL` (dev) and `LOOP_MAILBOX_DIR`
+(A daemon) and `LOOP_MAILBOX_REMOTE` (orchestrator's remote view).
 
 ```
-.loop/
+loop_mailbox/
   jobs/<batch_id>.json       dev writes; A claims via .taken rename
   jobs/<batch_id>.json.taken A's claim marker
   heartbeat/<batch_id>.txt   A writes UTC timestamp every 10s
   results/<batch_id>/<task>.json  A writes per-task verdict
   done/<batch_id>.flag       A writes when batch is fully drained
   dead/<batch_id>.err        A writes on crash
+  dead/<batch_id>.<reason>.err  A writes on specific failure type
   daemon.log                 daemon stdout tail (optional, via tee)
 ```
 
 ## One-time deploy on GPU A
 
-**Prereq**: bench tree must exist at the gpfs path
-`/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/`.
-If it doesn't (first ever deploy), bootstrap from dev. The rsync command
-below honors the local `.gitignore` via `--filter=dir-merge` so it does
-NOT push `.venv/`, `.pytest_cache/`, `.cache/`, `external/`, build
-artifacts, or `.loop/` runtime state to gpfs.
+**Prereq**: bench tree must exist at the gpfs path. If first deploy,
+bootstrap from dev (honors local `.gitignore`):
 
 ```bash
-# from dev, one-time bootstrap (push bench tree to gpfs via B tunnel)
+# from dev, one-time bootstrap
 cd /data1/code/agentic-rl/kernel/triton-ascend-bench
 rsync -az \
     --filter='dir-merge,- .gitignore' \
     --exclude '.git/' \
-    --exclude '.loop/' \
     -e 'ssh -p 2222' \
     ./ \
     root@127.0.0.1:/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/
 ```
 
-(`.git/` is excluded explicitly because `.gitignore` itself doesn't
-ignore it; `.loop/` is excluded because we don't want to clobber the
-A-side runtime mailbox during bootstrap.)
-
-Then on A:
+Then on A (one-time):
 
 ```bash
-# (on A) ssh to A from wherever you have credentials
+# (on A)
 cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
-mkdir -p .loop/{jobs,results,heartbeat,done,dead}
+mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
 tmux new-session -d -s loop_daemon \
-  'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a .loop/daemon.log'
+  'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a ../loop_mailbox/daemon.log'
 ```
 
 To stop: `tmux kill-session -t loop_daemon`.
 
-The daemon runs whatever's currently in the on-disk working tree -- dev
+The daemon runs whatever's currently in the bench working tree -- dev
 syncs new code in *before* submitting a batch.
 
 ## dev side: one-shot run
@@ -80,11 +80,11 @@ python3 scripts/loop/orchestrator.py run \
 Individual steps:
 
 ```bash
-python3 scripts/loop/orchestrator.py sync-code                 # push latest scripts/ tasks/ to gpfs
-python3 scripts/loop/orchestrator.py submit --tasks L1_22_min_p   # writes spec + rsyncs to gpfs
-python3 scripts/loop/orchestrator.py wait b20260527T030245     # poll done flag + heartbeat
-python3 scripts/loop/orchestrator.py collect b20260527T030245  # rsync results back, print summary
-python3 scripts/loop/orchestrator.py status                    # ls everything on gpfs
+python3 scripts/loop/orchestrator.py sync-code                       # push latest scripts/ tasks/ to gpfs
+python3 scripts/loop/orchestrator.py submit --tasks L1_22_min_p      # writes spec + rsyncs to gpfs
+python3 scripts/loop/orchestrator.py wait b20260527T030245-abc123    # poll done flag + heartbeat
+python3 scripts/loop/orchestrator.py collect b20260527T030245-abc123 # rsync results back, print summary
+python3 scripts/loop/orchestrator.py status                          # ls everything on gpfs
 ```
 
 ## What a result JSON looks like
@@ -92,7 +92,7 @@ python3 scripts/loop/orchestrator.py status                    # ls everything o
 ```json
 {
   "task_id": "L1_22_min_p",
-  "batch_id": "b20260527T030245",
+  "batch_id": "b20260527T030245-abc123",
   "started": "2026-05-27T03:02:51Z",
   "completed": "2026-05-27T03:03:18Z",
   "rc": 0,
@@ -108,14 +108,24 @@ Verdict parsing follows the existing `verify <task>: <STATUS> -- <reason>`
 format from `cmd_verify`. Status is one of: PASS, BLOCKED, UNRUN,
 SKIPPED_BY_DESIGN.
 
+## Wait exit codes
+
+- 0 = batch completed (done.flag present)
+- 2 = heartbeat stale / never appeared / overall timeout
+- 3 = dead/<batch>.err present (daemon crashed mid-batch)
+- 4 = ssh tunnel / transport failure
+
+`run` mode: on rc=3 still collects partial results; on rc=2/4 skips collect
+(no confidence in remote state).
+
 ## Failure modes
 
 - **rsync auth fails**: tunnel down or key broken. Reopen `ssh -R 2222:localhost:22`
   from the remote.
 - **heartbeat goes stale (>5min)**: daemon crashed or A is unresponsive.
   Restart the tmux session.
-- **A daemon crashed mid-batch**: check `.loop/dead/<batch>.err`. The batch's
-  partial results still in `.loop/results/<batch>/`.
+- **A daemon crashed mid-batch**: check `<loop_mailbox>/dead/<batch>.err`. The
+  batch's partial results still in `<loop_mailbox>/results/<batch>/`.
 - **A's git working tree drifts** (someone manually edited on A): dev's
   next `sync-code` overwrites the affected files. Manual A-side edits are
   destructive; treat A as a read-only execution target.
