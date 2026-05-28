@@ -132,7 +132,7 @@ hidden_shapes:
     C: 8
     G: 4
 inputs:
-  x:
+  hidden_states:
     dims:
     - B
     - D
@@ -140,13 +140,6 @@ inputs:
     dist: randn
   approximate:
     scalar: tanh
-  hidden_states:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
   residual:
     dims:
     - B

@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::gelu_and_mul_triton
 tolerance_class: elementwise
 cost_model:
   # Symbol audit (approach §3.4). GeGLU fused gate: split the last dim into
@@ -83,9 +83,9 @@ param_constraints:
   - D >= 4
   - B >= 1
   dtypes:
-    x: float32
+    hidden_states: float32
   dists:
-    x:
+    hidden_states:
       kind: randn
   scalars:
     approximate: approximate in ['tanh', 'none']

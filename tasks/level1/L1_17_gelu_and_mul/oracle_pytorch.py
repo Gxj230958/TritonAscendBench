@@ -25,6 +25,7 @@ def _gelu_and_mul(x: torch.Tensor, approximate: str = "tanh") -> torch.Tensor:
 def run(inputs: dict) -> dict:
     return {
         "output": _gelu_and_mul(
-            inputs["x"], approximate=inputs.get("approximate", "tanh")
+            inputs["hidden_states"],
+            approximate=inputs.get("approximate", "tanh"),
         )
     }
