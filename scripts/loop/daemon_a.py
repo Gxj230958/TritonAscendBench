@@ -9,7 +9,11 @@ Deployment (one-time on GPU A):
     cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
     mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
     tmux new-session -d -s loop_daemon \
-        'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a ../loop_mailbox/daemon.log'
+        'python3 scripts/loop/daemon_a.py --workers 8 --gpus 8 2>&1 | tee -a ../loop_mailbox/daemon.log'
+
+Pass --gpus to fan out across multiple GPUs (one CUDA_VISIBLE_DEVICES per
+worker). Without --gpus all workers share whatever CUDA env the daemon
+inherited, which crowds device 0.
 
 The daemon polls <loop_mailbox>/jobs/<batch_id>.json, claims via atomic rename
 to .taken, runs each task in the spec (concurrent up to --workers), writes
@@ -26,6 +30,8 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
+import queue
 import re
 import subprocess
 import sys
@@ -55,8 +61,6 @@ def _validate_task_id(task_id: str) -> None:
         raise ValueError(
             f"invalid task_id {task_id!r} -- must match {_TASK_ID_RE.pattern}"
         )
-
-import os
 
 BENCH_ROOT = Path(__file__).resolve().parents[2]
 # Loop mailbox lives OUTSIDE the bench repo so runtime artifacts cannot
@@ -106,8 +110,17 @@ def _run_verify_one(
     accept_stale_cache: bool,
     skip_smoke: bool,
     timeout_s: int,
+    gpu_pool: "queue.Queue[int] | None",
 ) -> dict:
-    """Run phase_a_prime --verify <task_id> as a subprocess; capture verdict."""
+    """Run phase_a_prime --verify <task_id> as a subprocess; capture verdict.
+
+    When ``gpu_pool`` is non-None each task acquires one GPU id from the pool
+    and exports ``CUDA_VISIBLE_DEVICES=<id>`` to its subprocess, so N concurrent
+    workers actually fan out across N GPUs instead of all crowding device 0.
+    The id is returned to the pool when the subprocess exits (success, fail,
+    timeout, or unexpected exception alike) so a single bad task never leaks
+    the slot.
+    """
     started = _utc_now()
     cmd = [
         "python3",
@@ -123,6 +136,15 @@ def _run_verify_one(
     stdout = ""
     stderr = ""
     err = None
+    gpu_id: int | None = None
+    env = None
+    if gpu_pool is not None:
+        # Blocks if all GPUs are busy -- correct backpressure when
+        # workers > gpus. No timeout because per-task-timeout already
+        # caps how long a slot can be held.
+        gpu_id = gpu_pool.get()
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
     try:
         proc = subprocess.run(
             cmd,
@@ -130,6 +152,7 @@ def _run_verify_one(
             capture_output=True,
             text=True,
             timeout=timeout_s,
+            env=env,
         )
         rc = proc.returncode
         stdout = proc.stdout[-8000:]
@@ -138,6 +161,9 @@ def _run_verify_one(
         err = f"timeout after {timeout_s}s"
     except Exception as e:
         err = f"{type(e).__name__}: {e}"
+    finally:
+        if gpu_id is not None and gpu_pool is not None:
+            gpu_pool.put(gpu_id)
 
     # Parse the "verify <task>: <STATUS> -- <reason>" line. cmd_verify
     # prints exactly one colon between task_id and STATUS, so split on
@@ -159,6 +185,7 @@ def _run_verify_one(
         "started": started,
         "completed": _utc_now(),
         "rc": rc,
+        "gpu_id": gpu_id,
         "verdict_status": verdict_status,
         "verdict_line": verdict_line,
         "stdout_tail": stdout,
@@ -167,7 +194,12 @@ def _run_verify_one(
     }
 
 
-def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
+def _handle_batch(
+    spec_path: Path,
+    workers: int,
+    timeout_s: int,
+    gpu_pool: "queue.Queue[int] | None",
+) -> None:
     """Run every task in a claimed spec; write results + heartbeat + done flag."""
     spec = json.loads(spec_path.read_text())
     # Authoritative batch_id = claimed filename with `.json[.taken]` stripped,
@@ -252,7 +284,13 @@ def _handle_batch(spec_path: Path, workers: int, timeout_s: int) -> None:
         with ThreadPoolExecutor(max_workers=workers) as ex:
             futs = {
                 ex.submit(
-                    _run_verify_one, t, batch_id, accept_stale, skip_smoke, timeout_s
+                    _run_verify_one,
+                    t,
+                    batch_id,
+                    accept_stale,
+                    skip_smoke,
+                    timeout_s,
+                    gpu_pool,
                 ): t
                 for t in tasks
             }
@@ -293,7 +331,19 @@ def main() -> int:
         "--workers",
         type=int,
         default=2,
-        help="number of concurrent tasks per batch (default 2 = 2x GPU A)",
+        help="number of concurrent tasks per batch (default 2)",
+    )
+    ap.add_argument(
+        "--gpus",
+        type=str,
+        default="",
+        help=(
+            "GPU pool for per-worker CUDA_VISIBLE_DEVICES pinning. "
+            "Either an integer N (use device ids 0..N-1) or a comma-separated "
+            "list like '0,2,5'. Empty (default) disables pinning -- every "
+            "subprocess inherits the daemon's CUDA env, which is correct only "
+            "when --workers=1 or the workload genuinely fits on one device."
+        ),
     )
     ap.add_argument(
         "--poll-interval",
@@ -309,12 +359,30 @@ def main() -> int:
     )
     args = ap.parse_args()
 
+    gpu_ids = _parse_gpu_spec(args.gpus)
+    gpu_pool: "queue.Queue[int] | None" = None
+    if gpu_ids:
+        if args.workers > len(gpu_ids):
+            # Allowed but warn: extra workers will block on get() until a
+            # GPU frees up. That's correct backpressure, just wasteful if
+            # the operator meant for --workers to mean "true parallelism".
+            print(
+                f"WARNING: --workers={args.workers} exceeds --gpus pool "
+                f"size {len(gpu_ids)}; extra workers will queue.",
+                flush=True,
+            )
+        gpu_pool = queue.Queue()
+        for g in gpu_ids:
+            gpu_pool.put(g)
+
     for d in (LOOP_DIR, JOBS, RESULTS, HEARTBEAT, DONE, DEAD):
         d.mkdir(parents=True, exist_ok=True)
 
+    gpu_desc = f"gpus={gpu_ids}" if gpu_ids else "gpus=inherit"
     print(
         f"daemon_a watching {JOBS} (poll={args.poll_interval}s, "
-        f"workers={args.workers}, per-task-timeout={args.per_task_timeout}s)",
+        f"workers={args.workers}, {gpu_desc}, "
+        f"per-task-timeout={args.per_task_timeout}s)",
         flush=True,
     )
     while True:
@@ -325,7 +393,9 @@ def main() -> int:
             if taken is None:
                 continue
             try:
-                _handle_batch(taken, args.workers, args.per_task_timeout)
+                _handle_batch(
+                    taken, args.workers, args.per_task_timeout, gpu_pool
+                )
             except Exception as e:
                 err_file = DEAD / f"{spec_path.stem}.err"
                 _atomic_write(
@@ -334,6 +404,42 @@ def main() -> int:
                 )
                 print(f"[{spec_path.stem}] CRASH: {e}", flush=True)
         time.sleep(args.poll_interval)
+
+
+def _parse_gpu_spec(spec: str) -> list[int]:
+    """Parse the --gpus flag into a list of device ids.
+
+    Accepts either an integer count ("8" -> [0,1,...,7]) or an explicit
+    comma-separated list ("0,2,5"). Empty string means "no pinning".
+    Duplicates and negatives are rejected so a typo can't silently route
+    two workers to the same device or to an invalid id.
+    """
+    spec = spec.strip()
+    if not spec:
+        return []
+    if "," in spec:
+        # Validate every segment explicitly -- silently dropping blanks
+        # would turn typos like '0,,2' or '0,' into a smaller (or empty)
+        # pool, falling back to inherited-CUDA-env behavior without
+        # warning the operator.
+        ids: list[int] = []
+        for part in spec.split(","):
+            s = part.strip()
+            if not s:
+                raise ValueError(
+                    f"--gpus has empty segment in {spec!r}; expected ids"
+                )
+            ids.append(int(s))
+    else:
+        n = int(spec)
+        if n <= 0:
+            raise ValueError(f"--gpus must be positive, got {n}")
+        ids = list(range(n))
+    if any(x < 0 for x in ids):
+        raise ValueError(f"--gpus contains negative device id: {ids}")
+    if len(set(ids)) != len(ids):
+        raise ValueError(f"--gpus contains duplicate device ids: {ids}")
+    return ids
 
 
 if __name__ == "__main__":
