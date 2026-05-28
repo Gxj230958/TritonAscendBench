@@ -218,8 +218,15 @@ def _run_verify_one(
     require_smoke: bool,
     timeout_s: int,
     gpu_pool: "queue.Queue[int] | None",
+    phase_python: str,
 ) -> dict:
     """Run phase_a_prime --verify <task_id> as a subprocess; capture verdict.
+
+    ``phase_python`` is the interpreter used for the subprocess (typically
+    "python3" via PATH, but the daemon's --phase-python flag lets the operator
+    point at a venv whose torch / vllm / sglang versions match what the
+    vendored upstream actually needs -- e.g. when the daemon's own env has
+    torch 2.9.1 but vllm._C requires torch 2.11.0).
 
     When ``gpu_pool`` is non-None each task acquires one GPU id from the pool
     and exports ``CUDA_VISIBLE_DEVICES=<id>`` to its subprocess, so N concurrent
@@ -230,7 +237,7 @@ def _run_verify_one(
     """
     started = _utc_now()
     cmd = [
-        "python3",
+        phase_python,
         "scripts/phase_a_prime.py",
         "--verify",
         task_id,
@@ -306,6 +313,7 @@ def _handle_batch(
     workers: int,
     timeout_s: int,
     gpu_pool: "queue.Queue[int] | None",
+    phase_python: str,
 ) -> None:
     """Run every task in a claimed spec; write results + heartbeat + done flag."""
     spec = json.loads(spec_path.read_text())
@@ -398,6 +406,7 @@ def _handle_batch(
                     require_smoke,
                     timeout_s,
                     gpu_pool,
+                    phase_python,
                 ): t
                 for t in tasks
             }
@@ -464,7 +473,55 @@ def main() -> int:
         default=1200,
         help="kill a single phase_a_prime --verify after this many seconds",
     )
+    ap.add_argument(
+        "--phase-python",
+        default="python3",
+        help=(
+            "Python interpreter for the phase_a_prime subprocess. Default "
+            "'python3' resolves via PATH (== the daemon's own env). Point "
+            "this at a venv when phase_a_prime needs torch / vllm / sglang "
+            "versions that differ from the daemon's env -- e.g. when the "
+            "system python has torch 2.9.1 but the vendored vllm requires "
+            "torch == 2.11.0 with a separately-built vllm._C. Example: "
+            "/inspire/.../vllm_venv/bin/python3"
+        ),
+    )
     args = ap.parse_args()
+
+    # Validate phase_python now (loud at startup) instead of at every task
+    # subprocess (quiet ENOENT inside _run_verify_one). A bare command name
+    # ("python3", "python3.12") is allowed and resolved by PATH at exec
+    # time. A path with "/" must be absolute, exist, and be executable --
+    # relative paths are rejected because the daemon's launch cwd and the
+    # subprocess cwd (BENCH_ROOT, set in _run_verify_one) can differ, so a
+    # relative path that validates here could still fail at exec time (or
+    # vice versa).
+    if "/" in args.phase_python:
+        pp = Path(args.phase_python)
+        if not pp.is_absolute():
+            print(
+                f"FATAL: --phase-python {args.phase_python!r} contains '/' "
+                f"but is not absolute. Pass an absolute path (the subprocess "
+                f"runs with cwd={BENCH_ROOT}, so relative paths are "
+                f"ambiguous).",
+                flush=True,
+            )
+            return 2
+        if not pp.is_file():
+            print(
+                f"FATAL: --phase-python {args.phase_python!r} is not an "
+                f"existing file. Either point at a real interpreter or omit "
+                f"the flag to inherit PATH's python3.",
+                flush=True,
+            )
+            return 2
+        if not os.access(pp, os.X_OK):
+            print(
+                f"FATAL: --phase-python {args.phase_python!r} is not "
+                f"executable.",
+                flush=True,
+            )
+            return 2
 
     gpu_ids = _parse_gpu_spec(args.gpus)
     gpu_pool: "queue.Queue[int] | None" = None
@@ -489,7 +546,8 @@ def main() -> int:
     print(
         f"daemon_a watching {JOBS} (poll={args.poll_interval}s, "
         f"workers={args.workers}, {gpu_desc}, "
-        f"per-task-timeout={args.per_task_timeout}s)",
+        f"per-task-timeout={args.per_task_timeout}s, "
+        f"phase_python={args.phase_python})",
         flush=True,
     )
     while True:
@@ -512,7 +570,11 @@ def main() -> int:
                 continue
             try:
                 _handle_batch(
-                    taken, args.workers, args.per_task_timeout, gpu_pool
+                    taken,
+                    args.workers,
+                    args.per_task_timeout,
+                    gpu_pool,
+                    args.phase_python,
                 )
             except Exception as e:
                 err_file = DEAD / f"{spec_path.stem}.err"
