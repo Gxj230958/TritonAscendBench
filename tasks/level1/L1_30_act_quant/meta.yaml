@@ -29,17 +29,6 @@ oracle:
   gpu_triton: kernel.py::act_quant
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Block-wise FP8 activation quant: per
-  # contiguous block of block_size elements s = amax(|blk|)/fp8_max; q = blk/s
-  # cast to fp8. One program per row. Symbol map: B -> x rows (x dim 0, kernel
-  # grid extent), D -> N (x last dim, divisible by block_size). block_size is a
-  # scalar literal; the output scale has D//block_size columns.
-  # FLOPs (vector): per element ~ abs + block-amax reduction + divide + clamp
-  # ~= 4 ops -> ~4*B*D.
-  # bytes (hbm): float32 primary family (x) -> dtype_size=4. fp32-width terms:
-  # read x[B,D] + write scale[B,D//8] fp32 -> (B*D + B*D/8)*dtype_size. q[B,D]
-  # is the float8_e4m3fn quant output (non-primary dtype, approach §3.2) ->
-  # literal byte width *1 -> + B*D.
   flops: 4*B*D
   flops_class: vector
   bytes: (B*D + B*D/8)*dtype_size + B*D
@@ -75,11 +64,9 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-30
-  errata_note: 'v3.2 errata: original slot (L1_30_prepare_mrope_positions)
-    had no freezable upstream (non-existent/merged/no-public-source); re-tasked to
-    CSV operator _act_quant_kernel. docs/npu/benchmark_select.md (root-owned) pending
-    sync.'
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Block-wise activation fp8 quantisation: x [B, D] is tiled into blocks of block_size along D, each block scaled to the fp8 dynamic range. block_size is fixed at 8 here, so D must be a multiple of 8.
+  errata_note: 'v3.2 errata: original slot (L1_30_prepare_mrope_positions) had no
+    freezable upstream (non-existent/merged/no-public-source); re-tasked to CSV operator
+    _act_quant_kernel. docs/npu/benchmark_select.md (root-owned) pending sync.'
 param_constraints:
   scaffold: false
   dims:
@@ -94,3 +81,12 @@ param_constraints:
   scalars:
     block_size: block_size == 8
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_30_act_quant-20260528T220118
+  classified_at: '2026-05-28'
+  standalone_sha256: cfc6e899aafcb6937105ae79ae96c293413040356f730c7338c6c33c4f2ad66b
+frozen_deps: []
+classB_symbols: []
+reference_path: native

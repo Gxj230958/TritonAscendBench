@@ -29,22 +29,6 @@ oracle:
   gpu_triton: kernel.py::awq_dequantize_triton
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). AWQ dequant: unpack 8 int4 lanes per packed
-  # word (shift + mask), then w = (unpack(qweight) - unpack(zeros)) *
-  # scales[group]. Symbol map: N -> qweight dim 0 (packed rows), E -> qweight
-  # dim 1 (packed words per row); each word unpacks to 8 int4 lanes so the
-  # dequantised output is [N, E*8]. group_size is a scalar literal; scales /
-  # zeros carry N//group_size group rows.
-  # FLOPs (vector): per output element a subtract and a multiply -> 2 float
-  # ops over N*E*8 elements -> 16*N*E. The int4 unpack (shift/mask) is integer
-  # work, not counted.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # int32 qweight -> dtype_size. The int32 inputs read qweight[N,E] +
-  # zeros[N//32,E] -> (N*E + N*E/32) elements at dtype_size. The dequantised
-  # output[N,E*8] is float32 (oracle returns scales.dtype, not the int32
-  # input dtype), so it is billed at the literal float32 width *4 ->
-  # 8*N*E*4, NOT at the int32 dtype_size. scales is float32 [N//32, E*8] ->
-  # literal *4 -> N*E.
   flops: 16*N*E
   flops_class: vector
   bytes: (N*E + N*E/32)*dtype_size + 8*N*E*4 + N*E
@@ -80,7 +64,6 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-11
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). AWQ 4-bit dequant: packed qweight [N, E] (8 nibbles per int word), per-group scales [N/8, E*8] and packed zeros [N/8, E]. group_size=8 ⇒ N % 8 == 0.
 param_constraints:
   scaffold: false
   dims:
@@ -107,3 +90,20 @@ param_constraints:
   scalars:
     group_size: group_size in [32, 64, 128]
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_11_awq_dequantize-20260528T215414
+  classified_at: '2026-05-28'
+  standalone_sha256: 305db10c51d919aa91f193d24985258d3c4a2b987cee076bb92dca3c5d730074
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native

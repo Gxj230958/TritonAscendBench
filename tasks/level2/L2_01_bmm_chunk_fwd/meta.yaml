@@ -113,3 +113,20 @@ param_constraints:
     args:
       input: cu_chunk_seqlens
       value: 0
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_01_bmm_chunk_fwd-20260528T224939
+  classified_at: '2026-05-28'
+  standalone_sha256: 122b1caa2c7be5689708e2c610e63bbbeb866cad868a2947815f3761501af35b
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native
