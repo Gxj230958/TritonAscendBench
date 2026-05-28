@@ -219,8 +219,17 @@ def _run_verify_one(
     timeout_s: int,
     gpu_pool: "queue.Queue[int] | None",
     phase_python: str,
+    action: str,
 ) -> dict:
-    """Run phase_a_prime --verify <task_id> as a subprocess; capture verdict.
+    """Run phase_a_prime per ``action`` as a subprocess; capture verdict.
+
+    ``action`` is one of:
+      - ``"verify"``: ``phase_a_prime --verify <task_id>``. Default.
+      - ``"resolve"``: ``phase_a_prime --resolve-entrypoint --task <task_id>
+        --apply``. Used to fill in the real upstream entrypoint for tasks whose
+        meta.yaml still says ``kernel.py::placeholder``. The resolver writes to
+        meta.yaml on the daemon's working tree (gpfs); the dev side picks the
+        change up via the orchestrator's pull-meta step.
 
     ``phase_python`` is the interpreter used for the subprocess (typically
     "python3" via PATH, but the daemon's --phase-python flag lets the operator
@@ -236,16 +245,28 @@ def _run_verify_one(
     the slot.
     """
     started = _utc_now()
-    cmd = [
-        phase_python,
-        "scripts/phase_a_prime.py",
-        "--verify",
-        task_id,
-    ]
-    if accept_stale_cache:
-        cmd.append("--accept-stale-cache")
-    if require_smoke:
-        cmd.append("--require-smoke")
+    if action == "resolve":
+        cmd = [
+            phase_python,
+            "scripts/phase_a_prime.py",
+            "--resolve-entrypoint",
+            "--task",
+            task_id,
+            "--apply",
+        ]
+        # --resolve-entrypoint doesn't honor --accept-stale-cache or
+        # --require-smoke flags; only --verify reads them.
+    else:
+        cmd = [
+            phase_python,
+            "scripts/phase_a_prime.py",
+            "--verify",
+            task_id,
+        ]
+        if accept_stale_cache:
+            cmd.append("--accept-stale-cache")
+        if require_smoke:
+            cmd.append("--require-smoke")
     rc = None
     stdout = ""
     stderr = ""
@@ -279,25 +300,49 @@ def _run_verify_one(
         if gpu_id is not None and gpu_pool is not None:
             gpu_pool.put(gpu_id)
 
-    # Parse the "verify <task>: <STATUS> -- <reason>" line. cmd_verify
-    # prints exactly one colon between task_id and STATUS, so split on
-    # the first ":" only -- a 3-field split leaves verdict_status empty
-    # for normal PASS / BLOCKED runs.
+    # Parse the verdict line. For verify the format is "verify <task>: <STATUS>
+    # -- <reason>"; for resolve we don't have a single canonical line yet, so
+    # we surface rc as a coarse RESOLVED / FAILED status and keep the full
+    # stdout_tail for the operator. cmd_verify prints exactly one colon
+    # between task_id and STATUS, so split on the first ":" only -- a 3-field
+    # split leaves verdict_status empty for normal PASS / BLOCKED runs.
     verdict_status = ""
     verdict_line = ""
-    prefix = f"verify {task_id}: "
-    for line in stdout.splitlines():
-        if line.startswith(prefix):
-            verdict_line = line
-            rest = line[len(prefix):].strip()
-            verdict_status = rest.split(" ", 1)[0]
-            break
+    if action == "resolve":
+        # resolve_upstream_entrypoints prints
+        #   "[<task_id>] RESOLVED <entrypoint> :: <status>"
+        # for a successful resolution or
+        #   "[<task_id>] BLOCKED <entrypoint-or-dash> :: <status>"
+        # when the candidate fails the oracle/smoke gate. The CLI exits 0
+        # in BOTH cases, so we MUST parse stdout instead of trusting rc --
+        # otherwise blocked-resolve tasks silently look successful.
+        prefix = f"[{task_id}] "
+        for line in stdout.splitlines():
+            if line.startswith(prefix):
+                verdict_line = line
+                rest = line[len(prefix):].strip()
+                # First whitespace-delimited token is "RESOLVED" or "BLOCKED".
+                verdict_status = rest.split(" ", 1)[0]
+                break
+        if not verdict_status:
+            # Either the subprocess failed before reaching the print, or the
+            # output format changed. Fall back to a coarse rc-based label.
+            verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
+    else:
+        prefix = f"verify {task_id}: "
+        for line in stdout.splitlines():
+            if line.startswith(prefix):
+                verdict_line = line
+                rest = line[len(prefix):].strip()
+                verdict_status = rest.split(" ", 1)[0]
+                break
 
     return {
         "task_id": task_id,
         "batch_id": batch_id,
         "started": started,
         "completed": _utc_now(),
+        "action": action,
         "rc": rc,
         "gpu_id": gpu_id,
         "verdict_status": verdict_status,
@@ -343,6 +388,13 @@ def _handle_batch(
         _validate_task_id(t)
     accept_stale = bool(spec.get("accept_stale_cache", True))
     require_smoke = bool(spec.get("require_smoke", False))
+    action = spec.get("action", "verify")
+    if action not in ("verify", "resolve"):
+        print(
+            f"[{batch_id}] unknown action {action!r}; defaulting to verify",
+            flush=True,
+        )
+        action = "verify"
     results_dir = RESULTS / batch_id
     done_flag = DONE / f"{batch_id}.flag"
 
@@ -367,7 +419,8 @@ def _handle_batch(
 
     print(
         f"[{batch_id}] start n={len(tasks)} workers={workers} "
-        f"accept_stale={accept_stale} require_smoke={require_smoke}",
+        f"action={action} accept_stale={accept_stale} "
+        f"require_smoke={require_smoke}",
         flush=True,
     )
     _heartbeat(batch_id)
@@ -407,6 +460,7 @@ def _handle_batch(
                     timeout_s,
                     gpu_pool,
                     phase_python,
+                    action,
                 ): t
                 for t in tasks
             }

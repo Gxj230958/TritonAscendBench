@@ -86,10 +86,37 @@ def _ssh(cmd: str, timeout: int = 60) -> subprocess.CompletedProcess:
     )
 
 
-def _rsync(src: str, dst: str, *, delete: bool = False, exclude: list[str] | None = None) -> int:
+def _rsync(
+    src: str,
+    dst: str,
+    *,
+    delete: bool = False,
+    exclude: list[str] | None = None,
+    include_only_meta: bool = False,
+    update: bool = False,
+) -> int:
+    # ``--update`` skips files whose destination mtime is newer than the
+    # source. Use this for the resolver round-trip ONLY (sync-code +
+    # pull-meta), where a freshly-resolved meta.yaml on either side must
+    # not be clobbered by an older counterpart. Other transfers (job spec
+    # push at submit, results pull at collect) intentionally keep the
+    # default overwrite-receiver behavior so a stale recycled job spec
+    # or a stale local result JSON does NOT silently win.
     args = ["rsync", "-az", "--info=stats1,progress0", "-e", SSH_RSH]
+    if update:
+        args.append("--update")
     if delete:
         args.append("--delete")
+    if include_only_meta:
+        # Pull-meta narrows rsync to ONLY tasks/level*/<task>/meta.yaml. This
+        # is the cmd_pull_meta path (gpfs -> dev) where we want resolver edits
+        # but absolutely nothing else from the daemon's working tree -- no
+        # stale shaped artifacts, no cache directories, no __pycache__.
+        args.extend([
+            "--include=*/",
+            "--include=meta.yaml",
+            "--exclude=*",
+        ])
     for pat in exclude or []:
         args.extend(["--exclude", pat])
     args.extend([src, dst])
@@ -119,7 +146,11 @@ def cmd_sync_code(args: argparse.Namespace) -> int:
         # .loop/ excluded as defense-in-depth: mailbox now lives at
         # <bench_parent>/loop_mailbox/ outside bench, but if anyone
         # accidentally creates a local .loop/ in bench it stays local.
-        rc = _rsync(src, dst, exclude=[".loop/", "__pycache__/", "*.pyc"])
+        # update=True so a freshly-resolved meta.yaml on gpfs is NOT
+        # clobbered by an older dev-side copy during a sync-code call
+        # that races with an in-flight resolve batch.
+        rc = _rsync(src, dst, exclude=[".loop/", "__pycache__/", "*.pyc"],
+                    update=True)
         rc_total |= rc
     return rc_total
 
@@ -193,6 +224,9 @@ def cmd_submit(args: argparse.Namespace) -> int:
         "tasks": args.tasks,
         "accept_stale_cache": True,
         "require_smoke": bool(args.require_smoke),
+        # action defaults to "verify"; resolve subcommand sets it to "resolve"
+        # to dispatch phase_a_prime --resolve-entrypoint instead.
+        "action": getattr(args, "action", "verify"),
     }
     (LOCAL_LOOP / "jobs").mkdir(parents=True, exist_ok=True)
     spec_path = LOCAL_LOOP / "jobs" / f"{batch_id}.json"
@@ -344,6 +378,78 @@ def cmd_run(args: argparse.Namespace) -> int:
     return wait_rc
 
 
+def cmd_resolve(args: argparse.Namespace) -> int:
+    """submit a batch with spec.action='resolve'.
+
+    The daemon dispatches each task to ``phase_a_prime --resolve-entrypoint
+    --task <id> --apply`` instead of ``--verify``. The resolver writes the
+    discovered upstream entrypoint to meta.yaml on the daemon's working tree
+    (= gpfs). Use ``pull-meta`` afterwards to rsync those edits back to dev
+    so the dev-side source of truth picks them up.
+    """
+    args.action = "resolve"
+    # Resolver doesn't take --require-smoke, but cmd_submit reads it via
+    # getattr; provide a stable default so the spec field stays consistent.
+    if not hasattr(args, "require_smoke"):
+        args.require_smoke = False
+    return cmd_submit(args)
+
+
+def cmd_pull_meta(args: argparse.Namespace) -> int:
+    """Rsync resolved tasks/level*/<task>/meta.yaml files gpfs -> dev.
+
+    Mirror direction of sync-code: that pushes dev -> gpfs and is the normal
+    workflow direction. Resolver writes on the gpfs side (the daemon's
+    cwd), so a one-time pull is needed to surface those edits on dev.
+    Only meta.yaml files are pulled to keep the blast radius minimal --
+    no other gpfs-side artifact can sneak into the dev tree this way.
+    """
+    bench_root = Path(__file__).resolve().parents[2]
+    dest = bench_root / "tasks/"
+    src = f"{SSH_HOST}:{REMOTE_BENCH}/tasks/"
+    # update=True so a meta.yaml the operator just edited locally is NOT
+    # clobbered by a stale gpfs copy from before the resolver ran.
+    rc = _rsync(
+        src,
+        str(dest),
+        delete=False,
+        exclude=None,
+        include_only_meta=True,
+        update=True,
+    )
+    if rc == 0:
+        print(f"pulled resolved meta.yaml files into {dest}")
+    return rc
+
+
+def cmd_run_resolve(args: argparse.Namespace) -> int:
+    """sync-code + resolve + wait + collect + pull-meta, one shot.
+
+    Same exit-code mapping as cmd_run; on DEAD/wait failure we still try to
+    pull whatever meta.yaml the resolver managed to apply before the crash.
+    """
+    rc = cmd_sync_code(args)
+    if rc != 0:
+        return rc
+    batch_id = args.batch_id or _new_batch_id()
+    args.batch_id = batch_id
+    rc = cmd_resolve(args)
+    if rc != 0:
+        return rc
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        rc = cmd_collect(args)
+        if rc != 0:
+            return rc
+        return cmd_pull_meta(args)
+    if wait_rc == 3:
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        cmd_pull_meta(args)
+        return 3
+    return wait_rc
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     loop = shlex.quote(REMOTE_LOOP)
     r = _ssh(
@@ -423,6 +529,32 @@ def main() -> int:
 
     s = sub.add_parser("status", help="list jobs/done/results on gpfs")
     s.set_defaults(func=cmd_status)
+
+    # ---- resolver subcommands ---------------------------------------
+    # Resolver path mirrors the verify path (submit + wait + collect) but
+    # tells the daemon to run phase_a_prime --resolve-entrypoint instead of
+    # --verify, then rsyncs the resolved meta.yaml files BACK from gpfs to
+    # dev so the dev-side source-of-truth picks up the daemon's changes.
+    s = sub.add_parser("resolve",
+                       help="submit a batch that runs --resolve-entrypoint")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.set_defaults(func=cmd_resolve)
+
+    s = sub.add_parser("pull-meta",
+                       help="rsync resolved meta.yaml files gpfs -> dev")
+    s.set_defaults(func=cmd_pull_meta)
+
+    s = sub.add_parser("run-resolve",
+                       help="sync-code + resolve + wait + collect + pull-meta")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.add_argument("--timeout", type=int, default=7200)
+    s.add_argument("--interval", type=int, default=10)
+    s.add_argument("--stale-after", type=int, default=300)
+    s.set_defaults(func=cmd_run_resolve)
 
     args = ap.parse_args()
     return args.func(args)
