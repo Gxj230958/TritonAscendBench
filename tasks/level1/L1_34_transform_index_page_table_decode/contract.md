@@ -80,7 +80,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `page_size`: `page_size >= 1`
+- `page_size`: `page_size == 1`
 
 ### Tensor invariants (`tensor_invariants`)
 

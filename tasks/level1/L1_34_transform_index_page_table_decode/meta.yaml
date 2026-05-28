@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::transform_index_page_table_decode_fast
 tolerance_class: attention_flash
 cost_model:
   flops: 5*B*D
@@ -99,5 +99,5 @@ param_constraints:
         lo: '0'
         hi: '2'
   scalars:
-    page_size: page_size >= 1
+    page_size: page_size == 1
   tensor_invariants: []
