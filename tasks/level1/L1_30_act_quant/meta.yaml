@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::act_quant
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). Block-wise FP8 activation quant: per

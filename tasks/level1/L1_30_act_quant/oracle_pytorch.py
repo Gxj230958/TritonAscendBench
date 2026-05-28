@@ -16,16 +16,18 @@ import torch.nn.functional as F
 
 
 def _act_quant(x: torch.Tensor, block_size: int, fp8_max: float = 448.0):
-    """Block-wise activation quant (SGLang NSA act_quant).
-
-    x: [..., N], N % block_size == 0. Per contiguous block of
-    `block_size` along the last dim: s = amax(|blk|) / fp8_max;
-    q = (blk / s) cast to float8_e4m3fn. Returns (q, s [..., N/bs]).
+    """Block-wise act-quant matching kernel.py::_act_quant_kernel:
+    amax = max(|blk|, 1e-4); scale = amax / fp8_max;
+    q = clamp(blk / scale, -fp8_max, fp8_max).cast(fp8_e4m3fn).
     """
     *lead, n = x.shape
     bs = block_size
     xv = x.to(torch.float32).reshape(*lead, n // bs, bs)
-    s = (xv.abs().amax(-1, keepdim=True) / float(fp8_max)).clamp_min(1e-12)
+    # Kernel clamps amax (not scale) at 1e-4 BEFORE dividing by fp8_max
+    # at kernel.py:71; the older `s.clamp_min(1e-12)` form would miss
+    # the 1e-4 floor when amax was below it and diverge.
+    amax = xv.abs().amax(-1, keepdim=True).clamp_min(1e-4)
+    s = amax / float(fp8_max)
     q = (xv / s).clamp(-float(fp8_max), float(fp8_max)).reshape(*lead, n)
     return q.to(torch.float8_e4m3fn), s.squeeze(-1).reshape(*lead, n // bs)
 
