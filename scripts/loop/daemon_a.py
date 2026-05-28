@@ -4,16 +4,24 @@ The loop mailbox lives OUTSIDE the bench repo at <bench_parent>/loop_mailbox/
 (sibling of TritonAscendBench/). On gpfs that resolves to
 /inspire/hdd/.../kernel/loop_mailbox/. Override via env var LOOP_MAILBOX_DIR.
 
-Deployment (one-time on GPU A):
+Deployment (one-time on GPU A, then zero further intervention):
 
     cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
     mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
     tmux new-session -d -s loop_daemon \
-        'python3 scripts/loop/daemon_a.py --workers 8 --gpus 8 2>&1 | tee -a ../loop_mailbox/daemon.log'
+        'scripts/loop/supervise_daemon.sh --workers 4 --gpus 4 2>&1 | tee -a ../loop_mailbox/daemon.log'
 
 Pass --gpus to fan out across multiple GPUs (one CUDA_VISIBLE_DEVICES per
 worker). Without --gpus all workers share whatever CUDA env the daemon
 inherited, which crowds device 0.
+
+Self-healing:
+  - daemon_a.py edits are picked up by an in-process re-exec at the next
+    idle moment (see ``_maybe_restart_self``); the supervisor's pid slot
+    is preserved.
+  - hard crashes / OOM kills are restarted by ``supervise_daemon.sh`` with
+    a 5s back-off.
+  - The only event that requires re-running the tmux line is a host reboot.
 
 The daemon polls <loop_mailbox>/jobs/<batch_id>.json, claims via atomic rename
 to .taken, runs each task in the spec (concurrent up to --workers), writes
@@ -76,6 +84,47 @@ DONE = LOOP_DIR / "done"
 DEAD = LOOP_DIR / "dead"
 TAKEN_SUFFIX = ".taken"
 
+# Self-update plumbing. The daemon is long-running, so changes pushed to
+# daemon_a.py do NOT propagate until the process restarts. Recording the
+# file's mtime at startup lets us detect a real edit and re-exec in place
+# (preserving the supervisor's pid slot -- it never sees an exit).
+SELF_PATH = Path(__file__).resolve()
+SELF_MTIME_AT_START = SELF_PATH.stat().st_mtime
+
+
+def _self_changed_since_start() -> bool:
+    """True if daemon_a.py on disk has been edited since this process started.
+
+    Stat errors are swallowed (treated as "no change") so a transient FS hiccup
+    cannot trigger a restart loop.
+    """
+    try:
+        return SELF_PATH.stat().st_mtime > SELF_MTIME_AT_START
+    except OSError:
+        return False
+
+
+def _maybe_restart_self() -> None:
+    """Re-exec the daemon if daemon_a.py was edited since startup.
+
+    Called between batches in the main poll loop (before each claim and
+    before each sleep). ``os.execv`` REPLACES the current process in place,
+    so the outer supervisor's pid slot is preserved and a fresh interpreter
+    loads the new daemon_a.py with the original argv. Any still-live
+    heartbeat threads from completed batches are also killed by the execv
+    (they are ``daemon=True`` and were ``join(timeout=2)``-ed, so they may
+    not always be fully stopped; execv collapses the whole process anyway).
+    """
+    if not _self_changed_since_start():
+        return
+    new_mtime = SELF_PATH.stat().st_mtime
+    print(
+        f"daemon_a: detected daemon_a.py edit (mtime {SELF_MTIME_AT_START:.0f}"
+        f" -> {new_mtime:.0f}); re-execing self to pick up new code.",
+        flush=True,
+    )
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
 
 def _utc_now() -> str:
     # `isoformat() + "Z"` would emit invalid `...+00:00Z`; use strftime for `...Z`.
@@ -98,6 +147,64 @@ def _claim(spec_path: Path) -> Path | None:
         return target
     except OSError:
         return None
+
+
+_LIVE_HEARTBEAT_WINDOW_S = 60
+
+
+def _quarantine_stranded_claims() -> None:
+    """Mark `*.json.taken` files left by a crashed prior daemon as DEAD.
+
+    A claim that finished cleanly leaves a ``done/<id>.flag`` next to its
+    ``.taken``; a SIGKILL / OOM / host-kill mid-batch leaves only the
+    ``.taken``. Without this sweep the orchestrator's wait() would hang on
+    a stale heartbeat until the overall timeout. We do NOT re-claim or
+    re-process: partial per-task results may already exist under
+    ``results/<id>/`` and re-running would clobber them; the operator should
+    submit a fresh batch_id to retry if needed.
+
+    A second running daemon (overlap during a supervisor restart, two
+    supervisors against the same mailbox) would otherwise misclassify a
+    LIVE batch as stranded -- skip when ``heartbeat/<id>.txt`` was touched
+    within ``_LIVE_HEARTBEAT_WINDOW_S`` seconds (the live daemon's pulse
+    interval is 10s, so 60s is well above the noise floor).
+    """
+    now = time.time()
+    for taken in JOBS.glob("*.json" + TAKEN_SUFFIX):
+        name = taken.name
+        if not name.endswith(".json" + TAKEN_SUFFIX):
+            continue
+        batch_id = name[: -len(".json" + TAKEN_SUFFIX)]
+        try:
+            _validate_batch_id(batch_id)
+        except ValueError:
+            continue
+        if (DONE / f"{batch_id}.flag").exists():
+            continue
+        hb = HEARTBEAT / f"{batch_id}.txt"
+        if hb.exists():
+            try:
+                age = now - hb.stat().st_mtime
+            except OSError:
+                age = float("inf")
+            if age < _LIVE_HEARTBEAT_WINDOW_S:
+                # Another daemon is actively pulsing for this batch; do not
+                # falsely quarantine it.
+                continue
+        dead_marker = DEAD / f"{batch_id}.stranded.err"
+        if dead_marker.exists():
+            continue
+        _atomic_write(
+            dead_marker,
+            "previous daemon exited while this batch was claimed "
+            f"(orphan {taken.name} found with no fresh heartbeat). "
+            f"Partial results may exist in results/{batch_id}/. Submit a "
+            "fresh batch_id to retry.\n",
+        )
+        print(
+            f"[{batch_id}] quarantined stranded claim -> {dead_marker.name}",
+            flush=True,
+        )
 
 
 def _heartbeat(batch_id: str) -> None:
@@ -386,9 +493,20 @@ def main() -> int:
         flush=True,
     )
     while True:
+        # Re-run on EVERY poll cycle (not just startup). A daemon that crashes
+        # right after a heartbeat write leaves an inherited-but-soon-stale
+        # heartbeat behind; checking only once at startup would skip the
+        # quarantine while the heartbeat was still fresh, then never re-check
+        # after it aged past the window. The work is cheap (stat over the
+        # few .taken files in flight) and safe (live batches stay skipped by
+        # the fresh-heartbeat guard inside the function).
+        _quarantine_stranded_claims()
         # Sweep jobs/. We sort by name so the dev side can imply ordering
-        # via batch_id (timestamp prefix).
+        # via batch_id (timestamp prefix). The mtime self-check fires BEFORE
+        # every claim (not just per outer loop) so an edit landing mid-sweep
+        # re-execs us before we pick up the next batch under stale code.
         for spec_path in sorted(JOBS.glob("*.json")):
+            _maybe_restart_self()
             taken = _claim(spec_path)
             if taken is None:
                 continue
@@ -403,6 +521,9 @@ def main() -> int:
                     f"{type(e).__name__}: {e}\n{traceback.format_exc()}",
                 )
                 print(f"[{spec_path.stem}] CRASH: {e}", flush=True)
+        # Also check before sleeping: an edit during a poll-wait should be
+        # picked up at the next wake without forcing one more dead sweep.
+        _maybe_restart_self()
         time.sleep(args.poll_interval)
 
 

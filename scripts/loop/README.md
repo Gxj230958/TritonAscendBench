@@ -52,17 +52,24 @@ rsync -az \
     root@127.0.0.1:/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/
 ```
 
-Then on A (one-time):
+Then on A (one-time -- no further intervention until host reboot):
 
 ```bash
 # (on A)
 cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
 mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
 tmux new-session -d -s loop_daemon \
-  'python3 scripts/loop/daemon_a.py --workers 2 2>&1 | tee -a ../loop_mailbox/daemon.log'
+  'scripts/loop/supervise_daemon.sh --workers 4 --gpus 4 2>&1 | tee -a ../loop_mailbox/daemon.log'
 ```
 
 To stop: `tmux kill-session -t loop_daemon`.
+
+`supervise_daemon.sh` is a 5s-back-off `while true` around `daemon_a.py`
+so a hard crash / OOM kill restarts itself. `daemon_a.py` separately
+detects edits to its own source between batches and `os.execv`s in place,
+so routine code updates need no manual restart -- dev's `sync-code`
+rsyncs the new file to gpfs and the running daemon swaps to it on the
+next idle moment.
 
 The daemon runs whatever's currently in the bench working tree -- dev
 syncs new code in *before* submitting a batch.
@@ -122,8 +129,13 @@ SKIPPED_BY_DESIGN.
 
 - **rsync auth fails**: tunnel down or key broken. Reopen `ssh -R 2222:localhost:22`
   from the remote.
-- **heartbeat goes stale (>5min)**: daemon crashed or A is unresponsive.
-  Restart the tmux session.
+- **heartbeat goes stale (>5min)**: daemon crashed. The supervisor's
+  back-off restart should take over within ~5s; on startup it quarantines
+  any `jobs/<id>.json.taken` left behind by the killed process as
+  `dead/<id>.stranded.err`, so the orchestrator's wait returns rc=3
+  (DEAD) instead of rc=2 (stale timeout). If heartbeat is still stale
+  after that, either supervisor itself died, the tmux session was killed,
+  or A is unresponsive -- re-run the deploy tmux line.
 - **A daemon crashed mid-batch**: check `<loop_mailbox>/dead/<batch>.err`. The
   batch's partial results still in `<loop_mailbox>/results/<batch>/`.
 - **A's git working tree drifts** (someone manually edited on A): dev's
