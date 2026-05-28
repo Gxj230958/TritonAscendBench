@@ -26,36 +26,13 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::awq_gemm_triton
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). AWQ 4-bit weight-only quantised GEMM
-  # (oracle _awq_gemm, kernel awq_gemm_kernel): C = a @ dequant(qweight)
-  # where dequant(qweight) = (w4 - z4) * scale[group]. shapes.yaml:
-  # input is [B, N] float32, qweight is [N, E] packed (8 4-bit lanes
-  # per column -> dequantised weight is [N, E*8]), scales is
-  # [N//8, E*8], qzeros is [N//8, E], output C is [B, E*8].
-  # GEMM dims: M = B (input rows = C rows), K = N (input cols =
-  # qweight rows = contracted dim), GEMM-N = E*8 (dequantised weight
-  # cols = C cols). Symbol map: B -> token rows (GEMM M), N -> input
-  # feature dim / qweight rows (GEMM K), E -> packed weight columns
-  # (E*8 = dequantised output dim = GEMM N). qweight/qzeros stored as
-  # int64 packed integers; scales float32.
-  # FLOPs split into two compute classes (map form, approach §3.1):
-  #  - fp16_cube: the matmul a @ B_dequant -> 2*B*N*(E*8) (2 = multiply
-  #    + accumulate). float32 operands; no fp32 cube class on the 910B
-  #    Cube unit, so keyed to fp16_cube (Unit 1 paradigm).
-  #  - vector: the on-the-fly weight dequant (w4 - z4) * scale, ~2 ops
-  #    per dequantised weight element over the [N, E*8] weight ->
-  #    2*N*E*8. This is a Vector-unit elementwise epilogue on B.
-  # bytes (hbm): read input [B,N] float32 -> dtype_size; write output
-  # C [B,E*8] float32 -> dtype_size. Non-primary quantised tensors at
-  # literal widths: qweight [N,E] int64 *8, qzeros [N//8,E] int64 *8,
-  # scales [N//8,E*8] float32 *4.
   flops:
     fp16_cube: 2*B*N*E*8
     vector: 2*N*E*8
-  bytes: (B*N + B*E*8) * dtype_size + N*E*8 + (N//8)*E*8 + (N//8)*E*8*4
+  bytes: (B*N + B*E*8 + N*E + N*E/32)*dtype_size + N*E
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -88,19 +65,18 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-12
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). AWQ 4-bit GEMM: input [B, N] matmul'd against the dequantised packed qweight [N, E] with per-group scales [N/8, E*8] and packed qzeros [N/8, E]. group_size=8 ⇒ N % 8 == 0.
 param_constraints:
   scaffold: false
   dims:
-  - N % 8 == 0
-  - N >= 8
+  - N % 32 == 0
+  - N >= 32
   - B >= 1
   - E >= 1
   dtypes:
     input: float32
-    qweight: int64
+    qweight: int32
     scales: float32
-    qzeros: int64
+    qzeros: int32
   dists:
     input:
       kind: randn
@@ -108,14 +84,32 @@ param_constraints:
       kind: randint
       args:
         lo: '0'
-        hi: '65535'
+        hi: '2147483648'
     scales:
       kind: rand
     qzeros:
       kind: randint
       args:
         lo: '0'
-        hi: '65535'
+        hi: '2147483648'
   scalars:
-    group_size: group_size == 8
+    group_size: group_size == 32
+    split_k_iters: split_k_iters in [1, 2, 4, 8, 16, 32]
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_12_awq_gemm-20260529T074811
+  classified_at: '2026-05-29'
+  standalone_sha256: cfc2a1cde448706956c8a18d6141bd56b807f1e6ff3a51e987e9ba18b3d9c3be
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native

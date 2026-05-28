@@ -65,28 +65,29 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `N % 8 == 0`
-- `N >= 8`
+- `N % 32 == 0`
+- `N >= 32`
 - `B >= 1`
 - `E >= 1`
 
 ### Input dtypes (`dtypes`)
 
 - `input`: `float32`
-- `qweight`: `int64`
+- `qweight`: `int32`
 - `scales`: `float32`
-- `qzeros`: `int64`
+- `qzeros`: `int32`
 
 ### Input distributions (`dists`)
 
 - `input`: `randn`
-- `qweight`: `randint` — args `{'lo': '0', 'hi': '65535'}`
+- `qweight`: `randint` — args `{'lo': '0', 'hi': '2147483648'}`
 - `scales`: `rand`
-- `qzeros`: `randint` — args `{'lo': '0', 'hi': '65535'}`
+- `qzeros`: `randint` — args `{'lo': '0', 'hi': '2147483648'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `group_size`: `group_size == 8`
+- `group_size`: `group_size == 32`
+- `split_k_iters`: `split_k_iters in [1, 2, 4, 8, 16, 32]`
 
 ### Tensor invariants (`tensor_invariants`)
 
