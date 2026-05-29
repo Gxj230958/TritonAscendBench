@@ -3589,6 +3589,32 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': pure-math shim (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: vllm.model_executor.custom_op.CustomOp. The frozen
+        # module subclasses it only for an unrelated @CustomOp.register(...)
+        # class defined at module scope; the verified entrypoint is a free
+        # function that never instantiates it nor reads op_registry. The
+        # shim is an nn.Module base + no-op register. FAIL-CLOSED guard
+        # (codex): refuse unless the module has NO op_registry /
+        # op_registry_oot reference (a module that truly dispatches through
+        # the registry must NOT get the no-op shim). Single symbol only:
+        # refuse if PluggableLayer or anything else shares the line (those
+        # have real registry/__new__ semantics).
+        if stripped.startswith("from vllm.model_executor.custom_op import "):
+            _syms = stripped[len("from vllm.model_executor.custom_op import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if (
+                _sym_set == {"CustomOp"}
+                and "(" not in _syms
+                and "op_registry" not in src
+                and "op_registry_oot" not in src
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import CustomOp"
+                    f"  # Phase A': inert CustomOp base + no-op register "
+                    f"(B-inert-shim)\n"
+                )
+                continue
         # B-inert-shim: vllm.utils.platform_utils.num_compute_units. The
         # shim already exports it (a scheduling-only grid-sizing value,
         # never the numeric compute path); the FLA rewrite table maps the

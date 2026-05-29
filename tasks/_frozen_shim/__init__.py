@@ -154,6 +154,33 @@ PAD_SLOT_ID: int = -1
 NULL_BLOCK_ID: int = 0
 
 
+class CustomOp(torch.nn.Module):
+    """Inert shim for ``vllm.model_executor.custom_op.CustomOp``.
+
+    Upstream CustomOp is an ``nn.Module`` whose ``register(name)``
+    classmethod returns a decorator that records the class in a module-
+    global ``op_registry`` dict. Frozen kernels subclass it ONLY for an
+    unrelated registered class (e.g. ``FusedRMSNormGated``) defined at
+    module scope; the verified entrypoint is a free function that never
+    instantiates that class nor reads ``op_registry``. So at import time
+    only the class definition + the ``@CustomOp.register(...)`` decorator
+    run -- both satisfied by an nn.Module base + a no-op register.
+
+    The rewriter applies this shim ONLY when the module has no
+    ``op_registry`` / ``op_registry_oot`` reference outside the decorator
+    site (fail-closed: a module that actually dispatches through the
+    registry must NOT get the no-op shim)."""
+
+    @classmethod
+    def register(cls, name: str):
+        def _decorator(op_cls):
+            op_cls.name = name  # verbatim attr upstream also sets; harmless
+            return op_cls       # no-op: op_registry is never read on the
+            # verified path, so we do not maintain it.
+
+        return _decorator
+
+
 def is_torch_equal_or_newer(target: str) -> bool:
     """Verbatim from vllm/utils/torch_utils.py:810,814 -- True iff the
     installed torch is >= ``target``. A pure version predicate (no

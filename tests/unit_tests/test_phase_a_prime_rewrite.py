@@ -281,3 +281,38 @@ def test_rewrite_severs_real_l2_13_and_l2_14_kernels():
         leaks = [l for l in out.splitlines()
                  if re.search(r"^\s*(from|import)\s+vllm(\.|\s|$)", l)]
         assert not leaks, f"{tid}: {leaks}"
+
+
+def test_rewrite_customop_inert_shim_and_failclosed_guards():
+    """CustomOp (used only by an unrelated @register class; verified entry
+    is a free function) redirects to the inert shim. Fail-closed: refuse
+    if other symbols share the line (PluggableLayer) or the module
+    references op_registry/op_registry_oot."""
+    cls = pap.TaskClassification(task_id="T", symbols=[])
+    rw = lambda s: pap.rewrite_imports_to_standalone(s, cls, task_dir=None)
+    ok = rw("from vllm.model_executor.custom_op import CustomOp\n"
+            "@CustomOp.register('x')\nclass Y(CustomOp):\n    pass\n")
+    assert "from tasks._frozen_shim import CustomOp" in ok
+    assert "from vllm.model_executor.custom_op" not in ok
+    # refuse: extra symbol
+    multi = rw("from vllm.model_executor.custom_op import CustomOp, PluggableLayer\n")
+    assert "import CustomOp, PluggableLayer" in multi  # left intact
+    # refuse: module reads the registry
+    reg = rw("from vllm.model_executor.custom_op import CustomOp\nz = op_registry['k']\n")
+    assert "from vllm.model_executor.custom_op import CustomOp\n" in reg  # intact
+
+
+def test_customop_shim_is_nn_module_with_noop_register():
+    import torch
+    from pathlib import Path
+    REPO = Path(__file__).resolve().parent.parent.parent
+    sys.path.insert(0, str(REPO))
+    import importlib
+    shim = importlib.import_module("tasks._frozen_shim")
+    assert issubclass(shim.CustomOp, torch.nn.Module)
+
+    @shim.CustomOp.register("op_x")
+    class _Demo(shim.CustomOp):
+        pass
+
+    assert _Demo.name == "op_x"  # register sets .name and returns the class
