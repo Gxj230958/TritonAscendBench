@@ -106,3 +106,28 @@ L1_02_compute_slot_mappings L1_04_copy_page_indices L1_05_gather_block_tables L1
 - `L1_25_merge_attn_states` is architecturally blocked: `kernel.py:28` returns `None`, the Phase A' GPU runner rejects `None`, validator/resolver require `kernel.py::...`, and bench rules forbid editing the byte-frozen wrapper.
 - `L1_10_per_token_group_quant_int8` is architecturally blocked in the current bench flow: wrapper gates on `current_platform.is_cuda()`, the shim lacks `is_cuda`, and the CUDA branch still requires built `vllm._C`.
 - Rebucketed from this pass: `L1_06_reshape_and_cache_kernel_flash` moves to `venv-vllm-C`; `L1_36`, `L1_37`, `L2_31`, `L2_33`, and `L2_35` move to `sglang-class-A`.
+
+## vllm._C stub unblock results 2026-05-29
+
+Verified after bench commit `88f4e58` (`inject vllm._C stub for source-only vLLM checkouts`).
+
+| Scope | Result |
+|---|---|
+| Stub effect | 29 deep-vllm tasks with no `torch.ops.vllm.*` usage now clear `ModuleNotFoundError: vllm._C` and reach resolver verdicts. |
+| Resolver split | `18 shapes-incomplete`, `9 upstream-not-invocable`, `1 smoke-fail` (`L1_20_log_softmax`), `1 oracle-mismatch` (`L1_25_merge_attn_states`). |
+
+| Shapes-incomplete bucket | Count | Tasks / remaining blocker |
+|---|---:|---|
+| Rewriter-clean; needs shapes + output wiring only | 2 | `L3_05_fwd_kernel_alibi`, `L3_06_fwd_grouped_kernel_stage1` |
+| Platform/device query imports | 2 | `L2_13_bmm`, `L2_14_matmul_kernel_persistent` via `num_compute_units`, `get_max_shared_memory_bytes` |
+| Mamba helper imports | 4 | `L1_39`, `L1_40`, `L2_02`, `L2_03` via `fast_exp`, `.mamba_ssm.softplus` |
+| Attention backend constants | 5 | `L2_20`-`L2_24` via `PAD_SLOT_ID`, `NULL_BLOCK_ID` |
+| Sampler stack imports | 2 | `L1_19`, `L1_24` via `vllm.v1.sample.*`, `sampling_params`, `outputs` |
+| Config/env imports | 1 | `L1_04` via `vllm.config.*`, `vllm.envs` |
+| Custom ops / prefix-prefill / rocm imports | 1 | `L3_02` via `vllm._custom_ops`, `.prefix_prefill`, `vllm.platforms.rocm` |
+| Distributed coordinator import | 1 | `L3_07` via `vllm.distributed.parallel_state.GroupCoordinator` |
+
+| Next lane | Impact | Note |
+|---|---|---|
+| B-inert shim audit for `PAD_SLOT_ID` / `NULL_BLOCK_ID` | Could unblock `L2_20`-`L2_24` | Plain int constants; no architecture change needed. |
+| Audit `fast_exp` for inert shimming | Could unblock `L1_39`, `L1_40`, `L2_02`, `L2_03` | Pure `@triton.jit` math helper is the candidate path. |
