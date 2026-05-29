@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::chunk_local_cumsum_vector
 tolerance_class: recurrent_chunk
 cost_model:
   flops: L*D
@@ -97,3 +97,23 @@ param_constraints:
     chunk_size: chunk_size in {16, 32, 64, 128, 256, 512}
     head_first: head_first == True
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_22_chunk_local_cumsum_vector-20260529T132003
+  classified_at: '2026-05-29'
+  standalone_sha256: e44a04969679061d1156eeedcffe983d46e5a5b380d9166721fd3f40f0d0fe72
+frozen_deps:
+- .index.prepare_chunk_indices
+- .utils.check_shared_mem
+- .utils.input_guard
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native
