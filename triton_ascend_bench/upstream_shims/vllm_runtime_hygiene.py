@@ -17,8 +17,10 @@ the bench runners; vendored vLLM / SGLang source stays untouched.
 from __future__ import annotations
 
 import importlib.util
+from importlib.machinery import EXTENSION_SUFFIXES
 import re
 import sys
+import types
 from importlib import metadata as importlib_metadata
 from pathlib import Path
 
@@ -26,6 +28,7 @@ _REGISTER_RE = re.compile(
     r"@\s*(?:[\w.]+\.)?(?:CustomOp|PluggableLayer)\.register"
     r"\(\s*[\"']([^\"']+)[\"']\s*\)"
 )
+_VLLM_C_EXTENSIONS = ("vllm._C", "vllm._C_stable_libtorch")
 
 
 def _read_vllm_source_version(vllm_root: Path) -> str:
@@ -72,6 +75,66 @@ def install_vllm_source_version_shim(vllm_root: Path) -> bool:
     _version.__wrapped__ = current
     importlib_metadata.version = _version
     return True
+
+
+def _has_compiled_vllm_extension(vllm_root: Path, module_name: str) -> bool:
+    pkg_dir = vllm_root / "vllm"
+    stem = module_name.rsplit(".", 1)[-1]
+    for suffix in EXTENSION_SUFFIXES:
+        if any(pkg_dir.glob(f"{stem}{suffix}")):
+            return True
+    return False
+
+
+def _make_missing_vllm_extension_stub(
+    module_name: str, vllm_root: Path,
+) -> types.ModuleType:
+    stub = types.ModuleType(module_name)
+    stub.__file__ = "<tab-vllm-extension-stub>"
+    stub.__package__ = "vllm"
+    stub.__tab_stub__ = True
+    stub.__tab_missing_extension__ = module_name
+
+    def __getattr__(attr: str):
+        raise AttributeError(
+            f"{module_name}.{attr} is unavailable because the compiled "
+            f"extension {module_name!r} is missing from the source "
+            f"checkout at {vllm_root}"
+        )
+
+    stub.__getattr__ = __getattr__
+    return stub
+
+
+def install_vllm_c_stub(vllm_root: Path) -> bool:
+    """Inject safe stubs for source-checkout vLLM C extensions.
+
+    ``vllm.platforms.cuda`` imports ``vllm._C`` /
+    ``vllm._C_stable_libtorch`` only for registration side effects. A
+    source checkout without compiled ``*.so`` files raises
+    ``ModuleNotFoundError`` before platform detection can proceed. This
+    helper installs module stubs only when the source tree is on
+    ``sys.path`` AND the compiled extension file is absent from that
+    tree. Any later attribute access still fails loudly at the call
+    site via ``AttributeError``.
+    """
+    root_str = str(vllm_root)
+    if root_str not in sys.path:
+        return False
+    if not (vllm_root / "vllm" / "platforms" / "cuda.py").is_file():
+        return False
+
+    installed = False
+    for module_name in _VLLM_C_EXTENSIONS:
+        if module_name in sys.modules:
+            continue
+        if _has_compiled_vllm_extension(vllm_root, module_name):
+            continue
+        sys.modules[module_name] = _make_missing_vllm_extension_stub(
+            module_name, vllm_root
+        )
+        installed = True
+    return installed
 
 
 def clear_conflicting_vllm_registrations(kernel_src: str) -> list[str]:

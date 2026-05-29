@@ -495,9 +495,11 @@ def main() -> int:
 
     try:
         from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            install_vllm_c_stub,
             install_vllm_source_version_shim,
         )
 
+        install_vllm_c_stub(Path(spec["vllm_root"]))
         install_vllm_source_version_shim(Path(spec["vllm_root"]))
     except ImportError:
         pass

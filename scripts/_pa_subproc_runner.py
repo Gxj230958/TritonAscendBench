@@ -606,9 +606,11 @@ def _run_side(args: argparse.Namespace) -> int:
             sys.path.insert(0, str(REPO_ROOT))
         try:
             from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+                install_vllm_c_stub,
                 install_vllm_source_version_shim,
             )
 
+            install_vllm_c_stub(VLLM_ROOT)
             install_vllm_source_version_shim(VLLM_ROOT)
         except ImportError:
             pass
