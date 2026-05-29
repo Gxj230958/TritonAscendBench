@@ -79,6 +79,7 @@ Knob grid in `shapes.yaml`.
 - `v`: `float32`
 - `kv_caches`: `float32`
 - `slope_rate`: `float32`
+- `slot_idx`: `int64`
 
 ### Input distributions (`dists`)
 
@@ -87,6 +88,7 @@ Knob grid in `shapes.yaml`.
 - `v`: `randn`
 - `kv_caches`: `randn`
 - `slope_rate`: `rand`
+- `slot_idx`: `arange`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
