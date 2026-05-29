@@ -196,6 +196,46 @@ Complex kernels (B3) all go through this.
   **golden/tolerance policy** → propose to bench-team, do not change
   unilaterally.
 
+## BUILD LOG (2026-05-29) — A1, A2 landed; per-task tail mapped
+
+- **A1 (CustomOp inert shim)** — committed `ae68fd0`. Severs
+  `from vllm.model_executor.custom_op import CustomOp` (inert nn.Module +
+  no-op register; fail-closed unless CustomOp-only AND no op_registry
+  reference). Cleared the CustomOp import wall for L2_17/L3_17/L3_19 + 
+  removed a runner live-registry workaround. codex design REFINE→adopted.
+- **A2 (_AutotunedKernel.arg_names + run)** — committed `46df0ca`. The
+  FLA/gated-delta kernels stack `@heuristics -> @autotune -> @jit`; real
+  triton.heuristics reads `fn.arg_names` + launches via `fn.run(...)`,
+  which the interpreter-mode autotune wrapper lacked. Added both
+  (+ regression test). Cleared the `_AutotunedKernel.arg_names` triton
+  drift for 7 FLA tasks. codex design REFINE (reproduced the `run` gap)
+  →adopted.
+- **Residual per-task tail** (A1+A2 cleared the SHARED walls; these are
+  bucket C/E one-by-one): L2_17 = param-name mismatch (wrapper `weight`/
+  `bias` vs oracle `w`/`b`) → E-input-adaptation below; L3_17/L3_19 =
+  resolver picked the WRONG candidate (`recompute_w_u_fwd`, not the
+  intended op) → candidate-selection (E); L3_13/16/18/20 = shapes 3D
+  `[C,L,D]` vs FLA wrapper 4D `[B,T,H,K]` rank → shapes-DIMS (C).
+
+### NEXT BUILD STEP — E-input-adaptation: `interface.param_name_map`
+Capability to add (codex design-reviewed → REFINE, 3 findings to address
+in impl). Maps a wrapper param name → task-input key so the SAME
+materialized tensor feeds both the oracle (`inputs["w"]`) and the wrapper
+(`weight`). Sound: identical values both sides → no coincidental pass.
+**Multi-site (codex findings, MUST address all):**
+1. Apply at BOTH `_pa_subproc_runner._map_inputs_by_name` (original/oracle
+   + S2) AND the severed-side `run(inputs)` synthesis template in
+   `phase_a_prime.py:~3920` — the severed path has its own binder.
+2. Plumb the map from `meta.interface.param_name_map` into
+   `_map_inputs_by_name` (currently 3-arg, no meta access) + its callers.
+3. Track BOTH wrapper-param and task-key in `bound` so the in-place
+   return synthesis (indexes `inputs[p]`) doesn't mislabel a mapped
+   MUTATED param. (L2_17's weight/bias are read-only → simpler, but the
+   impl must be general-correct.)
+Direction `wrapper_param -> task_input_key`; home `meta.interface.
+param_name_map` (separate from the mutability `alias_map`). Would unlock
+L2_17 (+ any name-mismatch task).
+
 ## Proposed build order (REVISED per codex Q3)
 
 0. **Reclassify out bucket E** (cheap) — re-scan FORM-A by ACTUAL
