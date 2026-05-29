@@ -187,6 +187,43 @@ class _AutotunedKernel:
     def configs(self) -> list[Any]:
         return list(self._configs)
 
+    @property
+    def arg_names(self) -> list[str]:
+        """The wrapped kernel's parameter names, in declaration order
+        (constexprs INCLUDED). ``triton.heuristics`` -- which the FLA /
+        gated-delta kernels stack ON TOP of ``@triton.autotune`` -- reads
+        ``fn.arg_names`` and builds ``dict(zip(arg_names, args))`` to bind
+        its heuristic lambdas (triton.runtime.autotuner.Heuristics.run).
+        Real ``Autotuner`` copies this from the JITFunction; the
+        interpreter-mode wrapper omitted it, so a stacked
+        ``@heuristics -> @autotune -> @jit`` kernel failed with
+        ``AttributeError: '_AutotunedKernel' object has no attribute
+        'arg_names'``. Delegate to the wrapped jit fn (real JITFunction
+        sets ``arg_names = [p.name for p in self.params]``); fall back to
+        the underlying Python signature."""
+        names = getattr(self._jit_fn, "arg_names", None)
+        if names is not None:
+            return list(names)
+        import inspect
+
+        fn = getattr(self._jit_fn, "fn", None) or self._jit_fn
+        return [p.name for p in inspect.signature(fn).parameters.values()]
+
+    def run(self, *args: Any, **kwargs: Any) -> Any:
+        """``triton.heuristics``'s launch path calls ``self.fn.run(...)``
+        (KernelInterface contract), NOT ``self.fn[grid](...)``. Mirror it
+        by routing through the SAME ``jit_fn[grid]`` launch that
+        ``__getitem__`` uses, so the autotune-config kwargs + the injected
+        heuristic kwargs (e.g. ``IS_VARLEN``) are bound identically.
+        ``grid``/``warmup`` arrive in kwargs from
+        ``KernelInterface.__getitem__``; ``[grid]`` re-supplies
+        ``warmup=False`` itself."""
+        merged = dict(self._first_kwargs)
+        merged.update(kwargs)  # caller/heuristic kwargs win over Config
+        grid = merged.pop("grid", None)
+        merged.pop("warmup", None)
+        return self._jit_fn[grid](*args, **merged)
+
     def __repr__(self) -> str:
         return (
             f"<_AutotunedKernel (interpreter fallback) fn={self._jit_fn!r} "

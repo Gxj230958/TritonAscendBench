@@ -584,3 +584,59 @@ def test_kernel_with_relative_import_loads_via_shim_and_bridge(
         x = torch.zeros(64, dtype=torch.float32)
         mod.add_one(x)
         assert torch.all(x == 1.0)
+
+
+def test_heuristics_on_autotune_on_jit_launches(tmp_path) -> None:
+    """Regression: the FLA / gated-delta kernels stack
+    ``@triton.heuristics -> @triton.autotune -> @triton.jit``. Real
+    ``triton.heuristics`` reads ``fn.arg_names`` and launches via
+    ``fn.run(...)``; the interpreter-mode ``_AutotunedKernel`` previously
+    exposed neither, failing with
+    ``AttributeError: '_AutotunedKernel' object has no attribute
+    'arg_names'`` (then '...has no attribute run'). This exercises the
+    full stacked decoration under interpreter mode."""
+    os.environ["TRITON_INTERPRET"] = "1"
+    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+
+    _inject.register(force=True)
+    kernel_src = (
+        "import torch\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "\n"
+        "@triton.heuristics({'DOUBLE': lambda args: args['n'] > 0})\n"
+        "@triton.autotune(\n"
+        "    configs=[triton.Config({'BLOCK': 64}, num_warps=4)],\n"
+        "    key=['n'],\n"
+        ")\n"
+        "@triton.jit\n"
+        "def _heur_kernel(p, n, BLOCK: tl.constexpr, DOUBLE: tl.constexpr):\n"
+        "    pid = tl.program_id(0)\n"
+        "    offs = pid * BLOCK + tl.arange(0, BLOCK)\n"
+        "    mask = offs < n\n"
+        "    v = tl.load(p + offs, mask=mask)\n"
+        "    out = v + 1\n"
+        "    if DOUBLE:\n"
+        "        out = out + 1\n"
+        "    tl.store(p + offs, out, mask=mask)\n"
+        "\n"
+        "def add_heur(x):\n"
+        "    n = x.numel()\n"
+        "    _heur_kernel[(1,)](x, n)\n"
+        "    return x\n"
+    )
+    kpath = tmp_path / "kernel.py"
+    kpath.write_text(kernel_src)
+    with mock.patch.object(
+        vllm_triton_utils_shim, "_has_active_triton_driver", return_value=False
+    ):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("shim_heur_kernel", kpath)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        import torch
+
+        x = torch.zeros(64, dtype=torch.float32)
+        mod.add_heur(x)
+        # DOUBLE heuristic (n=64>0) is True -> +1 +1 == 2.0
+        assert torch.all(x == 2.0), x
