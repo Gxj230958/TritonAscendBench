@@ -2077,3 +2077,60 @@ def test_r10_mustfix2b_badpin_and_missing_root_fail_closed(
     }))
     with pytest.raises(rue.StaleResolverCacheError):
         rue.load_resolver_cache(cache)
+
+
+# ── primary-blocker categorisation (reducer contamination guard) ──────
+def test_primary_blocker_cat_distinguishes_oracle_consistent():
+    """The best-ranked candidate's reject note is categorised so that an
+    intended wrapper that matched the oracle and only smoke/shapes-blocked
+    is NOT mistaken for a genuine shapes gap."""
+    f = rue._primary_blocker_cat
+    assert f("bmm_batch_invariant: oracle-consistent but S2-smoke BLOCKED [x]") \
+        == "oracle-consistent-smoke-blocked"
+    assert f("w: oracle-consistent but S2 shapes-incomplete [y]") \
+        == "oracle-consistent-shapes-incomplete"
+    assert f("act_and_mul_triton: shapes-incomplete [missing gateup_output]") \
+        == "shapes-incomplete"
+    assert f("z: oracle-mismatch [value]") == "oracle-mismatch"
+    assert f("k: upstream-not-invocable-here [AttributeError arg_names]") \
+        == "upstream-not-invocable-here"
+
+
+def test_resolution_primary_blocker_round_trips_and_back_compat():
+    """primary_blocker serialises with the verdict and an OLD cache dict
+    lacking the field still deserialises (default '')."""
+    r = rue.Resolution(
+        "T", False, None, "BLOCKED(no-verified-upstream-entrypoint: shapes-incomplete)",
+        "reason", tried=["a", "b"], primary_blocker="oracle-consistent-smoke-blocked",
+    )
+    assert r.__dict__["primary_blocker"] == "oracle-consistent-smoke-blocked"
+    old = {
+        "task_id": "T", "resolved": False, "entrypoint": None,
+        "status": "BLOCKED(x)", "reason": "r", "tried": [],
+        "upstream_fp": rue._EMPTY_UPSTREAM_CLOSURE_FP,
+    }
+    assert rue.Resolution(**old).primary_blocker == ""
+
+
+def test_blocked_reason_format_preserves_diagnostic_segments():
+    """Regression: the primary_blocker annotation is appended at the END of
+    the BLOCKED reason so per_task_diagnostic._split_segments (which needs
+    the body to start at the first reject note) still parses every
+    candidate. A prefix would drop the first candidate segment."""
+    import importlib.util as _ilu
+    _s = _ilu.spec_from_file_location(
+        "per_task_diagnostic", REPO / "scripts" / "per_task_diagnostic.py"
+    )
+    _ptd = _ilu.module_from_spec(_s)
+    sys.modules["per_task_diagnostic"] = _ptd
+    _s.loader.exec_module(_ptd)
+    reason = (
+        "BLOCKED(no-verified-upstream-entrypoint: shapes-incomplete): tried "
+        "['_dequantize_k_cache_fast', 'dequantize_k_cache_paged']; "
+        "_dequantize_k_cache_fast: shapes-incomplete [missing X] | "
+        "dequantize_k_cache_paged: oracle-mismatch [val]; "
+        "primary_blocker=shapes-incomplete"
+    )
+    names = [e for e, _, _ in _ptd._split_segments(reason)]
+    assert "_dequantize_k_cache_fast" in names  # first candidate NOT dropped
+    assert "dequantize_k_cache_paged" in names

@@ -571,17 +571,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         missing = _missing_params(v)
         if not missing:
-            if skipped:
-                # All missing params landed in the per-task skip set --
-                # surface that explicitly so the task does not silently
-                # vanish from the report (still routed via Phase B defer,
-                # but the LLM / manual path should know it was suppressed
-                # here on purpose, not just not enumerated).
-                print(
-                    f"[SKIP-PER-TASK] {tid}: convention auto-fill suppressed "
-                    f"for {skipped} (see _TASK_PARAM_SKIP in this script); "
-                    "routed via bulk_defer_phase_b instead."
-                )
+            # Nothing the convention table can bind for this task's chosen
+            # entrypoint (either truly no missing params, or the chooser
+            # could not match the intended entrypoint against the reason).
+            # The LLM patch-shapes path handles it -- "no auto-fill" beats
+            # "wrong auto-fill".
             continue
         td = _find_task_dir(tid)
         if td is None:

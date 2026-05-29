@@ -915,6 +915,30 @@ def _is_shapes_incomplete(detail: str) -> bool:
     )
 
 
+def _primary_blocker_cat(note: str) -> str:
+    """Categorise the BEST-RANKED candidate's reject note into that
+    candidate's real blocker. Distinguishes ``oracle-consistent-*`` (the
+    candidate matched the oracle and only smoke/shapes blocked -- a likely
+    dev-host env limit that may run on the GPU) from a genuine wrong-op /
+    shapes / invocability failure. The best-ranked candidate is a heuristic
+    score-ordered guess at the intended wrapper, not a guarantee. Mirrors
+    the exact note phrasings emitted in resolve_task's candidate loop."""
+    n = note or ""
+    if "oracle-consistent but S2-smoke BLOCKED" in n:
+        return "oracle-consistent-smoke-blocked"
+    if "oracle-consistent but S2 shapes-incomplete" in n:
+        return "oracle-consistent-shapes-incomplete"
+    if ": shapes-incomplete" in n:
+        return "shapes-incomplete"
+    if ": oracle-mismatch" in n:
+        return "oracle-mismatch"
+    if ": upstream-not-invocable-here" in n:
+        return "upstream-not-invocable-here"
+    if ": smoke-fail" in n or "S2-smoke BLOCKED" in n:
+        return "smoke-fail"
+    return "other"
+
+
 def _is_numeric_mismatch(detail: str) -> bool:
     """True ONLY for a genuine wrong-operator signal: the candidate
     RAN and produced output but the values / shape / dtype / STRUCTURE
@@ -1323,6 +1347,16 @@ class Resolution:
     status: str           # UNRUN | PASS | BLOCKED(...)
     reason: str
     tried: list[str] = field(default_factory=list)
+    # The PRIMARY (best-ranked) candidate's real blocker, recorded
+    # separately from the headline ``status`` bucket. The headline bucket
+    # uses worst-news-first across ALL tried candidates, so one sibling's
+    # ``shapes-incomplete`` can mask the fact that the INTENDED wrapper was
+    # actually oracle-consistent and only smoke/env-blocked (e.g. a dev-host
+    # vllm cold-import SIGKILL that would run on the GPU). This field names
+    # the intended candidate's status so triage does not mistake a
+    # close-to-passing task for a genuine shapes gap. Empty when resolved or
+    # no candidate was tried.
+    primary_blocker: str = ""
     # codex r6/r7 [confirmed] -- the per-task upstream-closure
     # fingerprint: sha256 over the ACTUAL infer/ files THIS task's
     # verdict path imported/executed, UNIONed across BOTH live-upstream
@@ -1526,12 +1560,23 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
         cat = "upstream-not-invocable-here"
     else:
         cat = "smoke-fail"
+    # The PRIMARY blocker is the BEST-RANKED candidate's own failure
+    # (reject_notes[0]; candidates are appended in score-ranked host-first
+    # order -- a heuristic best guess, not a guaranteed intended wrapper).
+    # ``oracle-consistent-*`` means the best-ranked candidate matched the
+    # oracle and only the smoke/shapes step blocked -- the highest-value
+    # triage signal (a smoke block is often a dev-host env limit that runs
+    # on GPU). Appended at the END of the reason so the candidate-segment
+    # parser in per_task_diagnostic._split_segments (which requires the
+    # body to start at the first reject note) is unaffected.
+    primary = _primary_blocker_cat(reject_notes[0]) if reject_notes else "no-host-wrapper"
     return Resolution(
         task_dir.name, False, None,
         f"BLOCKED(no-verified-upstream-entrypoint: {cat})",
         f"BLOCKED(no-verified-upstream-entrypoint: {cat}): tried "
-        f"{tried}; {blob}",
+        f"{tried}; {blob}; primary_blocker={primary}",
         tried=tried,
+        primary_blocker=primary,
         upstream_fp=_fp(),
     )
 
@@ -1617,11 +1662,23 @@ def run_resolver(
         r = resolve_task(td, pap, apply)
         if cp is not None:
             cp.write_text(json.dumps(r.__dict__, indent=2))
+        # Surface primary_blocker on the progress line so a per-task sweep
+        # (e.g. the loop daemon, which captures stdout) carries the
+        # best-ranked candidate's real status, not just the worst-news-first
+        # bucket. Triage reads this to tell a close-to-passing task
+        # (oracle-consistent-*) from a genuine shapes gap.
+        _pb = f" primary={r.primary_blocker}" if r.primary_blocker else ""
         print(
             f"[{r.task_id}] {'RESOLVED' if r.resolved else 'BLOCKED'} "
-            f"{r.entrypoint or '-'} :: {r.status}",
+            f"{r.entrypoint or '-'} :: {r.status}{_pb}",
             flush=True,
         )
+        # For a BLOCKED task, also emit the full reason (the per-candidate
+        # reject notes) on its own line so a per-task sweep (loop daemon,
+        # which captures each subprocess's stdout) carries the actual
+        # blocker detail -- not just the headline bucket -- for triage.
+        if not r.resolved and r.reason:
+            print(f"[{r.task_id}] reason: {r.reason}", flush=True)
         return r
 
     if workers <= 1:
