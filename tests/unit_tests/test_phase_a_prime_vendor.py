@@ -170,3 +170,70 @@ def test_rewrite_fla_module_tldevice_triple():
     assert "import triton\n" in out
     assert "import triton.language as tl\n" in out
     assert "import triton.language.extra.libdevice as tldevice\n" in out
+
+
+def test_pool_import_re_captures_module_paths():
+    """_POOL_IMPORT_RE captures the exact shipped pool MODULE dotted-path
+    from both vendoring emitters (package submodule + single-file helper),
+    multiline `from ... import (` forms, and bare `import ...`."""
+    src = (
+        "import torch\n"
+        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index import x\n"
+        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils import (a,\n"
+        "    b)\n"
+        "from tasks._frozen_deps_pool.h_119bf34e8937.vllm_helpers import fast_exp\n"
+        "import tasks._frozen_deps_pool.h_deadbeef1234.m as sm\n"
+        "from vllm.triton_utils import tl\n"
+    )
+    got = sorted(set(pap._POOL_IMPORT_RE.findall(src)))
+    assert got == [
+        "tasks._frozen_deps_pool.h_119bf34e8937.vllm_helpers",
+        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index",
+        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils",
+        "tasks._frozen_deps_pool.h_deadbeef1234.m",
+    ]
+
+
+def test_promote_frozen_deps_is_shipped_not_classification(tmp_path):
+    """promote_staged_candidate records frozen_deps = the pool modules the
+    standalone source ACTUALLY imports, NOT the (potentially huge/noisy)
+    CLASS_A classification closure. Regression guard for the provenance
+    fix: a task whose classifier walked a big vllm.* closure but whose
+    rewrite only pooled one FLA module must record only that module."""
+    task_dir = tmp_path / "tasks" / "level3" / "L3_demo"
+    task_dir.mkdir(parents=True)
+    (task_dir / "meta.yaml").write_text(
+        "task_id: L3_demo\nupstream:\n  file_sha256: deadbeef\n"
+    )
+    # Staged standalone: imports ONE pooled module; classification claims
+    # several unrelated CLASS_A symbols (the noise we must NOT record).
+    staged = tmp_path / "staged_kernel.py"
+    staged.write_text(
+        "import torch\n"
+        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index "
+        "import prepare_chunk_indices\n"
+        "def run(inputs):\n    return {}\n"
+    )
+    classification = pap.TaskClassification(
+        task_id="L3_demo",
+        symbols=[
+            pap.SymbolClass(".index.prepare_chunk_indices", ".index",
+                            "prepare_chunk_indices", pap.CLASS_A),
+            pap.SymbolClass("vllm.config.VllmConfig", "vllm.config",
+                            "VllmConfig", pap.CLASS_A),
+            pap.SymbolClass("vllm._C.foo", "vllm._C", "foo", pap.CLASS_A),
+        ],
+    )
+    s2 = pap.S2Result(
+        task_id="L3_demo", status="PASS", reason="bit-exact",
+        s2_gpu_run_id="s2-demo", audit_leaks=[],
+        s2_original_upstream_closure=[],
+    )
+    ok, _ = pap.promote_staged_candidate(staged, task_dir, s2, classification)
+    assert ok
+    import yaml as _yaml
+    meta = _yaml.safe_load((task_dir / "meta.yaml").read_text())
+    # ONLY the shipped pool module is recorded -- no vllm.config / vllm._C noise.
+    assert meta["frozen_deps"] == [
+        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index"
+    ]

@@ -3946,6 +3946,20 @@ def build_staged_candidate(
     return staged
 
 
+# Matches the pool-import lines the rewrite emits (both the single-file
+# helper path -> ``from tasks._frozen_deps_pool.h_<sha>.<mod> import ...`` and
+# the package path -> ``from tasks._frozen_deps_pool.h_<sha>.<pkg>.<sub>
+# import ...``). Captures the concrete MODULE dotted-path (the exact shipped
+# artifact), ignoring the imported names. ``import tasks._frozen_deps_pool...``
+# is also handled. Used by promote_staged_candidate to record frozen_deps as
+# what shipped, not classification noise.
+_POOL_IMPORT_RE = re.compile(
+    r"^\s*(?:from|import)\s+"
+    r"(tasks\._frozen_deps_pool\.h_[0-9a-f]+(?:\.[\w.]+)?)",
+    re.M,
+)
+
+
 def promote_staged_candidate(
     staged_path: Path,
     task_dir: Path,
@@ -3977,9 +3991,16 @@ def promote_staged_candidate(
         for s in classification.symbols
         if s.cls in (CLASS_B_INERT_SHIM, CLASS_B_REWRITE_PUBLIC)
     ]
-    frozen_deps = [
-        s.symbol for s in classification.symbols if s.cls == CLASS_A
-    ]
+    # frozen_deps records WHAT WAS ACTUALLY SHIPPED to the content-addressed
+    # pool, scanned from the promoted standalone source -- not the raw
+    # classification CLASS_A set. The CLASS_A set is the import-graph closure
+    # the classifier walked, which can be huge and noisy (e.g. a task pulling
+    # in vllm.config.* / vllm._C transitively) and does NOT reflect the pooled
+    # artifacts the rewrite emitted. Pool module paths are the exact shipped
+    # surface; each pool file carries its own upstream provenance header
+    # (repo / commit / content-hash / license), so no separate upstream-symbol
+    # field is needed (plan U5: ``frozen_deps: [<pool h_sha ref>]``).
+    frozen_deps = sorted(set(_POOL_IMPORT_RE.findall(new_src)))
     update_meta_phase_a_prime(
         task_dir,
         status="PASS",
