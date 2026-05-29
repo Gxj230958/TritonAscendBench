@@ -135,12 +135,19 @@ inputs:
   states:
     dims:
     - C
-    - D
+    - H
     - D
     dtype: float32
     dist: randn
   dA_cumsum:
     dims:
+    - H
     - C
+    - T
     dtype: float32
     dist: rand
+  last_chunk_indices:
+    dims:
+    - 1
+    dtype: int64
+    dist: full:C-1

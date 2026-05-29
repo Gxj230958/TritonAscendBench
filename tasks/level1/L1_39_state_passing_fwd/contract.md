@@ -66,17 +66,21 @@ Knob grid in `shapes.yaml`.
 ### Knob predicates (`dims`)
 
 - `C >= 1`
+- `H >= 1`
 - `D >= 1`
+- `T >= 1`
 
 ### Input dtypes (`dtypes`)
 
 - `states`: `float32`
 - `dA_cumsum`: `float32`
+- `last_chunk_indices`: `int64`
 
 ### Input distributions (`dists`)
 
 - `states`: `randn`
 - `dA_cumsum`: `rand`
+- `last_chunk_indices`: `full` — args `{'value': 'C-1'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
