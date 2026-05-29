@@ -80,3 +80,46 @@ def test_vendored_module_imports_clean(tmp_path, monkeypatch):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert mod.f() == 42
+
+
+def test_vendor_triton_helper_strips_vllm_reexport(tmp_path, monkeypatch):
+    """_vendor_triton_helper_module rewrites the upstream module's
+    `from vllm.triton_utils import tl, triton` re-export to public triton
+    imports, so the pooled module carries no vllm reference."""
+    monkeypatch.setattr(pap, "FROZEN_DEPS_POOL", tmp_path / "pool")
+    monkeypatch.setattr(pap, "REPO_ROOT", tmp_path)
+    (tmp_path / "NOTICE").write_text("x\n")
+    src = tmp_path / "triton_helpers.py"
+    src.write_text(
+        "from vllm.triton_utils import tl, triton\n\n\n"
+        "@triton.jit\n"
+        "def fast_exp(x):\n"
+        "    return tl.math.exp2(x)\n"
+    )
+    dotted = pap._vendor_triton_helper_module("vllm.x.triton_helpers", src, "vllm")
+    assert dotted.startswith("tasks._frozen_deps_pool.h_")
+    assert dotted.endswith(".vllm_x_triton_helpers")
+    # Locate the written pool file and assert it is vllm-free + has public triton.
+    sha_dir = dotted.split(".")[2]
+    pooled = (tmp_path / "pool" / sha_dir / "vllm_x_triton_helpers.py").read_text()
+    assert "from vllm" not in pooled
+    assert "import triton" in pooled
+    assert "import triton.language as tl" in pooled
+    assert "def fast_exp" in pooled
+
+
+def test_vendor_triton_helper_missing_source_returns_none(tmp_path, monkeypatch):
+    """Unreadable upstream source yields None (rewriter then falls
+    through to leak, never a half-vendored pool)."""
+    monkeypatch.setattr(pap, "FROZEN_DEPS_POOL", tmp_path / "pool")
+    monkeypatch.setattr(pap, "REPO_ROOT", tmp_path)
+    out = pap._vendor_triton_helper_module(
+        "vllm.x.missing", tmp_path / "does_not_exist.py", "vllm"
+    )
+    assert out is None
+
+
+def test_packaging_classified_class_d():
+    """`packaging` is admitted as a Class-D stable PyPI dep (used by the
+    mamba SSD tasks); doubtful => A, so this must be explicit."""
+    assert "packaging" in pap.CLASS_D_PKGS

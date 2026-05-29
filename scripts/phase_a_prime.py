@@ -123,7 +123,7 @@ CLASS_TORCH_TRITON = "torch+triton"  # stdlib / torch / triton -- not external
 # Doubtful => A. zmq was considered but rejected because pyzmq is
 # only an optional extra and is not on _pa_subproc_runner.py's
 # severed-allowlist; it would not actually pass the audit.
-CLASS_D_PKGS = {"einops", "numpy"}
+CLASS_D_PKGS = {"einops", "numpy", "packaging"}
 
 # Standard library / always-available -- not "external" for closure.
 _STDLIB_TOPS = {
@@ -870,6 +870,47 @@ def _ensure_pool_init() -> None:
             "verbatim (Apache-2.0) for a standalone, version-pinned\n"
             'kernel closure. See repo-root NOTICE.\n"""\n'
         )
+
+
+def _vendor_triton_helper_module(
+    module: str, src_path: "Path", repo: str
+) -> str | None:
+    """Whole-module-vendor a tiny upstream triton helper into the U2 pool.
+
+    Reads ``src_path`` verbatim, rewrites its own
+    ``from vllm.triton_utils import tl, triton`` re-export line to public
+    ``import triton`` / ``import triton.language as tl`` (the one sanctioned
+    edit -- that re-export is a Class-D peer, not a vendorable upstream
+    symbol), content-addresses the result into the pool via vendor_symbol,
+    and returns the dotted pool import path
+    (``tasks._frozen_deps_pool.h_<sha12>.<safe_mod>``) or None if the
+    source is unreadable.
+
+    Whole-module (not per-symbol) is the architecturally-correct slice for
+    these single-purpose helper files (codex U2 design verdict): no AST
+    surgery, the file is already minimal.
+    """
+    try:
+        src = src_path.read_text()
+    except OSError:
+        return None
+    rewritten_lines: list[str] = []
+    for line in src.splitlines(keepends=True):
+        s = line.strip()
+        if s == "from vllm.triton_utils import tl, triton":
+            indent = line[: len(line) - len(line.lstrip())]
+            rewritten_lines.append(
+                f"{indent}import triton  # Phase A': was vllm.triton_utils re-export\n"
+            )
+            rewritten_lines.append(f"{indent}import triton.language as tl\n")
+            continue
+        rewritten_lines.append(line)
+    rewritten = "".join(rewritten_lines)
+    dst = vendor_symbol(module, rewritten, repo)
+    # dst = FROZEN_DEPS_POOL / h_<sha12> / <safe_mod>.py ; build dotted path.
+    sha_dir = dst.parent.name           # h_<sha12>
+    safe_mod = dst.stem                 # <module-with-dots-as-underscores>
+    return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
 
 
 _NOTICE_PA_MARKER = "Phase A-prime vendored dependency pool"
@@ -3354,6 +3395,36 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': attention sentinel constants (B-inert-shim)\n"
                 )
                 continue
+        # U2 pool vendoring: vllm.model_executor.layers.mamba.ops.triton_helpers
+        # is a tiny single-purpose module whose only meaningful export is the
+        # pure @triton.jit ``fast_exp`` device function (verbatim exp2 identity).
+        # It cannot be shimmed (compute-path @triton.jit, not an inert constant)
+        # so the sanctioned path is U2 content-addressed vendoring: copy the
+        # upstream module verbatim into tasks/_frozen_deps_pool/ (rewriting its
+        # own ``from vllm.triton_utils import tl, triton`` to public triton),
+        # then redirect the kernel's import at the pool path. The severed runner
+        # already exposes the pool on sys.path.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.mamba.ops.triton_helpers import "
+        ):
+            _syms = stripped[
+                len("from vllm.model_executor.layers.mamba.ops.triton_helpers import "):
+            ]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"fast_exp"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                _pool_import = _vendor_triton_helper_module(
+                    "vllm.model_executor.layers.mamba.ops.triton_helpers",
+                    VLLM_ROOT / "vllm/model_executor/layers/mamba/ops/triton_helpers.py",
+                    "vllm",
+                )
+                if _pool_import is not None:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from {_pool_import} import {_syms}"
+                        f"  # Phase A': U2 pool-vendored triton helper\n"
+                    )
+                    continue
         if stripped.startswith("from vllm.model_executor.layers.quantization.utils.quant_utils import"):
             # The kernel only imports FP8_DTYPE + get_fp8_min_max from
             # this module; both are deterministic on target classes

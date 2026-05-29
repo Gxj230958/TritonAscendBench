@@ -32,5 +32,13 @@ Specifically:
    as `sampled_numeric_allclose` (raw element sampling + torch.allclose) for
    reward-hacking robustness. See `specs/reward_hack_defense.md` §5b.25.
 
+
+5. **Phase A-prime vendored dependency pool** (`tasks/_frozen_deps_pool/`):
+   Symbol-level reachable-closure dependencies extracted from
+   vLLM / SGLang upstream sources to make each `kernel.py`
+   standalone. Each pool entry preserves its original Apache
+   2.0 license header and records the upstream commit SHA and
+   content SHA-256. See `scripts/phase_a_prime.py`.
+
 All vendored / adapted code retains its original copyright notices.
 Modifications and new contributions are licensed under Apache 2.0.

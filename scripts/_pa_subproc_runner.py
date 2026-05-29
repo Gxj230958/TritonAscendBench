@@ -75,6 +75,7 @@ _REL_IMPORT_RE = re.compile(
 # from site-packages is a leak.
 _SEVERED_ALLOWED_TOP = {
     "torch", "triton", "einops", "numpy", "yaml", "safetensors", "_yaml",
+    "packaging",
 }
 _FORBIDDEN_TOP = {"vllm", "sglang"}
 
