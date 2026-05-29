@@ -361,7 +361,7 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
     kspec = importlib.util.spec_from_file_location("_ncu_kernel", {kernel_path!r})
     kmod = importlib.util.module_from_spec(kspec)
     kspec.loader.exec_module(kmod)
-    fn = runner._resolve_entrypoint(kmod, {{"entrypoint": {entrypoint!r}}})
+    fn = runner._resolve_entrypoint(kmod, {{"entrypoint": {entrypoint!r}, "param_name_map": {param_name_map!r}}})
     if not callable(fn):
         print("XCHECK_WORKER_ERROR: kernel.py exposes no resolvable entrypoint",
               file=sys.stderr)
@@ -529,12 +529,18 @@ def measure_kernel_bytes(
     kernel_path = task.task_dir / "kernel.py"
     shapes_path = task.task_dir / "shapes.yaml"
     entrypoint = (task.meta.get("oracle", {}) or {}).get("gpu_triton")
+    # Same meta.interface.param_name_map the S2/oracle paths use, so the
+    # cost-xcheck worker binds the entrypoint IDENTICALLY (a wrapper param
+    # mapped to its task input key) -- otherwise this 6th invocation site
+    # would diverge / miss-bind for tasks that declare a rename.
+    param_name_map = (task.meta.get("interface") or {}).get("param_name_map") or {}
 
     worker_src = _NCU_WORKER_TEMPLATE.format(
         repo_root=str(REPO_ROOT),
         runner_path=str(runner_path),
         kernel_path=str(kernel_path),
         entrypoint=entrypoint,
+        param_name_map=param_name_map,
         shapes_path=str(shapes_path),
         shape_id=shape_id,
         nvtx_range=_NCU_NVTX_RANGE,

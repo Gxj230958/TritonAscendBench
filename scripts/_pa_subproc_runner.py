@@ -320,7 +320,8 @@ class ShapesIncompleteError(RuntimeError):
     comparison. We map STRICTLY by name and fail LOUD + explicit."""
 
 
-def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict):
+def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict,
+                        param_name_map: dict | None = None):
     """Map ``inputs`` onto ``fn``'s declared parameters STRICTLY BY NAME
     -- never by silently skip+shift (the codex r5 ISSUE 1 soundness
     hole). For each declared positional/keyword parameter:
@@ -339,6 +340,7 @@ def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict):
     a signature we cannot introspect falls back to ``fn(inputs)``."""
     import inspect
 
+    param_name_map = param_name_map or {}
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError):
@@ -355,6 +357,18 @@ def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict):
         if name in inputs:
             kwargs[name] = inputs[name]
             bound.append(name)
+        elif name in param_name_map and param_name_map[name] in inputs:
+            # meta.interface.param_name_map: the wrapper's param `name`
+            # is the SAME task tensor under a different key (the oracle
+            # reads the task key). Bind the wrapper param to that EXACT
+            # materialised tensor -- identical values both sides, so a
+            # wrong map -> wrong arg -> oracle-mismatch, never a
+            # coincidental pass. ``bound`` records the TASK KEY (not the
+            # wrapper name) so the in-place output reconstruction can
+            # index ``inputs[task_key]`` (codex r-pnm finding 3).
+            src_key = param_name_map[name]
+            kwargs[name] = inputs[src_key]
+            bound.append(src_key)
         elif p.default is not inspect.Parameter.empty:
             continue  # optional: the entrypoint's own default applies
         else:
@@ -365,12 +379,15 @@ def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict):
                 f"no default. Refusing to silently skip+shift positional "
                 f"args (would mis-call the entrypoint / risk a "
                 f"wrong-but-successful comparison). Fix: add {name!r} to "
-                f"the task's shapes.yaml inputs."
+                f"the task's shapes.yaml inputs (or "
+                f"meta.interface.param_name_map if it is the same tensor "
+                f"under a different key)."
             )
     return sig, bound, kwargs
 
 
-def _signature_adapter(fn, entrypoint_name: str):
+def _signature_adapter(fn, entrypoint_name: str,
+                       param_name_map: dict | None = None):
     """Wrap a positional-signature upstream entrypoint (e.g.
     ``apply_logit_bias(logits, expanded_idx_mapping, ...)``) as a
     ``run(inputs: dict) -> dict`` callable WITHOUT changing numeric
@@ -389,7 +406,7 @@ def _signature_adapter(fn, entrypoint_name: str):
 
     def _run(inputs: dict) -> dict:
         sig, bound, kwargs = _map_inputs_by_name(
-            fn, entrypoint_name, inputs
+            fn, entrypoint_name, inputs, param_name_map
         )
         if sig is None:
             # Opaque signature: faithful old fallback (fn(inputs)).
@@ -586,7 +603,9 @@ def _resolve_entrypoint(mod, spec: dict):
             # Already a run(inputs)->dict (staged candidate / fixture).
             if name == "run":
                 return fn
-            return _signature_adapter(fn, name)
+            return _signature_adapter(
+                fn, name, spec.get("param_name_map") or {}
+            )
     return getattr(mod, "run", None)
 
 

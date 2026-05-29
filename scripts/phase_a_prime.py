@@ -1601,8 +1601,25 @@ def _spawn_side(
     import tempfile
 
     work = Path(tempfile.mkdtemp(prefix=f"pa_s2_{side}_"))
+    # meta.interface.param_name_map: maps a wrapper param name -> the task
+    # input key (same materialised tensor the oracle reads). The ORIGINAL
+    # side (kernel_path = the real task kernel.py) reads it here for its
+    # signature adapter; the SEVERED side bakes it into its synthesised
+    # run() at rewrite time (kernel_path is a temp staged file with no
+    # meta -> empty here, correctly ignored).
+    _pnm: dict = {}
+    try:
+        _mp = kernel_path.parent / "meta.yaml"
+        if _mp.is_file():
+            _pnm = (
+                (yaml.safe_load(_mp.read_text()) or {}).get("interface")
+                or {}
+            ).get("param_name_map") or {}
+    except Exception:
+        _pnm = {}
     spec = {
         "kernel_path": str(kernel_path),
+        "param_name_map": _pnm,
         "status_json": str(work / "status.json"),
         "shapes_json": str(work / "shapes.json"),
         "out_dir": str(out_dir),
@@ -3925,6 +3942,7 @@ def run(inputs: dict) -> dict:  # noqa: D401
 
     _MARK = "BLOCKED(shapes-incomplete"
     _fn = {ep}
+    _PNM = {pnm!r}  # meta.interface.param_name_map (wrapper param -> task key)
     try:
         _sig = inspect.signature(_fn)
     except (TypeError, ValueError):
@@ -3944,6 +3962,13 @@ def run(inputs: dict) -> dict:  # noqa: D401
             if _n in inputs:
                 _kw[_n] = inputs[_n]
                 _bound.append(_n)
+            elif _n in _PNM and _PNM[_n] in inputs:
+                # meta.interface.param_name_map (baked): same task tensor
+                # under a different key. _bound records the TASK KEY so the
+                # in-place output reconstruction indexes inputs correctly.
+                _src = _PNM[_n]
+                _kw[_n] = inputs[_src]
+                _bound.append(_src)
             elif _p.default is not inspect.Parameter.empty:
                 continue
             else:
@@ -3953,7 +3978,8 @@ def run(inputs: dict) -> dict:  # noqa: D401
                     + " -- shapes.yaml / build_inputs provides no value "
                     "and the parameter has no default. Refusing to "
                     "silently skip+shift positional args. Fix: add the "
-                    "param to the task's shapes.yaml inputs."
+                    "param to the task's shapes.yaml inputs (or "
+                    "meta.interface.param_name_map)."
                 )
         _ret = _fn(**_kw)
     if _ret is None:
@@ -3971,10 +3997,17 @@ def run(inputs: dict) -> dict:  # noqa: D401
 '''
 
 
-def synthesise_standalone_run(src: str, entrypoint: str | None) -> str:
+def synthesise_standalone_run(
+    src: str, entrypoint: str | None,
+    param_name_map: dict | None = None,
+) -> str:
     """Append a synthesised ``run(inputs)->dict`` wrapper to a rewritten
     kernel source IFF it does not already define ``run`` and an upstream
-    ``entrypoint`` is known. Idempotent."""
+    ``entrypoint`` is known. Idempotent. ``param_name_map`` (from
+    meta.interface) is BAKED into the wrapper so the severed side binds a
+    wrapper param to the same task tensor under a different key -- mirrors
+    the original side's _pa_subproc_runner._signature_adapter EXACTLY so
+    both sides bind identically."""
     if entrypoint is None:
         return src
     import ast as _ast
@@ -3991,7 +4024,9 @@ def synthesise_standalone_run(src: str, entrypoint: str | None) -> str:
     )
     if has_run:
         return src
-    return src + _SYNTH_RUN_TEMPLATE.format(ep=entrypoint)
+    return src + _SYNTH_RUN_TEMPLATE.format(
+        ep=entrypoint, pnm=dict(param_name_map or {})
+    )
 
 
 def build_staged_candidate(
@@ -4013,7 +4048,9 @@ def build_staged_candidate(
     src = kp.read_text(encoding="utf-8", errors="replace")
     rewritten = rewrite_imports_to_standalone(src, classification, task_dir)
     ep = _entrypoint_from_meta(task_dir)
-    staged_src = synthesise_standalone_run(rewritten, ep)
+    _meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+    _pnm = (_meta.get("interface") or {}).get("param_name_map") or {}
+    staged_src = synthesise_standalone_run(rewritten, ep, _pnm)
 
     root = staging_root or Path(
         tempfile.mkdtemp(prefix=f"pa_staged_{task_dir.name}_")

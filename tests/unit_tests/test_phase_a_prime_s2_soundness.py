@@ -1047,3 +1047,41 @@ def test_writeback_honors_pa_no_cache_regen(tmp_path, monkeypatch):
         "write-back persisted despite PA_NO_CACHE_REGEN=1 -- the "
         "regen-disabled contract is reverted"
     )
+
+
+def test_param_name_map_baked_into_severed_run_and_binder():
+    """meta.interface.param_name_map maps a wrapper param to the SAME task
+    tensor under a different key (e.g. wrapper `weight` <- shapes `w`), used
+    IDENTICALLY by the severed synthesised run() (baked) and the original
+    side's binder. bound records the TASK key so in-place output recon
+    indexes inputs correctly (codex finding 3). No map => unchanged."""
+    import ast as _ast
+    # severed side: baked into synthesise_standalone_run
+    out = pap.synthesise_standalone_run(
+        "def foo(x, weight, bias):\n    return x\n", "foo",
+        {"weight": "w", "bias": "b"},
+    )
+    _ast.parse(out)  # valid Python
+    assert "_PNM = {'weight': 'w', 'bias': 'b'}" in out
+    assert "_PNM[_n] in inputs" in out
+    # original side: the shared binder
+    import importlib.util as _ilu
+    sp = _ilu.spec_from_file_location(
+        "_pa_subproc_runner", REPO / "scripts" / "_pa_subproc_runner.py"
+    )
+    sub = _ilu.module_from_spec(sp)
+    sys.modules["_pa_subproc_runner"] = sub
+    sp.loader.exec_module(sub)
+
+    def foo(x, weight, bias):
+        return None
+
+    _, bound, kwargs = sub._map_inputs_by_name(
+        foo, "foo", {"x": 1, "w": 2, "b": 3}, {"weight": "w", "bias": "b"}
+    )
+    assert kwargs == {"x": 1, "weight": 2, "bias": 3}
+    assert set(bound) == {"x", "w", "b"}  # TASK keys, not wrapper names
+    # backward-compat: no map -> the strict missing-param error
+    import pytest
+    with pytest.raises(sub.ShapesIncompleteError):
+        sub._map_inputs_by_name(foo, "foo", {"x": 1, "w": 2, "b": 3}, {})

@@ -370,13 +370,63 @@ def _check_one_shape(
     fn = getattr(kmod, entrypoint, None)
     if not callable(fn):
         return False, f"entrypoint {entrypoint!r} not a module-level callable"
+    # meta.interface.param_name_map: bind a wrapper param to the same task
+    # tensor under a different key (the oracle reads the task key) -- the
+    # anchor must use it too so the candidate is invoked identically to
+    # the S2 sides.
+    _pnm: dict = {}
+    _oproj: dict = {}
+    try:
+        import yaml as _yaml
+
+        _mp = task_dir / "meta.yaml"
+        if _mp.is_file():
+            _iface = (_yaml.safe_load(_mp.read_text()) or {}).get(
+                "interface"
+            ) or {}
+            _pnm = _iface.get("param_name_map") or {}
+            _oproj = _iface.get("output_projection") or {}
+    except Exception:
+        _pnm = {}
+        _oproj = {}
     try:
         sig, bound, kwargs = _map_inputs_by_name(
-            fn, entrypoint, dict(kernel_inputs)
+            fn, entrypoint, dict(kernel_inputs), _pnm
         )
     except Exception as e:  # ShapesIncompleteError or introspection
         return False, f"by-name bind failed: {type(e).__name__}: {e}"
     cand_ret = fn(dict(kernel_inputs)) if sig is None else fn(**kwargs)
+    # meta.interface.output_projection (ANCHOR-ONLY, codex r-oproj): a
+    # REVIEWED declaration that this wrapper returns a SUPERSET tuple and
+    # only the named indices are the task contract (e.g. layer_norm_gated_fwd
+    # returns (y, mean, rstd, residual); {arity: 4, map: {output: 0}}). It
+    # relaxes ONLY the anchor's extra-output "wrong operator" rejection.
+    # S2 STILL compares the FULL unprojected return severed-vs-original, so
+    # the bit-exact equivalence gate is unweakened (a severed kernel that
+    # breaks mean/rstd/residual still fails S2). Fail-closed validation:
+    # tuple/list, pinned arity, in-range + unique indices, all oracle keys
+    # covered -- otherwise NO projection (the strict structure check fires).
+    if _oproj and isinstance(cand_ret, (list, tuple)):
+        _arity = _oproj.get("arity")
+        _omap = _oproj.get("map") or {}
+        _idxs = list(_omap.values())
+        # Note: "every oracle key is covered" is enforced downstream -- a
+        # projected dict missing an oracle key fails the twin-match below
+        # ("no candidate output with shape ...").
+        if (
+            isinstance(_arity, int)
+            and len(cand_ret) == _arity
+            and _omap
+            and len(set(_idxs)) == len(_idxs)
+            and all(isinstance(i, int) and 0 <= i < _arity for i in _idxs)
+        ):
+            cand_ret = {k: cand_ret[i] for k, i in _omap.items()}
+        else:
+            return False, (
+                "output_projection invalid (arity/index/map check failed; "
+                f"declared={_oproj}, actual return len={len(cand_ret)}) -- "
+                "fail-closed, not projecting"
+            )
     if cand_ret is None:
         cand_ret = {
             p: kernel_inputs[p]

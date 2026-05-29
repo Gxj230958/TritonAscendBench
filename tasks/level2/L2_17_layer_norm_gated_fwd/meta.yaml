@@ -19,6 +19,23 @@ upstream:
   vendored_snapshot: tasks/_vendored/L2_17_layer_norm_gated_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
+  # The verified wrapper layer_norm_gated_fwd(x, g, weight, bias, ...) names
+  # its norm params weight/bias; the task oracle reads inputs["w"]/["b"]
+  # (shapes provides w/b). Map the wrapper params to the SAME materialised
+  # task tensors so both sides bind identically -- no new tensor, no rename
+  # of the oracle contract. Reviewed adaptation (design bucket-E gate).
+  param_name_map:
+    weight: w
+    bias: b
+  # The wrapper layer_norm_gated_fwd returns (y, mean, rstd, residual); the
+  # task oracle's contract is just the normalized output y = return[0]. The
+  # other 3 are documented aux (mean/rstd/residual). ANCHOR-ONLY projection
+  # (S2 still compares the full 4-tuple severed-vs-original bit-exact, so the
+  # equivalence gate is unweakened). Reviewed superset-wrapper declaration.
+  output_projection:
+    arity: 4
+    map:
+      output: 0
   mutability: unspecified
   stride_layout: TODO(scaffold)
   workspace_policy: none
