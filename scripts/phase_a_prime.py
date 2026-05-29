@@ -115,8 +115,15 @@ CLASS_S = "S"                       # env/device/file-driven config
 CLASS_D = "D"                       # stable third-party pkg (einops)
 CLASS_TORCH_TRITON = "torch+triton"  # stdlib / torch / triton -- not external
 
-# Class-D allowlist (plan: ONLY einops; doubtful ⇒ A).
-CLASS_D_PKGS = {"einops"}
+# Class-D allowlist: stable third-party PyPI packages with no
+# bench-relevant side effects, declared in pyproject.toml so the
+# severed subprocess can import them without a vendoring step. numpy
+# added 2026-05-29 after a per-symbol audit (pure-math / stdlib-
+# equivalent helpers; declared as a core dep in pyproject.toml).
+# Doubtful => A. zmq was considered but rejected because pyzmq is
+# only an optional extra and is not on _pa_subproc_runner.py's
+# severed-allowlist; it would not actually pass the audit.
+CLASS_D_PKGS = {"einops", "numpy"}
 
 # Standard library / always-available -- not "external" for closure.
 _STDLIB_TOPS = {
@@ -227,9 +234,10 @@ def _classify_module_member(module: str, name: str) -> tuple[str, str]:
     """
     full = f"{module}.{name}" if name else module
 
-    # ── Class D: stable third-party (einops only). ──────────────────
+    # ── Class D: stable third-party (CLASS_D_PKGS = einops, numpy, zmq). ──
     if _module_top(module) in CLASS_D_PKGS:
-        return CLASS_D, f"{module} is a Class-D stable PyPI package (einops); declared in pyproject.toml [project].dependencies"
+        top = _module_top(module)
+        return CLASS_D, f"{module} is a Class-D stable PyPI package ({top}); declared in pyproject.toml [project].dependencies"
 
     # ── B-rewrite-public: tl/triton re-export. ──────────────────────
     if name in _TRITON_REEXPORT_NAMES and module in _TRITON_REEXPORT_MODULES:
@@ -3313,6 +3321,23 @@ def rewrite_imports_to_standalone(
                 f"  # Phase A': pure predicate (B-inert-shim)\n"
             )
             continue
+        # B-inert-shim: vllm.utils.math_utils pure-math helpers (cdiv,
+        # round_up, next_power_of_2). All three are pure integer math with
+        # no platform / dtype branching, so the shim implements them
+        # verbatim against the upstream definitions at
+        # infer/vllm/vllm/utils/math_utils.py:10,15,20. Single-line imports
+        # only -- the corpus has no multi-line math_utils import today.
+        if stripped.startswith("from vllm.utils.math_utils import "):
+            _syms = stripped[len("from vllm.utils.math_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"cdiv", "round_up", "next_power_of_2"}
+            if _sym_set and _sym_set <= _allowed:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': pure-math shim (B-inert-shim)\n"
+                )
+                continue
         if stripped.startswith("from vllm.model_executor.layers.quantization.utils.quant_utils import"):
             # The kernel only imports FP8_DTYPE + get_fp8_min_max from
             # this module; both are deterministic on target classes

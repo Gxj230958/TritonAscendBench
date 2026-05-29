@@ -95,3 +95,30 @@ def get_fp8_min_max() -> tuple[float, float]:
     for the non-ROCm path (is_fp8_fnuz() is False on bench target classes)."""
     finfo = torch.finfo(torch.float8_e4m3fn)
     return finfo.min, finfo.max
+
+
+# vllm.utils.math_utils pure-math helpers. Verbatim against the upstream at
+# infer/vllm/vllm/utils/math_utils.py:10,15,20 -- no platform / dtype /
+# scheduling branch, so plan U3 inert.
+def cdiv(a: int, b: int) -> int:
+    """Verbatim from vllm/utils/math_utils.py:10. Ceiling division that
+    handles negative divisors correctly (differs from ``(a + b - 1) // b``
+    for negative ``b``)."""
+    return -(a // -b)
+
+
+def round_up(a: int, m: int) -> int:
+    """Verbatim from vllm/utils/math_utils.py:20. Align ``a`` up to the
+    next multiple of ``m``."""
+    return ((a + m - 1) // m) * m
+
+
+def next_power_of_2(n: int) -> int:
+    """Verbatim from vllm/utils/math_utils.py:15. Smallest power of two
+    >= ``n``. Caller guarantees ``n >= 1``."""
+    if n <= 1:
+        return 1
+    p = 1
+    while p < n:
+        p <<= 1
+    return p
