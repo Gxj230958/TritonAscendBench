@@ -1,12 +1,13 @@
 # Unblock queue 2026-05-29
 
-Note: the prior scratch note said `13 PASS / 87 remaining`. Repo-backed `phase_a_prime.status: PASS` in `tasks/**/meta.yaml` today is `12 PASS / 88 remaining`; `L1_34_transform_index_page_table_decode` appears to have been double-counted in the scratch note. Queue below uses the repo-backed count.
+Note: repo-backed late-session tally is `13 PASS / 87 remaining`; `L2_12_awq_gemm` is now included in PASS after the AWQ wrapper-contract alignment landed.
 
-## Verified PASS (12 repo-backed)
+## Verified PASS (13 repo-backed)
 - `L1_01_bias` -- S2 GPU PASS; bit-exact baseline.
 - `L1_03_convert_req_index_to_global_index` -- S2 GPU PASS after entrypoint/meta alignment.
 - `L1_11_awq_dequantize` -- S2 GPU PASS after AWQ wrapper contract alignment.
 - `L1_12_rms_norm` -- S2 GPU PASS; bit-exact baseline.
+- `L2_12_awq_gemm` -- S2 GPU PASS after reusing the `L1_11` AWQ pattern (`int32`, `N//32`, `split_k_iters`, H2 bump).
 - `L1_16_silu_and_mul` -- S2 GPU PASS; bit-exact baseline.
 - `L1_22_min_p` -- S2 GPU PASS after oracle-equivalence fix.
 - `L1_26_merge_state` -- S2 GPU PASS; baseline merge-state contract held.
@@ -16,17 +17,15 @@ Note: the prior scratch note said `13 PASS / 87 remaining`. Repo-backed `phase_a
 - `L2_10_w8a8_block_int8_matmul` -- S2 GPU PASS after `block_size=[8,32]` / ceil-div K-group fix.
 - `L3_04_fwd` -- S2 GPU PASS after shapes/golden alignment.
 
-## Blocker class breakdown (88 remaining, repo-backed)
+## Blocker class breakdown (87 remaining, repo-backed; buckets below sum to 85 plus 2 architectural skips)
 
 | blocker_class | count | owner | next_unblocker |
 |---|---:|---|---|
 | `venv-vllm-C` | 41 | user | build `scripts/loop/setup_vllm_venv.sh`, then restart supervisor with `--phase-python` |
-| `sglang-class-A` | 27 | bench-team | Class-A pool / import-surface architecture decision, then rerun `resolve`/`verify` |
-| `fp8-packed-dist` | 3 | bench-team | add packed-fp8 / int-packed generator support in `build_inputs.py` |
-| `structural-oracle-rewrite` | 6 | per-task careful work | side-by-side oracle/kernel rewrite; budget `30-60 min` per task |
-| `vllm-nondeep-local` | 11 | codex/operator | bounded per-task `meta.yaml` + `shapes.yaml` + oracle cleanup, then rerun |
-
-If you keep the older scratch `13 PASS` count, subtract `1` from `vllm-nondeep-local` and total remaining becomes `87`.
+| `sglang-class-A` | 29 | bench-team | Class-A pool / import-surface architecture decision, then rerun `resolve`/`verify` |
+| `fp8-packed-dist` | 5 | bench-team | add packed-fp8 / int-packed generator support in `build_inputs.py` |
+| `structural-oracle-rewrite` | 5 | per-task careful work | side-by-side oracle/kernel rewrite; budget `30-60 min` per task |
+| `misc` | 5 | codex/operator | case-by-case follow-up after env/Class-A lanes are cleared |
 
 ## Post-venv batch plan (executable)
 
@@ -93,12 +92,6 @@ L1_02_compute_slot_mappings L1_04_copy_page_indices L1_05_gather_block_tables L1
 
 ## Tasks to manually prepare during venv build
 
-- `L2_12_awq_gemm` -- `shapes.yaml`: add `split_k_iters`; `meta.yaml`/`contract.md`: mirror the scalar constraint so wrapper + contract agree.
-- `L1_36_compute_seg_indptr_triton` -- `meta.yaml`: point `oracle.gpu_triton` at the real host wrapper; `shapes.yaml`: add the wrapper-facing tensors now missing from the minimal contract.
-- `L1_37_compute_problem_sizes_w4a8` -- same pattern as `L1_36`: real wrapper in `meta.yaml`, then add the wrapper-facing problem-size tensors to `shapes.yaml`.
-- `L2_31_moe_align_block_size_stage2` -- keep this shapes-only: widen hidden/public rows for `block_size`, `num_experts`, `topk_ids`; no oracle rewrite.
-- `L2_33_fwd_grouped_kernel_stage1_rope` -- `meta.yaml`: target the actual wrapper; `shapes.yaml`: keep only runtime tensors/scalars (`att_out`, `k_buffer`, `q`, `scale`, `v_buffer`) on the surface.
-- `L2_35_pre_reorder_triton_kernel_for_cutlass_moe` -- pre-draft the missing wrapper-facing tensors in `shapes.yaml` (`down_output`, `masked_m`, `output`, `x`) before rerun.
 - `L2_36_post_reorder_triton_kernel_for_cutlass_moe` -- same as `L2_35`, plus the extra `input`/`input_tensor` surface tensors.
 
 ## Known dead-ends (don't retry)
@@ -106,3 +99,10 @@ L1_02_compute_slot_mappings L1_04_copy_page_indices L1_05_gather_block_tables L1
 - `vllm._C` empty stub -- today `FAIL`: Class-A unvendorable; defer-to-golden / real built extension is the canonical path.
 - `sglang` shim extension -- today `FAIL`: hardcoded CUDA-only behavior violates U3 inert rule; symbols are Class-A.
 - `L2_19` oracle rewrite -- today: structural drift goes beyond rename; `q/k/v` shapes need `(B,T,H,K)`, not `(B,H,D)`.
+
+## Late-session update 22:00-23:30 PST
+
+- `L2_12_awq_gemm` is now PASS via the `L1_11_awq_dequantize` reuse pattern (`int32`, `N//32`, `split_k_iters`, H2 bump); true tally is `13 PASS / 87 remaining`.
+- `L1_25_merge_attn_states` is architecturally blocked: `kernel.py:28` returns `None`, the Phase A' GPU runner rejects `None`, validator/resolver require `kernel.py::...`, and bench rules forbid editing the byte-frozen wrapper.
+- `L1_10_per_token_group_quant_int8` is architecturally blocked in the current bench flow: wrapper gates on `current_platform.is_cuda()`, the shim lacks `is_cuda`, and the CUDA branch still requires built `vllm._C`.
+- Rebucketed from this pass: `L1_06_reshape_and_cache_kernel_flash` moves to `venv-vllm-C`; `L1_36`, `L1_37`, `L2_31`, `L2_33`, and `L2_35` move to `sglang-class-A`.
