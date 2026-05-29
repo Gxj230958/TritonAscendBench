@@ -3556,13 +3556,22 @@ def rewrite_imports_to_standalone(
                 f"  # Phase A': platform stub (B-inert-shim)\n"
             )
             continue
-        if stripped.startswith("from vllm.utils.torch_utils import is_quantized_kv_cache"):
-            indent = ln[: len(ln) - len(ln.lstrip())]
-            out.append(
-                f"{indent}from tasks._frozen_shim import is_quantized_kv_cache"
-                f"  # Phase A': pure predicate (B-inert-shim)\n"
-            )
-            continue
+        # B-inert-shim: vllm.utils.torch_utils pure predicates. Subset-
+        # allowlisted -- is_quantized_kv_cache (string predicate) and
+        # is_torch_equal_or_newer (version predicate). Both are inert
+        # (no platform/dtype/device branch); refuse if any other symbol is
+        # on the line so a future deeper import cannot sneak past.
+        if stripped.startswith("from vllm.utils.torch_utils import "):
+            _syms = stripped[len("from vllm.utils.torch_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"is_quantized_kv_cache", "is_torch_equal_or_newer"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': pure predicate (B-inert-shim)\n"
+                )
+                continue
         # B-inert-shim: vllm.utils.math_utils pure-math helpers (cdiv,
         # round_up, next_power_of_2). All three are pure integer math with
         # no platform / dtype branching, so the shim implements them
@@ -3580,6 +3589,51 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': pure-math shim (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: vllm.utils.platform_utils.num_compute_units. The
+        # shim already exports it (a scheduling-only grid-sizing value,
+        # never the numeric compute path); the FLA rewrite table maps the
+        # same symbol, but a non-FLA task importing it from platform_utils
+        # needs this general rule too. Single-line, subset-whitelisted.
+        if stripped.startswith("from vllm.utils.platform_utils import "):
+            _syms = stripped[len("from vllm.utils.platform_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"num_compute_units"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': scheduling-only grid sizing (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.utils.mem_utils.get_max_shared_memory_bytes.
+        # Scheduling-only -- the shim does a live CUDA device query (the
+        # real device's max shared mem per block); it only feeds tile-size
+        # selection in module-scope setup, never the verified compute path.
+        # Single-line, subset-whitelisted.
+        if stripped.startswith("from vllm.utils.mem_utils import "):
+            _syms = stripped[len("from vllm.utils.mem_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"get_max_shared_memory_bytes"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': live device query (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: `import vllm.envs as <alias>`. The module-import
+        # form (not `from ... import ...`), redirected to the allowlisted
+        # tasks._frozen_shim.envs module, which exposes only verified-inert
+        # flag defaults and loud-fails on anything else. Preserve the alias
+        # so `<alias>.VLLM_X` references keep resolving.
+        _m_envs = re.match(r"^import\s+vllm\.envs\s+as\s+(\w+)\s*$", stripped)
+        if _m_envs:
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}import tasks._frozen_shim.envs as {_m_envs.group(1)}"
+                f"  # Phase A': vllm.envs allowlist shim (B-inert-shim)\n"
+            )
+            continue
         # B-inert-shim: vllm.v1.attention.backends.utils sentinel constants
         # (PAD_SLOT_ID = -1, NULL_BLOCK_ID = 0). Verbatim deterministic ints
         # used as padding / null-block sentinels; no platform / dtype branch.

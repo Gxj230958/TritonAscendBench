@@ -152,3 +152,36 @@ def next_power_of_2(n: int) -> int:
 # and fill metadata with these, so they MUST stay -1 / 0.
 PAD_SLOT_ID: int = -1
 NULL_BLOCK_ID: int = 0
+
+
+def is_torch_equal_or_newer(target: str) -> bool:
+    """Verbatim from vllm/utils/torch_utils.py:810,814 -- True iff the
+    installed torch is >= ``target``. A pure version predicate (no
+    platform / dtype / device branch), so plan U3 inert. Frozen kernels
+    read it only in module-scope setup (a feature gate), never in the
+    verified compute path."""
+    from packaging.version import Version, parse
+
+    try:
+        return parse(str(torch.__version__)) >= parse(target)
+    except Exception:
+        import importlib.metadata
+
+        return Version(importlib.metadata.version("torch")) >= Version(target)
+
+
+def get_max_shared_memory_bytes(gpu: int = 0) -> int:
+    """Live device query mirroring vllm/utils/mem_utils.py: the max
+    shared memory per thread block for ``gpu``. Upstream reads a CUDA
+    device attribute via vllm._custom_ops; we query torch directly so the
+    returned value is the REAL device's (honest even if a frozen kernel's
+    bench-unused setup path consumes it for tile sizing). Scheduling-only:
+    it never enters the numeric compute path of a verified entrypoint.
+    Fails loudly off-CUDA (a standalone consuming this on a non-CUDA host
+    must be classified, not silently defaulted)."""
+    props = torch.cuda.get_device_properties(gpu)
+    val = getattr(props, "shared_memory_per_block_optin", None)
+    if not val:
+        val = props.shared_memory_per_block
+    assert val and val > 0, "max_shared_mem cannot be zero"
+    return int(val)

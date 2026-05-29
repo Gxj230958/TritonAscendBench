@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::matmul_persistent
 tolerance_class: vector_reduce
 cost_model:
   flops:
@@ -98,3 +98,23 @@ param_constraints:
       kind: rand
   scalars: {}
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_14_matmul_kernel_persistent-20260529T172909
+  classified_at: '2026-05-29'
+  standalone_sha256: 31171ea6cd594a2f52f8da74e85030f809093ef1425d0b6266b7830f82245a9b
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

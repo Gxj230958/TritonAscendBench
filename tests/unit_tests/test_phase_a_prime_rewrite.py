@@ -207,3 +207,77 @@ def test_cmd_rewrite_invocable_and_honest_no_gpu(tmp_path, monkeypatch):
     assert "from vllm.triton_utils import" not in (lvl / "kernel.py").read_text()
     m = yaml.safe_load((lvl / "meta.yaml").read_text())
     assert m["phase_a_prime"]["status"] == "PASS"
+
+
+def test_rewrite_severs_batch_invariant_shim_imports():
+    """The batch_invariant family (L2_13/L2_14) leaks vllm.envs,
+    mem_utils.get_max_shared_memory_bytes, torch_utils.is_torch_equal_or_newer,
+    and platform_utils.num_compute_units. All four redirect to the
+    tasks._frozen_shim surface so the standalone has NO vllm import left."""
+    import re
+    src = (
+        "import torch\n"
+        "import vllm.envs as envs\n"
+        "from vllm.platforms import current_platform\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "from vllm.utils.mem_utils import get_max_shared_memory_bytes\n"
+        "from vllm.utils.platform_utils import num_compute_units\n"
+        "from vllm.utils.torch_utils import is_torch_equal_or_newer\n"
+        "def bmm_batch_invariant(a, b):\n    return a @ b\n"
+    )
+    cls = pap.TaskClassification(task_id="L2_13_bmm", symbols=[])
+    out = pap.rewrite_imports_to_standalone(src, cls, task_dir=None)
+    assert not [l for l in out.splitlines()
+                if re.search(r"^\s*(from|import)\s+vllm", l)], out
+    assert "import tasks._frozen_shim.envs as envs" in out
+    assert "from tasks._frozen_shim import get_max_shared_memory_bytes" in out
+    assert "from tasks._frozen_shim import is_torch_equal_or_newer" in out
+    assert "from tasks._frozen_shim import num_compute_units" in out
+
+
+def test_rewrite_refuses_unallowlisted_torch_utils_symbol():
+    """A non-allowlisted vllm.utils.torch_utils symbol is NOT silently
+    shimmed -- it must surface as a leak (fail-closed), not be defaulted."""
+    import re
+    src = "from vllm.utils.torch_utils import some_unvetted_helper\nx = 1\n"
+    out = pap.rewrite_imports_to_standalone(
+        src, pap.TaskClassification(task_id="T", symbols=[]), task_dir=None
+    )
+    # left untouched -> the severed-import audit will catch the leak
+    assert "from vllm.utils.torch_utils import some_unvetted_helper" in out
+
+
+def test_envs_shim_exposes_only_verified_inert_flag():
+    """tasks._frozen_shim.envs exposes ONLY the verified-inert
+    VLLM_BATCH_INVARIANT (verbatim upstream default False). Compute-path
+    semantic knobs (Class-S: VLLM_TUNED_CONFIG_FOLDER / VLLM_ROCM_FP8_PADDING)
+    and any other flag LOUD-FAIL -- the loud-fail is the Class-S gate that
+    keeps a task honestly BLOCKED instead of silently defaulting a knob."""
+    import importlib
+    import pytest
+    REPO = Path(__file__).resolve().parent.parent.parent
+    sys.path.insert(0, str(REPO))
+    envs = importlib.import_module("tasks._frozen_shim.envs")
+    assert envs.VLLM_BATCH_INVARIANT is False
+    for semantic in ("VLLM_TUNED_CONFIG_FOLDER", "VLLM_ROCM_FP8_PADDING",
+                     "VLLM_SOME_UNVETTED_FLAG"):
+        with pytest.raises(AttributeError):
+            getattr(envs, semantic)
+
+
+def test_rewrite_severs_real_l2_13_and_l2_14_kernels():
+    """Real-kernel evidence (not synthetic): rewriting the actual
+    L2_13_bmm / L2_14 kernel.py leaves ZERO direct vllm imports."""
+    import re
+    REPO = Path(__file__).resolve().parent.parent.parent
+    for tid in ("L2_13_bmm", "L2_14_matmul_kernel_persistent"):
+        kps = list(REPO.glob(f"tasks/level*/{tid}/kernel.py"))
+        if not kps:
+            continue  # corpus task absent in this checkout
+        src = kps[0].read_text()
+        out = pap.rewrite_imports_to_standalone(
+            src, pap.TaskClassification(task_id=tid, symbols=[]), task_dir=None
+        )
+        leaks = [l for l in out.splitlines()
+                 if re.search(r"^\s*(from|import)\s+vllm(\.|\s|$)", l)]
+        assert not leaks, f"{tid}: {leaks}"
