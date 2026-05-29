@@ -131,3 +131,22 @@ Verified after bench commit `88f4e58` (`inject vllm._C stub for source-only vLLM
 |---|---|---|
 | B-inert shim audit for `PAD_SLOT_ID` / `NULL_BLOCK_ID` | Could unblock `L2_20`-`L2_24` | Plain int constants; no architecture change needed. |
 | Audit `fast_exp` for inert shimming | Could unblock `L1_39`, `L1_40`, `L2_02`, `L2_03` | Pure `@triton.jit` math helper is the candidate path. |
+
+## Deep-vllm task work 2026-05-29 (post-stub)
+
+PASS landed: `L2_22_linear_attn_decode` (14th overall PASS).
+Path that worked: `vllm._C` stub cleared import wall -> `PAD_SLOT_ID` / `NULL_BLOCK_ID` shim cleared the attention-sentinel import -> rewrote oracle + shapes to the frozen decode wrapper contract (`q/k/v [B,H,1,D]`, `slot_idx [B]` arange, slot-routed kv update, output `[B,H*D]`, candidate in-place kv mutation). Codex design + impl reviewed against frozen kernel; verified bit-exact on GPU.
+
+Per-task diagnoses for the remaining stub-unblocked tasks:
+
+| Task | Status | Why |
+|---|---|---|
+| `L2_22_linear_attn_decode` | DONE PASS | decode-contract oracle rewrite |
+| `L2_23_fwd_kv_parallel` | DEFER | kernel returns `(output, kv)` tuple; oracle single-output. Needs exact blockwise `kv_history` recurrence reproduction (`torch.cat([kv, kv_history.unsqueeze(2)])` at `kernel.py:539`). Hard, false-PASS risk. |
+| `L2_24_fwd_kv_reduce` | DEFER | identical to `L2_23` (same `lightning_attention` wrapper, same tuple). |
+| `L1_39` / `L1_40` / `L2_02` / `L2_03` | DEFER (infra) | mamba SSD; blocked on `fast_exp` `@triton.jit` helper + relative imports (`.mamba_ssm.softplus`) + `packaging.version`. Sanctioned path is U2 pool vendoring, but `vendor_symbol()` (`phase_a_prime.py:833`) is defined but unwired. Wiring U2 into `rewrite_imports_to_standalone` is the real unlock for this family. |
+| `L3_05_fwd_kernel_alibi` | DEFER | oracle models contiguous alibi attention; wrapper `context_attention_fwd` (`kernel.py:662`) is 23-param paged prefill (`k_cache` / `v_cache` + `b_loc` / `b_start_loc` / `b_seq_len` block-table routing + `kv_cache_dtype`). Abstraction mismatch, not a shapes fix. |
+| `L3_06_fwd_grouped_kernel_stage1` | DEFER | same paged-vs-contiguous mismatch; if re-scoped to stage-1-only the target is `_decode_grouped_att_m_fwd` with the intermediate `[..., Lv+1]` partial-logsumexp buffer, not `decode_attention_fwd_grouped`. Oracle / shapes / output-contract surgery. |
+| `L3_17` / `L3_19` | DEFER | FLA package: 8 relative imports (`.chunk_delta_h`, `.cumsum`, `.l2norm`, `.solve_tril`, `.op`, `.utils`, ...) -> needs whole-package vendoring, not single-symbol shim. |
+
+Next high-leverage infra: wire U2 pool vendoring (`vendor_symbol` + rewrite redirect to `tasks/_frozen_deps_pool`) -- unblocks the mamba family and any future pure-`@triton.jit`-helper import. Needs its own design review (>50 LOC infra change).
