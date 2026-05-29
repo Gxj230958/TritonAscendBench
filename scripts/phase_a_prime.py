@@ -3338,6 +3338,22 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': pure-math shim (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: vllm.v1.attention.backends.utils sentinel constants
+        # (PAD_SLOT_ID = -1, NULL_BLOCK_ID = 0). Verbatim deterministic ints
+        # used as padding / null-block sentinels; no platform / dtype branch.
+        # Single-line, subset-whitelisted -- refuse if any other symbol on
+        # the line so a future deeper import cannot sneak past.
+        if stripped.startswith("from vllm.v1.attention.backends.utils import "):
+            _syms = stripped[len("from vllm.v1.attention.backends.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"PAD_SLOT_ID", "NULL_BLOCK_ID"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': attention sentinel constants (B-inert-shim)\n"
+                )
+                continue
         if stripped.startswith("from vllm.model_executor.layers.quantization.utils.quant_utils import"):
             # The kernel only imports FP8_DTYPE + get_fp8_min_max from
             # this module; both are deterministic on target classes

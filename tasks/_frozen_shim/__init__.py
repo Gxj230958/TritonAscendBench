@@ -122,3 +122,13 @@ def next_power_of_2(n: int) -> int:
     while p < n:
         p <<= 1
     return p
+
+
+# vllm.v1.attention.backends.utils sentinel constants. Verbatim against
+# infer/vllm/vllm/v1/attention/backends/utils.py:44,45 -- plain int
+# constants used as padding / null-block sentinels in mask comparisons
+# and fill values. No platform branch, no side effect; plan U3 inert.
+# Exact value matters: kernels branch `if slot_id == PAD_SLOT_ID: return`
+# and fill metadata with these, so they MUST stay -1 / 0.
+PAD_SLOT_ID: int = -1
+NULL_BLOCK_ID: int = 0
