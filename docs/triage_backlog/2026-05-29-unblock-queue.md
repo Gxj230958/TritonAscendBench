@@ -150,3 +150,23 @@ Per-task diagnoses for the remaining stub-unblocked tasks:
 | `L3_17` / `L3_19` | DEFER | FLA package: 8 relative imports (`.chunk_delta_h`, `.cumsum`, `.l2norm`, `.solve_tril`, `.op`, `.utils`, ...) -> needs whole-package vendoring, not single-symbol shim. |
 
 Next high-leverage infra: wire U2 pool vendoring (`vendor_symbol` + rewrite redirect to `tasks/_frozen_deps_pool`) -- unblocks the mamba family and any future pure-`@triton.jit`-helper import. Needs its own design review (>50 LOC infra change).
+
+## U2 vendoring wired + 15 PASS 2026-05-29
+
+Wired the previously-unused U2 content-addressed pool vendoring (`vendor_symbol` was dead scaffolding) for the pure `@triton.jit` `fast_exp` helper, and added packaging to Class-D (both `CLASS_D_PKGS` and the severed allowlist). Pool entry shipped in-tree (`tasks/_frozen_deps_pool/h_119bf34e8937/`), with 3 targeted tests added.
+
+Two more deep-vllm PASS landed via the cleared walls:
+- `L2_22_linear_attn_decode` (14th): decode-contract oracle rewrite (`q/k/v [B,H,1,D]` + `slot_idx` arange + slot-routed kv + `candidate_inplace`).
+- `L1_39_state_passing_fwd` (15th): U2 `fast_exp` vendoring cleared its only import; bridged oracle to the frozen multi-head contract (`states [C,H,D]`, `dA_cumsum [H,C,T]`, `last_chunk_indices [1]=full:C-1`, chunk-final-slice decay). Both codex design+impl reviewed, GPU bit-exact.
+
+Remaining mamba-family status:
+
+| Task | Status | Why |
+|---|---|---|
+| `L1_39` | DONE PASS | bridged, `batch=1` |
+| `L2_02_chunk_scan_fwd` | DEFER | import wall cleared (`fast_exp` + packaging) but host wrapper `_chunk_scan_fwd` (`kernel.py:433`) needs the full chunked-scan contract: `x[seqlen,nheads,headdim]`, `cb[nchunks,ngroups,chunk_size,chunk_size]`, `dt/dA_cumsum[nheads,nchunks,chunk_size]`, `states[nchunks,nheads,headdim,dstate]`, plus mandatory `cu_chunk_seqlens` + `seq_idx` + `out` buffer. Current shapes are flat `[B,L,...]`. Full chunked-layout oracle+shapes surgery; high false-PASS risk. Bounded re-scope possible (single-chunk seq) but not tonight. |
+| `L1_40` / `L2_03` | DEFER | `fast_exp` is now cleared by U2, but they still need `.mamba_ssm.softplus`. That is NOT a whole-file U2 slice: `mamba_ssm.py` (658 lines) imports forbidden `vllm._custom_ops` and defines `softplus` under a `version`-conditional `@triton.jit` branch. Needs per-symbol AST extraction of the `softplus` def into the pool, not whole-module vendoring. |
+
+Next high-leverage: add a per-symbol U2 extraction path (AST-slice a single `@triton.jit` def out of a module that has forbidden sibling imports) to vendor `.mamba_ssm.softplus` -> unblocks `L1_40` / `L2_03`. The current `_vendor_triton_helper_module` only does whole-file vendoring (correct for `triton_helpers.py`, insufficient here).
+
+PASS tally: 15 (`8` baseline + `L3_04`, `L1_11`, `L1_30`, `L1_34`, `L2_01`, `L2_12`, `L2_22`, `L1_39`).
