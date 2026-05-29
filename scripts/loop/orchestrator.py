@@ -452,12 +452,15 @@ def cmd_run_resolve(args: argparse.Namespace) -> int:
 
 def cmd_status(args: argparse.Namespace) -> int:
     loop = shlex.quote(REMOTE_LOOP)
+    # Single-quote the section markers: the remote login shell may be zsh,
+    # whose EQUALS expansion treats a bare `===` word as a `=cmd` lookup and
+    # fails with "== not found". Quoting is safe under both bash and zsh.
     r = _ssh(
-        f"echo === jobs ===; ls -la {loop}/jobs/ 2>/dev/null; "
-        f"echo === done ===; ls -la {loop}/done/ 2>/dev/null; "
-        f"echo === results ===; ls -la {loop}/results/ 2>/dev/null; "
-        f"echo === heartbeat ===; ls -la {loop}/heartbeat/ 2>/dev/null; "
-        f"echo === dead ===; ls -la {loop}/dead/ 2>/dev/null"
+        f"echo '=== jobs ==='; ls -la {loop}/jobs/ 2>/dev/null; "
+        f"echo '=== done ==='; ls -la {loop}/done/ 2>/dev/null; "
+        f"echo '=== results ==='; ls -la {loop}/results/ 2>/dev/null; "
+        f"echo '=== heartbeat ==='; ls -la {loop}/heartbeat/ 2>/dev/null; "
+        f"echo '=== dead ==='; ls -la {loop}/dead/ 2>/dev/null"
     )
     sys.stdout.write(r.stdout)
     sys.stderr.write(r.stderr)
