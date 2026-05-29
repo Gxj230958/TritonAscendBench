@@ -123,3 +123,50 @@ def test_packaging_classified_class_d():
     """`packaging` is admitted as a Class-D stable PyPI dep (used by the
     mamba SSD tasks); doubtful => A, so this must be explicit."""
     assert "packaging" in pap.CLASS_D_PKGS
+
+
+def test_vendor_package_atomic_and_importable(tmp_path, monkeypatch):
+    """vendor_package writes a complete h_<sha>/<pkg>/ with inert __init__
+    + each module; partial dirs are NOT treated as cached."""
+    monkeypatch.setattr(pap, "FROZEN_DEPS_POOL", tmp_path / "pool")
+    monkeypatch.setattr(pap, "REPO_ROOT", tmp_path)
+    (tmp_path / "NOTICE").write_text("x\n")
+    mods = {"a": "VALUE = 1\n", "b": "from .a import VALUE\nDOUBLE = VALUE * 2\n"}
+    prefix = pap.vendor_package("pkg", mods, "vLLM")
+    assert prefix.startswith("tasks._frozen_deps_pool.h_")
+    assert prefix.endswith(".pkg")
+    sha_dir = prefix.split(".")[2]
+    pkgdir = tmp_path / "pool" / sha_dir / "pkg"
+    assert (pkgdir / "__init__.py").exists()
+    assert (pkgdir / "a.py").exists() and (pkgdir / "b.py").exists()
+    assert "Commit SHA:" in (pkgdir / "a.py").read_text()
+    # Partial-write must NOT be accepted as cached: delete b.py, re-vendor
+    # should rewrite it.
+    (pkgdir / "b.py").unlink()
+    prefix2 = pap.vendor_package("pkg", mods, "vLLM")
+    assert prefix2 == prefix
+    assert (pkgdir / "b.py").exists()
+
+
+def test_rewrite_fla_module_fail_closed_on_unknown_vllm():
+    """_rewrite_fla_module_source returns None if a module carries an
+    unsanctioned vllm/sglang import (fail-closed -> no half-severed pool)."""
+    bad = "from vllm.triton_utils import triton\nfrom vllm.v1.worker.x import Y\n"
+    assert pap._rewrite_fla_module_source(bad) is None
+    good = "from vllm.triton_utils import triton\nfrom .utils import z\nX = 1\n"
+    out = pap._rewrite_fla_module_source(good)
+    assert out is not None
+    assert "import triton" in out
+    assert "from .utils import z" in out          # relative preserved
+    assert "from vllm" not in out
+
+
+def test_rewrite_fla_module_tldevice_triple():
+    """The 3-symbol triton_utils line expands to public triton + tl +
+    libdevice (op.py's import)."""
+    out = pap._rewrite_fla_module_source(
+        "from vllm.triton_utils import tl, tldevice, triton\n"
+    )
+    assert "import triton\n" in out
+    assert "import triton.language as tl\n" in out
+    assert "import triton.language.extra.libdevice as tldevice\n" in out

@@ -913,6 +913,150 @@ def _vendor_triton_helper_module(
     return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
 
 
+# FLA-ops package U2 vendoring (codex design A). Each module's external
+# vllm imports are rewritten to public triton / the frozen shim; any
+# OTHER vllm/sglang import aborts the vendoring (fail-closed, return
+# None -> the kernel's relative import falls through to a leak rather
+# than a half-rewritten standalone package).
+_FLA_REWRITE = {
+    "from vllm.triton_utils import tl, tldevice, triton": [
+        "import triton",
+        "import triton.language as tl",
+        "import triton.language.extra.libdevice as tldevice",
+    ],
+    "from vllm.triton_utils import tl, triton": [
+        "import triton",
+        "import triton.language as tl",
+    ],
+    "from vllm.triton_utils import triton": ["import triton"],
+    "from vllm.platforms import current_platform": [
+        "from tasks._frozen_shim import current_platform",
+    ],
+    "from vllm.utils.platform_utils import num_compute_units": [
+        "from tasks._frozen_shim import num_compute_units",
+    ],
+}
+# math_utils import is handled by prefix (variable symbol list).
+_FLA_MATH_PREFIX = "from vllm.utils.math_utils import "
+_FLA_MATH_ALLOWED = {"cdiv", "round_up", "next_power_of_2"}
+
+
+def _rewrite_fla_module_source(src: str) -> str | None:
+    """Apply the FLA line-rewrite table to one vendored module's source.
+
+    Returns the rewritten text, or None if the module carries a vllm/
+    sglang import outside the sanctioned set (fail-closed: never emit a
+    half-severed pool module). Intra-package ``from .X import Y`` lines
+    are preserved verbatim (they resolve inside the vendored package).
+    """
+    out: list[str] = []
+    for line in src.splitlines(keepends=True):
+        s = line.strip()
+        indent = line[: len(line) - len(line.lstrip())]
+        if s in _FLA_REWRITE:
+            for repl in _FLA_REWRITE[s]:
+                out.append(f"{indent}{repl}\n")
+            continue
+        if s.startswith(_FLA_MATH_PREFIX):
+            syms = {x.strip() for x in s[len(_FLA_MATH_PREFIX):].split(",")}
+            if syms and syms <= _FLA_MATH_ALLOWED and "(" not in s:
+                out.append(f"{indent}from tasks._frozen_shim import "
+                           f"{s[len(_FLA_MATH_PREFIX):]}\n")
+                continue
+            return None  # math_utils symbol outside the shimmed set
+        # A bare vllm/sglang import that isn't in the table OR a
+        # non-relative external import -> fail closed.
+        if s.startswith(("from vllm", "import vllm", "from sglang", "import sglang")):
+            return None
+        out.append(line)
+    return "".join(out)
+
+
+def vendor_package(pkg_name: str, modules: dict[str, str], repo: str) -> str | None:
+    """Content-address a multi-module package into the U2 pool as one
+    atomic ``h_<sha>/<pkg_name>/`` directory with an INERT __init__.py.
+
+    ``modules`` maps submodule name (e.g. ``"index"``) to its already-
+    rewritten source. The package hash is over the sorted concatenation
+    so the whole package is one content-addressed unit and intra-package
+    relative imports resolve within it. Returns the dotted package
+    prefix ``tasks._frozen_deps_pool.h_<sha>.<pkg_name>`` (callers append
+    ``.<submodule>``), or None if ``modules`` is empty.
+    """
+    if not modules:
+        return None
+    commit_sha = paf._commit_sha(repo)
+    blob = "\n".join(f"### {m}\n{modules[m]}" for m in sorted(modules))
+    sha12 = hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
+    pkg_dir = FROZEN_DEPS_POOL / f"h_{sha12}" / pkg_name
+    prefix = f"tasks._frozen_deps_pool.h_{sha12}.{pkg_name}"
+    # Completeness check, not bare existence: a prior interrupted write
+    # could leave a partial pkg_dir. Only treat it as cached when every
+    # expected file (__init__ + each module) is present (codex finding 1).
+    expected = [pkg_dir / "__init__.py"] + [
+        pkg_dir / f"{m}.py" for m in modules
+    ]
+    if pkg_dir.exists() and all(p.exists() for p in expected):
+        return prefix
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    # Inert package __init__ -- NOT the upstream one (codex: upstream
+    # __init__ eagerly imports chunk/layernorm_guard, defeating the
+    # minimal closure + pulling avoidable side effects). Write each file
+    # via tmp+replace so a crash never leaves a half-written module.
+    init_tmp = (pkg_dir / "__init__.py").with_suffix(".py.tmp")
+    init_tmp.write_text(
+        '"""Phase A-prime U2 vendored package (inert init -- upstream\n'
+        '__init__ deliberately NOT vendored to avoid eager submodule\n'
+        'imports). See repo-root NOTICE."""\n'
+    )
+    init_tmp.replace(pkg_dir / "__init__.py")
+    for mod, text in modules.items():
+        header = (
+            '"""Phase A-prime frozen dependency -- vendored from upstream.\n\n'
+            f"Content-addressed pool package entry. Apache-2.0; original\n"
+            f"license headers preserved below. See repo-root NOTICE.\n\n"
+            f"Package: `{pkg_name}`  Submodule: `{mod}`\n"
+            f"Upstream repo: {repo}\n"
+            f"Commit SHA: {commit_sha}\n"
+            f"Package content SHA-256 prefix: {sha12}\n"
+            f"Frozen by: scripts/phase_a_prime.py (U2 package vendoring)\n"
+            f'"""\n\n'
+        )
+        f = pkg_dir / f"{mod}.py"
+        tmp = f.with_suffix(".py.tmp")
+        tmp.write_text(header + text)
+        tmp.replace(f)
+    _ensure_pool_init()
+    _update_notice_for_vendoring()
+    return prefix
+
+
+# FLA ops package: the minimal transitive closure for the clean (no
+# CustomOp / no mamba_ssm) bucket-40 tasks is {utils, index, op}. Each
+# task imports a subset of {.index, .op, .utils}; index/op both pull
+# .utils. Modules with CustomOp (layernorm_guard, kda) or the eager
+# upstream __init__ are intentionally excluded.
+_FLA_OPS_CLOSURE = ("utils", "index", "op")
+
+
+def _vendor_fla_ops_package(fla_ops_dir: "Path", repo: str) -> str | None:
+    """Vendor the minimal FLA-ops closure ({utils,index,op}) into the U2
+    pool as a package and return its dotted prefix, or None if any module
+    is unreadable or carries an unsanctioned import (fail-closed)."""
+    modules: dict[str, str] = {}
+    for mod in _FLA_OPS_CLOSURE:
+        src_path = fla_ops_dir / f"{mod}.py"
+        try:
+            raw = src_path.read_text()
+        except OSError:
+            return None
+        rewritten = _rewrite_fla_module_source(raw)
+        if rewritten is None:
+            return None
+        modules[mod] = rewritten
+    return vendor_package("fla_ops", modules, repo)
+
+
 _NOTICE_PA_MARKER = "Phase A-prime vendored dependency pool"
 
 
@@ -3307,7 +3451,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 # U5: standalone rewrite operation (wired into verify -> PASS flow)
 # ───────────────────────────────────────────────────────────────────────────
 def rewrite_imports_to_standalone(
-    src: str, classification: TaskClassification
+    src: str, classification: TaskClassification,
+    task_dir: "Path | None" = None,
 ) -> str:
     """Rewrite a kernel.py's external imports to the standalone
     surface (plan U5). B-rewrite-public symbols become public
@@ -3320,8 +3465,64 @@ def rewrite_imports_to_standalone(
     lines = src.splitlines(keepends=True)
     out: list[str] = []
     in_multiline_import = False
+    # FLA-ops package vendoring (codex design A): metadata-gated, not
+    # module-name-gated. Only when the task's upstream.path is in the
+    # vllm FLA ops package do we vendor {utils,index,op} and redirect the
+    # kernel's `from .index/.op/.utils import ...` to the pooled package.
+    # _fla_prefix is computed once (lazily) on the first matching line.
+    _fla_prefix: str | None = None
+    _fla_attempted = False
+    _fla_is_fla_task = False
+    if task_dir is not None:
+        try:
+            _meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
+            _up = ((_meta or {}).get("upstream") or {}).get("path") or ""
+            _is_fla_path = "fla/ops" in str(_up)
+        except (OSError, ValueError):
+            _is_fla_path = False
+        if _is_fla_path:
+            # Gate not just on the upstream path but on the kernel's
+            # ACTUAL relative-FLA imports being a subset of the vendored
+            # closure {index, op, utils} (codex finding 2: a bare
+            # "fla/ops in path" gate false-fires on L2_17/L3_17 which
+            # also import .chunk_delta_h/.cumsum/.fused_recurrent/etc
+            # that we do NOT vendor -- partial rewrite would leave those
+            # relative imports leaking. Vendor those modules' closure in
+            # a later pass; for now only handle the clean subset).
+            _rel_fla = set()
+            for _l in lines:
+                _m = re.match(r'^\s*from \.(\w+) import', _l)
+                if _m:
+                    _rel_fla.add(_m.group(1))
+            _fla_is_fla_task = bool(_rel_fla) and _rel_fla <= {"index", "op", "utils"}
     for ln in lines:
         stripped = ln.strip()
+        # FLA-ops relative imports: `from .index/.op/.utils import ...`
+        # in a task whose upstream is the vllm FLA ops package. Redirect
+        # to the U2-vendored package (vendored once, lazily). Other
+        # relative imports (non-FLA tasks) fall through untouched.
+        if (_fla_is_fla_task
+                and stripped.startswith(("from .index import",
+                                         "from .op import",
+                                         "from .utils import"))):
+            if not _fla_attempted:
+                _fla_attempted = True
+                _fla_prefix = _vendor_fla_ops_package(
+                    VLLM_ROOT / "vllm/model_executor/layers/fla/ops", "vllm"
+                )
+            if _fla_prefix is not None:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                # `from .index import X` -> `from <prefix>.index import X`
+                submod = stripped.split()[1]            # ".index"
+                rest = stripped[len("from " + submod):]  # " import X"
+                out.append(
+                    f"{indent}from {_fla_prefix}{submod}{rest}"
+                    f"  # Phase A': U2 FLA-ops package vendoring\n"
+                )
+                continue
+            # vendoring failed (fail-closed): leave the import untouched
+            # so the severed audit surfaces the leak rather than a
+            # half-rewritten kernel.
         if stripped.startswith("from vllm.triton_utils import") or (
             stripped.startswith("from sglang.srt.utils import")
             and (" tl" in stripped or " triton" in stripped)
@@ -3730,7 +3931,7 @@ def build_staged_candidate(
 
     kp = task_dir / "kernel.py"
     src = kp.read_text(encoding="utf-8", errors="replace")
-    rewritten = rewrite_imports_to_standalone(src, classification)
+    rewritten = rewrite_imports_to_standalone(src, classification, task_dir)
     ep = _entrypoint_from_meta(task_dir)
     staged_src = synthesise_standalone_run(rewritten, ep)
 

@@ -42,6 +42,9 @@ class _CurrentPlatformStub:
     """Stub for ``vllm.platforms.current_platform`` queries the bench's
     target classes (CUDA / NPU) answer deterministically.
 
+    - is_cuda(): the bench's authoritative verify host is NVIDIA CUDA -> True
+    - is_cuda_alike(): CUDA or ROCm (vllm interface.py:191); True on the
+      CUDA verify host. Used only to pick device="cuda" for scheduling.
     - is_rocm(): bench targets NVIDIA CUDA and Ascend NPU, neither is AMD ROCm
     - is_xpu(): same, neither is Intel XPU
     - is_fp8_fnuz(): only ROCm + fnuz fp8 variant; both target classes are False
@@ -51,6 +54,14 @@ class _CurrentPlatformStub:
       wrapper sizes a grid -- the value affects throughput, not numeric
       output.
     """
+
+    @staticmethod
+    def is_cuda() -> bool:
+        return True
+
+    @staticmethod
+    def is_cuda_alike() -> bool:
+        return True
 
     @staticmethod
     def is_rocm() -> bool:
@@ -74,6 +85,15 @@ class _CurrentPlatformStub:
 
 
 current_platform = _CurrentPlatformStub()
+
+
+# Module-level alias of the platform-query helper. vllm.utils.platform_utils
+# exports num_compute_units as a free function (it delegates to
+# current_platform.num_compute_units); the FLA rewrite table maps
+# `from vllm.utils.platform_utils import num_compute_units` to this name.
+# Scheduling-only value (grid/shared-mem sizing), never numeric output.
+def num_compute_units(device_id: int = 0) -> int:
+    return _CurrentPlatformStub.num_compute_units(device_id)
 
 
 def is_quantized_kv_cache(kv_cache_dtype: str) -> bool:
