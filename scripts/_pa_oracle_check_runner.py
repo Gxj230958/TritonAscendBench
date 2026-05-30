@@ -355,6 +355,7 @@ def _check_one_shape(
     task_dir, entrypoint, sid, shapes_doc, tcls, tol_name,
     compare, build_inputs, _map_inputs_by_name,
     upstream_roots: list[Path] | None = None,
+    device: str = "cpu",
 ) -> tuple[bool, str]:
     """Run the anchor on ONE shape. Returns (ok, detail).
 
@@ -383,6 +384,13 @@ def _check_one_shape(
         k: (v.clone() if torch.is_tensor(v) else v)
         for k, v in inputs.items()
     }
+    if device == "cuda":
+        # GPU fallback path: build_inputs only materialises CPU tensors, so a
+        # real-Triton launch needs them on the device. Move ONLY the kernel
+        # inputs; the oracle keeps reading the CPU ``inputs`` and compare()
+        # normalises devices, so the kernel-vs-oracle gate is unchanged.
+        from _pa_subproc_runner import _move_to_device
+        kernel_inputs = _move_to_device(kernel_inputs, "cuda")
     kmod = _load(
         task_dir / "kernel.py",
         f"_pa_oc_kernel_{sid}",
@@ -537,7 +545,23 @@ def main() -> int:
     args = ap.parse_args()
     spec = json.loads(Path(args.spec).read_text())
 
-    os.environ["TRITON_INTERPRET"] = "1"
+    # Oracle-consistency runs under TRITON_INTERPRET=1 by default (CPU,
+    # GPU-free). interpret=False is the GPU fallback the parent triggers ONLY
+    # when the interpret pass raised a triton InterpreterError (a tooling skew)
+    # AND a CUDA device is present -- it re-runs the SAME kernel-vs-oracle
+    # comparison on the real device. Default keeps every existing caller
+    # byte-identical.
+    interpret = bool(spec.get("interpret", True))
+    os.environ["TRITON_INTERPRET"] = "1" if interpret else "0"
+    if not interpret:
+        import torch as _torch
+
+        if not _torch.cuda.is_available():
+            # Fail-closed: never silently fall back to a CPU-tensor fake.
+            Path(spec["out_json"]).write_text(json.dumps(
+                {"consistent": False,
+                 "detail": "GPU fallback requested but no CUDA device"}))
+            return 0
     # sglang's @cached_triton_kernel decorator (common.py:3917-3934) wraps
     # the @triton.jit fn in a CachedKernel object whose __init__ asserts
     # isinstance(fn, triton.runtime.jit.JITFunction). The wrap fires only
@@ -646,6 +670,7 @@ def main() -> int:
                 task_dir, entrypoint, sid, shapes_doc, tcls, tol_name,
                 compare, build_inputs, _map_inputs_by_name,
                 upstream_roots=upstream_roots,
+                device=("cpu" if interpret else "cuda"),
             )
             per_shape.append(det)
             if not ok:
@@ -659,6 +684,21 @@ def main() -> int:
     except Exception as e:
         import traceback
 
+        # Tag a triton InterpreterError (interpret-only tooling skew, e.g. a
+        # grid-stride `tl.range(...).to()`) with a STRUCTURED marker so the
+        # parent can re-run this anchor on GPU. isinstance when the type
+        # imports, else a strict type-name fallback (the daemon's triton build
+        # may expose it under a different path). A real value/dtype/structure
+        # mismatch returns ok=False WITHOUT raising, so it never reaches here
+        # and can never set this marker -- the rescue is fail-closed.
+        try:
+            from triton.runtime.errors import InterpreterError
+
+            _is_interp = isinstance(e, InterpreterError)
+        except Exception:
+            _is_interp = type(e).__name__ == "InterpreterError"
+        if interpret and _is_interp:
+            result["interpret_error"] = True
         result["detail"] = (
             f"{type(e).__name__}: {e} | {traceback.format_exc()[-500:]}"
         )

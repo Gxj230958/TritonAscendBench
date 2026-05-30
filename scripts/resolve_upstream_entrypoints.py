@@ -1203,8 +1203,20 @@ def set_gpu_triton(meta_path: Path, new_name: str) -> bool:
 # ───────────────────────────────────────────────────────────────────────────
 # Oracle-consistency anchor (subprocess, infer/ on path, GPU-free)
 # ───────────────────────────────────────────────────────────────────────────
+def _gpu_available() -> bool:
+    """True when a real CUDA/NPU device is present -- the gate for the
+    oracle-consistency GPU fallback. On a no-CUDA dev host this is False, so
+    the fallback never engages and resolve behaviour is unchanged."""
+    try:
+        import torch
+
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
+
+
 def oracle_consistency_check(
-    task_dir: Path, entrypoint: str,
+    task_dir: Path, entrypoint: str, interpret: bool = True,
 ) -> tuple[bool, str, list[str]]:
     """Run the upstream ``entrypoint`` (real frozen upstream code,
     CPU/``TRITON_INTERPRET=1``) on >=2 distinct shapes (small + medium
@@ -1235,6 +1247,7 @@ def oracle_consistency_check(
         "vllm_root": str(VLLM_ROOT),
         "sglang_root": str(SGLANG_ROOT),
         "repo_root": str(REPO_ROOT),
+        "interpret": interpret,
     }
     spec_f = work / "spec.json"
     spec_f.write_text(json.dumps(spec))
@@ -1268,6 +1281,24 @@ def oracle_consistency_check(
         return False, f"oracle-check result unreadable: {e}", []
     closure = res.get("upstream_closure")
     closure = [str(p) for p in closure] if isinstance(closure, list) else []
+    if interpret and res.get("interpret_error") and _gpu_available():
+        # The interpret pass hit a triton InterpreterError -- a tooling skew on
+        # a kernel that may be valid on the real device (e.g. a grid-stride
+        # `tl.range(...).to()`). Re-run the SAME anchor ONCE on GPU and adopt
+        # its verdict; union both import closures so upstream_fp stays
+        # complete. interpret=False cannot re-enter this branch (fires at most
+        # once). Anchor-only suffices on the daemon (CUDA host with S2-smoke
+        # skipped); a genuine value/dtype mismatch never sets interpret_error,
+        # so it can never be rescued here.
+        g_ok, g_why, g_closure = oracle_consistency_check(
+            task_dir, entrypoint, interpret=False
+        )
+        merged = sorted(set(closure) | set(g_closure))
+        suffix = (
+            " [via GPU fallback: interpret InterpreterError -> "
+            f"{'PASS' if g_ok else 'FAIL'}]"
+        )
+        return g_ok, g_why + suffix, merged
     return bool(res.get("consistent")), str(res.get("detail", "")), closure
 
 
