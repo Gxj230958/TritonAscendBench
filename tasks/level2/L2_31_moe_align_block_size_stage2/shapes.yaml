@@ -137,7 +137,9 @@ inputs:
     - B
     - D
     dtype: int64
-    dist: randint:0:2
+    # Span the full expert range [0,num_experts=4) so every expert receives
+    # tokens and the per-expert offset/cumsum + empty-expert paths are exercised.
+    dist: randint:0:4
   num_experts:
     scalar: 4
   block_size:

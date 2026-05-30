@@ -173,4 +173,6 @@ inputs:
     dims:
     - B
     dtype: int64
-    dist: arange
+    # Permutation of [0,B): scrambled slot routing (a bijection avoids the
+    # in-place cache write-race) so the slot gather is load-bearing, not identity.
+    dist: randperm
