@@ -131,6 +131,17 @@ def _utc_now() -> str:
     return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+import builtins as _builtins
+
+
+def print(*args, **kwargs):  # noqa: A001 -- timestamp every daemon log line
+    """Prefix each daemon log line with a UTC timestamp so the trail is
+    human-readable chronologically."""
+    if args and isinstance(args[0], str):
+        args = (f"{_utc_now()} {args[0]}", *args[1:])
+    _builtins.print(*args, **kwargs)
+
+
 def _atomic_write(dest: Path, content: str) -> None:
     """Write atomically via temp file in the same dir, then rename."""
     tmp = dest.with_suffix(dest.suffix + ".tmp")
