@@ -20,6 +20,8 @@ Invariants:
 """
 from __future__ import annotations
 
+import typing
+
 import torch
 
 
@@ -212,3 +214,121 @@ def get_max_shared_memory_bytes(gpu: int = 0) -> int:
         val = props.shared_memory_per_block
     assert val and val > 0, "max_shared_mem cannot be zero"
     return int(val)
+
+
+def is_hip() -> bool:
+    """Pure platform predicate mirroring sglang.srt.utils.is_hip -- True
+    only on a ROCm/HIP build. The severed standalone targets the CUDA /
+    Ascend-NPU migration path, never ROCm, so this is a constant False. A
+    frozen kernel reads it only in module-scope setup (a backend gate),
+    never the verified compute path; B-inert."""
+    return False
+
+
+def is_musa() -> bool:
+    """Pure platform predicate mirroring sglang.srt.utils.is_musa -- True
+    only on a Moore-Threads MUSA build. Constant False on the bench
+    CUDA/NPU path; setup-only backend gate, B-inert."""
+    return False
+
+
+def is_cuda() -> bool:
+    """Pure platform predicate mirroring sglang.srt.utils.is_cuda. Live,
+    honest query of the real backend (the bench runs the standalone on the
+    actual device); a setup-only backend gate, never the numeric compute
+    path. B-inert."""
+    return bool(torch.cuda.is_available() and torch.version.cuda is not None)
+
+
+def ceil_div(a: int, b: int) -> int:
+    """Pure integer ceil-division mirroring sglang.srt.utils.ceil_div --
+    identical to ``cdiv`` (kept under the upstream name so a frozen
+    kernel's ``from sglang.srt.utils import ceil_div`` resolves). B-inert
+    pure math; text-identical to upstream sglang.srt.utils.common.ceil_div
+    ``(x + y - 1) // y`` for the positive shape/alignment divisors used at
+    every callsite."""
+    return (int(a) + int(b) - 1) // int(b)
+
+
+def register_custom_op(*args, **kwargs):
+    """Inert decorator mirroring sglang.srt.utils.custom_op.register_custom_op.
+    Upstream registers a name into sglang's global custom-op dispatch table
+    for an unrelated sibling op defined at module scope; the verified
+    free-function entrypoint never dispatches through that table. The shim
+    returns the decorated object UNCHANGED, supporting both bare
+    ``@register_custom_op`` and parameterised ``@register_custom_op("name", ...)``
+    forms. B-inert (no registry side effect)."""
+    if len(args) == 1 and callable(args[0]) and not kwargs:
+        return args[0]
+
+    def _deco(obj):
+        return obj
+
+    return _deco
+
+
+# vllm sampling/output/worker symbols carried at module scope by some frozen
+# kernels for SIBLING setup helpers (batch-state managers, add_request type
+# hints, logprob output containers). The verified free-function entrypoint
+# never constructs or reads them, so the standalone only needs them to RESOLVE
+# (import + class-def) without pulling real vllm. B-inert.
+MAX_LOGPROB_TOKEN_IDS = 128  # verbatim from vllm/sampling_params.py:28
+
+
+class SamplingParams:
+    """Inert stand-in for vllm.sampling_params.SamplingParams. Referenced only
+    as a type hint / in module-scope setup (e.g. ``add_request(... ,
+    sampling_params: SamplingParams)``), never the verified numeric path.
+    Accepts and records any construction kwargs; B-inert."""
+
+    def __init__(self, *args, **kwargs):
+        for _k, _v in kwargs.items():
+            setattr(self, _k, _v)
+
+
+class LogprobsTensors(typing.NamedTuple):
+    """Faithful container mirroring vllm/v1/outputs.py:51 LogprobsTensors --
+    a 4-field NamedTuple (pure data, no behaviour), so the shim is byte-faithful
+    rather than inert. The 4th field ``cu_num_generated_tokens`` is optional
+    upstream and a sibling helper builds one WITH it
+    (``LogprobsTensors(..., cu_num_generated_tokens=...)``), so omitting it would
+    raise TypeError on that construction. The verified entrypoint returns a
+    plain tensor and never builds one."""
+
+    logprob_token_ids: "torch.Tensor"
+    logprobs: "torch.Tensor"
+    selected_token_ranks: "torch.Tensor"
+    cu_num_generated_tokens: "list | None" = None
+
+
+class _SetupOnlyShim:
+    """Base for inert setup-only stand-ins: construction is a no-op, but ANY
+    attribute/method access raises loudly -- a verified entrypoint must never
+    reach real buffer behaviour, and a frozen kernel that does has a genuine
+    runtime dependency (classify it, never silently fake it)."""
+
+    __slots__ = ()
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __getattr__(self, name):
+        raise AttributeError(
+            f"{type(self).__name__} shim: '.{name}' reached. This inert "
+            f"stand-in is setup-only and must NOT enter a verified "
+            f"entrypoint's path; a frozen kernel reaching real buffer "
+            f"behaviour is a true runtime dependency, not a clean standalone."
+        )
+
+
+class UvaBackedTensor(_SetupOnlyShim):
+    """Inert stand-in for vllm.v1.worker.gpu.buffer_utils.UvaBackedTensor (a
+    host/device UVA staging buffer). Constructed only inside module-scope
+    batch-state setup classes, never the verified numeric path; loud-fails on
+    any ``.gpu`` / ``.np`` / ``.copy_to_uva`` access. B-inert."""
+
+
+class StagedWriteTensor(_SetupOnlyShim):
+    """Inert stand-in for vllm.v1.worker.gpu.buffer_utils.StagedWriteTensor
+    (a staged host->device write buffer). Setup-only, same rationale as
+    ``UvaBackedTensor``; B-inert."""

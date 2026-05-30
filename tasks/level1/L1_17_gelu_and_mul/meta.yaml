@@ -29,17 +29,6 @@ oracle:
   gpu_triton: kernel.py::gelu_and_mul_triton
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). GeGLU fused gate: split the last dim into
-  # gate/up halves, output = gelu(gate) * up. One program per row. Symbol map:
-  # B -> x rows (x dim 0, kernel grid extent), D -> x dim 1 (full inner axis);
-  # the output is [B, D//2] since the gate splits D in half. approximate is a
-  # scalar literal ('tanh').
-  # FLOPs (vector): per output element tanh-approx gelu = 0.5*g*(1 +
-  # tanh(c*(g + 0.044715*g^3))) — the cubic + tanh(~6) + the affine wrap ~= 11
-  # ops, plus the `* up` mul -> ~12 ops; over B*(D//2) output elements ->
-  # 12*B*(D//2) = 6*B*D.
-  # bytes (hbm): read x[B,D], write output[B,D//2] -> 3*B*D/2 elements;
-  # float32 primary family -> dtype_size.
   flops: 6*B*D
   flops_class: vector
   bytes: 3*B*D/2 * dtype_size
@@ -75,7 +64,6 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-17
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). gelu_and_mul is a GeGLU fused gate: the single [B, D] input is split on the last axis into gate / value halves, so D must be even. Plain randn activations, fp32.
 param_constraints:
   scaffold: false
   dims:
@@ -90,3 +78,12 @@ param_constraints:
   scalars:
     approximate: approximate in ['tanh', 'none']
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_17_gelu_and_mul-20260530T084800
+  classified_at: '2026-05-30'
+  standalone_sha256: 20fabdeac22f42fc55d63c43593a1be113cf3b6473ad37becae4b0211ba87f70
+frozen_deps: []
+classB_symbols: []
+reference_path: native

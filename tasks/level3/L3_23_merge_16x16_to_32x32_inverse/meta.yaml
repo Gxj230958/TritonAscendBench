@@ -98,22 +98,12 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_23_merge_16x16_to_32x32_inverse-20260529T132318
+  s2_gpu_run_id: s2-L3_23_merge_16x16_to_32x32_inverse-20260529T223112
   classified_at: '2026-05-29'
   standalone_sha256: ccbc9e88904936e4269992fd8f705e9ae1e38cfca8d5acff4e98f57ec889e1af
 frozen_deps:
-- .index.prepare_chunk_indices
-- .op.make_tensor_descriptor
-- .utils.input_guard
-- .utils.is_amd
-- .utils.is_tma_supported
-classB_symbols:
-- sym: vllm.triton_utils.tl
-  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
-    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
-    shimmed)
-- sym: vllm.triton_utils.triton
-  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
-    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
-    shimmed)
+- tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index
+- tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.op
+- tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils
+classB_symbols: []
 reference_path: native

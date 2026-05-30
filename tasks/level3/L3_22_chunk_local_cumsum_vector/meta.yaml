@@ -100,20 +100,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_22_chunk_local_cumsum_vector-20260529T132003
+  s2_gpu_run_id: s2-L3_22_chunk_local_cumsum_vector-20260529T223030
   classified_at: '2026-05-29'
   standalone_sha256: e44a04969679061d1156eeedcffe983d46e5a5b380d9166721fd3f40f0d0fe72
 frozen_deps:
-- .index.prepare_chunk_indices
-- .utils.check_shared_mem
-- .utils.input_guard
-classB_symbols:
-- sym: vllm.triton_utils.tl
-  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
-    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
-    shimmed)
-- sym: vllm.triton_utils.triton
-  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
-    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
-    shimmed)
+- tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index
+- tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils
+classB_symbols: []
 reference_path: native

@@ -19,19 +19,9 @@ upstream:
   vendored_snapshot: tasks/_vendored/L2_17_layer_norm_gated_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
-  # The verified wrapper layer_norm_gated_fwd(x, g, weight, bias, ...) names
-  # its norm params weight/bias; the task oracle reads inputs["w"]/["b"]
-  # (shapes provides w/b). Map the wrapper params to the SAME materialised
-  # task tensors so both sides bind identically -- no new tensor, no rename
-  # of the oracle contract. Reviewed adaptation (design bucket-E gate).
   param_name_map:
     weight: w
     bias: b
-  # The wrapper layer_norm_gated_fwd returns (y, mean, rstd, residual); the
-  # task oracle's contract is just the normalized output y = return[0]. The
-  # other 3 are documented aux (mean/rstd/residual). ANCHOR-ONLY projection
-  # (S2 still compares the full 4-tuple severed-vs-original bit-exact, so the
-  # equivalence gate is unweakened). Reviewed superset-wrapper declaration.
   output_projection:
     arity: 4
     map:
@@ -43,20 +33,9 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::layer_norm_gated_fwd
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). FLA/GDN gated norm: residual add -> LayerNorm
-  # (mean/var normalise + affine w/b) -> SiLU gate `* silu(g)`. One program per
-  # row. Symbol map: B -> x rows (x/g/residual dim 0, kernel grid extent), D ->
-  # hidden size (x dim 1 == w/b length, the per-row reduction extent). eps is a
-  # scalar literal.
-  # FLOPs (vector): per element residual add (~1) + the ~8-op LayerNorm body
-  # (mean, centred-square var, rsqrt, normalise, weight mul, bias add) + SiLU
-  # of the gate (~5: neg, exp, add, recip, plus the gate mul ~1) -> ~16*B*D.
-  # bytes (hbm): read x + g + residual [B,D] (3*B*D) + w[D] + b[D], write
-  # output[B,D] -> (4*B*D + 2*D) elements; all float32 primary family ->
-  # dtype_size.
   flops: 16*B*D
   flops_class: vector
   bytes: (4*B*D + 2*D) * dtype_size
@@ -92,7 +71,6 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-17
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Gated LayerNorm: LayerNorm(x) gated by silu(g), scaled by w, shifted by b, with an optional residual add. Reduction over D. eps is the variance floor. g and w use randn: the `ones` scaffold dist made silu(g) a constant gate and w an identity scale, so the gate path and the per-channel scale could both be baked in without exercising the operator semantics (WB.1 dist fix). NOTE: shapes.yaml declares g as [B, D] and w as [D]; the canonical LayerNorm per-channel gain is [D]. The tensor-dims contract gap on g is flagged for a later shapes.yaml fix (out of WB.1 param_constraints scope).
 param_constraints:
   scaffold: false
   dims:
@@ -118,3 +96,20 @@ param_constraints:
   scalars:
     eps: 0 < eps <= 1e-2
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_17_layer_norm_gated_fwd-20260529T223008
+  classified_at: '2026-05-29'
+  standalone_sha256: 203e60557e3be36b77108e27fdf58b7d19f09a84e825b4353a5241f4232a6d05
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.fused_recurrent
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.l2norm
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.solve_tril
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

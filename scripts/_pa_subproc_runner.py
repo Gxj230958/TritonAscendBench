@@ -552,14 +552,31 @@ def _load_kernel_with_optional_bridge(
             depth=rel_depth,
         )
         leaf_name = f"{leaf_pkg}.{kp.stem}"
-    try:
-        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
-            clear_conflicting_vllm_registrations,
-        )
+    # vLLM custom-op registration hygiene applies ONLY to the original
+    # side (upstream_roots is not None): it loads the UNMODIFIED upstream
+    # kernel.py which uses the real ``@CustomOp.register`` decorator, so a
+    # duplicate registration carried over from a prior load must be
+    # cleared. The severed side (upstream_roots is None) is the staged
+    # standalone candidate -- it binds the INERT
+    # ``tasks._frozen_shim.CustomOp`` whose ``register`` is a no-op that
+    # never touches a real vllm op_registry, so there is nothing to clear.
+    # Worse, ``clear_conflicting_vllm_registrations`` does ``from
+    # vllm.model_executor.custom_op import ...`` whenever the source text
+    # contains a ``@CustomOp.register(...)`` pattern (matched verbatim,
+    # comments included); on a host where vllm IS installed that import
+    # pulls vllm into sys.modules and the severed import audit (correctly)
+    # flags it as a leak, even though the standalone has zero real-vllm
+    # dependency. Skipping it on the severed side keeps the standalone
+    # genuinely severed.
+    if upstream_roots is not None:
+        try:
+            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+                clear_conflicting_vllm_registrations,
+            )
 
-        clear_conflicting_vllm_registrations(kernel_src)
-    except ImportError:
-        pass
+            clear_conflicting_vllm_registrations(kernel_src)
+        except ImportError:
+            pass
 
     spec = importlib.util.spec_from_file_location(leaf_name, kp)
     mod = importlib.util.module_from_spec(spec)
@@ -627,11 +644,16 @@ def _run_side(args: argparse.Namespace) -> int:
         try:
             from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
                 install_vllm_c_stub,
+                install_vllm_capability_probe_stubs,
                 install_vllm_source_version_shim,
             )
 
             install_vllm_c_stub(VLLM_ROOT)
             install_vllm_source_version_shim(VLLM_ROOT)
+            # Register absent vllm._C bool capability probes as -> False so a
+            # version-skewed daemon's missing cutlass probe does not crash the
+            # candidate at load (dispatch-gate only; never the benched compute).
+            install_vllm_capability_probe_stubs()
         except ImportError:
             pass
         # Inject the vllm.triton_utils forward shim BEFORE loading the

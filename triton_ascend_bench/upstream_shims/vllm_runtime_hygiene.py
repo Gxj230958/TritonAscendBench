@@ -30,6 +30,44 @@ _REGISTER_RE = re.compile(
 )
 _VLLM_C_EXTENSIONS = ("vllm._C", "vllm._C_stable_libtorch")
 
+# Boolean capability PROBES that vLLM registers on ``torch.ops._C`` via
+# its compiled extension. On a version-skewed / source-checkout daemon the
+# ``_C`` operator namespace EXISTS (some other ``.so`` populated it) but
+# these specific ops are absent, so a transitive import that evaluates them
+# (e.g. ``w8a8_utils.cutlass_fp8_supported()`` -> the module constants
+# ``CUTLASS_FP8_SUPPORTED`` / ``CUTLASS_BLOCK_FP8_SUPPORTED``) raises
+# ``AttributeError: '_OpNamespace' '_C' object has no attribute ...`` at
+# kernel LOAD time. These are DISPATCH GATES (cutlass-vs-triton), never the
+# benched kernel's own compute -- the bench resolves a triton entrypoint and
+# calls it directly, bypassing this probe. Schemas copied verbatim from
+# infer/vllm csrc/libtorch_stable/torch_bindings.cpp so a FRAGMENT define
+# matches upstream exactly. Compute ops (cutlass_scaled_mm, cutlass_moe_mm,
+# ...) are deliberately NOT here: a kernel that truly needs cutlass compute
+# must still fail loudly, never silently stubbed.
+_CUTLASS_PROBE_SCHEMAS = {
+    "cutlass_scaled_mm_supports_fp8": (
+        "cutlass_scaled_mm_supports_fp8(int cuda_device_capability) -> bool"
+    ),
+    "cutlass_scaled_mm_supports_block_fp8": (
+        "cutlass_scaled_mm_supports_block_fp8(int cuda_device_capability) "
+        "-> bool"
+    ),
+    "cutlass_scaled_mm_supports_fp4": (
+        "cutlass_scaled_mm_supports_fp4(int cuda_device_capability) -> bool"
+    ),
+    "cutlass_group_gemm_supported": (
+        "cutlass_group_gemm_supported(int cuda_device_capability) -> bool"
+    ),
+}
+
+# Module-global so the registration outlives the call: PyTorch unregisters a
+# Library's ops via ``weakref.finalize`` once the last reference is dropped,
+# so a function-local Library would silently vanish. One singleton + a
+# per-process registered-name set make repeated calls idempotent (a second
+# ``.define`` of the same op raises).
+_CUTLASS_PROBE_LIB = None
+_CUTLASS_PROBES_REGISTERED: set[str] = set()
+
 
 def _read_vllm_source_version(vllm_root: Path) -> str:
     version_py = vllm_root / "vllm" / "version.py"
@@ -135,6 +173,57 @@ def install_vllm_c_stub(vllm_root: Path) -> bool:
         )
         installed = True
     return installed
+
+
+def install_vllm_capability_probe_stubs() -> list[str]:
+    """Register MISSING vLLM ``_C`` bool capability probes as ``-> False``.
+
+    A version-skewed daemon leaves the ``torch.ops._C`` namespace present
+    but missing the cutlass capability probes (see ``_CUTLASS_PROBE_SCHEMAS``).
+    A transitive import that evaluates them at kernel-load raises
+    ``AttributeError`` and the whole candidate fails to invoke. We register
+    only the ABSENT probes (``hasattr`` guard -> never clobber a real op the
+    compiled ``.so`` already provides) with a conservative ``False``
+    implementation, matching the vendored wrapper that already treats a
+    missing ``cutlass_group_gemm_supported`` as ``False``.
+
+    ``False`` is the honest answer for a build that cannot prove the cutlass
+    path exists, and it is dispatch-neutral for the bench: the resolved
+    triton entrypoint is called directly, so the probe's value never reaches
+    the benched compute. Returns the op names newly registered this call.
+    Fail-safe: any torch/library error is swallowed (returns what it managed)
+    so the hygiene step never breaks a runner.
+    """
+    global _CUTLASS_PROBE_LIB
+    newly: list[str] = []
+    try:
+        import torch
+
+        for name, schema in _CUTLASS_PROBE_SCHEMAS.items():
+            if name in _CUTLASS_PROBES_REGISTERED:
+                continue  # already registered by us in this process
+            if hasattr(torch.ops._C, name):
+                continue  # provided by the real compiled extension
+            if _CUTLASS_PROBE_LIB is None:
+                # FRAGMENT extends the pre-existing ``_C`` namespace without
+                # clobbering it; kept module-global for lifetime (above).
+                _CUTLASS_PROBE_LIB = torch.library.Library("_C", "FRAGMENT")
+            _CUTLASS_PROBE_LIB.define(schema)
+            # int -> bool probe has no tensor args; CompositeExplicitAutograd
+            # is the correct catch-all key (a backend key like CPU would have
+            # nothing to dispatch on).
+            _CUTLASS_PROBE_LIB.impl(
+                name,
+                lambda _cuda_device_capability: False,
+                "CompositeExplicitAutograd",
+            )
+            _CUTLASS_PROBES_REGISTERED.add(name)
+            newly.append(name)
+    except Exception:
+        # Never let a hygiene helper break the runner; a probe still missing
+        # will surface as the same loud AttributeError it would have anyway.
+        return newly
+    return newly
 
 
 def clear_conflicting_vllm_registrations(kernel_src: str) -> list[str]:

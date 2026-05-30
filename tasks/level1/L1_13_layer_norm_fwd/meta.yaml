@@ -19,6 +19,10 @@ upstream:
   vendored_snapshot: tasks/_vendored/L1_13_layer_norm_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
+  output_projection:
+    arity: 3
+    map:
+      output: 0
   mutability: unspecified
   stride_layout: TODO(scaffold)
   workspace_policy: none
@@ -26,7 +30,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::layer_norm_fwd
 tolerance_class: vector_reduce
 cost_model:
   flops: 8*B*D

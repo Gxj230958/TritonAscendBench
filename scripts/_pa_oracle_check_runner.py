@@ -296,14 +296,26 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
             depth=rel_depth,
         )
         leaf_name = f"{leaf_pkg}.{path.stem}"
-    try:
-        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
-            clear_conflicting_vllm_registrations,
-        )
+    # vLLM custom-op registration hygiene applies ONLY to the
+    # upstream-backed load (upstream_roots is not None): that is the real
+    # vendored kernel.py whose ``@CustomOp.register`` uses the live vllm
+    # registry, where a duplicate registration across loads must be
+    # cleared. An ``upstream_roots is None`` load is an oracle_pytorch.py
+    # (or any task-local module that never reaches into infer/), which has
+    # no real-vllm registry to clear; calling the helper there only risks
+    # a gratuitous ``from vllm... import`` (the helper imports vllm
+    # whenever the source TEXT matches ``@CustomOp.register(...)``,
+    # comments included). Symmetric with the severed-side gate in
+    # _pa_subproc_runner._load_kernel_with_optional_bridge.
+    if upstream_roots is not None:
+        try:
+            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+                clear_conflicting_vllm_registrations,
+            )
 
-        clear_conflicting_vllm_registrations(kernel_src)
-    except ImportError:
-        pass
+            clear_conflicting_vllm_registrations(kernel_src)
+        except ImportError:
+            pass
 
     spec = importlib.util.spec_from_file_location(leaf_name, path)
     mod = importlib.util.module_from_spec(spec)
@@ -546,11 +558,16 @@ def main() -> int:
     try:
         from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
             install_vllm_c_stub,
+            install_vllm_capability_probe_stubs,
             install_vllm_source_version_shim,
         )
 
         install_vllm_c_stub(Path(spec["vllm_root"]))
         install_vllm_source_version_shim(Path(spec["vllm_root"]))
+        # Register absent vllm._C bool capability probes as -> False so a
+        # version-skewed daemon's missing cutlass probe does not crash the
+        # candidate at load (dispatch-gate only; never the benched compute).
+        install_vllm_capability_probe_stubs()
     except ImportError:
         pass
 

@@ -935,6 +935,12 @@ _FLA_REWRITE = {
     "from vllm.utils.platform_utils import num_compute_units": [
         "from tasks._frozen_shim import num_compute_units",
     ],
+    # FLA ops module ``kda.py`` subclasses CustomOp for an unrelated
+    # registered class; redirect to the inert shim (same A1 lever, base
+    # nn.Module + no-op register). The FLA modules never read op_registry.
+    "from vllm.model_executor.custom_op import CustomOp": [
+        "from tasks._frozen_shim import CustomOp",
+    ],
 }
 # math_utils import is handled by prefix (variable symbol list).
 _FLA_MATH_PREFIX = "from vllm.utils.math_utils import "
@@ -1036,7 +1042,22 @@ def vendor_package(pkg_name: str, modules: dict[str, str], repo: str) -> str | N
 # task imports a subset of {.index, .op, .utils}; index/op both pull
 # .utils. Modules with CustomOp (layernorm_guard, kda) or the eager
 # upstream __init__ are intentionally excluded.
-_FLA_OPS_CLOSURE = ("utils", "index", "op")
+# The full vllm fla/ops package (16 submodules, excl. __init__). The FLA
+# tasks import a deep closure across these (e.g. L2_17 needs chunk_delta_h,
+# cumsum, fused_recurrent, l2norm, solve_tril, index, op, utils), so vendor
+# the WHOLE package as one content-addressed unit -- intra-package
+# relative imports then resolve inside the pool. All 16 rewrite cleanly via
+# _rewrite_fla_module_source (only sanctioned vllm imports: triton_utils /
+# current_platform / num_compute_units / math_utils / CustomOp -> shim;
+# intra-package .X preserved); a future module with an unsanctioned import
+# fails the whole vendor closed (no half-severed pool).
+_FLA_OPS_MODULES = frozenset({
+    "chunk", "chunk_delta_h", "chunk_o", "chunk_scaled_dot_kkt", "cumsum",
+    "fused_gdn_prefill_post_conv", "fused_recurrent", "fused_sigmoid_gating",
+    "index", "kda", "l2norm", "layernorm_guard", "op", "solve_tril",
+    "utils", "wy_fast",
+})
+_FLA_OPS_CLOSURE = tuple(sorted(_FLA_OPS_MODULES))
 
 
 def _vendor_fla_ops_package(fla_ops_dir: "Path", repo: str) -> str | None:
@@ -3494,34 +3515,44 @@ def rewrite_imports_to_standalone(
         try:
             _meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
             _up = ((_meta or {}).get("upstream") or {}).get("path") or ""
-            _is_fla_path = "fla/ops" in str(_up)
         except (OSError, ValueError):
-            _is_fla_path = False
+            _up = ""
+        # The FLA marker can live in EITHER meta.upstream.path OR the kernel's
+        # ``Source path:`` docstring header. Some metas record only the repo
+        # name (e.g. 'vLLM'), so the per-file docstring is the reliable FLA
+        # locator. The downstream subset gate (_rel_fla <= _FLA_OPS_MODULES)
+        # still fail-closes any non-FLA relative import, so widening the path
+        # detector cannot mis-redirect a non-FLA task.
+        _m_sp = re.search(r"Source path:\s*`?([^\n`]+)", src)
+        _src_path = _m_sp.group(1) if _m_sp else ""
+        _is_fla_path = "fla/ops" in str(_up) or "fla/ops" in _src_path
         if _is_fla_path:
-            # Gate not just on the upstream path but on the kernel's
-            # ACTUAL relative-FLA imports being a subset of the vendored
-            # closure {index, op, utils} (codex finding 2: a bare
-            # "fla/ops in path" gate false-fires on L2_17/L3_17 which
-            # also import .chunk_delta_h/.cumsum/.fused_recurrent/etc
-            # that we do NOT vendor -- partial rewrite would leave those
-            # relative imports leaking. Vendor those modules' closure in
-            # a later pass; for now only handle the clean subset).
+            # Gate on BOTH the upstream path (fla/ops) AND the kernel's
+            # ACTUAL relative-FLA imports being a subset of the FULL
+            # vendored fla/ops package (_FLA_OPS_MODULES, all 16 submodules).
+            # The whole package is now vendored as one unit, so deep FLA
+            # closures (L2_17 needs .chunk_delta_h/.cumsum/.fused_recurrent/
+            # .l2norm/.solve_tril/...) resolve inside the pool. Still a
+            # subset check (not just the path) so an unexpected non-FLA
+            # relative import fails closed rather than mis-redirecting.
             _rel_fla = set()
             for _l in lines:
                 _m = re.match(r'^\s*from \.(\w+) import', _l)
                 if _m:
                     _rel_fla.add(_m.group(1))
-            _fla_is_fla_task = bool(_rel_fla) and _rel_fla <= {"index", "op", "utils"}
+            _fla_is_fla_task = bool(_rel_fla) and _rel_fla <= _FLA_OPS_MODULES
     for ln in lines:
         stripped = ln.strip()
-        # FLA-ops relative imports: `from .index/.op/.utils import ...`
-        # in a task whose upstream is the vllm FLA ops package. Redirect
-        # to the U2-vendored package (vendored once, lazily). Other
-        # relative imports (non-FLA tasks) fall through untouched.
-        if (_fla_is_fla_task
-                and stripped.startswith(("from .index import",
-                                         "from .op import",
-                                         "from .utils import"))):
+        # FLA-ops relative imports: `from .<mod> import ...` where <mod> is
+        # ANY module in the vendored fla/ops package (_FLA_OPS_MODULES), in
+        # a task whose upstream is the vllm FLA ops package. Redirect to the
+        # U2-vendored package (vendored once, lazily). The whole package is
+        # vendored, so a deep closure (.chunk_delta_h/.cumsum/.fused_recurrent
+        # /.l2norm/.solve_tril/...) resolves inside the pool. Other relative
+        # imports (non-FLA, or a name outside the package) fall through.
+        _fla_rel_m = re.match(r"^from \.(\w+) import", stripped)
+        if (_fla_is_fla_task and _fla_rel_m
+                and _fla_rel_m.group(1) in _FLA_OPS_MODULES):
             if not _fla_attempted:
                 _fla_attempted = True
                 _fla_prefix = _vendor_fla_ops_package(
@@ -3529,8 +3560,8 @@ def rewrite_imports_to_standalone(
                 )
             if _fla_prefix is not None:
                 indent = ln[: len(ln) - len(ln.lstrip())]
-                # `from .index import X` -> `from <prefix>.index import X`
-                submod = stripped.split()[1]            # ".index"
+                # `from .<mod> import X` -> `from <prefix>.<mod> import X`
+                submod = "." + _fla_rel_m.group(1)       # ".chunk_delta_h"
                 rest = stripped[len("from " + submod):]  # " import X"
                 out.append(
                     f"{indent}from {_fla_prefix}{submod}{rest}"
@@ -3662,6 +3693,87 @@ def rewrite_imports_to_standalone(
                 out.append(
                     f"{indent}from tasks._frozen_shim import {_syms}"
                     f"  # Phase A': live device query (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.utils pure platform/math predicates.
+        # is_hip/is_musa (constant backend gates), is_cuda (live honest
+        # query), ceil_div (pure integer math == cdiv). All four are
+        # setup-only backend/sizing gates that never enter a verified
+        # entrypoint's numeric path; the shim implements them against the
+        # upstream definitions. Subset-allowlisted, single-line, refuse if
+        # any other symbol shares the line so a future semantic import
+        # cannot sneak past.
+        if stripped.startswith("from sglang.srt.utils import "):
+            _syms = stripped[len("from sglang.srt.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"is_hip", "is_musa", "is_cuda", "ceil_div"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': platform/math predicate (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.utils.custom_op.register_custom_op. The
+        # frozen module decorates an unrelated sibling op with it at module
+        # scope; the verified free-function entrypoint never dispatches
+        # through sglang's custom-op table. The shim returns the decorated
+        # object unchanged (no registry side effect). Single symbol only.
+        if stripped.startswith("from sglang.srt.utils.custom_op import "):
+            _syms = stripped[len("from sglang.srt.utils.custom_op import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"register_custom_op"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import register_custom_op"
+                    f"  # Phase A': inert custom-op decorator (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.sampling_params {MAX_LOGPROB_TOKEN_IDS,
+        # SamplingParams}. A frozen kernel carries these for SIBLING setup
+        # helpers (add_request type hints, logprob caps); the verified
+        # free-function entrypoint never reads them. MAX_LOGPROB_TOKEN_IDS is
+        # a verbatim constant; SamplingParams is an inert stand-in. Subset-
+        # allowlisted, single-line, refuse if any other symbol shares the line.
+        if stripped.startswith("from vllm.sampling_params import "):
+            _syms = stripped[len("from vllm.sampling_params import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"MAX_LOGPROB_TOKEN_IDS", "SamplingParams"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': sibling-setup constants/types (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.v1.outputs.LogprobsTensors -- a 4-field NamedTuple
+        # output container (pure data). The shim is byte-faithful (same fields).
+        # The verified entrypoint returns a plain tensor; only sibling logprob
+        # helpers build one. Single symbol only.
+        if stripped.startswith("from vllm.v1.outputs import "):
+            _syms = stripped[len("from vllm.v1.outputs import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"LogprobsTensors"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import LogprobsTensors"
+                    f"  # Phase A': faithful NamedTuple container (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.v1.worker.gpu.buffer_utils {StagedWriteTensor,
+        # UvaBackedTensor} -- host/device UVA staging buffers constructed only
+        # inside module-scope batch-state setup classes, never the verified
+        # numeric path. Inert stand-ins. Subset-allowlisted; refuse if any other
+        # symbol (e.g. async_copy_to_gpu, a real copy primitive) shares the line.
+        if stripped.startswith("from vllm.v1.worker.gpu.buffer_utils import "):
+            _syms = stripped[len("from vllm.v1.worker.gpu.buffer_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            _allowed = {"StagedWriteTensor", "UvaBackedTensor"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {_syms}"
+                    f"  # Phase A': setup-only UVA buffer stand-ins (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import
