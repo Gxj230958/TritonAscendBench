@@ -17,23 +17,21 @@ import torch.nn.functional as F
 
 def _apply_grammar_bitmask(
     logits: torch.Tensor,                  # [n_tokens, vocab]
-    logits_indices: torch.Tensor,          # [n_tokens] → row into bitmask
-    bitmask: torch.Tensor,                 # [n_grammar_rows, ceil(vocab/32)] int32
+    logits_indices: torch.Tensor,          # [num_masks] -> logits row per bitmask
+    bitmask: torch.Tensor,                 # [num_masks, ceil(vocab/32)] int32
 ) -> torch.Tensor:
-    """Constrained decoding: a token is allowed iff its bitmask bit is 1.
-
-    Bit v lives in word v // 32, bit position v % 32 (LSB-first), matching
-    the xgrammar packed-int32 layout used by vLLM v1.
+    """Constrained decoding: bitmask row i masks logits[logits_indices[i]];
+    token v is allowed iff bit v is set (word v//32, position v%32, LSB-first
+    -- the xgrammar packed-int32 layout vLLM v1 uses).
     """
     out = logits.to(torch.float32).clone()
-    n_tokens, vocab = out.shape
-    rows = logits_indices.to(torch.long)
-    sel = bitmask.to(torch.int32)[rows]                     # [n_tokens, n_words]
+    vocab = out.shape[-1]
+    rows = logits_indices.to(torch.long)                   # [num_masks]
     word_idx = torch.arange(vocab, device=out.device) // 32
     bit_idx = torch.arange(vocab, device=out.device) % 32
-    words = sel[:, word_idx]                                # [n_tokens, vocab]
+    words = bitmask.to(torch.int32)[:, word_idx]           # [num_masks, vocab]
     allowed = ((words >> bit_idx) & 1).to(torch.bool)
-    out = out.masked_fill(~allowed, float("-inf"))
+    out[rows] = out[rows].masked_fill(~allowed, float("-inf"))
     return out.to(logits.dtype)
 
 

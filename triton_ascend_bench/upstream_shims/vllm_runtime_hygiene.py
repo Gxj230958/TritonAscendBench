@@ -30,20 +30,11 @@ _REGISTER_RE = re.compile(
 )
 _VLLM_C_EXTENSIONS = ("vllm._C", "vllm._C_stable_libtorch")
 
-# Boolean capability PROBES that vLLM registers on ``torch.ops._C`` via
-# its compiled extension. On a version-skewed / source-checkout daemon the
-# ``_C`` operator namespace EXISTS (some other ``.so`` populated it) but
-# these specific ops are absent, so a transitive import that evaluates them
-# (e.g. ``w8a8_utils.cutlass_fp8_supported()`` -> the module constants
-# ``CUTLASS_FP8_SUPPORTED`` / ``CUTLASS_BLOCK_FP8_SUPPORTED``) raises
-# ``AttributeError: '_OpNamespace' '_C' object has no attribute ...`` at
-# kernel LOAD time. These are DISPATCH GATES (cutlass-vs-triton), never the
-# benched kernel's own compute -- the bench resolves a triton entrypoint and
-# calls it directly, bypassing this probe. Schemas copied verbatim from
-# infer/vllm csrc/libtorch_stable/torch_bindings.cpp so a FRAGMENT define
-# matches upstream exactly. Compute ops (cutlass_scaled_mm, cutlass_moe_mm,
-# ...) are deliberately NOT here: a kernel that truly needs cutlass compute
-# must still fail loudly, never silently stubbed.
+# Bool cutlass capability probes that a version-skewed daemon's compiled _C
+# leaves unregistered, so a transitive import evaluating them AttributeErrors at
+# load time. They only gate cutlass-vs-triton dispatch, never the benched
+# compute. Schemas verbatim from infer/vllm csrc torch_bindings.cpp. Compute ops
+# stay out so a real cutlass dependency still fails loudly.
 _CUTLASS_PROBE_SCHEMAS = {
     "cutlass_scaled_mm_supports_fp8": (
         "cutlass_scaled_mm_supports_fp8(int cuda_device_capability) -> bool"
@@ -60,11 +51,9 @@ _CUTLASS_PROBE_SCHEMAS = {
     ),
 }
 
-# Module-global so the registration outlives the call: PyTorch unregisters a
-# Library's ops via ``weakref.finalize`` once the last reference is dropped,
-# so a function-local Library would silently vanish. One singleton + a
-# per-process registered-name set make repeated calls idempotent (a second
-# ``.define`` of the same op raises).
+# Module-global: torch drops a Library's ops via weakref.finalize once the last
+# ref goes, so a function-local one would vanish. The name set keeps re-calls
+# idempotent (a duplicate .define raises).
 _CUTLASS_PROBE_LIB = None
 _CUTLASS_PROBES_REGISTERED: set[str] = set()
 

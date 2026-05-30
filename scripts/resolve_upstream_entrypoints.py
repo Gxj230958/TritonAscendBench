@@ -1318,10 +1318,10 @@ def s2_smoke_with_entrypoint(
     )
     tmp_td = tmp_root / task_dir.name
     tmp_td.mkdir()
-    # s2_verify_task only reads kernel.py + meta.yaml + shapes.yaml from
-    # the task dir; copy exactly those (kernel.py is copied byte-exact
-    # and is NEVER edited -- only the temp meta's gpu_triton line is).
-    for fn in ("kernel.py", "meta.yaml", "shapes.yaml"):
+    # s2_verify_task reads kernel.py + meta.yaml + shapes.yaml, plus
+    # _pa_launcher.py for jit-only tasks (the loaders exec it). Copy them
+    # byte-exact; only the temp meta's gpu_triton line is edited.
+    for fn in ("kernel.py", "meta.yaml", "shapes.yaml", "_pa_launcher.py"):
         src = task_dir / fn
         if src.is_file():
             shutil.copy2(src, tmp_td / fn)
@@ -1488,6 +1488,17 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
     host = [c for c in cands if c.is_host_wrapper]
     bare = [c for c in cands if not c.is_host_wrapper]
     ordered = host[:6] + (bare[:1] if not host else [])
+    # jit-only: if the task ships an authored _pa_launcher.py, try its
+    # run(inputs) first (the loaders exec it into the kernel module).
+    if (task_dir / "_pa_launcher.py").is_file():
+        ordered = [
+            Candidate(
+                name="run",
+                is_host_wrapper=True,
+                score=1e9,
+                rationale="authored-jit-only-launcher",
+            )
+        ] + ordered
 
     for c in ordered:
         tried.append(c.name)

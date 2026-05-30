@@ -3760,20 +3760,32 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': faithful NamedTuple container (B-inert-shim)\n"
                 )
                 continue
-        # B-inert-shim: vllm.v1.worker.gpu.buffer_utils {StagedWriteTensor,
-        # UvaBackedTensor} -- host/device UVA staging buffers constructed only
-        # inside module-scope batch-state setup classes, never the verified
-        # numeric path. Inert stand-ins. Subset-allowlisted; refuse if any other
-        # symbol (e.g. async_copy_to_gpu, a real copy primitive) shares the line.
+        # B-inert-shim: vllm.v1.worker.gpu.buffer_utils setup-only symbols --
+        # StagedWriteTensor/UvaBackedTensor are inert UVA buffers;
+        # async_copy_to_gpu is a real copy that LOUD-FAILS if called (so it can
+        # never silently no-op a verified path, only let the module import).
+        # All three are sibling state-manager helpers off the graded path.
         if stripped.startswith("from vllm.v1.worker.gpu.buffer_utils import "):
             _syms = stripped[len("from vllm.v1.worker.gpu.buffer_utils import "):]
             _sym_set = {s.strip() for s in _syms.split(",")}
-            _allowed = {"StagedWriteTensor", "UvaBackedTensor"}
+            _allowed = {"StagedWriteTensor", "UvaBackedTensor", "async_copy_to_gpu"}
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
                     f"{indent}from tasks._frozen_shim import {_syms}"
-                    f"  # Phase A': setup-only UVA buffer stand-ins (B-inert-shim)\n"
+                    f"  # Phase A': setup-only buffer helpers (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.v1.worker.gpu.input_batch.InputBatch -- a sibling
+        # batch-state container (only a type hint on the graded path).
+        if stripped.startswith("from vllm.v1.worker.gpu.input_batch import "):
+            _syms = stripped[len("from vllm.v1.worker.gpu.input_batch import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"InputBatch"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import InputBatch"
+                    f"  # Phase A': sibling batch-state stand-in (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import
@@ -4120,7 +4132,9 @@ def synthesise_standalone_run(
     wrapper param to the same task tensor under a different key -- mirrors
     the original side's _pa_subproc_runner._signature_adapter EXACTLY so
     both sides bind identically."""
-    if entrypoint is None:
+    if entrypoint is None or entrypoint == "run":
+        # entrypoint == "run" -> the module already supplies run (jit-only
+        # launcher / fixture); wrapping it would self-reference.
         return src
     import ast as _ast
 
@@ -4162,7 +4176,18 @@ def build_staged_candidate(
     ep = _entrypoint_from_meta(task_dir)
     _meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
     _pnm = (_meta.get("interface") or {}).get("param_name_map") or {}
-    staged_src = synthesise_standalone_run(rewritten, ep, _pnm)
+    # jit-only: a bare @triton.jit kernel has no callable wrapper to synthesise
+    # run() from. If the task ships an authored _pa_launcher.py, splice its
+    # run(inputs) on instead so it sees the kernel in-module; a wrong launcher
+    # still fails the oracle + S2, so it cannot fake a PASS.
+    _launcher = task_dir / "_pa_launcher.py"
+    if _launcher.is_file():
+        staged_src = (
+            rewritten.rstrip() + "\n\n"
+            + _launcher.read_text(encoding="utf-8", errors="replace")
+        )
+    else:
+        staged_src = synthesise_standalone_run(rewritten, ep, _pnm)
 
     root = staging_root or Path(
         tempfile.mkdtemp(prefix=f"pa_staged_{task_dir.name}_")

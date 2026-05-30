@@ -341,6 +341,10 @@ def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict,
     import inspect
 
     param_name_map = param_name_map or {}
+    # The standalone entrypoint run(inputs) takes the whole dict, not by-name
+    # tensor params (synthesised wrappers + authored jit-only launchers).
+    if entrypoint_name == "run":
+        return None, [], {(): inputs}
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError):
@@ -583,6 +587,11 @@ def _load_kernel_with_optional_bridge(
     mod.__package__ = leaf_pkg
     sys.modules[leaf_name] = mod
     spec.loader.exec_module(mod)
+    # jit-only: exec the authored run(inputs) into the original kernel.py
+    # module (the staged candidate already inlines it).
+    _lp = kp.parent / "_pa_launcher.py"
+    if kp.name == "kernel.py" and _lp.is_file():
+        exec(compile(_lp.read_text(), str(_lp), "exec"), mod.__dict__)
     return mod
 
 

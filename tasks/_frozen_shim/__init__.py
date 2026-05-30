@@ -332,3 +332,19 @@ class StagedWriteTensor(_SetupOnlyShim):
     """Inert stand-in for vllm.v1.worker.gpu.buffer_utils.StagedWriteTensor
     (a staged host->device write buffer). Setup-only, same rationale as
     ``UvaBackedTensor``; B-inert."""
+
+
+class InputBatch(_SetupOnlyShim):
+    """Inert stand-in for vllm.v1.worker.gpu.input_batch.InputBatch (a sibling
+    batch-state container, only a type hint on the graded path); B-inert."""
+
+
+def async_copy_to_gpu(*args, **kwargs):
+    """Stand-in for vllm.v1.worker.gpu.buffer_utils.async_copy_to_gpu -- a real
+    host->device copy used only by sibling state managers. The import must
+    resolve so the module loads, but it LOUD-FAILS if a verified entrypoint
+    ever calls it (never silently a no-op)."""
+    raise NotImplementedError(
+        "async_copy_to_gpu shim reached: a real host->device copy is setup-only "
+        "and must not enter a verified entrypoint's path."
+    )

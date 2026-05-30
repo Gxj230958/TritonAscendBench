@@ -322,6 +322,15 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
     mod.__package__ = leaf_pkg
     sys.modules[leaf_name] = mod
     spec.loader.exec_module(mod)
+    # jit-only: exec the authored run(inputs) into the kernel module so the
+    # oracle anchor can invoke it (kernel.py only, never oracle_pytorch.py).
+    if path.name == "kernel.py":
+        _launcher = path.parent / "_pa_launcher.py"
+        if _launcher.is_file():
+            exec(
+                compile(_launcher.read_text(), str(_launcher), "exec"),
+                mod.__dict__,
+            )
     return mod
 
 
