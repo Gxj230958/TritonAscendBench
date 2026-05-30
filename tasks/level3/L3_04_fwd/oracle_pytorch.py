@@ -36,6 +36,7 @@ def naive_prefill_attention(
     q: torch.Tensor,
     k: torch.Tensor,
     v: torch.Tensor,
+    o: torch.Tensor,
     b_start_loc: torch.Tensor,
     b_seq_len: torch.Tensor,
     is_causal: bool = True,
@@ -43,7 +44,13 @@ def naive_prefill_attention(
 ) -> torch.Tensor:
     """Standard scaled-dot-product attention, batched per-sequence.
 
-    q, k, v: [total_tokens, head, head_dim]
+    Mirrors the kernel's in-place contract: the result is written into the
+    caller-supplied ``o`` buffer (and returned for convenience). The kernel
+    accumulates in fp32 and ``tl.store``s into the runner-allocated ``o``,
+    so the reference casts to ``o.dtype`` (fp16) at the exact same point --
+    matching both the value and the storage dtype the kernel produces.
+
+    q, k, v, o: [total_tokens, head, head_dim]
     """
     total_tokens, h_q, head_dim = q.shape
     h_kv = k.shape[1]
@@ -52,7 +59,6 @@ def naive_prefill_attention(
     if sm_scale is None:
         sm_scale = 1.0 / math.sqrt(head_dim)
 
-    out = torch.zeros_like(q)
     n_batch = b_seq_len.shape[0]
 
     for b in range(n_batch):
@@ -85,21 +91,38 @@ def naive_prefill_attention(
 
         probs = _softmax(scores, dim=-1)                                   # (h_q, S, S)
         out_b = torch.matmul(probs, v_t)                                   # (h_q, S, d)
-        out_b = out_b.transpose(0, 1).to(q.dtype)                          # (S, h_q, d)
+        out_b = out_b.transpose(0, 1).to(o.dtype)                          # (S, h_q, d)
 
-        out[start : start + seq_len] = out_b
+        o[start : start + seq_len] = out_b
 
-    return out
+    return o
 
 
 def run(inputs: dict) -> dict:
-    out = naive_prefill_attention(
+    # The kernel writes attention into the runner-allocated ``o`` buffer in
+    # place and returns None; the harness then surfaces every tensor argument
+    # it bound (q, k, v, o, b_start_loc, b_seq_len) as the candidate's
+    # outputs. The oracle mirrors that exact structure: read-only inputs pass
+    # through untouched (the kernel never mutates them) and ``o`` carries the
+    # computed result in the buffer's dtype. Returning the full bound set --
+    # rather than only ``o`` -- makes the oracle structurally identical to the
+    # in-place kernel so the anchor's arity/dtype gate matches faithfully.
+    o = inputs["o"]
+    naive_prefill_attention(
         inputs["q"],
         inputs["k"],
         inputs["v"],
+        o,
         inputs["b_start_loc"],
         inputs["b_seq_len"],
         is_causal=inputs.get("is_causal", True),
         sm_scale=inputs.get("sm_scale"),
     )
-    return {"o": out}
+    return {
+        "q": inputs["q"],
+        "k": inputs["k"],
+        "v": inputs["v"],
+        "o": o,
+        "b_start_loc": inputs["b_start_loc"],
+        "b_seq_len": inputs["b_seq_len"],
+    }

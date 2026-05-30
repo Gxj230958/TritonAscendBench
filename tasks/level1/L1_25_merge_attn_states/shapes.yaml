@@ -132,6 +132,12 @@ hidden_shapes:
     C: 8
     G: 4
 inputs:
+  # Upstream contract (vllm/v1/attention/ops/triton_merge_attn_states.py,
+  # commit 18f6bf5): outputs are [NUM_TOKENS, NUM_HEADS, HEAD_SIZE] and the
+  # LSE tensors are stored TRANSPOSED as [NUM_HEADS, NUM_TOKENS] (the kernel
+  # indexes lse as `head_idx * num_tokens + token_idx`). Here B=NUM_TOKENS,
+  # H=NUM_HEADS, D=HEAD_SIZE (D is already a power of 2 in every shape row,
+  # so padded_head_size == head_size).
   prefix_output:
     dims:
     - B
@@ -141,8 +147,8 @@ inputs:
     dist: randn
   prefix_lse:
     dims:
-    - B
     - H
+    - B
     dtype: float32
     dist: randn
   suffix_output:
@@ -154,13 +160,22 @@ inputs:
     dist: randn
   suffix_lse:
     dims:
-    - B
     - H
+    - B
     dtype: float32
     dist: randn
+  # Preallocated in-place buffers the host wrapper writes into (the wrapper
+  # returns None; the runner reconstructs them as the candidate output).
   output:
     dims:
     - B
-    - N
+    - H
     - D
-    dtype: float16
+    dtype: float32
+    dist: zeros
+  output_lse:
+    dims:
+    - H
+    - B
+    dtype: float32
+    dist: zeros
