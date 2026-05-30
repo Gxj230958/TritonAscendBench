@@ -771,3 +771,118 @@ def test_anchor_strength_is_not_overclaimed_as_proof():
     assert "we do\nnot overclaim" in ocr_src or (
         "we do not overclaim" in " ".join(ocr_src.split())
     )
+
+
+# ── narrowing-float interpreter-skew rescue marker ─────────────────────
+# Under TRITON_INTERPRET=1 the interpreter mis-rounds every narrowing float
+# store -- fp32->fp8 in both directions (127.2 -> 64.0 instead of 128.0),
+# fp32->bf16/fp16 truncated toward zero instead of RNE (100.3 -> 100.0
+# instead of 100.5). The anchor flags any such output as
+# ``narrow_float_output`` so the caller re-runs on the real device (which
+# rounds correctly) and adopts that verdict. The marker keys on output dtype
+# alone; the GPU re-run re-applies the full dtype/structure/tolerance check,
+# so a wrong operator is still caught there.
+
+
+def _run_anchor_full(td: Path, entrypoint: str = "cand") -> dict:
+    """Like _run_anchor but returns the full result dict (so tests can
+    assert on ``narrow_float_output`` / early-return arity safety)."""
+    work = Path(tempfile.mkdtemp(prefix="pa_anchor_test_"))
+    spec = {
+        "task_dir": str(td),
+        "entrypoint": entrypoint,
+        "out_json": str(work / "out.json"),
+        "vllm_root": str(REPO.parent / "infer" / "vllm"),
+        "sglang_root": str(REPO.parent / "infer" / "sglang" / "python"),
+        "repo_root": str(REPO),
+    }
+    (work / "spec.json").write_text(json.dumps(spec))
+    subprocess.run(
+        [sys.executable, str(_ORACLE_RUNNER), "--spec",
+         str(work / "spec.json")],
+        capture_output=True, text=True,
+    )
+    return json.loads((work / "out.json").read_text())
+
+
+def test_fp8_interpreter_skew_sets_rescue_marker():
+    """The real L1_30_act_quant task: under TRITON_INTERPRET=1 the
+    interpreter's fp32->float8 store mis-rounds, so the CORRECT oracle
+    'mismatches' the kernel on ``q`` (float8) while ``scale`` (fp32)
+    matches bit-exact. The anchor must set ``narrow_float_output`` so
+    the caller can re-run on GPU. FAILS ON REVERT (the float8 skew would
+    be reported as a plain oracle-mismatch with no rescue)."""
+    td = REPO / "tasks" / "level1" / "L1_30_act_quant"
+    if not (td / "kernel.py").is_file():
+        import pytest
+
+        pytest.skip("L1_30_act_quant task not present")
+    res = _run_anchor_full(td, entrypoint="act_quant")
+    assert res.get("consistent") is False, res.get("detail")
+    assert res.get("narrow_float_output") is True, res.get("detail")
+    # The float8 output (q) is the one that misses; the fp32 scale matches.
+    assert "q:" in res.get("detail", "")
+    assert "✓ within" in res.get("detail", "")  # scale matched bit-exact
+
+
+def test_bf16_output_sets_rescue_marker(tmp_path):
+    """A bf16 (narrowing-float) output sets ``narrow_float_output`` even when
+    the anchor PASSES -- the interpreter's truncated bf16 store is unreliable
+    both ways, so the caller must GPU-confirm. FAILS ON REVERT to an fp8-only
+    marker that left bf16 anchor verdicts untrustworthy."""
+    td = _mk_anchor_task(
+        tmp_path,
+        kernel_src=(
+            "import torch\n"
+            "def cand(x):\n    return {'y': (x * 1.0).to(torch.bfloat16)}\n"
+        ),
+        oracle_src=(
+            "import torch\n"
+            "def run(inp):\n"
+            "    return {'y': (inp['x'] * 1.0).to(torch.bfloat16)}\n"
+        ),
+    )
+    res = _run_anchor_full(td)
+    assert res.get("narrow_float_output") is True, res.get("detail")
+
+
+def test_non_narrow_mismatch_does_not_set_rescue_marker(tmp_path):
+    """A numeric mismatch on a NON-narrow (float32) output must NOT set
+    ``narrow_float_output`` -- the interpreter rounds fp32 correctly, so a
+    wrong fp32 operator gets no GPU rescue. FAILS ON REVERT to a marker that
+    ignores output dtype."""
+    td = _mk_anchor_task(
+        tmp_path,
+        kernel_src=(
+            "import torch\n"
+            "def cand(x):\n    return {'y': x * -123.0}\n"  # wrong fp32
+        ),
+        oracle_src=(
+            "import torch\n"
+            "def run(inp):\n    return {'y': inp['x'] + 1.0}\n"
+        ),
+    )
+    res = _run_anchor_full(td)
+    assert res.get("consistent") is False, res.get("detail")
+    assert not res.get("narrow_float_output"), res.get("detail")
+
+
+def test_anchor_early_returns_are_arity_safe(tmp_path):
+    """Regression: _check_one_shape returns a 4-tuple on EVERY path. A
+    non-callable entrypoint takes an early-return branch; main() must
+    unpack it without a ValueError and emit the honest 'not callable'
+    detail (no ``narrow_float_output``). FAILS ON REVERT to a short
+    early-return tuple that crashed main()'s 4-way unpack."""
+    td = _mk_anchor_task(
+        tmp_path,
+        kernel_src="x = 1\n",  # no module-level callable named 'cand'
+        oracle_src=(
+            "import torch\n"
+            "def run(inp):\n    return {'y': inp['x'] + 1.0}\n"
+        ),
+    )
+    res = _run_anchor_full(td)
+    assert res.get("consistent") is False, res.get("detail")
+    assert not res.get("narrow_float_output"), res.get("detail")
+    assert "ValueError" not in res.get("detail", ""), res.get("detail")
+    assert "not a module-level callable" in res.get("detail", "")

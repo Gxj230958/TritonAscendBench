@@ -26,23 +26,18 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
-tolerance_class: vector_reduce
+  gpu_triton: kernel.py::_dequantize_k_cache_fast
+tolerance_class: elementwise_exact_or_inf_safe
 cost_model:
-  # Symbol audit (approach §3.4). MLA K-cache dequant: nope part is per-group
-  # dequantised dequant_nope[g] = nope_q[g] * nope_s[g//gs]; rope part is a
-  # passthrough; output = concat(dequant_nope, rope). Symbol map: B -> token
-  # rows (nope_q/nope_s/rope dim 0, kernel grid extent), D -> DIM_NOPE ==
-  # DIM_ROPE (nope_q/rope last dim). group_size is a scalar literal; nope_s has
-  # D//group_size scale columns.
-  # FLOPs (vector): one multiply per nope element -> B*D; the rope half is a
-  # pure copy (0 ops).
-  # bytes (hbm): read nope_q[B,D] + rope[B,D] + nope_s[B,D//8], write
-  # output[B,2*D] -> (4*B*D + B*D/8) elements; all float32 primary family ->
-  # dtype_size.
-  flops: B*D
+  # MLA K-cache dequant (packed). Input quant_k_cache[B, 656] fp8 unpacks to
+  # nope_q fp8 [B,512] + nope_s fp32-view [B,4] + rope bf16-view [B,64]; output
+  # [B, 576] bf16 = concat(dequant_nope, rope). Only B is free (656/512/64/128
+  # are structural kernel asserts).
+  # FLOPs (vector): one multiply per nope element -> B*512; rope is a copy (0).
+  flops: B*512
   flops_class: vector
-  bytes: (4*B*D + B*D/8) * dtype_size
+  # bytes (hbm): read 656 fp8 bytes/token, write 576 bf16 (2B) per token.
+  bytes: B*656 + B*576*2
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -75,24 +70,15 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-07
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Dequantises the K cache: nope_q [B, D] with per-group scales nope_s [B, D/group_size] is dequantised; rope [B, D] is passed through. group_size is fixed at 8 ⇒ D % 8 == 0. Scales are positive (uniform).
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Dequantises the MLA K cache from a single packed fp8 row quant_k_cache [B, 656] (float8_e4m3fn). Internally unpacked by byte reinterpret: nope_q fp8 [B, 512], nope_s fp32-view [B, 4] (per-128-group scales), rope bf16-view [B, 64]. The nope half is per-group dequantised (out[:, j] = nope_q[:, j] * nope_s[:, j // 128]); the rope half is passed through. dim_quant == 656 and group_size == 128 are structural invariants asserted by the kernel.
 param_constraints:
   scaffold: false
   dims:
-  - D % 8 == 0
-  - D >= 8
   - B >= 1
   dtypes:
-    nope_q: float32
-    nope_s: float32
-    rope: float32
+    quant_k_cache: float8_e4m3fn
   dists:
-    nope_q:
+    quant_k_cache:
       kind: randn
-    nope_s:
-      kind: rand
-    rope:
-      kind: randn
-  scalars:
-    group_size: group_size == 8
+  scalars: {}
   tensor_invariants: []

@@ -356,21 +356,22 @@ def _check_one_shape(
     compare, build_inputs, _map_inputs_by_name,
     upstream_roots: list[Path] | None = None,
     device: str = "cpu",
-) -> tuple[bool, str, bool]:
-    """Run the anchor on ONE shape. Returns (ok, detail, fp8_only_mismatch, has_fp8).
+) -> tuple[bool, str, bool, bool]:
+    """Run the anchor on ONE shape. Returns (ok, detail, fp8_only_mismatch, has_narrow).
 
-    ``fp8_mismatch`` is True when the ONLY thing that failed is a numeric
-    tolerance miss on a ``float8_*`` output (shape/dtype/structure all
-    match). Under ``TRITON_INTERPRET=1`` the interpreter's fp32->float8
-    store mis-rounds carry-to-next-exponent cases (e.g. 127.2 -> 64.0
-    instead of 128.0), which the real device rounds correctly. The marker
-    lets the caller re-run THIS anchor on GPU (same rescue path already
-    used for thrown InterpreterError) instead of trusting the interpreter's
-    fp8 numeric output. It is fail-closed: a non-fp8 mismatch, a dtype or
-    structure mismatch never sets it, so a genuinely wrong operator can
-    never be rescued.
+    ``has_narrow`` is True when any oracle output is a narrowing float dtype
+    (``float8_*`` / ``float16`` / ``bfloat16``). The TRITON_INTERPRET=1
+    interpreter rounds narrowing float stores wrong: fp32->fp8 mis-rounds in
+    BOTH directions (e.g. 127.2 -> 64.0 instead of 128.0) and fp32->bf16/fp16
+    truncates toward zero instead of round-to-nearest-even (e.g. 100.3 -> 100.0
+    instead of 100.5), so the interpret verdict for such a task is untrustworthy
+    whether it passed or failed. The marker lets the caller re-run THIS anchor on
+    GPU -- which rounds correctly -- and adopt that verdict (same rescue path used
+    for a thrown InterpreterError). The GPU re-run uses the UNCHANGED tolerance, so
+    a genuinely wrong operator still fails there: the rescue corrects the rounding
+    model, it does not loosen the comparison.
 
-    FIX 3(b)+(c) (codex finding 6, adopted): in addition to requiring
+    FIX 3(b)+(c): in addition to requiring
     every oracle tensor to find a numeric twin, the candidate output
     STRUCTURE must match the oracle's (same arity of flattened named
     tensor outputs -- EXTRA unexplained candidate outputs ⇒ reject as a
@@ -543,17 +544,18 @@ def _check_one_shape(
     # granted to a genuinely wrong operator.
     fp8_mismatch = False
     non_fp8_fail = False
-    # codex (5.5) finding: the triton INTERPRETER mis-rounds fp32->float8 in
-    # BOTH directions -- it can turn a correct kernel into a false FAIL AND a
-    # wrong kernel into a false PASS (mis-rounding INTO the oracle value). So
-    # ANY fp8 output makes the interpret verdict untrustworthy; the parent
-    # must GPU-confirm such a task whether it passed or failed under interpret.
-    has_fp8 = False
+    # The interpreter mis-rounds every narrowing float store -- fp8 in both
+    # directions, bf16/fp16 truncated toward zero instead of RNE -- so ANY such
+    # output makes the interpret verdict untrustworthy (correct kernel false-FAILs,
+    # wrong kernel can false-PASS by rounding into the oracle value). Flag it so the
+    # parent GPU-confirms whether the interpret run passed or failed.
+    has_narrow = False
     used: set[int] = set()
     cand_items = list(cand_t.items())
     for ok_, ov in orac_t.items():
-        if "float8" in str(ov.dtype):
-            has_fp8 = True
+        _odt = str(ov.dtype)
+        if ("float8" in _odt) or ("float16" in _odt):  # fp8_*, float16, bfloat16
+            has_narrow = True
         twin = None
         # Same-key match -- FIX 3(c): now ALSO require dtype to match
         # (the old code accepted a same-key twin on shape alone).
@@ -624,7 +626,7 @@ def _check_one_shape(
     fp8_only_mismatch = (not all_ok) and fp8_mismatch and not non_fp8_fail
     return all_ok, (
         f"shape={sid} tol={tol_name} :: " + "; ".join(details[:6])
-    ), fp8_only_mismatch, has_fp8
+    ), fp8_only_mismatch, has_narrow
 
 
 def main() -> int:
@@ -752,28 +754,28 @@ def main() -> int:
         ]
 
         all_ok = True
-        has_fp8_output = False
+        has_narrow_output = False
         per_shape: list[str] = []
         for sid in sids:
-            ok, det, _fp8_only, fp8_out = _check_one_shape(
+            ok, det, _fp8_only, narrow_out = _check_one_shape(
                 task_dir, entrypoint, sid, shapes_doc, tcls, tol_name,
                 compare, build_inputs, _map_inputs_by_name,
                 upstream_roots=upstream_roots,
                 device=("cpu" if interpret else "cuda"),
             )
             per_shape.append(det)
-            if fp8_out:
-                has_fp8_output = True
+            if narrow_out:
+                has_narrow_output = True
             if not ok:
                 all_ok = False
                 break  # one shape disproves operator identity -> stop
         result["consistent"] = all_ok
-        # The interpret fp8 store mis-rounds BOTH ways, so the interpret
-        # verdict (pass OR fail) is untrustworthy for any fp8-output task.
-        # Flag it so the parent re-runs the SAME anchor on GPU and adopts
-        # that verdict. Only meaningful on the interpret side.
-        if interpret and has_fp8_output:
-            result["fp8_output"] = True
+        # The interpreter mis-rounds narrowing float stores (fp8 both ways,
+        # bf16/fp16 truncated), so the interpret verdict (pass OR fail) is
+        # untrustworthy for any narrow-float-output task. Flag it so the parent
+        # re-runs the SAME anchor on GPU and adopts that verdict. interpret-only.
+        if interpret and has_narrow_output:
+            result["narrow_float_output"] = True
         result["detail"] = (
             f"anchored on {len(per_shape)}/{len(sids)} shape(s) "
             f"{sids[:len(per_shape)]} :: " + " || ".join(per_shape)

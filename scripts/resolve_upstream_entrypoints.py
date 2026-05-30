@@ -1282,27 +1282,29 @@ def oracle_consistency_check(
     closure = res.get("upstream_closure")
     closure = [str(p) for p in closure] if isinstance(closure, list) else []
     _interp_err = bool(res.get("interpret_error"))
-    _fp8_out = bool(res.get("fp8_output"))
-    if interpret and (_interp_err or _fp8_out) and _gpu_available():
+    _narrow_out = bool(res.get("narrow_float_output"))
+    if interpret and (_interp_err or _narrow_out) and _gpu_available():
         # Two interpret-only tooling skews trigger the SAME GPU rescue:
         #   - interpret_error: the interpret pass threw a triton
         #     InterpreterError (e.g. a grid-stride `tl.range(...).to()`).
-        #   - fp8_output: the task has a float8 output. The triton interpreter
-        #     mis-rounds fp32->float8 in BOTH directions (e.g. 127.2 -> 64.0
-        #     instead of 128.0), so its verdict is untrustworthy whether it
-        #     PASSED or FAILED -- it can both false-FAIL a correct kernel and
-        #     false-PASS a wrong one (mis-rounding INTO the oracle value, codex
-        #     5.5 finding). So ALWAYS re-confirm an fp8 task on the real device,
-        #     which rounds correctly, regardless of the interpret verdict.
+        #   - narrow_float_output: the task writes a narrowing float dtype
+        #     (fp8/bf16/fp16). The interpreter rounds these stores wrong --
+        #     fp32->fp8 mis-rounds both ways (127.2 -> 64.0 instead of 128.0),
+        #     fp32->bf16/fp16 truncates toward zero instead of RNE (100.3 ->
+        #     100.0 instead of 100.5) -- so the verdict is untrustworthy whether
+        #     it PASSED or FAILED (false-FAIL a correct kernel, false-PASS a
+        #     wrong one rounding into the oracle value). Re-confirm on the real
+        #     device, which rounds correctly, regardless of the interpret verdict.
         # Re-run the SAME anchor ONCE on GPU and adopt its verdict; union both
-        # import closures so upstream_fp stays complete. interpret=False cannot
-        # re-enter this branch (fires at most once). A wrong operator still
-        # fails the GPU comparison -> fail-closed.
+        # import closures so upstream_fp stays complete. The GPU re-run keeps the
+        # task's UNCHANGED tolerance, so it only corrects the rounding model -- a
+        # wrong operator still fails there. interpret=False cannot re-enter this
+        # branch (fires at most once) -> fail-closed.
         g_ok, g_why, g_closure = oracle_consistency_check(
             task_dir, entrypoint, interpret=False
         )
         merged = sorted(set(closure) | set(g_closure))
-        _why = "fp8 interpret-unreliable" if (_fp8_out and not _interp_err) else (
+        _why = "narrow-float interpret-unreliable" if (_narrow_out and not _interp_err) else (
             "interpret InterpreterError"
         )
         suffix = (
