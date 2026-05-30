@@ -142,30 +142,18 @@ inputs:
     dims:
     - B*2
     dtype: int64
-    dist: arange
+    dist: randperm
+  topk_ids:
+    dims:
+    - B*2
+    dtype: int64
+    dist: randint:0:E+1
+  a1_scales:
+    dims:
+    - 1
+    dtype: float32
+    dist: rand
+  num_local_experts:
+    scalar_knob: E
   topk:
     scalar: 2
-  down_output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  masked_m:
-    dims:
-    - B
-    - N
-    dtype: bool
-  x:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
