@@ -291,6 +291,23 @@ def get_lora_expand_config(K, R, num_slices, chunk_size):
     return {"BLOCK_N": 64, "BLOCK_K": 16}
 
 
+def sglang_per_token_group_quant_fp8(*args, **kwargs):
+    """Loud-fail stand-in for sglang fp8_kernel.sglang_per_token_group_quant_fp8.
+    The bundled cutlass-moe file imports it under a `if is_cuda()` gate, but only
+    the silu_and_mul_post_quant sibling CALLS it; the reorder entrypoints never
+    do. Raising keeps any task that genuinely needs fp8 quant honest -- the
+    severed kernel must not silently fake it."""
+    raise NotImplementedError(
+        "sglang_per_token_group_quant_fp8 is a sibling-only fp8 quant path that "
+        "is not vendored; the graded reorder entrypoint must not invoke it"
+    )
+
+
+# Upstream alias used by the cutlass-moe files (imported as
+# `sglang_per_token_group_quant_fp8 as per_token_group_quant_fp8`, or directly).
+per_token_group_quant_fp8 = sglang_per_token_group_quant_fp8
+
+
 # vllm sampling/output/worker symbols carried at module scope by some frozen
 # kernels for SIBLING setup helpers (batch-state managers, add_request type
 # hints, logprob output containers). The verified free-function entrypoint

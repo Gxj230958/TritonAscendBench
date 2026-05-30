@@ -132,49 +132,17 @@ hidden_shapes:
     C: 8
     G: 4
 inputs:
+  # Raw token->expert assignment (one entry per token-topk slot). The launcher
+  # and oracle both sort topk_ids.view(-1) (the upstream preprocessing slice)
+  # before driving the kernel, so values span [0, num_local_experts) to give a
+  # non-trivial segment indptr. Matches moe_ep_deepgemm_preprocess's topk_ids.
   topk_ids:
     dims:
     - B
     - D
     dtype: int64
-    dist: randint:0:2
-  num_experts:
-    scalar: 4
-  masked_m:
-    dims:
-    - B
-    - N
-    dtype: bool
-  down_output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  input:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
+    dist: randint:0:E
+  # num_local_experts: grid is (num_local_experts + 1,) and seg_indptr has
+  # length num_local_experts + 1 (kernel.py moe_ep_deepgemm_preprocess).
   num_local_experts:
-    scalar: 8
-  hidden_states:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  problem_sizes1:
-    dims:
-    - E
-    - "3"
-    dtype: int32
+    scalar_knob: E

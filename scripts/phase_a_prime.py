@@ -3511,6 +3511,24 @@ def rewrite_imports_to_standalone(
     a conservative line-level rewrite of the *import statements only*;
     it never edits kernel numeric logic (plan: changing values = A'
     failure)."""
+    # Collapse the cuda-gated multi-line `from sglang.srt.layers.quantization.
+    # fp8_kernel import (...)` to one line (symbols + aliases preserved) so the
+    # line-level redirect below can rewrite it verbatim. The bundled
+    # cutlass-moe / w4a8 files carry this fp8-quant import; the single-line
+    # rules cannot see a parenthesised continuation.
+    def _collapse_fp8(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return (
+            "from sglang.srt.layers.quantization.fp8_kernel import "
+            + ", ".join(syms)
+        )
+
+    src = re.sub(
+        r"from sglang\.srt\.layers\.quantization\.fp8_kernel import \(\s*(.*?)\s*\)",
+        _collapse_fp8,
+        src,
+        flags=re.DOTALL,
+    )
     lines = src.splitlines(keepends=True)
     out: list[str] = []
     in_multiline_import = False
@@ -3841,6 +3859,22 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': LoRA expand block-size config (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: sglang fp8_kernel quant helpers. The bundled cutlass-moe
+        # files import these under a cuda gate; on the reorder entrypoints they
+        # are sibling-only (never called). Redirect the module path to the shim
+        # VERBATIM -- every requested symbol/alias is preserved, so a symbol the
+        # shim does not export raises a clear ImportError (honest block) rather
+        # than being silently dropped. The shim's stubs raise if actually
+        # invoked, so a task that truly needs fp8 quant is never faked. The
+        # multi-line form was collapsed to one line at the top of this function.
+        _FP8K = "from sglang.srt.layers.quantization.fp8_kernel import "
+        if stripped.startswith(_FP8K):
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import {stripped[len(_FP8K):]}"
+                f"  # Phase A': fp8 quant helpers -> shim (B-inert-shim)\n"
+            )
+            continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import
         # form (not `from ... import ...`), redirected to the allowlisted
         # tasks._frozen_shim.envs module, which exposes only verified-inert
