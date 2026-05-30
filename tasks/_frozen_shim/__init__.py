@@ -339,6 +339,11 @@ class InputBatch(_SetupOnlyShim):
     batch-state container, only a type hint on the graded path); B-inert."""
 
 
+class LoRABatchInfo(_SetupOnlyShim):
+    """Inert stand-in for sglang.srt.lora.utils.LoRABatchInfo (a batch-state
+    dataclass, only a host-wrapper type hint on the graded path); B-inert."""
+
+
 def async_copy_to_gpu(*args, **kwargs):
     """Stand-in for vllm.v1.worker.gpu.buffer_utils.async_copy_to_gpu -- a real
     host->device copy used only by sibling state managers. The import must

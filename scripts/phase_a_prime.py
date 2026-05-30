@@ -1078,6 +1078,17 @@ def _vendor_fla_ops_package(fla_ops_dir: "Path", repo: str) -> str | None:
     return vendor_package("fla_ops", modules, repo)
 
 
+def _vendor_sglang_lora_kernel_utils() -> str | None:
+    """Vendor the self-contained sglang LoRA triton helper kernel_utils (imports
+    only triton) into the U2 pool; return its dotted prefix or None."""
+    src = SGLANG_ROOT / "sglang/srt/lora/triton_ops/kernel_utils.py"
+    try:
+        raw = src.read_text()
+    except OSError:
+        return None
+    return vendor_package("sglang_lora_triton_ops", {"kernel_utils": raw}, "sglang")
+
+
 _NOTICE_PA_MARKER = "Phase A-prime vendored dependency pool"
 
 
@@ -3786,6 +3797,31 @@ def rewrite_imports_to_standalone(
                 out.append(
                     f"{indent}from tasks._frozen_shim import InputBatch"
                     f"  # Phase A': sibling batch-state stand-in (B-inert-shim)\n"
+                )
+                continue
+        # U2 vendoring: sglang LoRA triton helper kernel_utils (the bare kernel
+        # calls _resolve_token_positions from it; self-contained, triton-only).
+        if stripped.startswith("from sglang.srt.lora.triton_ops.kernel_utils import "):
+            _pfx = _vendor_sglang_lora_kernel_utils()
+            if _pfx is not None:
+                _syms = stripped[len(
+                    "from sglang.srt.lora.triton_ops.kernel_utils import "):]
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from {_pfx}.kernel_utils import {_syms}"
+                    f"  # Phase A': U2 vendored sglang LoRA helper\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.lora.utils.LoRABatchInfo -- a batch-state
+        # dataclass, only a host-wrapper type hint on the graded path.
+        if stripped.startswith("from sglang.srt.lora.utils import "):
+            _syms = stripped[len("from sglang.srt.lora.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"LoRABatchInfo"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import LoRABatchInfo"
+                    f"  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import

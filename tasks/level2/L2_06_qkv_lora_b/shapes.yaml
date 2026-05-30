@@ -131,17 +131,29 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+# Dense fixture for the fused QKV LoRA-B expand. The authored
+# _pa_launcher.py drives the in-module @triton.jit `_qkv_lora_b_kernel`
+# directly (bypassing the upstream host wrapper, whose LoRABatchInfo import
+# is a T3 BLOCKED closure) and derives the wrapper's batch_info fields from
+# these tensors: seg_lens = diff(seg_indptr), bs = num_segments,
+# max_len = max(seg_lens), output_offset = [0, N, 2N, 3N] from qkv_lora_b's
+# output_dim, permutation = None (SORTED_BY_ADAPTER False). Knob roles:
+#   B -> total tokens s (x rows);  E -> num_segments == num_lora adapters;
+#   G -> max LoRA rank r;  N -> per-slice output dim (output_dim = 3*N).
+# x is (s, n_slices * r) = (B, 3*G); qkv_lora_b is (num_lora, 3*N, r) =
+# (E, 3*N, G). seg_indptr `offsets:to=B` pins the segment cumsum to B so the
+# segments tile [0, B) and every kernel row read stays in-bounds.
 inputs:
   x:
     dims:
     - B
-    - G
+    - 3*G
     dtype: float32
     dist: randn
   qkv_lora_b:
     dims:
     - E
-    - N
+    - 3*N
     - G
     dtype: float32
     dist: randn
@@ -149,7 +161,7 @@ inputs:
     dims:
     - E+1
     dtype: int64
-    dist: offsets:2
+    dist: offsets:to=B
   weight_indices:
     dims:
     - E
@@ -165,22 +177,3 @@ inputs:
     - E
     dtype: float32
     dist: rand
-  batch_info:
-    struct: "sglang.srt.lora.utils.LoRABatchInfo"
-    fields:
-      use_cuda_graph: {scalar: false}
-      bs:             {scalar_knob: B}
-      num_segments:   {scalar_knob: E}
-      seg_indptr:     {ref: seg_indptr}
-      weight_indices: {ref: weight_indices}
-      lora_ranks:     {ref: lora_ranks}
-      scalings:       {ref: scalings}
-      max_len:        {scalar_knob: L}
-      seg_lens:       {dims: [E], dtype: int32, dist: "randint:1:N"}
-      permutation:    {dims: [B], dtype: int32, dist: "randint:0:B"}
-  output_offset:
-    dims: [4]
-    dtype: int32
-    dist: "offsets:1"
-  max_qkv_out_dim:
-    scalar_knob: N

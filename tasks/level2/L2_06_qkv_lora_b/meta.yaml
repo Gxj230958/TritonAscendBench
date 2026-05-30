@@ -26,32 +26,35 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Segmented SGMV QKV LoRA-B expand
-  # (oracle _qkv_lora_b, kernel _qkv_lora_b_kernel): same math as the
-  # generic LoRA-B expand — out[seg] += scaling[adapter] *
-  # (x[seg, :r] @ B[adapter, :, :r]^T). shapes.yaml: x is [B, G]
-  # (B token rows, G = max LoRA rank columns), weights (LoRA B) is
-  # [E, N, G] (E adapters, N output_dim, G rank), output is [B, N].
-  # Each segment's matmul is [seg_len, r] @ [r, N]. Analytic GEMM dims
-  # summed over all segments: M = B (total tokens), K = G (rank,
-  # contracted dim = x dim 1 = weights dim 2), N = N (output_dim =
-  # weights dim 1). Symbol map: B -> token rows (GEMM M), G -> LoRA
-  # rank (GEMM K), N -> output_dim (GEMM N), E -> adapter count
-  # (weights dim 0, index-vector length).
-  # FLOPs (cube): 2*B*G*N (2 = multiply + accumulate). The per-output
-  # scaling multiply is negligible vs the GEMM and folded into it.
+  # Symbol audit (approach §3.4). Fused QKV LoRA-B expand (oracle
+  # _qkv_lora_b, kernel _qkv_lora_b_kernel): packs 3 sgemms (Q/K/V) into
+  # one launch — for each segment and each slice j in {0,1,2},
+  # out[seg, n_offs[j]:n_offs[j+1]] += scaling[adapter] *
+  # (x[seg, j*K:j*K+K] @ qkv_lora_b[adapter, n_offs[j]:n_offs[j+1], :K]^T),
+  # K = min(r, rank[adapter]). shapes.yaml: x is [B, 3*G] (B token rows,
+  # 3 LoRA-A slices each G=max-rank columns), qkv_lora_b (LoRA B) is
+  # [E, 3*N, G] (E adapters, output_dim = 3*N with per-slice dim N, G
+  # rank), output is [B, 3*N]. Each slice's per-segment matmul is
+  # [seg_len, r] @ [r, N]. Analytic GEMM dims summed over all segments
+  # AND 3 slices: M = B (total tokens), K = G (rank, contracted dim =
+  # x slice width = weights dim 2), N per slice = N, slices = 3. Symbol
+  # map: B -> token rows (GEMM M), G -> LoRA rank (GEMM K), N -> per-slice
+  # output_dim (GEMM N), E -> adapter count (weights dim 0, index-vector
+  # length).
+  # FLOPs (cube): 3 slices * 2*B*G*N = 6*B*G*N (2 = multiply + accumulate).
+  # The per-output scaling multiply is negligible vs the GEMM, folded in.
   # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
   # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [B,G] + weights [E,N,G], write output [B,N];
+  # bytes (hbm): read x [B,3*G] + weights [E,3*N,G], write output [B,3*N];
   # all float32 primary family -> dtype_size. Auxiliary tensors at
   # literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
   # int64 *8, lora_ranks [E] int64 *8, scalings [E] float32 *4.
-  flops: 2*B*G*N
+  flops: 6*B*G*N
   flops_class: fp16_cube
-  bytes: (B*G + E*N*G + B*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4
+  bytes: (B*3*G + E*3*N*G + B*3*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -94,7 +97,7 @@ param_constraints:
   - N >= 1
   dtypes:
     x: float32
-    weights: float32
+    qkv_lora_b: float32
     seg_indptr: int64
     weight_indices: int64
     lora_ranks: int64
@@ -102,12 +105,12 @@ param_constraints:
   dists:
     x:
       kind: randn
-    weights:
+    qkv_lora_b:
       kind: randn
     seg_indptr:
       kind: offsets
       args:
-        step: '2'
+        to: B
     weight_indices:
       kind: randint
       args:
