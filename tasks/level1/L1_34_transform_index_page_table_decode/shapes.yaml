@@ -143,6 +143,8 @@ inputs:
     - B
     - 2048
     dtype: int64
-    dist: randint:0:2
+    # Range [-1, D): negatives drive the mask=False (store -1) branch;
+    # non-negatives are valid gather indices into page_table's D columns.
+    dist: randint:-1:D
   page_size:
     scalar: 1

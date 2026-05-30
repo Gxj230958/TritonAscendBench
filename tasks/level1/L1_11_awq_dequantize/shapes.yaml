@@ -99,7 +99,7 @@ hidden_shapes:
     L: 16
     D: 128
     Dv: 8
-    N: 32
+    N: 64
     T: 8
     H: 2
     E: 2
@@ -140,15 +140,15 @@ inputs:
     dist: randint:0:2147483648
   scales:
     dims:
-    - N//32
+    - N//64
     - E*8
     dtype: float32
     dist: rand
   zeros:
     dims:
-    - N//32
+    - N//64
     - E
     dtype: int32
     dist: randint:0:2147483648
   group_size:
-    scalar: 32
+    scalar: 64

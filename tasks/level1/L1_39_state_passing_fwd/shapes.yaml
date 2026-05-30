@@ -147,7 +147,12 @@ inputs:
     dtype: float32
     dist: rand
   last_chunk_indices:
+    # One inclusive end-chunk index per sequence (batch = B). A strictly
+    # increasing cumulative-count partition of the C chunks, final element
+    # == C-1 so every chunk is covered exactly once. Drives the kernel's
+    # multi-batch per-sequence chunk span (kernel.py:73-76,104) — a pinned
+    # [1]=C-1 forced batch=1 and skipped the cross-sequence boundary load.
     dims:
-    - 1
+    - B
     dtype: int64
-    dist: full:C-1
+    dist: cumcount:to=C-1
