@@ -3529,6 +3529,33 @@ def rewrite_imports_to_standalone(
         src,
         flags=re.DOTALL,
     )
+
+    # Collapse the parenthesised multi-line ``from sglang.srt.<mod> import
+    # (...)`` forms carried by the frozen sglang logits_processor file
+    # (L1_18_fused_softcap) to one line so the single-line subset-allowlist
+    # redirects below see the full symbol set. Without this the allowlist
+    # check is not actually fail-closed (it cannot read continuation lines).
+    # Only the exact L1_18 sibling-surface modules are collapsed; any other
+    # parenthesised sglang import falls through untouched.
+    def _collapse_sglang_multiline(m: "re.Match") -> str:
+        mod = m.group(1)
+        syms = [s.strip() for s in m.group(2).split(",") if s.strip()]
+        return f"from sglang.srt.{mod} import " + ", ".join(syms)
+
+    _sglang_multiline_modules = (
+        "distributed",
+        "layers.dp_attention",
+        "layers.utils.logprob",
+        "model_executor.forward_batch_info",
+    )
+    src = re.sub(
+        r"from sglang\.srt\.("
+        + "|".join(re.escape(m) for m in _sglang_multiline_modules)
+        + r") import \(\s*(.*?)\s*\)",
+        _collapse_sglang_multiline,
+        src,
+        flags=re.DOTALL,
+    )
     lines = src.splitlines(keepends=True)
     out: list[str] = []
     in_multiline_import = False
@@ -3759,6 +3786,39 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': inert custom-op decorator (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: sglang.test.ci.ci_register.register_cuda_ci. The
+        # frozen kernel.py calls it at module scope to register the file in a
+        # CI suite; upstream's body is a runtime no-op (``return None`` -- a
+        # marker the CI harness parses via AST). Never on the numeric compute
+        # path. The shim is byte-faithful (returns None). Single symbol only.
+        if stripped.startswith("from sglang.test.ci.ci_register import "):
+            _syms = stripped[len("from sglang.test.ci.ci_register import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"register_cuda_ci"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import register_cuda_ci"
+                    f"  # Phase A': CI-registration no-op (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.jit_kernel.moe_align.moe_align_block_size -- the
+        # JIT/CUDA reference kernel the frozen kernel.py imports ONLY for its
+        # SIBLING pytest cross-checks; the graded entrypoint drives the
+        # in-module 4-stage @triton.jit pipeline via _pa_launcher.py and never
+        # calls it. The real import pulls the sglang JIT compile chain into the
+        # severed standalone, so it is redirected to a loud-fail shim (raises if
+        # ever invoked -- a task that truly needs the CUDA reference stays
+        # honestly BLOCKED, never silently faked). Single symbol only.
+        if stripped.startswith("from sglang.jit_kernel.moe_align import "):
+            _syms = stripped[len("from sglang.jit_kernel.moe_align import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"moe_align_block_size"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import moe_align_block_size"
+                    f"  # Phase A': sibling-only CUDA reference (B-inert-shim)\n"
+                )
+                continue
         # B-inert-shim: vllm.sampling_params {MAX_LOGPROB_TOKEN_IDS,
         # SamplingParams}. A frozen kernel carries these for SIBLING setup
         # helpers (add_request type hints, logprob caps); the verified
@@ -3843,20 +3903,27 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)\n"
                 )
                 continue
-        # B-inert-shim: sglang LoRA expand block-size config. Tile sizes are
-        # pure launch config (tiling only, never the computed result); the
-        # shim returns the upstream default. Single symbol only.
+        # B-inert-shim: sglang LoRA block-size config (expand or shrink). Tile
+        # sizes are pure launch config (tiling only, never the computed
+        # result); the shim returns the upstream default. Single symbol only.
         if stripped.startswith(
             "from sglang.srt.lora.triton_ops.lora_tuning_config import "
         ):
             _syms = stripped[len(
                 "from sglang.srt.lora.triton_ops.lora_tuning_config import "):]
             _sym_set = {s.strip() for s in _syms.split(",")}
-            if _sym_set == {"get_lora_expand_config"} and "(" not in _syms:
+            if (
+                _sym_set in (
+                    {"get_lora_expand_config"},
+                    {"get_lora_shrink_config"},
+                )
+                and "(" not in _syms
+            ):
+                _sym = next(iter(_sym_set))
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from tasks._frozen_shim import get_lora_expand_config"
-                    f"  # Phase A': LoRA expand block-size config (B-inert-shim)\n"
+                    f"{indent}from tasks._frozen_shim import {_sym}"
+                    f"  # Phase A': LoRA block-size config (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: sglang fp8_kernel quant helpers. The bundled cutlass-moe
@@ -3886,6 +3953,82 @@ def rewrite_imports_to_standalone(
             out.append(
                 f"{indent}import tasks._frozen_shim.envs as {_m_envs.group(1)}"
                 f"  # Phase A': vllm.envs allowlist shim (B-inert-shim)\n"
+            )
+            continue
+        # B-inert-shim: sglang logits_processor sibling surface
+        # (task L1_18_fused_softcap). The frozen kernel is upstream's whole
+        # ``sglang/srt/layers/logits_processor.py``; the graded entrypoint is the
+        # free function ``fused_softcap`` (cap*tanh(x/cap)), which references NONE
+        # of these symbols. They are imported only for the sibling
+        # ``LogitsProcessor`` / ``LogitsMetadata`` classes (DP/TP collectives,
+        # server-args, logprob helpers, forward-batch / vocab-embedding types),
+        # never reached on the graded path. The shim resolves the names so the
+        # module body executes standalone: behaviour-bearing callables loud-fail
+        # if invoked, backend predicates return their honest bench value, and the
+        # enum/type stand-ins satisfy the import-time annotations + class defaults
+        # (e.g. ``CaptureHiddenMode.NULL``). Each rule is subset-allowlisted to
+        # the EXACT L1_18 symbol set (fail-closed: a different symbol set -- e.g.
+        # L2_29/L2_30's ``is_dp_attention_enabled`` from dp_attention -- does not
+        # match, so the rule cannot mis-redirect another task). Multi-line
+        # parenthesised forms were collapsed to one line at the top of this
+        # function, so these single-line redirects see the full symbol set.
+        _sglang_sibling_rules = {
+            "from sglang.srt.distributed import ": {
+                "get_tensor_model_parallel_world_size",
+                "tensor_model_parallel_all_gather",
+            },
+            "from sglang.srt.layers.dp_attention import ": {
+                "DpPaddingMode", "attn_tp_all_gather",
+                "attn_tp_all_gather_into_tensor", "dp_gather_replicate",
+                "dp_scatter", "get_attention_dp_rank", "get_attention_dp_size",
+                "get_attention_tp_size", "get_dp_device", "get_dp_dtype",
+                "get_dp_hidden_size",
+            },
+            "from sglang.srt.layers.utils.logprob import ": {
+                "InputLogprobsResult", "compute_temp_top_p_normalized_logprobs",
+                "get_token_ids_logprobs_chunk", "get_token_ids_logprobs_prefill",
+                "get_top_logprobs_chunk", "get_top_logprobs_prefill",
+            },
+            "from sglang.srt.layers.vocab_parallel_embedding import ": {
+                "VocabParallelEmbedding",
+            },
+            "from sglang.srt.model_executor.forward_batch_info import ": {
+                "CaptureHiddenMode", "ForwardBatch", "ForwardMode",
+            },
+            "from sglang.srt.server_args import ": {
+                "get_global_server_args",
+            },
+            "from sglang.srt.utils.common import ": {
+                "is_npu", "use_intel_amx_backend",
+            },
+        }
+        _sgl_matched = False
+        for _prefix, _allowed in _sglang_sibling_rules.items():
+            if stripped.startswith(_prefix):
+                _syms = stripped[len(_prefix):]
+                _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+                if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from tasks._frozen_shim import {_syms}"
+                        f"  # Phase A': sglang sibling surface "
+                        f"(B-inert-shim)\n"
+                    )
+                    _sgl_matched = True
+                break
+        if _sgl_matched:
+            continue
+        # B-inert-shim: sglang.srt.environ.envs namespace (L1_18). The frozen
+        # kernel reads ``envs.SGLANG_*.get()`` only inside the sibling
+        # ``LogitsProcessor.__init__`` (never constructed on the graded path);
+        # the standalone needs the name to import. The shim's ``envs`` object
+        # loud-fails on any attribute access, so a verified path reaching a real
+        # env flag is surfaced, never silently defaulted.
+        if stripped == "from sglang.srt.environ import envs":
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import envs"
+                f"  # Phase A': sglang env namespace (B-inert-shim)\n"
             )
             continue
         # B-inert-shim: vllm.v1.attention.backends.utils sentinel constants

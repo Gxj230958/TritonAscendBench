@@ -24,7 +24,7 @@ def _silu(t: torch.Tensor) -> torch.Tensor:
 
 def _silu_and_mul_post_quant(
     x: torch.Tensor, masked_m: torch.Tensor, quant_group_size: int,
-    fp8_max: float = 448.0,
+    fp8_max: float = 448.0, eps: float = 1e-10,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Masked SiLU+mul followed by per-group FP8 quant.
 
@@ -32,6 +32,11 @@ def _silu_and_mul_post_quant(
     count. Computes y = silu(gate)·up for valid tokens, then per-group
     (quant_group_size along D) symmetric FP8 quant. Invalid tokens are
     zeroed. Returns (y_q float8_e4m3fn [E,T,D], y_s fp32 [E,T,D/g]).
+
+    Faithful to the upstream `_silu_and_mul_post_quant_kernel` (SGLang
+    409d350): the AMAX is floored at eps=1e-10 BEFORE dividing by fp8_max
+    (`_absmax = tl.maximum(tl.max(tl.abs(gate_up)), 1e-10); output_s =
+    _absmax / fp8_max`), NOT a post-divide clamp on the scale.
     """
     E, T, two_d = x.shape
     d = two_d // 2
@@ -42,10 +47,19 @@ def _silu_and_mul_post_quant(
     y = y * valid.unsqueeze(-1)
     g = quant_group_size
     yv = y.reshape(E, T, d // g, g)
-    s = (yv.abs().amax(dim=-1, keepdim=True) / float(fp8_max)).clamp_min(1e-12)
+    amax = yv.abs().amax(dim=-1, keepdim=True)
+    amax = torch.maximum(
+        amax, torch.tensor(eps, dtype=amax.dtype, device=amax.device)
+    )
+    s = amax / float(fp8_max)
     yq = (yv / s).clamp(-float(fp8_max), float(fp8_max))
     yq = yq.reshape(E, T, d).to(torch.float8_e4m3fn)
-    return yq, s.squeeze(-1).reshape(E, T, d // g)
+    s = s.squeeze(-1).reshape(E, T, d // g)
+    # Tokens t >= masked_m[e] are never written by the kernel; the launcher
+    # zero-inits both outputs. yq is already 0 there (y was masked above);
+    # mask the scale rows to 0 as well so the invalid rows compare equal.
+    s = s * valid.unsqueeze(-1)
+    return yq, s
 
 
 def run(inputs: dict) -> dict:

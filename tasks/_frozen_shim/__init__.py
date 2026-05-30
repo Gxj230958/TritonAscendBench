@@ -20,6 +20,7 @@ Invariants:
 """
 from __future__ import annotations
 
+import enum
 import typing
 
 import torch
@@ -267,6 +268,33 @@ def register_custom_op(*args, **kwargs):
     return _deco
 
 
+def register_cuda_ci(est_time=None, suite=None, nightly=False, disabled=None):
+    """Runtime no-op mirroring sglang.test.ci.ci_register.register_cuda_ci.
+    Upstream is a pure CI-registration MARKER (parsed via AST by the CI
+    harness; its function body is a runtime ``return None`` -- see
+    sglang/test/ci/ci_register.py:51). A frozen kernel calls it only at
+    module scope to register the file in a CI suite; it never touches the
+    numeric compute path. Byte-faithful: returns None exactly as upstream."""
+    return None
+
+
+def moe_align_block_size(*args, **kwargs):
+    """Loud-fail stand-in for sglang.jit_kernel.moe_align.moe_align_block_size.
+    Upstream is the JIT-compiled CUDA reference kernel. The frozen kernel.py
+    imports it ONLY for its sibling pytest cross-check tests
+    (test_moe_align_block_size_compare_implementations / ..._v2_large_num_experts);
+    the graded entrypoint drives the in-module 4-stage @triton.jit pipeline via
+    _pa_launcher.py and never calls it. Importing the real symbol pulls the
+    sglang JIT/CUDA-compile dependency chain into the severed standalone, so it
+    is redirected here. Raising keeps any task that genuinely needs the CUDA
+    reference honest -- the severed kernel must not silently fake it."""
+    raise NotImplementedError(
+        "moe_align_block_size is the sibling-only sglang CUDA reference kernel "
+        "(used by the frozen kernel.py's pytest cross-checks, never the graded "
+        "entrypoint); it is not vendored into the severed standalone"
+    )
+
+
 def cached_triton_kernel(key_fn=None):
     """Passthrough mirror of sglang.srt.utils.cached_triton_kernel. Upstream
     wraps a @triton.jit kernel in a custom key-based launch cache (CachedKernel)
@@ -289,6 +317,16 @@ def cached_triton_kernel(key_fn=None):
 def get_lora_expand_config(K, R, num_slices, chunk_size):
     """Stand-in returning the upstream default expand block config."""
     return {"BLOCK_N": 64, "BLOCK_K": 16}
+
+
+# Block-size table for the CSGMV LoRA shrink (lora_a) kernel, mirroring
+# sglang.srt.lora.triton_ops.lora_tuning_config.DEFAULT_SHRINK_CONFIG. Same
+# rationale as the expand sibling: tile sizes are pure launch-config (tiling
+# only, never the computed result), so the untuned defaults are numerically
+# equivalent to any tuned entry.
+def get_lora_shrink_config(K, R, num_slices, chunk_size):
+    """Stand-in returning the upstream default shrink block config."""
+    return {"BLOCK_N": 16, "BLOCK_K": 256}
 
 
 def sglang_per_token_group_quant_fp8(*args, **kwargs):
@@ -394,3 +432,174 @@ def async_copy_to_gpu(*args, **kwargs):
         "async_copy_to_gpu shim reached: a real host->device copy is setup-only "
         "and must not enter a verified entrypoint's path."
     )
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# sglang logits_processor sibling surface (task L1_18_fused_softcap).
+#
+# The frozen kernel.py for L1_18 is upstream's whole
+# ``sglang/srt/layers/logits_processor.py``; the GRADED entrypoint is the free
+# function ``fused_softcap`` (a pure cap*tanh(x/cap) elementwise map) and its
+# @triton.jit ``fused_softcap_kernel``. Neither references ANY of the symbols
+# below -- they are imported only for the sibling ``LogitsProcessor`` /
+# ``LogitsMetadata`` classes (DP/TP collectives, server-args, logprob helpers,
+# forward-batch types), which are never constructed or called on the graded
+# path. The standalone only needs these names to RESOLVE so the module body
+# (class defs + module-scope ``_is_npu = is_npu()``) executes without pulling
+# real sglang. Behaviour-bearing callables LOUD-FAIL if ever invoked (fail-
+# closed: a verified path reaching a real collective / server-arg read is a
+# genuine dependency, never silently faked); pure backend predicates return
+# their honest bench-target value; type/enum stand-ins satisfy the import-time
+# annotations and class-default reads. B-inert.
+# ───────────────────────────────────────────────────────────────────────────
+def is_npu() -> bool:
+    """Pure backend predicate mirroring sglang.srt.utils.common.is_npu --
+    True only on an Ascend-NPU build. The bench's authoritative verify host is
+    NVIDIA CUDA, so this is a constant False. The frozen kernel reads it only
+    at module scope (``_is_npu = is_npu()``) to gate SIBLING branches; the
+    graded ``fused_softcap`` never reads ``_is_npu``, so the value is inert to
+    the verified output. B-inert."""
+    return False
+
+
+def use_intel_amx_backend(*args, **kwargs) -> bool:
+    """Pure backend predicate mirroring sglang.srt.utils.common.use_intel_amx_backend
+    -- True only when an Intel AMX CPU path is selected. Constant False on the
+    bench CUDA/NPU GPU path; read only in a sibling ``_get_logits`` branch,
+    never the graded path. B-inert."""
+    return False
+
+
+def _sibling_only_call(_name: str):
+    """Build a loud-failing stand-in for a sglang helper that is imported by
+    L1_18's frozen kernel but only reached on the SIBLING LogitsProcessor path
+    (DP/TP collectives, server-args, logprob builders). The name must resolve
+    so the module imports; invoking it means a verified entrypoint reached real
+    distributed/server behaviour -- a true dependency to classify, never to
+    fake. Fail-closed."""
+
+    def _stub(*args, **kwargs):
+        raise NotImplementedError(
+            f"{_name} shim reached: this sglang helper is sibling-only "
+            f"(LogitsProcessor DP/TP/logprob path) and must not enter the "
+            f"graded fused_softcap entrypoint's path."
+        )
+
+    _stub.__name__ = _name
+    _stub.__qualname__ = _name
+    return _stub
+
+
+# sglang.srt.distributed
+get_tensor_model_parallel_world_size = _sibling_only_call(
+    "get_tensor_model_parallel_world_size"
+)
+tensor_model_parallel_all_gather = _sibling_only_call(
+    "tensor_model_parallel_all_gather"
+)
+
+# sglang.srt.layers.dp_attention (collective/query helpers)
+attn_tp_all_gather = _sibling_only_call("attn_tp_all_gather")
+attn_tp_all_gather_into_tensor = _sibling_only_call(
+    "attn_tp_all_gather_into_tensor"
+)
+dp_gather_replicate = _sibling_only_call("dp_gather_replicate")
+dp_scatter = _sibling_only_call("dp_scatter")
+get_attention_dp_rank = _sibling_only_call("get_attention_dp_rank")
+get_attention_dp_size = _sibling_only_call("get_attention_dp_size")
+get_attention_tp_size = _sibling_only_call("get_attention_tp_size")
+get_dp_device = _sibling_only_call("get_dp_device")
+get_dp_dtype = _sibling_only_call("get_dp_dtype")
+get_dp_hidden_size = _sibling_only_call("get_dp_hidden_size")
+
+# sglang.srt.server_args
+get_global_server_args = _sibling_only_call("get_global_server_args")
+
+# sglang.srt.layers.utils.logprob (logprob builders / normalizers)
+compute_temp_top_p_normalized_logprobs = _sibling_only_call(
+    "compute_temp_top_p_normalized_logprobs"
+)
+get_token_ids_logprobs_chunk = _sibling_only_call(
+    "get_token_ids_logprobs_chunk"
+)
+get_token_ids_logprobs_prefill = _sibling_only_call(
+    "get_token_ids_logprobs_prefill"
+)
+get_top_logprobs_chunk = _sibling_only_call("get_top_logprobs_chunk")
+get_top_logprobs_prefill = _sibling_only_call("get_top_logprobs_prefill")
+
+
+class DpPaddingMode(enum.Enum):
+    """Inert stand-in for sglang.srt.layers.dp_attention.DpPaddingMode. Used
+    only as a sibling annotation (LogitsMetadata.dp_padding_mode) at import time
+    and a ``DpPaddingMode.SUM_LEN`` read inside a sibling method body; never the
+    graded path. Members mirror upstream's enum names so those reads resolve.
+    B-inert (pure enum, no behaviour)."""
+
+    SUM_LEN = 0
+    MAX_LEN = 1
+
+
+class CaptureHiddenMode(enum.Enum):
+    """Inert stand-in for
+    sglang.srt.model_executor.forward_batch_info.CaptureHiddenMode. The frozen
+    kernel reads ``CaptureHiddenMode.NULL`` as a class-level default at import
+    time (LogitsMetadata.capture_hidden_mode), so the ``NULL`` member MUST
+    exist. Sibling-only; never the graded path. B-inert (pure enum)."""
+
+    NULL = 0
+    FULL = 1
+    LAST = 2
+
+
+class ForwardMode(enum.Enum):
+    """Inert stand-in for
+    sglang.srt.model_executor.forward_batch_info.ForwardMode. Referenced only as
+    a sibling annotation at import time; never the graded path. Members mirror
+    upstream so any sibling read resolves. B-inert (pure enum)."""
+
+    PREFILL = 0
+    EXTEND = 1
+    DECODE = 2
+    IDLE = 3
+
+
+class ForwardBatch(_SetupOnlyShim):
+    """Inert stand-in for
+    sglang.srt.model_executor.forward_batch_info.ForwardBatch (a request batch-
+    state container, only a sibling parameter annotation on the graded path);
+    loud-fails on any attribute access. B-inert."""
+
+
+class VocabParallelEmbedding(_SetupOnlyShim):
+    """Inert stand-in for
+    sglang.srt.layers.vocab_parallel_embedding.VocabParallelEmbedding (the LM
+    head module, only a sibling parameter annotation on the graded path);
+    loud-fails on any attribute access. B-inert."""
+
+
+class InputLogprobsResult(_SetupOnlyShim):
+    """Inert stand-in for
+    sglang.srt.layers.utils.logprob.InputLogprobsResult (a sibling logprob
+    result container, only a return-type annotation on the graded path);
+    loud-fails on any attribute access. B-inert."""
+
+
+class _SglangEnvsShim:
+    """Inert stand-in for the ``envs`` namespace of sglang.srt.environ. The
+    frozen kernel reads ``envs.SGLANG_ENABLE_LOGITS_PROCESSER_CHUNK.get()`` /
+    ``envs.SGLANG_LOGITS_PROCESSER_CHUNK_SIZE.get()`` inside the sibling
+    ``LogitsProcessor.__init__`` (never constructed on the graded path), so the
+    name only needs to import. Any attribute access LOUD-FAILS: a verified
+    entrypoint reading a real env flag is a true config dependency, never
+    silently defaulted. B-inert (fail-closed)."""
+
+    def __getattr__(self, name):
+        raise AttributeError(
+            f"sglang envs shim: 'envs.{name}' reached. Env-flag reads are "
+            f"sibling-only (LogitsProcessor setup) and must not enter the "
+            f"graded fused_softcap entrypoint's path."
+        )
+
+
+envs = _SglangEnvsShim()

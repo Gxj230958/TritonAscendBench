@@ -131,17 +131,29 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+# Upstream contract (sglang gate_up_lora_b_fwd, frozen kernel.py):
+#   x:               [S, 2*r]                 S = total tokens = E*C
+#   gate_up_lora_b:  [num_lora, 2*output_dim, r]   weights, gate/up packed on dim 1
+#   output:          [S, 2*output_dim]
+# Segments: bs == num_segments == E adapters; each segment has fixed length
+# C (knob), so seg_indptr = [0, C, 2C, ..., E*C] and seg_lens[b] == C.
+# permutation is None -> SORTED_BY_ADAPTER False -> rows are contiguous
+# (seg_start + offset), the deterministic upstream code path. r = G (max
+# LoRA rank), output_dim = N. seg_indptr (offsets:to=E*C) is contiguous so
+# both the oracle and the authored _pa_launcher.py derive seg_lens from
+# diff(seg_indptr) (== C per segment), reconstructing the upstream batch_info
+# fields from these flat tensors -- no sglang LoRABatchInfo struct is built.
 inputs:
   x:
     dims:
-    - B
-    - G
+    - E*C
+    - 2*G
     dtype: float32
     dist: randn
   gate_up_lora_b:
     dims:
     - E
-    - N
+    - 2*N
     - G
     dtype: float32
     dist: randn
@@ -149,34 +161,21 @@ inputs:
     dims:
     - E+1
     dtype: int64
-    dist: offsets:2
+    dist: offsets:to=E*C
   weight_indices:
     dims:
     - E
     dtype: int64
-    dist: randint:0:E
+    dist: arange
   lora_ranks:
     dims:
     - E
     dtype: int64
-    dist: randint:1:G
+    dist: randint:1:G+1
   scalings:
     dims:
     - E
     dtype: float32
     dist: rand
-  batch_info:
-    struct: "sglang.srt.lora.utils.LoRABatchInfo"
-    fields:
-      use_cuda_graph: {scalar: false}
-      bs:             {scalar_knob: B}
-      num_segments:   {scalar_knob: E}
-      seg_indptr:     {ref: seg_indptr}
-      weight_indices: {ref: weight_indices}
-      lora_ranks:     {ref: lora_ranks}
-      scalings:       {ref: scalings}
-      max_len:        {scalar_knob: L}
-      seg_lens:       {dims: [E], dtype: int32, dist: "randint:1:N"}
-      permutation:    {dims: [B], dtype: int32, dist: "randint:0:B"}
   output_dim:
     scalar_knob: N
