@@ -131,69 +131,26 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+# FlashMLA paged-KV page-index inputs (kernel.py::create_flashmla_kv_indices_triton).
+# req_to_token [E, L] is the token-slot table (E pool rows, L = max context len);
+# req_pool_indices [E] selects a pool row per request; page_kernel_lens [E] is the
+# per-request seq_len. page_size is the PAGED_SIZE constexpr (page granularity).
 inputs:
-  seq_lens:
+  req_to_token:
     dims:
     - E
-    dtype: int64
-    dist: randint:1:N
-  block_table:
-    dims:
-    - E
-    - N
-    dtype: int64
-    dist: randint:0:N
-  page_size:
-    scalar: 4
-  extend_seq_lens:
-    dims:
-    - B
+    - L
     dtype: int32
-    dist: randint:1:N
-  k:
+    dist: randint:0:N
+  req_pool_indices:
     dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  q:
+    - E
+    dtype: int32
+    dist: randint:0:E
+  page_kernel_lens:
     dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  key:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  input_emb:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  v:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  value:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
+    - E
+    dtype: int32
+    dist: randint:1:L
+  page_size:
+    scalar: 16

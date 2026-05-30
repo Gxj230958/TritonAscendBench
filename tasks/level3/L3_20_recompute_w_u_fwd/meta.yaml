@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::run
 tolerance_class: elementwise
 cost_model:
   flops:
@@ -66,27 +66,31 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-20
   golden:
-    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: null
     tolerance_class_used: elementwise
-    equivalence_per_shape:
-      P1:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `recompute_w_u_fwd` unpack. Details: k: wrapper expects rank [4], build_inputs
-          gave 3'
-      P2:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `recompute_w_u_fwd` unpack. Details: k: wrapper expects rank [4], build_inputs
-          gave 3'
-    golden_source: blocked_wrapper_contract_mismatch
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_pending_gpu
+    notes: 'shapes.yaml + oracle_pytorch.py re-authored to the frozen kernel''s
+      head-structured, block-diagonal (per-BT-chunk) contract: k[B,L,H//2,D],
+      v[B,L,H,Dv], beta/g_cumsum[B,L,H], A[B,L,H,C] (local within-chunk column).
+      Oracle cross-checked against a literal make_block_ptr transcription of the
+      kernel (rel err ~1e-7, elementwise). Final GPU equivalence pending.'
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
   - L >= 1
   - D >= 1
+  - Dv >= 1
+  - H >= 2
+  - C in {16, 32, 64}
+  - L % C == 0
+  - H % 2 == 0
+  # C (= chunk size BT) is the kernel's tl.dot contraction/tiling constant;
+  # Triton requires it to be a power of two and >= 16 (tensor-core MMA tile
+  # minimum), and upstream pins FLA_CHUNK_SIZE = 64. A non-pow2 / < 16 chunk
+  # size is an invalid kernel call (real-GPU CompilationError "K >= 16").
   dtypes:
     k: float32
     v: float32
@@ -105,4 +109,7 @@ param_constraints:
     A:
       kind: randn
   scalars: {}
+  # Layouts (k[B,L,H//2,D], v[B,L,H,Dv], beta/g_cumsum[B,L,H], A[B,L,H,C])
+  # are enforced structurally by shapes.yaml.inputs.dims; tensor_invariants
+  # carries only value-domain predicates, of which this op has none.
   tensor_invariants: []

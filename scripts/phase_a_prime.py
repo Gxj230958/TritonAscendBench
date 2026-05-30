@@ -3497,6 +3497,189 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 # ───────────────────────────────────────────────────────────────────────────
+# Entrypoint-closure slice (severance for whole-module vendored kernels)
+# ───────────────────────────────────────────────────────────────────────────
+# Module-level names a sliced standalone may reference for free without a
+# vendored def -- the std/triton/torch surface the bench already provides
+# verbatim. Anything outside this set that the entrypoint closure references
+# would have to be vendored, so the slice fails closed (returns the original
+# source untouched and the existing line-rewrite/leak audit takes over).
+# Restricted to exactly the names the slice header re-provides -- a closure
+# free name outside this set (e.g. an `F` torch.nn.functional alias the header
+# does not emit) would yield a NameError-broken slice the syntax-only parse
+# guard cannot catch, so it must decline instead.
+_SLICE_FREE_NAME_ALLOW = frozenset({"torch", "triton", "tl", "math"})
+
+
+def _slice_to_entrypoint_closure(
+    src: str, task_dir: "Path | None"
+) -> "str | None":
+    """Reduce a whole-module vendored ``kernel.py`` to just the graded
+    entrypoint's transitive module-level closure.
+
+    Some vendored kernels copy an ENTIRE upstream module (e.g. vLLM
+    ``gdn_linear_attn.py``): the graded op is a small tail, but the file's
+    head is dead upstream classes plus heavy ``vllm`` imports / module-level
+    custom-op registrations. The line-level import rewrite cannot sever those
+    (their symbols feed the dead classes, not the graded op), so the severed
+    import audit correctly flags a ``vllm`` leak.
+
+    This slice keeps ONLY: (a) the graded entrypoint (from
+    ``meta.oracle.gpu_triton``) and the ``@triton.jit`` kernels it launches,
+    (b) the transitive closure of OTHER module-level ``def``/``class`` that
+    those reference, and (c) the std imports (``torch``/``triton``/``tl``)
+    the closure needs. Each kept symbol is emitted as its EXACT source span
+    (decorators included -- ``@triton.jit`` MUST survive), so the kernel
+    under test is byte-identical; only dead siblings and their imports are
+    dropped.
+
+    Fail-closed: returns ``None`` (slice declined; caller keeps the original
+    source) unless the source actually carries a ``vllm``/``sglang`` import
+    AND the entrypoint closure resolves cleanly with no free name outside
+    ``_SLICE_FREE_NAME_ALLOW``. So a task whose entrypoint genuinely needs an
+    upstream symbol is never silently narrowed -- the leak surfaces instead.
+    """
+    if task_dir is None:
+        return None
+    # Only meaningful when the module actually leaks upstream imports.
+    if not re.search(r"^\s*(?:from|import)\s+(?:vllm|sglang)\b", src, re.M):
+        return None
+    ep_name = _entrypoint_from_meta(task_dir)
+    if not ep_name or ep_name == "placeholder":
+        return None
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return None
+
+    # Index top-level defs/classes by name; collect @triton.jit names.
+    defs: dict[str, ast.AST] = {}
+    jit_names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            defs[node.name] = node
+            for d in getattr(node, "decorator_list", []):
+                src_d = ast.get_source_segment(src, d) or ""
+                if "triton.jit" in src_d or src_d.strip().endswith("jit"):
+                    jit_names.add(node.name)
+    if ep_name not in defs:
+        return None
+
+    def _names_in(node: ast.AST) -> set[str]:
+        out: set[str] = set()
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+                out.add(n.id)
+        return out
+
+    # Transitive closure over module-level defs the entrypoint reaches.
+    keep: set[str] = set()
+    work = [ep_name]
+    while work:
+        name = work.pop()
+        if name in keep:
+            continue
+        keep.add(name)
+        node = defs.get(name)
+        if node is None:
+            continue
+        for ref in _names_in(node):
+            if ref in defs and ref not in keep:
+                work.append(ref)
+
+    # Free names the kept closure references that are NOT a kept def -- they
+    # must all be in the allow-set (std/triton/torch surface) or the slice is
+    # unsafe (would need vendoring). Builtins are fine.
+    import builtins as _bi
+    _builtin_names = set(dir(_bi))
+    free: set[str] = set()
+    for name in keep:
+        node = defs.get(name)
+        if node is None:
+            continue
+        # Locals = params + every name bound inside the def (assignment
+        # targets, for-loop vars, comprehension vars, walrus, with/except
+        # aliases). A free name is one that is only ever LOADED and is not a
+        # kept def / builtin -- those must be in the std allow-set.
+        local: set[str] = set()
+        for fn in ast.walk(node):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                local.add(fn.name)
+                local.update(
+                    a.arg
+                    for a in list(fn.args.args)
+                    + list(fn.args.posonlyargs)
+                    + list(fn.args.kwonlyargs)
+                )
+                if fn.args.vararg:
+                    local.add(fn.args.vararg.arg)
+                if fn.args.kwarg:
+                    local.add(fn.args.kwarg.arg)
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Name) and isinstance(
+                sub.ctx, (ast.Store, ast.Del)
+            ):
+                local.add(sub.id)
+        for ref in _names_in(node):
+            if ref in keep or ref in local or ref in _builtin_names:
+                continue
+            free.add(ref)
+    if not free <= _SLICE_FREE_NAME_ALLOW:
+        return None  # closure needs an upstream symbol -> do not narrow
+
+    # Emit: minimal std imports the closure uses + each kept def verbatim
+    # (decorators preserved), in original source order.
+    header: list[str] = []
+    if "torch" in free or "torch" in {ep_name}:
+        header.append("import torch")
+    if "triton" in free:
+        header.append("import triton")
+    if "tl" in free:
+        header.append("import triton.language as tl")
+    if "math" in free:
+        header.append("import math")
+    # torch is always safe to provide (host wrappers allocate output tensors).
+    if "import torch" not in header:
+        header.insert(0, "import torch")
+
+    lines = src.splitlines()
+    kept_nodes = [
+        defs[n] for n in defs if n in keep
+    ]
+    kept_nodes.sort(key=lambda nd: getattr(nd, "lineno", 0))
+    blocks: list[str] = []
+    for nd in kept_nodes:
+        start = min(
+            [d.lineno for d in getattr(nd, "decorator_list", [])]
+            + [nd.lineno]
+        )
+        end = nd.end_lineno
+        blocks.append("\n".join(lines[start - 1 : end]))
+
+    sliced = (
+        "# Phase A': sliced to the graded entrypoint's module-level closure\n"
+        "# (whole-module vendored kernel; dead upstream siblings + their\n"
+        "# upstream imports dropped -- the kept defs are byte-identical).\n"
+        + "\n".join(header)
+        + "\n\n\n"
+        + "\n\n\n".join(blocks)
+        + "\n"
+    )
+    # Final guard: the sliced text must itself carry no upstream import and
+    # parse. Scan only import statements so a benign token in a kept comment/
+    # identifier never trips it (the slice's own banner is import-free here).
+    if re.search(
+        r"^\s*(?:from|import)\s+(?:vllm|sglang)\b", sliced, re.M
+    ):
+        return None
+    try:
+        ast.parse(sliced)
+    except SyntaxError:
+        return None
+    return sliced
+
+
+# ───────────────────────────────────────────────────────────────────────────
 # U5: standalone rewrite operation (wired into verify -> PASS flow)
 # ───────────────────────────────────────────────────────────────────────────
 def rewrite_imports_to_standalone(
@@ -3511,6 +3694,16 @@ def rewrite_imports_to_standalone(
     a conservative line-level rewrite of the *import statements only*;
     it never edits kernel numeric logic (plan: changing values = A'
     failure)."""
+    # Whole-module vendored kernels (a full upstream file copied verbatim,
+    # graded op in the tail) carry vllm/sglang imports that feed only dead
+    # sibling classes; the line-level rewrite below cannot sever them. Slice
+    # the source to the graded entrypoint's module-level closure FIRST -- the
+    # kept defs stay byte-identical (the kernel under test is unchanged), only
+    # dead siblings + their imports are dropped. Fail-closed: if the closure
+    # needs an upstream symbol the slice declines and the leak surfaces.
+    _sliced = _slice_to_entrypoint_closure(src, task_dir)
+    if _sliced is not None:
+        src = _sliced
     # Collapse the cuda-gated multi-line `from sglang.srt.layers.quantization.
     # fp8_kernel import (...)` to one line (symbols + aliases preserved) so the
     # line-level redirect below can rewrite it verbatim. The bundled
@@ -3553,6 +3746,52 @@ def rewrite_imports_to_standalone(
         + "|".join(re.escape(m) for m in _sglang_multiline_modules)
         + r") import \(\s*(.*?)\s*\)",
         _collapse_sglang_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    # Collapse the parenthesised multi-line ``from vllm.model_executor.layers
+    # .fused_moe.<mod> import (...)`` forms carried by the frozen
+    # gpt_oss_triton_kernels_moe.py file (L1_28_pack_bitmatrix) to one line so
+    # the single-line subset-allowlist redirects below see the full symbol set.
+    # Without this the allowlist check is not actually fail-closed (it cannot
+    # read continuation lines). Only the exact L1_28 sibling-surface fused_moe
+    # modules are collapsed; any other parenthesised vllm import falls through
+    # untouched (and stays caught by the fail-closed guard).
+    def _collapse_vllm_fused_moe_multiline(m: "re.Match") -> str:
+        mod = m.group(1)
+        syms = [s.strip() for s in m.group(2).split(",") if s.strip()]
+        return f"from vllm.model_executor.layers.fused_moe.{mod} import " + ", ".join(syms)
+
+    _vllm_fused_moe_multiline_modules = (
+        "config",
+        "experts.lora_experts_mixin",
+        "topk_weight_and_reduce",
+    )
+    src = re.sub(
+        r"from vllm\.model_executor\.layers\.fused_moe\.("
+        + "|".join(re.escape(m) for m in _vllm_fused_moe_multiline_modules)
+        + r") import \(\s*(.*?)\s*\)",
+        _collapse_vllm_fused_moe_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    # Collapse the parenthesised multi-line ``from vllm.model_executor.layers
+    # .quantization.utils.quant_utils import (...)`` form (L1_28) to one line so
+    # the symbol-aware quant_utils redirect below sees the full symbol set
+    # (otherwise its allowlist check cannot read continuation lines).
+    def _collapse_vllm_quant_utils_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return (
+            "from vllm.model_executor.layers.quantization.utils.quant_utils import "
+            + ", ".join(syms)
+        )
+
+    src = re.sub(
+        r"from vllm\.model_executor\.layers\.quantization\.utils\.quant_utils"
+        r" import \(\s*(.*?)\s*\)",
+        _collapse_vllm_quant_utils_multiline,
         src,
         flags=re.DOTALL,
     )
@@ -3819,6 +4058,81 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': sibling-only CUDA reference (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: sglang.jit_kernel.utils.is_arch_support_pdl -- a GPU-arch
+        # capability gate (Programmatic Dependent Launch, sm_90+). The frozen
+        # FlashMLA kernel.py reads it ONLY in the sibling fp8 helper
+        # mla_quantize_and_rope_for_fp8 (an enable_pdl launch hint); the graded
+        # create_flashmla_kv_indices_triton integer-index entrypoint never calls
+        # it. The real import pulls the sglang JIT chain into the severed
+        # standalone, so it is redirected to a loud-fail shim. Single symbol only.
+        if stripped.startswith("from sglang.jit_kernel.utils import "):
+            _syms = stripped[len("from sglang.jit_kernel.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"is_arch_support_pdl"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import is_arch_support_pdl"
+                    f"  # Phase A': sibling-only PDL arch gate (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.layers.moe.topk.fused_topk -- the CUDA
+        # topk_softmax / aiter fused-topk dispatcher. The frozen L2_29 router
+        # kernel.py imports it at module scope but calls it ONLY in the sibling
+        # ``FusedMoeRouter.forward_torch`` method; the graded
+        # ``fused_moe_router_cudacore`` entrypoint computes its own top-k inside
+        # the @triton.jit kernel and never reaches it. The real import pulls the
+        # sglang MoE topk CUDA chain into the severed standalone, so it is
+        # redirected to a loud-fail shim (raises if ever invoked -- a task that
+        # truly needs it stays honestly BLOCKED, never silently faked). Single
+        # symbol only.
+        if stripped.startswith("from sglang.srt.layers.moe.topk import "):
+            _syms = stripped[len("from sglang.srt.layers.moe.topk import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"fused_topk"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import fused_topk"
+                    f"  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.layers.dp_attention.is_dp_attention_enabled --
+        # a module-global backend flag (DP-attention server gate). The frozen
+        # L2_29 router kernel.py imports it function-locally inside the sibling
+        # ``fused_moe_router_tensorcore`` host wrapper (a dp_attn NaN-masking
+        # gate); the graded ``fused_moe_router_cudacore`` path never reaches it.
+        # The real import pulls sglang's dp_attention distributed-state module
+        # into the severed standalone, so it is redirected to a faithful shim
+        # returning the honest bench value (False -- no DP-attention server
+        # context). Single symbol only (the multi-symbol dp_attention sibling
+        # rule in _sglang_sibling_rules covers the DpPaddingMode/dp_gather set
+        # and intentionally does NOT include this name, so the two never collide).
+        if stripped.startswith("from sglang.srt.layers.dp_attention import "):
+            _syms = stripped[len("from sglang.srt.layers.dp_attention import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"is_dp_attention_enabled"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import is_dp_attention_enabled"
+                    f"  # Phase A': sibling-only DP-attention gate (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sgl_kernel.concat_mla_absorb_q -- the CUDA fused
+        # absorb-concat op. The frozen FlashMLA kernel.py imports it under a
+        # module-scope `if is_cuda():` gate and calls it ONLY in the sibling
+        # concat_mla_absorb_q_general helper; the graded
+        # create_flashmla_kv_indices_triton page-index path never touches it.
+        # The real import pulls the sgl_kernel CUDA extension into the severed
+        # standalone, so it is redirected to a loud-fail shim. Single symbol only.
+        if stripped.startswith("from sgl_kernel import "):
+            _syms = stripped[len("from sgl_kernel import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"concat_mla_absorb_q"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import concat_mla_absorb_q"
+                    f"  # Phase A': sibling-only CUDA absorb-concat (B-inert-shim)\n"
+                )
+                continue
         # B-inert-shim: vllm.sampling_params {MAX_LOGPROB_TOKEN_IDS,
         # SamplingParams}. A frozen kernel carries these for SIBLING setup
         # helpers (add_request type hints, logprob caps); the verified
@@ -4047,6 +4361,74 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': attention sentinel constants (B-inert-shim)\n"
                 )
                 continue
+        # B-inert-shim: vllm.model_executor.layers.fused_moe.utils
+        # .count_expert_num_tokens (task L2_26_fwd_kernel_ep_scatter_1). The
+        # frozen deep_gemm_utils.py imports it ONLY inside the host wrapper
+        # ``deepgemm_moe_permute``; the graded entrypoint
+        # ``_fwd_kernel_ep_scatter_1`` (driven by _pa_launcher.py) builds the
+        # contiguous-group layout straight from the per-expert counts and never
+        # reaches that wrapper. The shim loud-fails on call (never invoked on the
+        # graded path) so a future path reaching it is surfaced, not faked.
+        # Single symbol, subset-allowlisted, single-line.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.utils import "
+        ):
+            _syms = stripped[
+                len("from vllm.model_executor.layers.fused_moe.utils import "):
+            ]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"count_expert_num_tokens"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import count_expert_num_tokens"
+                    f"  # Phase A': off-path host-wrapper helper (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.utils.deep_gemm.get_mk_alignment_for_contiguous_layout
+        # (task L2_26_fwd_kernel_ep_scatter_1). Imported ONLY inside the off-graded
+        # -path host wrapper ``deepgemm_moe_permute`` (to pick the DeepGEMM block);
+        # the graded scatter kernel hard-codes BLOCK_E=128 in _pa_launcher.py and
+        # never reaches it. The real symbol lives in vllm's optional deep_gemm
+        # accel surface, so it is redirected to the loud-fail shim. Single symbol,
+        # subset-allowlisted, single-line.
+        if stripped.startswith("from vllm.utils.deep_gemm import "):
+            _syms = stripped[len("from vllm.utils.deep_gemm import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if (
+                _sym_set == {"get_mk_alignment_for_contiguous_layout"}
+                and "(" not in _syms
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"get_mk_alignment_for_contiguous_layout"
+                    f"  # Phase A': off-path deep_gemm accel helper (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: `import vllm.model_executor.layers.fused_moe.modular_kernel
+        # as <alias>` (task L2_26_fwd_kernel_ep_scatter_1). The module-import form
+        # (not `from ... import ...`). The frozen deep_gemm_utils.py references
+        # only ``<alias>.ExpertTokensMetadata`` as a def-time annotation on the
+        # off-graded-path host wrappers ``compute_aligned_M`` /
+        # ``deepgemm_moe_permute``; the graded ``_fwd_kernel_ep_scatter_1`` is
+        # annotated with none of these types. Redirect to the allowlisted
+        # tasks._frozen_shim.modular_kernel module (exposes ExpertTokensMetadata's
+        # verbatim dataclass shape) so the def-time annotation resolves without
+        # re-importing vllm's modular_kernel closure. Preserve the alias.
+        _m_modkern = re.match(
+            r"^import\s+vllm\.model_executor\.layers\.fused_moe\.modular_kernel"
+            r"\s+as\s+(\w+)\s*$",
+            stripped,
+        )
+        if _m_modkern:
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}import tasks._frozen_shim.modular_kernel as "
+                f"{_m_modkern.group(1)}"
+                f"  # Phase A': off-path modular_kernel annotation shim "
+                f"(B-inert-shim)\n"
+            )
+            continue
         # U2 pool vendoring: vllm.model_executor.layers.mamba.ops.triton_helpers
         # is a tiny single-purpose module whose only meaningful export is the
         # pure @triton.jit ``fast_exp`` device function (verbatim exp2 identity).
@@ -4077,22 +4459,182 @@ def rewrite_imports_to_standalone(
                         f"  # Phase A': U2 pool-vendored triton helper\n"
                     )
                     continue
-        if stripped.startswith("from vllm.model_executor.layers.quantization.utils.quant_utils import"):
-            # The kernel only imports FP8_DTYPE + get_fp8_min_max from
-            # this module; both are deterministic on target classes
-            # (the upstream definitions evaluate current_platform once
-            # at import time -- the shim freezes the CUDA-class value).
+        # ────────────────────────────────────────────────────────────────
+        # L1_28_pack_bitmatrix off-graded-path fused_moe surface. The frozen
+        # kernel.py is upstream's whole gpt_oss_triton_kernels_moe.py; the
+        # graded op is the tiny @triton.jit ``pack_bitmatrix`` driven by
+        # _pa_launcher.py::run. The imports below feed ONLY the MoE expert
+        # classes / host wrappers below the jit (class bases, def-time
+        # annotations, off-path helper calls) -- none on the graded path. Each
+        # rule is single-symbol or subset-allowlisted, single-line (multi-line
+        # forms collapsed above), and fail-closed (refuse + leave untouched if
+        # an unexpected symbol shares the line, so the audit surfaces a real
+        # dependency rather than a silent mis-rewrite). Behaviour-bearing shim
+        # symbols loud-fail on use; annotation/base types are inert classes.
+        # ────────────────────────────────────────────────────────────────
+        # `from vllm import _custom_ops as ops` -- off-path custom CUDA ops
+        # (only ops.moe_sum in the off-path moe_sum helper). Redirect the alias
+        # to the loud-fail _OpsShim instance exported as ``ops``.
+        _m_custom_ops = re.match(
+            r"^from\s+vllm\s+import\s+_custom_ops\s+as\s+(\w+)\s*$", stripped
+        )
+        if _m_custom_ops:
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from tasks._frozen_shim import FP8_DTYPE, get_fp8_min_max"
-                f"  # Phase A': quant constants (B-inert-shim)\n"
+                f"{indent}from tasks._frozen_shim import ops as "
+                f"{_m_custom_ops.group(1)}"
+                f"  # Phase A': off-path custom-ops shim (B-inert-shim)\n"
             )
-            # Skip any continuation lines of the multi-line import (the
-            # original ``import (A, B,)`` form spans multiple lines).
-            # We have to consume them: their indentation level is
-            # greater than the import line's, ending at the closing ')'.
-            # Done in the outer loop by detecting and skipping them.
-            in_multiline_import = True
+            continue
+        # vllm...fused_moe.activation.MoEActivation -- def-time annotation enum.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.activation import "
+        ):
+            _syms = stripped[len(
+                "from vllm.model_executor.layers.fused_moe.activation import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"MoEActivation"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import MoEActivation"
+                    f"  # Phase A': off-path activation enum (B-inert-shim)\n"
+                )
+                continue
+        # vllm...fused_moe.config.{FUSED_MOE_UNQUANTIZED_CONFIG, FusedMoEConfig,
+        # FusedMoEParallelConfig, FusedMoEQuantConfig, RoutingMethodType} --
+        # def-time annotation types + an off-path config constant. Subset-
+        # allowlisted; multi-line form collapsed above.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.config import "
+        ):
+            _syms = stripped[len(
+                "from vllm.model_executor.layers.fused_moe.config import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {
+                "FUSED_MOE_UNQUANTIZED_CONFIG", "FusedMoEConfig",
+                "FusedMoEParallelConfig", "FusedMoEQuantConfig",
+                "RoutingMethodType",
+            }
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path fused_moe config (B-inert-shim)\n"
+                )
+                continue
+        # vllm...fused_moe.experts.lora_experts_mixin.LoRAExpertsMixin -- class
+        # base of the off-path UnfusedOAITritonExperts. Single symbol.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.experts.lora_experts_mixin"
+            " import "
+        ):
+            _syms = stripped[len(
+                "from vllm.model_executor.layers.fused_moe.experts."
+                "lora_experts_mixin import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"LoRAExpertsMixin"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import LoRAExpertsMixin"
+                    f"  # Phase A': off-path mixin base (B-inert-shim)\n"
+                )
+                continue
+        # vllm...fused_moe.topk_weight_and_reduce.TopKWeightAndReduceNoOP --
+        # constructed only in the off-path finalize helper. Single symbol.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.topk_weight_and_reduce"
+            " import "
+        ):
+            _syms = stripped[len(
+                "from vllm.model_executor.layers.fused_moe."
+                "topk_weight_and_reduce import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"TopKWeightAndReduceNoOP"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import TopKWeightAndReduceNoOP"
+                    f"  # Phase A': off-path reduce no-op (B-inert-shim)\n"
+                )
+                continue
+        # vllm...fused_moe.utils._resize_cache -- off-path workspace reshape.
+        # NOTE: a sibling rule above already handles count_expert_num_tokens
+        # from this same module; this adds the _resize_cache symbol. Single
+        # symbol, fail-closed.
+        if stripped.startswith(
+            "from vllm.model_executor.layers.fused_moe.utils import "
+        ):
+            _syms = stripped[len(
+                "from vllm.model_executor.layers.fused_moe.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"_resize_cache"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import _resize_cache"
+                    f"  # Phase A': off-path workspace reshape (B-inert-shim)\n"
+                )
+                continue
+        # vllm.utils.import_utils.has_triton_kernels -- a pure predicate read at
+        # module scope (``if has_triton_kernels():``) to gate an OPTIONAL
+        # triton_kernels.* import block. On the severed surface that package is
+        # absent, so the shim returns False (the graded path imports none of the
+        # block). Single symbol.
+        if stripped.startswith("from vllm.utils.import_utils import "):
+            _syms = stripped[len("from vllm.utils.import_utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"has_triton_kernels"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import has_triton_kernels"
+                    f"  # Phase A': optional-package predicate (B-inert-shim)\n"
+                )
+                continue
+        # `from ..utils import swiglu_limit_func` -- a RELATIVE import onto the
+        # frozen file's upstream sibling fused_moe/utils.py. swiglu_limit_func is
+        # called only inside the off-path ``activation`` method; on the severed
+        # surface the sibling package does not exist, so redirect the name to the
+        # loud-fail shim. Single symbol; the relative form is matched exactly so
+        # a different ``..utils`` import (other tasks) falls through untouched.
+        if stripped == "from ..utils import swiglu_limit_func":
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(
+                f"{indent}from tasks._frozen_shim import swiglu_limit_func"
+                f"  # Phase A': off-path swiglu helper (B-inert-shim)\n"
+            )
+            continue
+        _QUANT_UTILS = (
+            "from vllm.model_executor.layers.quantization.utils.quant_utils import"
+        )
+        if stripped.startswith(_QUANT_UTILS):
+            # B-inert-shim: vllm quant_utils symbols. SYMBOL-AWARE + subset-
+            # allowlisted -- preserve EXACTLY the requested names so a symbol the
+            # shim does not export raises a clear ImportError (honest block)
+            # rather than being silently dropped or substituted. The shim mirrors
+            # each: FP8_DTYPE / get_fp8_min_max are CUDA-class quant constants
+            # (deterministic on target classes -- the upstream defs evaluate
+            # current_platform once at import); QuantKey is a def-time annotation
+            # type; kMxfp4Static is an off-path scheme sentinel (loud-fails on
+            # real use). All are off the graded path (the verified entrypoint
+            # never reads a real quant scheme). Fail-closed on any name outside
+            # the allowlist (leave the import untouched so the severed audit
+            # surfaces the real dependency). The parenthesised multi-line form is
+            # collapsed to one line at the top of this function, so this only
+            # ever sees a single-line import.
+            _syms_text = stripped[len(_QUANT_UTILS):].strip().lstrip("(").rstrip(")")
+            _sym_set = {s.strip() for s in _syms_text.split(",") if s.strip()}
+            _allowed = {"FP8_DTYPE", "get_fp8_min_max", "QuantKey", "kMxfp4Static"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms_text:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': quant symbols, symbol-aware (B-inert-shim)\n"
+                )
+                continue
+            # Symbol outside the allowlist (or unexpectedly still multi-line)
+            # -> fail closed: leave untouched so the audit surfaces the real
+            # vllm dependency rather than a silently-wrong rewrite.
+            out.append(ln)
             continue
         # If we're consuming continuation lines of a multi-line import
         # we just rewrote, drop them until we hit the closing ')' on a

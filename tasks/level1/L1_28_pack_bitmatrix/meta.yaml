@@ -26,26 +26,28 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Pack a [n_tokens, n_experts] expert-selection
+  # Symbol audit (approach §3.4). Pack a [n_tokens, top_k] expert-selection
   # matrix into int32 bitwords (bit e set => token routed to expert e). One
   # program per token row. Symbol map: B -> n_tokens (topk_ids dim 0, kernel
-  # grid extent), D -> topk per token (topk_ids dim 1, the per-row loop
-  # extent). num_experts is a scalar literal; the output has ceil(num_experts
-  # /32) words per row.
+  # grid extent), G -> top_k per token (topk_ids dim 1 = n_expts_act, the
+  # per-row column extent the kernel reads; bounded by BLOCK_SIZE_K=32).
+  # num_experts is a scalar literal; the output has ceil(num_experts/32) words
+  # per row.
   # FLOPs (vector): pure bit packing (shift, or) — no floating-point
-  # arithmetic. Reported as the small constant 2*B*D (~2 int ops per selection
+  # arithmetic. Reported as the small constant 2*B*G (~2 int ops per selection
   # entry); the dominant cost is bytes.
   # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (topk_ids) -> dtype_size=8 for the read topk_ids[B,D] -> B*D*dtype_size.
-  # bitmatrix[B,ceil(num_experts/32)] (one word per row at the test sizes) is
-  # int32 (oracle returns int32, non-primary dtype) -> literal byte width *4
-  # -> + B*4.
-  flops: 2*B*D
+  # (topk_ids) -> dtype_size=8 for the read topk_ids[B,G] -> B*G*dtype_size.
+  # bitmatrix[B, ceil(num_experts/32)] is int32 (oracle returns int32, non-
+  # primary dtype) -> literal byte width *4 -> + B*ceil(E/32)*4. num_experts is
+  # knob E; at the test sizes E<=32 so ceil(E/32)=1 (one word per row), but the
+  # ceil form is the kernel's true output-word count (bm_cols=cdiv(E,32)).
+  flops: 2*B*G
   flops_class: vector
-  bytes: B*D*dtype_size + B*4
+  bytes: B*G*dtype_size + B*ceil(E/32)*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -78,12 +80,13 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-28
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Packs topk_ids [B, D] (per-token expert ids) into a per-token expert bitmatrix. num_experts is the expert count.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Packs topk_ids [B, G] (G = top_k per token, the n_expts_act column extent the kernel reads, bounded by BLOCK_SIZE_K=32) into a per-token expert bitmatrix. num_experts is the expert count.
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
-  - D >= 1
+  - G >= 1
+  - G <= 32
   dtypes:
     topk_ids: int64
   dists:
@@ -91,7 +94,7 @@ param_constraints:
       kind: randint
       args:
         lo: '0'
-        hi: '2'
+        hi: E
   scalars:
     num_experts: num_experts >= 1
   tensor_invariants: []

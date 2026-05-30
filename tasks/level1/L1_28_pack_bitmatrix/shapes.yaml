@@ -135,8 +135,17 @@ inputs:
   topk_ids:
     dims:
     - B
-    - D
+    - G
     dtype: int64
-    dist: randint:0:2
+    # topk_ids[B, G] -- G is the per-token top_k count (n_expts_act), the
+    # column extent the kernel reads. The frozen pack_bitmatrix only loads
+    # offsets_k = tl.arange(0, BLOCK_SIZE_K) with BLOCK_SIZE_K=32, so the
+    # column dim must stay <= 32 for the kernel to match the oracle (which
+    # packs every column). G is always in [1, 32] across all shapes; the
+    # legacy [B, D] mapping (D up to 4096) silently dropped columns >= 32
+    # and diverged from the oracle. ids are expert ids in [0, num_experts)
+    # (kernel does div = id // 32, rem = id % 32); num_experts is knob E, so
+    # ids span the full expert range; randint hi is exclusive.
+    dist: randint:0:E
   num_experts:
-    scalar: 4
+    scalar_knob: E

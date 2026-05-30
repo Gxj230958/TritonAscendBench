@@ -26,26 +26,25 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). FlashMLA paged KV index construction —
-  # identical math to L1_32: indptr is the cumsum of per-request page counts
-  # ceil(seq_lens[r]/page_size); indices concatenates used block ids. Symbol
-  # map: E -> n_reqs (seq_lens / block_table rows, kernel grid extent), N ->
-  # block_table dim 1 (max pages per request, the per-request copy ceiling).
-  # page_size is a scalar literal.
-  # FLOPs (vector): per request a ceil-div (~2) plus the cumsum accumulate
-  # (~1) -> ~3*E integer ops; no floating-point work. Dominant cost is bytes.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (seq_lens declared first) -> dtype_size=8 for the int64 reads seq_lens[E]
-  # + up to E*N block_table source entries -> (E + E*N)*dtype_size. The kernel
-  # writes are int32 (oracle returns indptr / indices as .to(int32),
-  # non-primary dtype): indices up to E*N + indptr[E+1] -> literal byte width
-  # *4 -> + (E*N + E + 1)*4.
-  flops: 3*E
+  # Symbol audit (approach §3.4). FlashMLA paged-KV page-index construction
+  # (kernel.py::create_flashmla_kv_indices_triton). For each request the
+  # kernel walks req_to_token at page_size stride and emits page id
+  # (token_slot // page_size) for each occupied page. Symbol map:
+  # E -> n_reqs (req_pool_indices / page_kernel_lens length, kernel grid
+  # extent), N -> max pages per request = ceil(L / page_size) (the
+  # per-request copy ceiling). page_size is a scalar literal.
+  # FLOPs (vector): per page a cdiv + a floor-div (~2 integer ops) over up
+  # to E*N pages -> ~2*E*N integer ops; no floating-point work. Dominant
+  # cost is bytes.
+  # bytes (hbm): all tensors are int32 (dtype_size=4). Reads: gathered
+  # req_to_token slots up to E*N + req_pool_indices[E] + page_kernel_lens[E].
+  # Writes: kv_indices up to E*N. -> (E*N + E + E + E*N)*4 = (2*E*N + 2*E)*4.
+  flops: 2*E*N
   flops_class: vector
-  bytes: (E + E*N)*dtype_size + (E*N + E + 1)*4
+  bytes: (2*E*N + 2*E)*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -78,30 +77,36 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-33
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Builds the FlashMLA paged-KV indptr/indices from per-request seq_lens [E] and a paged block_table [E, N]. page_size is the page granularity; seq_lens >= 1.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Builds the FlashMLA paged-KV page-index table from a req_to_token slot table [E, L], per-request pool rows req_pool_indices [E], and per-request seq_lens page_kernel_lens [E]. page_size is the PAGED_SIZE page granularity; page_kernel_lens >= 1; req_pool_indices index the E rows of req_to_token.
 param_constraints:
   scaffold: false
   dims:
   - E >= 1
-  - N >= 1
+  - L >= 1
   dtypes:
-    seq_lens: int64
-    block_table: int64
+    req_to_token: int32
+    req_pool_indices: int32
+    page_kernel_lens: int32
   dists:
-    seq_lens:
-      kind: randint
-      args:
-        lo: '1'
-        hi: N
-    block_table:
+    req_to_token:
       kind: randint
       args:
         lo: '0'
         hi: N
+    req_pool_indices:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    page_kernel_lens:
+      kind: randint
+      args:
+        lo: '1'
+        hi: L
   scalars:
     page_size: page_size >= 1
   tensor_invariants:
   - type: index_in_range
     args:
-      input: block_table
-      value: N
+      input: req_pool_indices
+      value: E

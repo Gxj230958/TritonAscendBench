@@ -26,30 +26,29 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Expert-parallel token scatter: out[dst_index
-  # [i]] = recv_x[i] — a local row scatter (no cross-rank traffic, so
-  # bytes_resource is hbm per approach §3.2). Symbol map: B -> token rows
-  # (recv_x / dst_index dim 0 == out_rows scalar_knob, kernel grid extent),
-  # D -> recv_x dim 1 (the per-row copy width).
-  # FLOPs (vector): pure scatter/copy, no arithmetic at all -> reported as the
-  # small constant B (one address computation per token). Dominant cost is
-  # bytes.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 recv_x -> dtype_size; read recv_x + write output [B,D] -> 2*B*D.
-  # The int64 dst_index[B] uses literal *8 -> 8*B.
-  flops: B
+  # Symbol audit (approach §3.4). `_fwd_kernel_ep_scatter_1` builds the
+  # DeepGEMM contiguous-group layout: from num_recv_tokens_per_expert[E] it
+  # writes expert_start_loc[E] (padded exclusive prefix sum) and fills
+  # m_indices[M_sum] with expert ids (-1 padding). Symbol map: E -> number of
+  # experts (grid extent, num_recv_tokens_per_expert dim 0), M_sum ->
+  # sum_e round_up_128(counts[e]) (the m_indices length the kernel fills).
+  # FLOPs (vector): only the per-expert cumsum + round-up — O(E) integer ops,
+  # reported as the small constant E. Dominant cost is the m_indices writes.
+  # bytes (hbm): read counts[E] (int32 -> 4*E) + write expert_start_loc[E]
+  # (int32 -> 4*E) + write m_indices[M_sum] (int32 -> 4*M_sum).
+  flops: E
   flops_class: vector
-  bytes: 2*B*D*dtype_size + 8*B
+  bytes: 8*E + 4*M_sum
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
   - 1
-  - 4
+  - 1
   min_dram_bytes: 0
   min_flops: 0
   output_format: safetensors
@@ -75,24 +74,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-26
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). EP scatter: recv_x [n_tokens, D] rows scattered to dst_index [n_tokens] destination rows. dst_index is a permutation (arange) over [0, out_rows); out_rows is the scatter row count (= B).
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2).
+# `_fwd_kernel_ep_scatter_1` consumes num_recv_tokens_per_expert[E] (per-expert
+# token counts, non-negative ints) and produces the DeepGEMM contiguous-group
+# layout: expert_start_loc[E] = exclusive prefix sum of round_up_128(counts),
+# and m_indices[M_sum] filled with expert ids (-1 on padding rows). The launcher
+# allocates both outputs (candidate_inplace); M_sum = sum_e round_up_128(counts[e]).
 param_constraints:
   scaffold: false
   dims:
-  - B >= 1
-  - D >= 1
+  - E >= 1
   dtypes:
-    recv_x: float32
-    dst_index: int64
+    num_recv_tokens_per_expert: int32
   dists:
-    recv_x:
-      kind: randn
-    dst_index:
-      kind: arange
-  scalars:
-    out_rows: out_rows >= 1
-  tensor_invariants:
-  - type: index_in_range
-    args:
-      input: dst_index
-      value: B
+    num_recv_tokens_per_expert:
+      kind: randint
+      args:
+        lo: 0
+        hi: T
+  tensor_invariants: []

@@ -1,0 +1,80 @@
+import torch
+import triton
+
+
+# Authored launcher: drives the in-module @triton.jit
+# `_fwd_kernel_ep_scatter_1` exactly as the upstream host wrapper
+# `ep_scatter` does (vLLM
+# vllm/model_executor/layers/fused_moe/deep_gemm_utils.py, commit 18f6bf5).
+#
+# Upstream call site (the only part of `ep_scatter` that touches kernel_1):
+#     num_experts = num_recv_tokens_per_expert.shape[0]
+#     grid = num_experts
+#     assert m_indices.shape[0] % BLOCK_E == 0
+#     assert expert_start_loc.shape[0] == num_experts
+#     _fwd_kernel_ep_scatter_1[(grid,)](
+#         num_recv_tokens_per_expert,
+#         expert_start_loc,
+#         m_indices,
+#         num_experts=num_experts,
+#         num_warps=8,
+#         BLOCK_E=128,
+#         BLOCK_EXPERT_NUM=triton.next_power_of_2(num_experts),
+#     )
+# expert_start_loc / m_indices are pre-allocated by the caller
+# (`deepgemm_moe_permute`): expert_start_loc = torch.empty(num_experts, int32)
+# and m_indices = torch.full((M_sum,), -1, int32) -- the -1 sentinel is part
+# of the contract (padding rows DeepGEMM skips), so the launcher reproduces it.
+#
+# M_sum is the size of the contiguous-group output the kernel indexes into:
+#     M_sum = sum_e round_up_128(num_recv_tokens_per_expert[e])
+# which equals expert_start_loc[-1] + round_up_128(counts[-1]). The launcher
+# derives it from the input so the kernel's `m_indices.shape[0] % 128 == 0`
+# invariant holds for any fixture.
+#
+# Output keys match the oracle contract exactly:
+#   expert_start_loc : [num_experts] int32 -- padded exclusive prefix sum
+#   m_indices        : [M_sum]       int32 -- expert-id fill, -1 padding
+def _round_up_128(x: torch.Tensor) -> torch.Tensor:
+    return ((x + 127) // 128) * 128
+
+
+def run(inputs: dict) -> dict:
+    counts = inputs["num_recv_tokens_per_expert"]
+    # Kernel loads num_recv_tokens_per_expert with int math; keep it integral.
+    if counts.dtype not in (torch.int32, torch.int64):
+        counts = counts.to(torch.int32)
+    counts = counts.contiguous()
+
+    num_experts = counts.shape[0]
+    BLOCK_E = 128
+    num_warps = 8
+
+    padded = _round_up_128(counts.to(torch.int64))
+    m_sum = int(padded.sum().item())
+    # m_sum is a sum of multiples of 128, so the % BLOCK_E == 0 invariant holds.
+    # Guarantee at least one BLOCK_E row so the empty-fixture grid still runs.
+    if m_sum == 0:
+        m_sum = BLOCK_E
+
+    device = counts.device
+    expert_start_loc = torch.empty(
+        (num_experts,), device=device, dtype=torch.int32
+    )
+    m_indices = torch.full(
+        (m_sum,), -1, device=device, dtype=torch.int32
+    )
+
+    grid = num_experts
+
+    _fwd_kernel_ep_scatter_1[(grid,)](
+        counts,
+        expert_start_loc,
+        m_indices,
+        num_experts=num_experts,
+        num_warps=num_warps,
+        BLOCK_E=BLOCK_E,
+        BLOCK_EXPERT_NUM=triton.next_power_of_2(num_experts),
+    )
+
+    return {"expert_start_loc": expert_start_loc, "m_indices": m_indices}

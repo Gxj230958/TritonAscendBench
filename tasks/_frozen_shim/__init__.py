@@ -295,6 +295,35 @@ def moe_align_block_size(*args, **kwargs):
     )
 
 
+def is_dp_attention_enabled() -> bool:
+    """Faithful mirror of sglang.srt.layers.dp_attention.is_dp_attention_enabled.
+    Upstream returns a module-global flag (``_ENABLE_DP_ATTENTION_FLAG``) set by
+    server bootstrap; absent that bootstrap it is False. The bench runs the
+    standalone kernel with no DP-attention server context, so the honest value is
+    False. The L2_29 frozen kernel.py reads it ONLY inside the sibling
+    ``fused_moe_router_tensorcore`` host wrapper (as a dp_attn NaN-masking gate);
+    the graded ``fused_moe_router_cudacore`` path never reaches it. B-inert
+    setup-only backend predicate."""
+    return False
+
+
+def fused_topk(*args, **kwargs):
+    """Loud-fail stand-in for sglang.srt.layers.moe.topk.fused_topk. Upstream
+    dispatches into the CUDA ``topk_softmax`` / aiter fused-topk ops, pulling the
+    whole sglang MoE topk dependency chain into the severed standalone. The L2_29
+    frozen kernel.py imports it ONLY for the sibling ``FusedMoeRouter.forward_torch``
+    method; the graded ``fused_moe_router_cudacore`` entrypoint computes its own
+    top-k inside the @triton.jit kernel and never calls it. Redirected here so the
+    module imports standalone; raising keeps any task that genuinely reaches it
+    honest -- the severed kernel must surface the call, never fake it."""
+    raise NotImplementedError(
+        "fused_topk is the sibling-only sglang CUDA topk_softmax dispatcher "
+        "(used by FusedMoeRouter.forward_torch, never the graded "
+        "fused_moe_router_cudacore entrypoint); it is not vendored into the "
+        "severed standalone"
+    )
+
+
 def cached_triton_kernel(key_fn=None):
     """Passthrough mirror of sglang.srt.utils.cached_triton_kernel. Upstream
     wraps a @triton.jit kernel in a custom key-based launch cache (CachedKernel)
@@ -308,6 +337,41 @@ def cached_triton_kernel(key_fn=None):
         return fn
 
     return _deco
+
+
+def count_expert_num_tokens(*args, **kwargs):
+    """Loud-fail stand-in for
+    vllm.model_executor.layers.fused_moe.utils.count_expert_num_tokens.
+    The frozen kernel.py imports it ONLY inside the host wrapper
+    ``deepgemm_moe_permute`` (deep_gemm_utils.py:414), which the graded
+    entrypoint ``_fwd_kernel_ep_scatter_1`` (driven by _pa_launcher.py)
+    never reaches -- kernel_1 builds the contiguous-group layout straight
+    from the per-expert counts. Importing the real symbol pulls vllm's
+    fused_moe.utils closure into the severed standalone, so it is
+    redirected here. Raising keeps any task that genuinely reaches it
+    honest: the severed kernel must surface the call, never fake it."""
+    raise NotImplementedError(
+        "count_expert_num_tokens belongs to the off-graded-path host wrapper "
+        "deepgemm_moe_permute; the graded _fwd_kernel_ep_scatter_1 never calls "
+        "it, so it is not vendored into the severed standalone"
+    )
+
+
+def get_mk_alignment_for_contiguous_layout(*args, **kwargs):
+    """Loud-fail stand-in for
+    vllm.utils.deep_gemm.get_mk_alignment_for_contiguous_layout.
+    The frozen kernel.py imports it ONLY inside the host wrapper
+    ``deepgemm_moe_permute`` (deep_gemm_utils.py:375) to pick the DeepGEMM
+    block (block_m, block_k); the graded entrypoint
+    ``_fwd_kernel_ep_scatter_1`` hard-codes BLOCK_E=128 in _pa_launcher.py
+    and never reaches this wrapper. The real symbol lives in vllm's
+    optional deep_gemm accel surface, so it is redirected here. Raising
+    keeps the severed kernel honest if the call path ever changes."""
+    raise NotImplementedError(
+        "get_mk_alignment_for_contiguous_layout belongs to the off-graded-path "
+        "host wrapper deepgemm_moe_permute; the graded _fwd_kernel_ep_scatter_1 "
+        "never calls it, so it is not vendored into the severed standalone"
+    )
 
 
 # Block-size table for the CSGMV LoRA expand kernel, mirroring
@@ -528,6 +592,23 @@ get_token_ids_logprobs_prefill = _sibling_only_call(
 get_top_logprobs_chunk = _sibling_only_call("get_top_logprobs_chunk")
 get_top_logprobs_prefill = _sibling_only_call("get_top_logprobs_prefill")
 
+# sglang.jit_kernel.utils.is_arch_support_pdl -- a GPU-arch capability gate
+# (Programmatic Dependent Launch, sm_90+). The frozen FlashMLA kernel.py reads
+# it ONLY inside the sibling fp8 helper mla_quantize_and_rope_for_fp8
+# (enable_pdl= launch hint); the graded create_flashmla_kv_indices_triton
+# integer-index path never calls it. Importing the real symbol pulls the
+# sglang JIT chain into the severed standalone, so it is redirected here.
+# Fail-closed: a task that genuinely needs the PDL gate stays honestly BLOCKED.
+is_arch_support_pdl = _sibling_only_call("is_arch_support_pdl")
+
+# sgl_kernel.concat_mla_absorb_q -- the CUDA fused absorb-concat op. The frozen
+# FlashMLA kernel.py imports it (under a module-scope `if is_cuda():` gate) and
+# calls it ONLY in the sibling concat_mla_absorb_q_general helper; the graded
+# create_flashmla_kv_indices_triton page-index path never touches it. The real
+# import pulls the sgl_kernel CUDA extension into the severed standalone, so it
+# is redirected here. Fail-closed (raises if a graded path ever invokes it).
+concat_mla_absorb_q = _sibling_only_call("concat_mla_absorb_q")
+
 
 class DpPaddingMode(enum.Enum):
     """Inert stand-in for sglang.srt.layers.dp_attention.DpPaddingMode. Used
@@ -603,3 +684,181 @@ class _SglangEnvsShim:
 
 
 envs = _SglangEnvsShim()
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# vllm fused_moe sibling surface (task L1_28_pack_bitmatrix).
+#
+# The frozen kernel.py for L1_28 is upstream's whole
+# ``vllm/.../fused_moe/experts/gpt_oss_triton_kernels_moe.py``. The GRADED op is
+# the tiny @triton.jit ``pack_bitmatrix`` (a pure bit-packing kernel using only
+# torch/triton/tl), driven by ``_pa_launcher.py::run``. Everything below the jit
+# -- the MoE expert classes (``BaseOAITritonExperts``, ``OAITritonExperts``,
+# ``UnfusedOAITritonExperts``, ``OAITritonMxfp4ExpertsMonolithic``) and the host
+# wrappers (``triton_kernel_moe_forward`` / ``triton_kernel_fused_experts`` /
+# ``make_routing_data``) -- is the rest of the upstream MoE file and is NEVER on
+# the graded pack_bitmatrix path.
+#
+# The frozen file has no ``from __future__ import annotations``, so the symbols
+# used as CLASS BASES (``LoRAExpertsMixin``) and as DEF-TIME TYPE ANNOTATIONS
+# (``MoEActivation``, the ``FusedMoE*Config`` classes, ``RoutingMethodType``,
+# ``QuantKey``) must resolve to real objects for the module body to import
+# standalone. The rest (``FUSED_MOE_UNQUANTIZED_CONFIG``, ``TopKWeightAndReduceNoOP``,
+# ``_resize_cache``, ``kMxfp4Static``, ``ops`` (vllm._custom_ops),
+# ``swiglu_limit_func``) are referenced only inside off-path bodies; the name
+# only needs to bind. Type/enum stand-ins satisfy the annotations; behaviour-
+# bearing callables LOUD-FAIL if invoked (fail-closed: a graded path reaching
+# real MoE compute is a genuine dependency, never silently faked); the
+# ``has_triton_kernels`` predicate returns its honest standalone value (False),
+# matching that the severed surface has no triton_kernels package. B-inert.
+# ───────────────────────────────────────────────────────────────────────────
+class LoRAExpertsMixin:
+    """Inert stand-in for
+    ``vllm...fused_moe.experts.lora_experts_mixin.LoRAExpertsMixin`` -- a plain
+    mixin base of the frozen file's off-path ``UnfusedOAITritonExperts``. A bare
+    class (inherits only ``object``, no metaclass) so the multiple-inheritance
+    ``class UnfusedOAITritonExperts(LoRAExpertsMixin, BaseOAITritonExperts)``
+    statement executes at import time with a C3-consistent MRO; the subclass is
+    never instantiated on the graded pack_bitmatrix path."""
+
+
+class MoEActivation(enum.Enum):
+    """Inert stand-in for ``vllm...fused_moe.activation.MoEActivation`` -- an
+    activation-kind enum used by the frozen file as a def-time parameter
+    annotation AND as class-level default values (e.g.
+    ``activation: MoEActivation = MoEActivation.SWIGLUOAI``) on the off-path host
+    wrappers / expert methods, so the member names + string values must mirror
+    upstream verbatim (activation.py:16-29, commit 18f6bf5) for those def-time
+    defaults to resolve. Never read on the graded pack_bitmatrix path."""
+
+    SILU = "silu"
+    GELU = "gelu"
+    GELU_TANH = "gelu_tanh"
+    RELU2 = "relu2"
+    SWIGLUOAI = "swigluoai"
+    SWIGLUSTEP = "swiglustep"
+    SILU_NO_MUL = "silu_no_mul"
+    GELU_NO_MUL = "gelu_no_mul"
+    GELU_TANH_NO_MUL = "gelu_tanh_no_mul"
+    RELU2_NO_MUL = "relu2_no_mul"
+
+
+class RoutingMethodType(enum.IntEnum):
+    """Inert stand-in for ``vllm...fused_moe.config.RoutingMethodType`` -- a
+    router-kind IntEnum used by the frozen file as a def-time annotation AND as
+    class-level default reads (``RoutingMethodType.Renormalize`` /
+    ``.RenormalizeNaive``) on off-path methods. Member names + values mirror
+    upstream verbatim (config.py:102-124, commit 18f6bf5), including the high
+    sentinel values, so any redirected task reading any member resolves. Never
+    reached on the graded path."""
+
+    Default = 0
+    Renormalize = 1
+    DeepSeekV3 = 2
+    Llama4 = 3
+    RenormalizeNaive = 4
+    TopK = 5
+    SigmoidRenorm = 6
+    MiniMax2 = 7
+    Unspecified = 8
+    DeepseekV4 = 100
+    Custom = 101
+    Simulated = 102
+
+
+class QuantKey:
+    """Inert stand-in for
+    ``vllm...quantization.utils.quant_utils.QuantKey`` -- a quant-scheme key
+    dataclass used by the frozen file ONLY as a def-time annotation on off-path
+    ``_supports_quant_scheme`` helpers. A bare class satisfies the annotation;
+    never constructed or compared on the graded path."""
+
+
+class FusedMoEConfig(_SetupOnlyShim):
+    """Inert stand-in for ``vllm...fused_moe.config.FusedMoEConfig`` -- an MoE
+    config container, used by the frozen file ONLY as a def-time annotation on
+    off-path expert methods. Loud-fails on any attribute access; never read on
+    the graded pack_bitmatrix path. B-inert."""
+
+
+class FusedMoEParallelConfig(_SetupOnlyShim):
+    """Inert stand-in for ``vllm...fused_moe.config.FusedMoEParallelConfig`` --
+    a parallelism config container, used only as a def-time annotation on
+    off-path methods. Loud-fails on any access; never the graded path. B-inert."""
+
+
+class FusedMoEQuantConfig(_SetupOnlyShim):
+    """Inert stand-in for ``vllm...fused_moe.config.FusedMoEQuantConfig`` -- a
+    quant config container, used only as a def-time annotation on off-path
+    methods. Loud-fails on any access; never the graded path. B-inert."""
+
+
+class _OpsShim:
+    """Inert stand-in for ``vllm._custom_ops`` (imported as ``ops``). The frozen
+    file calls ``ops.moe_sum`` ONLY inside the off-path ``moe_sum`` helper; the
+    graded pack_bitmatrix path never touches it. Any attribute access LOUD-FAILS
+    -- a verified path reaching a real custom CUDA op is a true dependency, never
+    silently faked. B-inert (fail-closed)."""
+
+    def __getattr__(self, name):
+        raise NotImplementedError(
+            f"vllm._custom_ops shim: 'ops.{name}' reached. Custom CUDA ops are "
+            f"off-path (MoE expert helpers) and must not enter the graded "
+            f"pack_bitmatrix entrypoint's path."
+        )
+
+
+ops = _OpsShim()
+
+# Off-path value/instance bindings: referenced only inside off-path bodies, so
+# the NAME must bind, but any real read/use LOUD-FAILS (fail-closed).
+FUSED_MOE_UNQUANTIZED_CONFIG = _SetupOnlyShim()
+kMxfp4Static = _SetupOnlyShim()
+
+
+def _l1_28_sibling_only_call(_name: str):
+    """Build a loud-failing stand-in for a vllm fused_moe helper that the frozen
+    L1_28 kernel imports but only reaches on the off-graded-path MoE expert
+    surface. The name must resolve so the module imports; invoking it means a
+    verified entrypoint reached real MoE compute -- a true dependency to
+    classify, never to fake. Fail-closed."""
+
+    def _stub(*args, **kwargs):
+        raise NotImplementedError(
+            f"{_name} shim reached: this vllm fused_moe helper is off-path (MoE "
+            f"expert / host-wrapper surface) and must not enter the graded "
+            f"pack_bitmatrix entrypoint's path."
+        )
+
+    _stub.__name__ = _name
+    _stub.__qualname__ = _name
+    return _stub
+
+
+# vllm...fused_moe.topk_weight_and_reduce.TopKWeightAndReduceNoOP -- constructed
+# only inside the off-path ``finalize_weight_and_reduce_impl``. A loud-fail
+# callable: the name binds, but constructing/calling it on the graded path
+# raises.
+TopKWeightAndReduceNoOP = _l1_28_sibling_only_call("TopKWeightAndReduceNoOP")
+
+# vllm...fused_moe.utils._resize_cache -- a real workspace-buffer reshape called
+# only inside the off-path ``apply`` / ``triton_kernel_fused_experts`` host
+# wrappers; loud-fails if a graded path ever calls it.
+_resize_cache = _l1_28_sibling_only_call("_resize_cache")
+
+# ..utils.swiglu_limit_func (sibling fused_moe/utils.py) -- a swiglu activation
+# helper called only inside the off-path ``activation`` method; loud-fails if
+# the graded path ever calls it.
+swiglu_limit_func = _l1_28_sibling_only_call("swiglu_limit_func")
+
+
+def has_triton_kernels() -> bool:
+    """Pure predicate mirroring
+    ``vllm.utils.import_utils.has_triton_kernels`` -- True iff the optional
+    ``triton_kernels`` package is importable. On the severed standalone surface
+    that package is absent (and the audit forbids resolving vllm's own copy), so
+    this is honestly False. The frozen kernel reads it at module scope
+    (``if has_triton_kernels():``) to gate an optional ``triton_kernels.*``
+    import block; returning False skips that block (the graded pack_bitmatrix
+    path imports none of it), matching the standalone surface. B-inert."""
+    return False

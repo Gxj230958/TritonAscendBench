@@ -132,9 +132,10 @@ hidden_shapes:
     C: 8
     G: 4
 inputs:
+  # Upstream contract (fused_gdn_gating): A_log / dt_bias are per-head [D]
+  # 1-D parameters broadcast over the batch; a / b are [B, D] token tensors.
   A_log:
     dims:
-    - B
     - D
     dtype: float32
     dist: randn
@@ -144,9 +145,14 @@ inputs:
     - D
     dtype: float32
     dist: randn
-  dt_bias:
+  b:
     dims:
     - B
+    - D
+    dtype: float32
+    dist: randn
+  dt_bias:
+    dims:
     - D
     dtype: float32
     dist: randn

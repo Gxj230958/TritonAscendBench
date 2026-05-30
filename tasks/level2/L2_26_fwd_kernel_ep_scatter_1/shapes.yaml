@@ -131,29 +131,16 @@ hidden_shapes:
     E: 256
     C: 8
     G: 4
+# Operator input contract for `_fwd_kernel_ep_scatter_1` (the named entrypoint).
+# The kernel builds the DeepGEMM contiguous-group layout from the per-expert
+# token counts: out = (expert_start_loc[E], m_indices[M_sum]). Its ONLY data
+# input is num_recv_tokens_per_expert[E] (E = number of experts, knob `E`);
+# expert_start_loc / m_indices are launcher-allocated outputs (candidate_inplace).
+# Token counts in [0, T) so some experts may be empty (exercises the -1 padding
+# and zero-width-region path); T = per-expert token cap knob.
 inputs:
-  recv_x:
+  num_recv_tokens_per_expert:
     dims:
-    - B
-    - D
-    dtype: float32
-    dist: randn
-  dst_index:
-    dims:
-    - B
-    dtype: int64
-    dist: arange
-  out_rows:
-    scalar_knob: B
-  input_tensor:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  recv_x_scale:
-    dims:
-    - "B*N"
-    dtype: float32
-    dist: randn
+    - E
+    dtype: int32
+    dist: "randint:0:T"
