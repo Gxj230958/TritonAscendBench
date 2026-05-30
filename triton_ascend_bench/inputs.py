@@ -80,12 +80,13 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 #: vocabulary and to the `specs/task_api_contract.md §5.2` dist-kind table.
 DIST_KINDS = frozenset({
     "randn", "rand", "ones", "zeros", "eye", "tril", "randint",
-    "softmax_rows", "offsets", "cumcount", "arange", "full",
+    "softmax_rows", "offsets", "cumcount", "arange", "randperm", "full",
 })
 
 #: Dist kinds that carry no `args` (the bare-name DSL forms).
 _NULLARY_DIST_KINDS = frozenset({
     "randn", "rand", "ones", "zeros", "eye", "tril", "softmax_rows", "arange",
+    "randperm",
 })
 
 
@@ -416,6 +417,13 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
     elif kind == "arange":
         n = shape[-1] if shape else 1
         return torch.arange(n, dtype=torch.int64).reshape(shape)
+    elif kind == "randperm":
+        # Random permutation of [0, n) -- a non-trivial bijection. MoE token
+        # reordering (argsort of expert ids) IS such a permutation; a bare
+        # arange (identity) would let an inverse-permutation scatter kernel
+        # pass even when it computes the wrong direction.
+        n = shape[-1] if shape else 1
+        return torch.randperm(n, generator=gen).to(torch.int64).reshape(shape)
     elif kind == "full":
         # Constant-filled int64 tensor; value = eval_numeric(expr, knobs).
         # Used when a length vector must match an offsets cumsum (e.g.
