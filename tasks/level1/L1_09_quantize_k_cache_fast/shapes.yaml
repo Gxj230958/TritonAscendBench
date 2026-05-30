@@ -1,150 +1,72 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the quantization family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Upstream contract (SGLang _quantize_k_cache_fast_kernel, commit 409d350):
+# the kernel hard-asserts dim_nope == 512, dim_rope == 64, group_size == 128,
+# bfloat16 inputs. The only free axis is the token count B (num_tokens =
+# grid dim 0). D mirrors DIM_NOPE (512) so the cost model resolves; the
+# per-input dims pin the fixed nope/rope widths as literals.
 size_knobs:
   B: 64
-  L: 128
   D: 512
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 4
-    L: 16
-    D: 128
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+    D: 512
 - id: P2
   name: small
   knobs:
     B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+    D: 512
 - id: P3
   name: medium
   knobs:
     B: 64
-    L: 128
     D: 512
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
 - id: P4
   name: large
   knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+    B: 256
+    D: 512
 - id: P5
   name: wide
   knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+    B: 1024
+    D: 512
 hidden_shapes:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
-- id: H2
   name: h_singleton
   knobs:
-    B: 2
-    L: 16
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+    B: 1
+    D: 512
+- id: H2
+  name: h_odd
+  knobs:
+    B: 37
+    D: 512
 - id: H3
   name: h_deep
   knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+    B: 2048
+    D: 512
 - id: H4
   name: h_wide
   knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+    B: 512
+    D: 512
 inputs:
   k_nope:
     dims:
     - B
-    - D
-    dtype: float32
+    - 512
+    dtype: bfloat16
     dist: randn
   k_rope:
     dims:
     - B
-    - D
-    dtype: float32
+    - 64
+    dtype: bfloat16
     dist: randn
   group_size:
-    scalar: 8
+    scalar: 128
   fp8_max:
     scalar: 448.0

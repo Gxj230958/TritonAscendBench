@@ -12,6 +12,7 @@ size_knobs:
   E: 32
   C: 32
   G: 8
+  K: 8
 public_shapes:
 - id: P1
   name: tiny
@@ -26,6 +27,7 @@ public_shapes:
     E: 4
     C: 8
     G: 2
+    K: 2
 - id: P2
   name: small
   knobs:
@@ -39,6 +41,7 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+    K: 4
 - id: P3
   name: medium
   knobs:
@@ -52,6 +55,7 @@ public_shapes:
     E: 32
     C: 32
     G: 8
+    K: 8
 - id: P4
   name: large
   knobs:
@@ -65,6 +69,7 @@ public_shapes:
     E: 64
     C: 64
     G: 8
+    K: 8
 - id: P5
   name: wide
   knobs:
@@ -78,6 +83,7 @@ public_shapes:
     E: 128
     C: 16
     G: 4
+    K: 6
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -92,6 +98,7 @@ hidden_shapes:
     E: 12
     C: 24
     G: 4
+    K: 4
 - id: H2
   name: h_singleton
   knobs:
@@ -105,6 +112,7 @@ hidden_shapes:
     E: 2
     C: 2
     G: 2
+    K: 2
 - id: H3
   name: h_deep
   knobs:
@@ -118,6 +126,7 @@ hidden_shapes:
     E: 8
     C: 64
     G: 8
+    K: 8
 - id: H4
   name: h_wide
   knobs:
@@ -131,6 +140,15 @@ hidden_shapes:
     E: 256
     C: 8
     G: 4
+    K: 6
+# Upstream `_fwd_kernel_ep_gather` (vLLM deep_gemm_utils.py, commit 18f6bf5)
+# contract, expert_map=None path. The kernel is an unpermute-and-weighted-
+# reduce, NOT a plain gather:
+#   out[t, :] = sum_k 1[recv_topk_ids[t,k] >= 0]
+#                     * recv_topk_weight[t, k]
+#                     * input_tensor[input_index[t, k], :]
+# B = input_tensor row count (M, the permuted grouped-gemm buffer);
+# T = output token rows; K = topk_num; D = hidden size.
 inputs:
   input_tensor:
     dims:
@@ -138,20 +156,25 @@ inputs:
     - D
     dtype: float32
     dist: randn
-  input_index:
+  recv_topk_ids:
+    # Signed expert ids; values < 0 (i.e. -1) mark invalid/padded slots that
+    # the kernel skips. randint:-1:E keeps a mix of valid and -1 entries so
+    # the validity mask is exercised. int32 mirrors upstream signed topk_ids.
     dims:
-    - B
-    dtype: int64
-    dist: randint:0:B
-  recv_x:
+    - T
+    - K
+    dtype: int32
+    dist: randint:-1:E
+  recv_topk_weight:
     dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  recv_x_scale:
-    dims:
-    - "B*N"
+    - T
+    - K
     dtype: float32
     dist: randn
+  input_index:
+    # Source-row indices into input_tensor rows ([0, B)); upstream inv_perm.
+    dims:
+    - T
+    - K
+    dtype: int32
+    dist: randint:0:B

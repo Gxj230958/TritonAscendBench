@@ -26,23 +26,26 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Expert-parallel token gather: out[i] =
-  # input_tensor[input_index[i]] — a local row gather (no cross-rank traffic,
-  # so bytes_resource is hbm per approach §3.2). Symbol map: B -> token rows
-  # (input_tensor / input_index dim 0, kernel grid extent), D ->
-  # input_tensor dim 1 (the per-row copy width).
-  # FLOPs (vector): pure gather/copy, no arithmetic at all -> reported as the
-  # small constant B (one address computation per token). Dominant cost is
-  # bytes.
+  # Symbol audit (approach §3.4). Expert-parallel unpermute-and-weighted-
+  # reduce (upstream `_fwd_kernel_ep_gather`, expert_map=None):
+  #   out[t, :] = sum_k mask[t,k] * recv_topk_weight[t,k]
+  #                     * input_tensor[input_index[t,k], :]
+  # Local gather + scaled accumulate (no cross-rank traffic, so
+  # bytes_resource is hbm per approach §3.2). Symbol map: T -> output token
+  # rows (grid dim 1), K -> topk_num (constexpr inner loop), D -> hidden
+  # width (input_tensor dim 1), B -> input_tensor row count (gather source).
+  # FLOPs (vector): per (t, k, d) a multiply-add into a fp32 accumulator
+  # -> 2*T*K*D.
   # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 input_tensor -> dtype_size; read input_tensor + write output [B,D]
-  # -> 2*B*D. The int64 input_index[B] uses literal *8 -> 8*B.
-  flops: B
+  # float32 input_tensor -> dtype_size; gather reads T*K source rows of D
+  # plus write output T*D -> (T*K + T)*D*dtype_size. The int32 index /
+  # id / weight side tensors [T,K] use literal *4 -> 3*4*T*K.
+  flops: 2*T*K*D
   flops_class: vector
-  bytes: 2*B*D*dtype_size + 8*B
+  bytes: (T*K + T)*D*dtype_size + 12*T*K
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
@@ -75,17 +78,36 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-25
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). EP gather: rows of input_tensor [n_tokens, D] gathered by input_index [n_tokens] (each a valid row index in [0, B)).
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Upstream
+# `_fwd_kernel_ep_gather` (vLLM deep_gemm_utils.py, commit 18f6bf5),
+# expert_map=None path: an unpermute-and-weighted-reduce, NOT a plain gather.
+#   out[t, :] = sum_k 1[recv_topk_ids[t,k] >= 0]
+#                     * recv_topk_weight[t, k]
+#                     * input_tensor[input_index[t, k], :]
+# B = input_tensor rows (M, permuted grouped-gemm buffer); T = output token
+# rows; K = topk_num; D = hidden. recv_topk_ids < 0 (-1) marks skipped slots;
+# input_index entries are valid rows in [0, B).
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
+  - T >= 1
+  - K >= 1
   - D >= 1
   dtypes:
     input_tensor: float32
-    input_index: int64
+    recv_topk_ids: int32
+    recv_topk_weight: float32
+    input_index: int32
   dists:
     input_tensor:
+      kind: randn
+    recv_topk_ids:
+      kind: randint
+      args:
+        lo: '-1'
+        hi: E
+    recv_topk_weight:
       kind: randn
     input_index:
       kind: randint

@@ -1,160 +1,80 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the attention family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Frozen upstream contract (SGLang ``dequantize_k_cache_paged``): the
+# entrypoint consumes ONE packed fp8 K-cache row tensor
+# ``quant_k_cache[C, 656]`` (dtype float8_e4m3fn) plus a flattened paged
+# index ``page_table_1_flattened[B]`` (int64). The kernel reshapes
+# quant_k_cache to ``[-1, 656]`` (C physical cache rows), then for each of
+# the B output tokens gathers the physical row
+# ``token_id_paged = page_table_1_flattened[token_id]`` and dequantises it.
+# The 656 byte-lanes of each gathered row are unpacked internally by slice +
+# byte reinterpret (nope_q fp8 [.,512], nope_s fp32-view [.,4], rope bf16-view
+# [.,64]); ``dim_quant == 656`` and ``group_size == 128`` are structural
+# invariants asserted by the kernel. The only free knobs are C (the physical
+# cache-row count) and B (the gathered token count). group_size is the
+# entrypoint default (128), not a shape input.
+#
+# Index invariant: page_table_1_flattened indexes into the C physical rows,
+# so values are randint in [0, C). B may differ from C (prefix sharing lets
+# multiple output tokens map to the same physical row) and is exercised both
+# >= C and < C across the shape rows below.
 size_knobs:
   B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
+  C: 8
 public_shapes:
 - id: P1
   name: tiny
   knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+    B: 4
+    C: 4
 - id: P2
   name: small
   knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+    B: 8
+    C: 8
 - id: P3
   name: medium
   knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+    B: 32
+    C: 16
 - id: P4
   name: large
   knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+    B: 64
+    C: 32
 - id: P5
   name: wide
   knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+    B: 8
+    C: 64
 hidden_shapes:
 - id: H1
   name: h_odd
   knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+    B: 13
+    C: 6
 - id: H2
-  name: h_singleton
+  name: h_small
   knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+    B: 3
+    C: 3
 - id: H3
   name: h_deep
   knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+    B: 256
+    C: 64
 - id: H4
-  name: h_wide
+  name: h_share
   knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+    B: 16
+    C: 4
 inputs:
-  nope_q:
+  quant_k_cache:
     dims:
     - C
-    - D
-    dtype: float32
+    - 656
+    dtype: float8_e4m3fn
     dist: randn
-  nope_s:
-    dims:
-    - C
-    - D//8
-    dtype: float32
-    dist: rand
-  rope:
-    dims:
-    - C
-    - D
-    dtype: float32
-    dist: randn
-  page_table:
+  page_table_1_flattened:
     dims:
     - B
-    - '2'
     dtype: int64
     dist: randint:0:C
-  group_size:
-    scalar: 8

@@ -46,7 +46,7 @@ public_shapes:
     L: 512
     D: 128
     Dv: 8
-    N: 256
+    N: 1024
     T: 64
     H: 16
     E: 16
@@ -59,7 +59,7 @@ public_shapes:
     L: 1024
     D: 256
     Dv: 8
-    N: 512
+    N: 1024
     T: 128
     H: 32
     E: 32
@@ -72,7 +72,7 @@ public_shapes:
     L: 128
     D: 128
     Dv: 8
-    N: 256
+    N: 1024
     T: 32
     H: 64
     E: 8
@@ -86,7 +86,7 @@ hidden_shapes:
     L: 320
     D: 64
     Dv: 8
-    N: 192
+    N: 1088
     T: 48
     H: 12
     E: 12
@@ -112,7 +112,7 @@ hidden_shapes:
     L: 2048
     D: 256
     Dv: 8
-    N: 512
+    N: 2048
     T: 256
     H: 8
     E: 16
@@ -132,52 +132,25 @@ hidden_shapes:
     C: 8
     G: 4
 inputs:
+  # FlashInfer paged-KV index gather (frozen kernel + flashinfer_backend.py
+  # call site). req_to_token is the [max_batch, max_context_len] token-location
+  # table; req_pool_indices selects the pool row per request; seq_lens (==
+  # paged_kernel_lens) is the per-request copy length. E = batch size (bs) and
+  # max_batch; N = max_context_len. seq_lens in [1, N-1] < N keeps every gather
+  # inside its row (kv_start == 0 on the normal non-sliding host path).
+  req_to_token:
+    dims:
+    - E
+    - N
+    dtype: int32
+    dist: randint:0:N
+  req_pool_indices:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:0:E
   seq_lens:
     dims:
     - E
     dtype: int64
     dist: randint:1:N
-  block_table:
-    dims:
-    - E
-    - N
-    dtype: int64
-    dist: randint:0:N
-  page_size:
-    scalar: 4
-  extend_seq_lens:
-    dims:
-    - B
-    dtype: int32
-    dist: randint:1:N
-  k:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  q:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  key:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  input_emb:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn

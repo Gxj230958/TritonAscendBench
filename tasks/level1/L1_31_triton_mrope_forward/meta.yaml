@@ -19,6 +19,11 @@ upstream:
   vendored_snapshot: tasks/_vendored/L1_31_triton_mrope_forward_18f6bf5.py
 interface:
   alias_map: {}
+  output_projection:
+    arity: 2
+    map:
+      q: 0
+      k: 1
   mutability: unspecified
   stride_layout: TODO(scaffold)
   workspace_policy: none
@@ -26,7 +31,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::triton_mrope
 tolerance_class: attention_flash
 cost_model:
   flops: 64*B*(H+1)
@@ -102,4 +107,5 @@ param_constraints:
     mrope_section: sum(mrope_section) == 8 and len(mrope_section) == 3
     head_size: head_size == 16
     rotary_dim: 0 < rotary_dim <= 16 and rotary_dim % 2 == 0
+    mrope_interleaved: mrope_interleaved == False
   tensor_invariants: []

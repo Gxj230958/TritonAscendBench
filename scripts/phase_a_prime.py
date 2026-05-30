@@ -3511,6 +3511,69 @@ def cmd_run(args: argparse.Namespace) -> int:
 _SLICE_FREE_NAME_ALLOW = frozenset({"torch", "triton", "tl", "math"})
 
 
+def _has_top_level_flashinfer_import(tree: "ast.Module") -> bool:
+    """True iff the module has a MODULE-LEVEL (executed at import) ``import
+    flashinfer`` / ``from flashinfer... import ...`` statement. A flashinfer
+    import nested inside a function body (lazy, only run when that off-path
+    helper is called) does NOT count -- those modules import fine without a
+    flashinfer stub, so the launcher slice must not fire for them."""
+    for node in tree.body:  # top-level statements only (not ast.walk)
+        if isinstance(node, ast.Import):
+            if any(a.name.split(".", 1)[0] == "flashinfer" for a in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            if mod == "flashinfer" or mod.startswith("flashinfer."):
+                return True
+    return False
+
+
+def _launcher_launched_jit_roots(
+    task_dir: "Path | None", jit_names: set[str]
+) -> set[str]:
+    """Return the kernel.py ``@triton.jit`` kernels that ``_pa_launcher.py``
+    LAUNCHES (``kernel[grid](...)``), restricted to the kernel's own jit names.
+
+    Used by the entrypoint-closure slice for jit-only launcher tasks, where
+    ``meta.gpu_triton`` is the launcher's ``run`` rather than a kernel.py def.
+    The launched kernels are the real graded roots; their transitive closure is
+    what the slice must keep.
+
+    A triton launch is a subscript-then-call: ``NAME[grid](...)`` or
+    ``obj.NAME[grid](...)`` (the launcher may reach the kernel via a module
+    alias, e.g. ``_kmod._foo_kernel[grid](...)``). Both the bare-name and the
+    attribute forms are collected; only targets that are actual kernel.py jit
+    names are returned (fail-closed: an unknown launch target is ignored, and an
+    empty result makes the caller decline the slice)."""
+    if task_dir is None:
+        return set()
+    launcher = task_dir / "_pa_launcher.py"
+    if not launcher.is_file():
+        return set()
+    try:
+        ltree = ast.parse(launcher.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, SyntaxError):
+        return set()
+    roots: set[str] = set()
+    for node in ast.walk(ltree):
+        # Match the call ``<target>[<grid>](...)`` where <target> is the kernel.
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Subscript):
+            continue
+        base = func.value
+        if isinstance(base, ast.Name):
+            name = base.id
+        elif isinstance(base, ast.Attribute):
+            name = base.attr
+        else:
+            continue
+        if name in jit_names:
+            roots.add(name)
+    return roots
+
+
 def _slice_to_entrypoint_closure(
     src: str, task_dir: "Path | None"
 ) -> "str | None":
@@ -3562,7 +3625,29 @@ def _slice_to_entrypoint_closure(
                 src_d = ast.get_source_segment(src, d) or ""
                 if "triton.jit" in src_d or src_d.strip().endswith("jit"):
                     jit_names.add(node.name)
-    if ep_name not in defs:
+
+    # Closure roots. The normal case: meta.gpu_triton names an in-module def
+    # (the upstream host wrapper or a bare jit). For a launcher-driven jit-only
+    # task the meta entrypoint is the launcher's ``run`` (NOT a kernel.py def),
+    # so derive the roots from the @triton.jit kernels the launcher LAUNCHES.
+    #
+    # The launcher branch activates ONLY when the module carries a MODULE-LEVEL
+    # (top-of-file, executed at import) upstream import the line-level rewriter
+    # cannot sever -- i.e. a non-vllm/sglang third-party (``from flashinfer
+    # import ...`` at column 0). For a launcher task whose only upstream imports
+    # are vllm/sglang (handled by the line rewriter + frozen shim, the proven
+    # path for L1_02/L1_05/L1_28), or whose flashinfer import is LAZY inside a
+    # function body (L1_32/L1_33/L2_18/L2_38 -- never run at import on the graded
+    # path), the slice keeps DECLINING so their established severance is
+    # untouched. Fail-closed: if no launched jit root resolves into the kernel's
+    # jit_names, decline so the leak surfaces rather than a silent narrowing.
+    if ep_name in defs:
+        ep_roots = {ep_name}
+    elif _has_top_level_flashinfer_import(tree):
+        ep_roots = _launcher_launched_jit_roots(task_dir, jit_names)
+        if not ep_roots:
+            return None
+    else:
         return None
 
     def _names_in(node: ast.AST) -> set[str]:
@@ -3574,7 +3659,7 @@ def _slice_to_entrypoint_closure(
 
     # Transitive closure over module-level defs the entrypoint reaches.
     keep: set[str] = set()
-    work = [ep_name]
+    work = list(ep_roots)
     while work:
         name = work.pop()
         if name in keep:
@@ -3630,7 +3715,7 @@ def _slice_to_entrypoint_closure(
     # Emit: minimal std imports the closure uses + each kept def verbatim
     # (decorators preserved), in original source order.
     header: list[str] = []
-    if "torch" in free or "torch" in {ep_name}:
+    if "torch" in free or "torch" in ep_roots:
         header.append("import torch")
     if "triton" in free:
         header.append("import triton")

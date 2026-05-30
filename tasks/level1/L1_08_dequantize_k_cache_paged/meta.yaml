@@ -26,27 +26,25 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
-tolerance_class: attention_flash
+  gpu_triton: kernel.py::dequantize_k_cache_paged
+tolerance_class: elementwise_exact_or_inf_safe
 cost_model:
-  # Symbol audit (approach §3.4). Paged MLA K-cache dequant: gathers physical
-  # pages via page_table[B,2] (flattened to 2*B rows), then the same per-group
-  # dequant as L1_07 (deq[g] = nope_q[g]*nope_s[g//gs]) plus rope passthrough.
-  # Symbol map: B -> page_table dim 0 (request count); page_table dim 1 is the
-  # literal 2 (pages per request) -> 2*B gathered rows; C -> nope_q/nope_s/rope
-  # dim 0 (physical page count); D -> DIM_NOPE == DIM_ROPE (last dim).
-  # group_size is a scalar literal; nope_s has D//group_size scale columns.
-  # FLOPs (vector): one multiply per nope element over the 2*B gathered rows ->
-  # 2*B*D; rope half is a pure copy. The per-row gather index math is O(1).
-  # bytes (hbm): gather 2*B rows of nope_q[..,D] + rope[..,D] +
-  # nope_s[..,D//8], write output[2*B,2*D] -> (8*B*D + 2*B*D/8) float32
-  # K-cache primary-family elements -> dtype_size. page_table[B,2] is an
-  # int64 index tensor (non-primary, approach §3.2): 2*B int64 elements ->
-  # literal *8, billed separately rather than folded into the float32
-  # dtype_size.
-  flops: 2*B*D
+  # Paged MLA K-cache dequant (packed). Input quant_k_cache reshapes to
+  # [C, 656] fp8 (C physical cache rows); page_table_1_flattened[B] int64
+  # gathers one physical row per output token. Each gathered 656-byte row
+  # unpacks to nope_q fp8 [.,512] + nope_s fp32-view [.,4] + rope bf16-view
+  # [.,64]; output[B, 1, 576] bf16 = concat(dequant_nope, rope). Only B (the
+  # gathered token count) and C (the physical cache-row count) are free
+  # (656/512/64/128 are structural kernel asserts).
+  # FLOPs (vector): one multiply per nope element over the B gathered rows ->
+  # B*512; rope half is a pure copy (0). The per-row gather index math is O(1).
+  # bytes (hbm): gather B rows of 656 fp8 bytes/token, write 576 bf16 (2B)
+  # per token -> B*656 + B*576*2 K-cache primary-family bytes.
+  # page_table_1_flattened[B] is an int64 index tensor (non-primary, approach
+  # §3.2): B int64 elements -> literal *8, billed separately.
+  flops: B*512
   flops_class: vector
-  bytes: (8*B*D + 2*B*D/8)*dtype_size + 2*B*8
+  bytes: B*656 + B*576*2 + B*8
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -79,35 +77,26 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-08
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged K-cache dequant: nope_q [C, D] with per-group scales nope_s [C, D/group_size] dequantised, rope [C, D] passed through, gathered via page_table [B, 2] (cache-block indices in [0, C)). group_size=8 ⇒ D % 8 == 0.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged K-cache dequant from a single packed fp8 tensor quant_k_cache reshaped to [C, 656] (float8_e4m3fn, C physical cache rows). page_table_1_flattened [B] (int64, indices in [0, C)) gathers one physical row per output token. Each gathered row unpacks by byte reinterpret: nope_q fp8 [.,512], nope_s fp32-view [.,4] (per-128-group scales), rope bf16-view [.,64]. The nope half is per-group dequantised (out[:, j] = nope_q[:, j] * nope_s[:, j // 128]); the rope half is passed through. dim_quant == 656 and group_size == 128 are structural invariants asserted by the kernel.
 param_constraints:
   scaffold: false
   dims:
-  - D % 8 == 0
-  - D >= 8
   - C >= 1
   - B >= 1
   dtypes:
-    nope_q: float32
-    nope_s: float32
-    rope: float32
-    page_table: int64
+    quant_k_cache: float8_e4m3fn
+    page_table_1_flattened: int64
   dists:
-    nope_q:
+    quant_k_cache:
       kind: randn
-    nope_s:
-      kind: rand
-    rope:
-      kind: randn
-    page_table:
+    page_table_1_flattened:
       kind: randint
       args:
         lo: '0'
         hi: C
-  scalars:
-    group_size: group_size == 8
+  scalars: {}
   tensor_invariants:
   - type: index_in_range
     args:
-      input: page_table
+      input: page_table_1_flattened
       value: C

@@ -97,6 +97,7 @@ Knob grid in `shapes.yaml`.
 - `mrope_section`: `sum(mrope_section) == 8 and len(mrope_section) == 3`
 - `head_size`: `head_size == 16`
 - `rotary_dim`: `0 < rotary_dim <= 16 and rotary_dim % 2 == 0`
+- `mrope_interleaved`: `mrope_interleaved == False`
 
 ### Tensor invariants (`tensor_invariants`)
 
