@@ -418,6 +418,7 @@ def _check_one_shape(
     # the S2 sides.
     _pnm: dict = {}
     _oproj: dict = {}
+    _inplace_outs: list | None = None
     try:
         import yaml as _yaml
 
@@ -428,9 +429,13 @@ def _check_one_shape(
             ) or {}
             _pnm = _iface.get("param_name_map") or {}
             _oproj = _iface.get("output_projection") or {}
+            _io = _iface.get("inplace_outputs")
+            if _io is not None:
+                _inplace_outs = list(_io)
     except Exception:
         _pnm = {}
         _oproj = {}
+        _inplace_outs = None
     try:
         sig, bound, kwargs = _map_inputs_by_name(
             fn, entrypoint, dict(kernel_inputs), _pnm
@@ -470,11 +475,42 @@ def _check_one_shape(
                 "fail-closed, not projecting"
             ), False, False
     if cand_ret is None:
-        cand_ret = {
-            p: kernel_inputs[p]
-            for p in bound
-            if torch.is_tensor(kernel_inputs.get(p))
-        }
+        # meta.interface.inplace_outputs (ANCHOR-ONLY): a REVIEWED
+        # declaration naming the bound task keys an in-place wrapper writes
+        # (returns None). Host wrappers commonly mutate only a SUBSET of
+        # their tensor args -- e.g. merge_attn_states writes `output` and
+        # (optionally) `output_lse` in place but takes prefix/suffix
+        # outputs+lse as read-only inputs. Without this, the harvest below
+        # echoes EVERY bound tensor input as a candidate output, so the
+        # untouched read-only inputs trip the strict "extra unexplained
+        # outputs => wrong operator" structure check. Mutation-detection is
+        # deliberately NOT used (a buffer written with its existing bytes,
+        # or skipped on a branch, would be a heuristic false-negative); the
+        # contract is the declared output set, not observed byte diffs.
+        # Fail-closed: every declared key must be bound and present as a
+        # tensor, else error rather than silently harvesting all inputs.
+        if _inplace_outs is not None:
+            missing = [
+                p for p in _inplace_outs
+                if p not in bound or not torch.is_tensor(kernel_inputs.get(p))
+            ]
+            if (not _inplace_outs) or len(set(_inplace_outs)) != len(
+                _inplace_outs
+            ) or missing:
+                return False, (
+                    "interface.inplace_outputs invalid (empty, duplicate, "
+                    "or names not bound/non-tensor; "
+                    f"declared={_inplace_outs}, bound={sorted(bound)}, "
+                    f"missing/non-tensor={missing}) -- fail-closed, not "
+                    "harvesting"
+                ), False, False
+            cand_ret = {p: kernel_inputs[p] for p in _inplace_outs}
+        else:
+            cand_ret = {
+                p: kernel_inputs[p]
+                for p in bound
+                if torch.is_tensor(kernel_inputs.get(p))
+            }
     # oracle_pytorch.py is task-local and has no relative imports onto
     # the upstream tree; passing ``upstream_roots=None`` keeps it on the
     # legacy single-dir loader path.
@@ -485,6 +521,19 @@ def _check_one_shape(
     orac_t = _flatten(oracle_ret)
     if not orac_t:
         return False, "oracle produced no tensors to compare", False, False
+
+    # inplace_outputs is anchor-only and could narrow the compared set, so it
+    # must cover the oracle's flattened keys exactly and match same-key only
+    # (fallback disabled below) -- else a too-narrow declaration hides a wrong
+    # output behind a same-shape sibling.
+    _strict_keys = _inplace_outs is not None
+    if _strict_keys and set(cand_t.keys()) != set(orac_t.keys()):
+        return False, (
+            f"inplace_outputs harvested keys {sorted(cand_t.keys())} do NOT "
+            f"match the oracle output keys {sorted(orac_t.keys())} exactly -- "
+            f"the declaration must name precisely the kernel's real outputs "
+            f"(fail-closed, no narrowing)"
+        ), False, False
 
     details: list[str] = []
     all_ok = True
@@ -515,7 +564,9 @@ def _check_one_shape(
         ):
             twin = cand_t[ok_]
             used.add(cand_items.index((ok_, cand_t[ok_])))
-        else:
+        elif not _strict_keys:
+            # Fallback only on the legacy harvest path; inplace_outputs matches
+            # same-key so a declared output can't pair with a wrong tensor.
             for i, (_ck, cv) in enumerate(cand_items):
                 if (
                     i not in used
