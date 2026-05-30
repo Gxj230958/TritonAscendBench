@@ -76,7 +76,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `approximate`: `approximate in ['tanh', 'none']`
+- `approximate`: `approximate in ['none']`
 
 ### Tensor invariants (`tensor_invariants`)
 

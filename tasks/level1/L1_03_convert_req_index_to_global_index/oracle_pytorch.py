@@ -19,21 +19,32 @@ def _convert_req_index_to_global_index(
     req_id: torch.Tensor, block_table: torch.Tensor,
     token_indices: torch.Tensor, block_size: int,
 ) -> torch.Tensor:
-    """Per-request local token index → global KV slot.
+    """Per-token local index → global KV slot (integer gather).
 
-    For entry (t): r = req_id[t]; local = token_indices[r, k];
-    block = local // block_size; offset = local % block_size;
-    global = block_table[r, block] * block_size + offset.
-    (Index conversion — mis-bucketed as 'convolution' by the scaffold
-    category heuristic; it is integer gather, no convolution.)
+    Row t (token id) selects request ``req = req_id[t]``; the gathered
+    block comes from the local index ``tok = token_indices[t, k]``:
+        block  = tok // block_size; offset = tok % block_size;
+        global = block_table[req, block] * block_size + offset.
+    A lane is invalid (output ``-1``) when ``tok < 0`` or when the
+    derived block id is out of bounds, mirroring the kernel exactly.
+    ``token_indices`` is indexed by token row t, NOT by req — req only
+    chooses the block_table row. (Mis-bucketed as 'convolution' by the
+    scaffold heuristic; it is integer gather, no convolution.)
     """
-    r = req_id.to(torch.long)
-    local = token_indices.to(torch.long)[r]                 # [n, k]
-    blk = local // block_size
-    off = local % block_size
-    bt = block_table.to(torch.long)[r]                      # [n, max_blocks]
-    base = torch.gather(bt, 1, blk)
-    return (base * block_size + off).to(torch.int32)
+    req = req_id.to(torch.long)                             # [n]
+    tok = token_indices.to(torch.long)                      # [n, k]
+    blk = torch.div(tok, block_size, rounding_mode="floor")  # [n, k]
+    off = tok - blk * block_size
+    max_blocks = block_table.shape[1]
+    valid_block = (blk >= 0) & (blk < max_blocks)
+    is_invalid = (tok < 0) | ~valid_block
+    bt = block_table.to(torch.long)                        # [num_requests, max_blocks]
+    safe_blk = blk.clamp(0, max_blocks - 1)                # masked-out lanes are don't-care
+    rows = req.unsqueeze(1).expand_as(tok)                 # [n, k]
+    base = bt[rows, safe_blk]                              # [n, k]
+    out = base * block_size + off
+    out = torch.where(is_invalid, out.new_full((), -1), out)
+    return out.to(torch.int32)
 
 
 def run(inputs: dict) -> dict:

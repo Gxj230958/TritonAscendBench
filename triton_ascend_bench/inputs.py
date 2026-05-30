@@ -79,15 +79,24 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 #: Closed dist-kind enum — bound to the `build_inputs` distribution
 #: vocabulary and to the `specs/task_api_contract.md §5.2` dist-kind table.
 DIST_KINDS = frozenset({
-    "randn", "rand", "ones", "zeros", "eye", "tril", "randint",
-    "softmax_rows", "offsets", "cumcount", "arange", "randperm", "full",
+    "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril", "randint",
+    "tril_chunk", "softmax_rows", "offsets", "cumcount", "arange",
+    "randperm", "full",
 })
 
 #: Dist kinds that carry no `args` (the bare-name DSL forms).
 _NULLARY_DIST_KINDS = frozenset({
-    "randn", "rand", "ones", "zeros", "eye", "tril", "softmax_rows", "arange",
-    "randperm",
+    "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril",
+    "tril_chunk", "softmax_rows", "arange", "randperm",
 })
+
+#: Fraction of `randn_inf` entries replaced with +inf. Models a
+#: flash-decoding empty-split LSE sentinel (FA2 returns +inf for a
+#: zero-length split); merge kernels collapse +inf -> -inf to drop the
+#: empty side. A single fixed fraction keeps a healthy mix of empty /
+#: non-empty splits per shape row so the sentinel branch always fires
+#: while the finite merge path stays dominant.
+_RANDN_INF_FRACTION = 0.3
 
 
 class DistSpecError(ValueError):
@@ -345,6 +354,18 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
 
     if kind == "randn":
         t = torch.randn(shape, generator=gen, dtype=torch.float32)
+    elif kind == "randn_inf":
+        # randn with a fixed fraction of entries set to +inf -- a
+        # flash-decoding empty-split LSE sentinel. The two LSE tensors are
+        # materialised independently (no cross-tensor coordination), so some
+        # (token, head) positions get +inf on one side, some on both. The
+        # merge kernel maps +inf -> -inf, so a one-sided +inf selects the
+        # other split and a both-sided +inf yields NaN at that position --
+        # the oracle must mirror this exactly (matching NaN positions pass
+        # the inf/nan-position comparator).
+        t = torch.randn(shape, generator=gen, dtype=torch.float32)
+        inf_mask = torch.rand(shape, generator=gen) < _RANDN_INF_FRACTION
+        t = torch.where(inf_mask, torch.full_like(t, float("inf")), t)
     elif kind == "rand":
         t = torch.rand(shape, generator=gen, dtype=torch.float32)
     elif kind == "ones":
@@ -369,6 +390,29 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
             t = base + torch.eye(n, dtype=torch.float32) * (n + 1)  # well-conditioned
         else:
             t = base
+    elif kind == "tril_chunk":
+        # Strict lower-triangular per chunk in the (T, BT) plane. For
+        # shape [B, T, H, BT], infer the chunk size from the last dim
+        # and apply the same [BT, BT] strict-lower mask to each T-slice
+        # chunk; the kernel adds identity itself, so the diagonal stays 0.
+        if len(shape) != 4:
+            raise DistSpecError(
+                f"dist 'tril_chunk' needs shape [B, T, H, BT], got {shape}"
+            )
+        b_dim, t_dim, h_dim, cs = shape
+        if cs <= 0:
+            raise DistSpecError(
+                f"dist 'tril_chunk' needs a positive last dim, got shape {shape}"
+            )
+        if t_dim % cs != 0:
+            raise DistSpecError(
+                f"dist 'tril_chunk' requires T % chunk == 0, got shape {shape}"
+            )
+        base = torch.randn(shape, generator=gen, dtype=torch.float32)
+        mask = torch.tril(torch.ones((cs, cs), dtype=torch.bool), diagonal=-1)
+        t = base.reshape(b_dim, t_dim // cs, cs, h_dim, cs)
+        t = t * mask.view(1, 1, cs, 1, cs)
+        t = t.reshape(shape)
     elif kind == "randint":
         lo_i = int(eval_numeric(str(args["lo"]), knobs))
         hi_i = max(int(eval_numeric(str(args["hi"]), knobs)), lo_i + 1)

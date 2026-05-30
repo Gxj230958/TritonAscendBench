@@ -148,7 +148,10 @@ inputs:
     - B
     - L
     dtype: int32
-    dist: randint:0:N
+    # randint:-1:N injects sentinel -1 entries so the kernel's
+    # `tok < 0 -> propagate -1` invalid branch (kernel.py:63-64) is
+    # genuinely exercised; non-negative draws cover the gather path.
+    dist: randint:-1:N
   BLOCK_SIZE:
     scalar: 4
   NUM_TOPK_TOKENS:

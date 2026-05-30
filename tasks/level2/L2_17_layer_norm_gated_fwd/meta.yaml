@@ -95,13 +95,11 @@ param_constraints:
       kind: randn
   scalars:
     eps: 0 < eps <= 1e-2
+    is_rms_norm: is_rms_norm == True
   tensor_invariants: []
 phase_a_prime:
-  status: PASS
-  reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_17_layer_norm_gated_fwd-20260529T223008
-  classified_at: '2026-05-29'
-  standalone_sha256: 203e60557e3be36b77108e27fdf58b7d19f09a84e825b4353a5241f4232a6d05
+  status: UNRUN
+  reason: fixture changed to drive IS_RMS_NORM=True branch; needs GPU re-verify
 frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum

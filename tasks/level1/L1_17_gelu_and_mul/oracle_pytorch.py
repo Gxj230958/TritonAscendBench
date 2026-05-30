@@ -15,8 +15,14 @@ import torch
 import torch.nn.functional as F
 
 
-def _gelu_and_mul(x: torch.Tensor, approximate: str = "tanh") -> torch.Tensor:
-    """GeGLU: split last dim, gate = gelu(first), value = second."""
+def _gelu_and_mul(x: torch.Tensor, approximate: str = "none") -> torch.Tensor:
+    """GeGLU: split last dim, gate = gelu(first), value = second.
+
+    The kernel computes the exact erf GELU
+    ``0.5 * x * (1 + erf(x / sqrt(2)))`` (no tanh approximation), so the
+    oracle defaults to ``approximate="none"`` to match it exactly rather
+    than leaning on tolerance to absorb a different formula.
+    """
     half = x.shape[-1] // 2
     gate, up = x[..., :half], x[..., half:]
     return F.gelu(gate.to(torch.float32), approximate=approximate).to(x.dtype) * up
@@ -26,6 +32,6 @@ def run(inputs: dict) -> dict:
     return {
         "output": _gelu_and_mul(
             inputs["hidden_states"],
-            approximate=inputs.get("approximate", "tanh"),
+            approximate=inputs.get("approximate", "none"),
         )
     }

@@ -65,38 +65,60 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-22
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-05-27T13:53:50Z'
+    # Re-verification pending: the fixture now drives the IS_VARLEN branch
+    # (cu_seqlens, head_first=False, packed [1, total_T, H, D]) and the oracle
+    # gained the matching varlen segment-local cumsum. The prior VERIFIED
+    # stats/sha belonged to the fixed-length fixture and no longer apply, so
+    # the equivalence must be re-collected on GPU under recurrent_chunk.
+    oracle_kernel_equivalence: SKIPPED
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape:
-      P1:
-        status: VERIFIED
-        max_abs: 1.430511474609375e-06
-        max_rel: 0.007874015718698502
-      P2:
-        status: VERIFIED
-        max_abs: 1.9073486328125e-06
-        max_rel: 0.008163264952600002
-    golden_sha256: 1e1710e522cc2786f3672fd863df5344039ea010913bc44f01063febd55da669
     golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
+  # Varlen (IS_VARLEN) contract: g is the packed single-batch layout
+  # [1, total_T, H, D] with total_T = B*L+1, partitioned by cu_seqlens into
+  # B segments. The kernel ignores the batch index for varlen addressing, so
+  # the packed batch dim is pinned to 1; the cu_seqlens[-1] == total_T and
+  # indptr-shape constraints are expressed in tensor_invariants below.
   - B >= 1
   - H >= 1
   - L >= 16
   - D >= 1
-  - L % chunk_size == 0
   dtypes:
     g: float32
+    cu_seqlens: int64
   dists:
     g:
       kind: randn
+    cu_seqlens:
+      kind: offsets
+      args:
+        to: B*L+1
   scalars:
     reverse: reverse in [0, 1]
     chunk_size: chunk_size in {16, 32, 64, 128, 256, 512}
-    head_first: head_first == True
-  tensor_invariants: []
+    head_first: head_first == False
+  tensor_invariants:
+  # cu_seqlens is the varlen segment indptr: monotonic, starts at 0, and its
+  # last element equals the packed token dim total_T == B*L+1 (== g.shape[1]),
+  # with length B+1 (B segments). prepare_chunk_indices derives the kernel's
+  # (segment, local-chunk) grid from these lengths.
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_seqlens
+  - type: first_eq
+    args:
+      input: cu_seqlens
+      value: 0
+  - type: last_eq
+    args:
+      input: cu_seqlens
+      value: B*L+1
+  - type: length_eq
+    args:
+      input: cu_seqlens
+      value: B+1
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)

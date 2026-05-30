@@ -143,34 +143,47 @@ hidden_shapes:
     REV: 0
 inputs:
   g:
-    # V9 codex review 2026-05-27 (round 2): the kernel does per-chunk
-    # cumsum (resets at every `chunk_size` boundary). Old oracle did a
-    # plain torch.cumsum over the full sequence axis, so for L > BT it
-    # was off by a constant per chunk -- a real oracle bug, not a
-    # shapes issue. The companion fix in oracle_pytorch.py rewrites the
-    # oracle to mirror the wrapper's own equivalence comment
-    # `g.view(B, H, NT, BT, -1).cumsum(-2).view(B, H, T, -1)`.
-    # We pin `head_first=True` so wrapper unpacks `B, H, T, S = g.shape`
-    # and the oracle takes the matching `[B, H, T, S]` layout
-    # without a transpose round-trip. `S` is per-head channel width and
-    # reuses the existing `D` knob.
+    # Drive the IS_VARLEN branch. `cu_seqlens` is not None, so the kernel
+    # takes the variable-length path: chunk boundaries reset at every
+    # `chunk_size` step measured from each segment's start, and the last
+    # chunk of a segment may be partial. The packed layout is the standard
+    # FLA varlen contract -- a single batch (B==1) of `total_T` tokens with
+    # `head_first=False`, so the wrapper unpacks `B, T, H, S = g.shape` and
+    # the kernel addresses token `t`, head `i_h` at offset `(bos+t)*H*S + i_h*S`.
+    # `total_T = B*L + 1`: reusing `B*L` as the token budget (mirrors the
+    # L3_03 varlen fixture) and the `+1` forces ragged segment lengths so
+    # the partial-last-chunk path fires on every shape row, not just full
+    # chunks. `S` is the per-head channel width and reuses the `D` knob.
     dims:
-    - B
+    - 1
+    - B*L+1
     - H
-    - L
     - D
     dtype: float32
     dist: randn
+  cu_seqlens:
+    # int32 segment indptr `[0, l1, l1+l2, ..., total_T]` of length N+1 with
+    # N==B segments. `offsets:to=B*L+1` distributes the `total_T` tokens over
+    # B non-equal segments so `cu_seqlens[-1] == g.shape[1] == total_T` (a hard
+    # kernel requirement -- trailing rows would otherwise stay uninitialised)
+    # and segment lengths are not all multiples of BT (ragged -> partial
+    # chunks). prepare_chunk_indices(cu_seqlens, chunk_size) maps this to the
+    # (segment, local-chunk) grid the kernel iterates. int64 is the
+    # `offsets` dist's native type; the kernel re-casts to int32 internally
+    # (`tl.load(...).to(tl.int32)`) and prepare_chunk_indices preserves the
+    # dtype (`.to(cu_seqlens)`), so int64 is the faithful indptr type.
+    dims:
+    - B+1
+    dtype: int64
+    dist: offsets:to=B*L+1
   reverse:
     scalar_knob: REV
   chunk_size:
-    # Power-of-two BT that divides every shape's L AND clears Triton's
-    # ``tl.dot`` minimum of K >= 16. Every L in this task
-    # (16, 32, 64, 96, 128, 256, 512) is a multiple of 16. BT=8 built
-    # clean refs but failed Triton compile inside the kernel
-    # (``Input shapes should have M >= 1, N >= 1 and K >= 16`` at the
-    # ``tl.dot(m_s, b_s)`` line) -- 16 is the smallest power-of-two
-    # that satisfies both constraints.
+    # Power-of-two BT that clears Triton's ``tl.dot`` minimum of K >= 16
+    # (the ``tl.dot(m_s, b_s)`` line needs K >= 16). 16 is the smallest
+    # power-of-two that satisfies the constraint; varlen segment lengths
+    # need not be multiples of BT (the partial-chunk tail is handled by the
+    # kernel's boundary_check and the oracle's segment-local cumsum).
     scalar: 16
   head_first:
-    scalar: true
+    scalar: false
