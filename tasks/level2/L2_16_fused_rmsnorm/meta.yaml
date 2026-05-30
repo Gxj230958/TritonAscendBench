@@ -26,23 +26,21 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::fused_rmsnorm
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). RMSNorm fused with a single residual add:
-  # summed = x + residual, then RMSNorm(summed) with a weight. One program per
-  # row. Symbol map: B -> x rows (x/residual dim 0, kernel grid extent), D ->
-  # hidden size (x dim 1 == weight length, the per-row reduction extent). eps
-  # is a scalar literal.
-  # FLOPs (vector): per element one residual add (~1), centred-square + mean
-  # for the RMS (~2), rsqrt amortised (~1), normalise mul (~1), weight mul
-  # (~1) -> ~6*B*D.
-  # bytes (hbm): read x + residual [B,D] (2*B*D) + weight[D], write
-  # output[B,D] + hidden[B,D] (2*B*D) -> (4*B*D + D) elements; all float32
-  # primary family -> dtype_size.
-  flops: 6*B*D
+  # Symbol audit (approach §3.4). Plain per-row RMSNorm scaled by a weight
+  # (fused_rmsnorm_kernel): out = x / sqrt(mean(x^2)+eps) * weight. No residual
+  # add, single output. One program per row. Symbol map: B -> x rows (x dim 0,
+  # the kernel grid extent), D -> hidden size (x dim 1 == weight length, the
+  # per-row reduction extent). eps is a scalar literal.
+  # FLOPs (vector): per element centred-square + mean for the RMS (~2), rsqrt
+  # amortised (~1), normalise mul (~1), weight mul (~1) -> ~5*B*D.
+  # bytes (hbm): read x[B,D] (B*D) + weight[D], write output[B,D] (B*D) ->
+  # (2*B*D + D) elements; all float32 primary family -> dtype_size.
+  flops: 5*B*D
   flops_class: vector
-  bytes: (4*B*D + D) * dtype_size
+  bytes: (2*B*D + D) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -82,12 +80,9 @@ param_constraints:
   - B >= 1
   dtypes:
     x: float32
-    residual: float32
     weight: float32
   dists:
     x:
-      kind: randn
-    residual:
       kind: randn
     weight:
       kind: randn

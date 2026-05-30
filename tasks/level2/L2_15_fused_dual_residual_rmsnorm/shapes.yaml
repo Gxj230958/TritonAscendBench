@@ -132,54 +132,32 @@ hidden_shapes:
     C: 8
     G: 8
 inputs:
+  # Match the frozen upstream host wrapper
+  # fused_dual_residual_rmsnorm(x, residual, weight1, weight2, eps):
+  # x and residual are 2D [B, D] and MUST share dtype (wrapper asserts
+  # x.shape == residual.shape and x.dtype == residual.dtype); weight1 and
+  # weight2 are per-hidden-dim [D]; eps is the variance epsilon scalar.
   x:
     dims:
     - B
     - D
     dtype: float32
     dist: randn
-  residual_a:
+  residual:
     dims:
     - B
     - D
     dtype: float32
     dist: randn
-  residual_b:
+  weight1:
     dims:
-    - B
     - D
     dtype: float32
     dist: randn
-  weight:
+  weight2:
     dims:
     - D
     dtype: float32
     dist: randn
   eps:
     scalar: 1.0e-05
-  residual:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  softcap_const:
-    scalar: 1.0
-  hidden_states:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  weight1:
-    dims:
-    - D
-    dtype: float16
-    dist: randn
-  weight2:
-    dims:
-    - D
-    dist: randn
-    dtype: float16

@@ -19,6 +19,10 @@ upstream:
   vendored_snapshot: tasks/_vendored/L1_14_layer_norm_fwd_1pass_kernel_18f6bf5.py
 interface:
   alias_map: {}
+  output_projection:
+    arity: 3
+    map:
+      output: 0
   mutability: unspecified
   stride_layout: TODO(scaffold)
   workspace_policy: none
@@ -26,22 +30,22 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::_layer_norm_fwd
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Single-pass LayerNorm fused with a
-  # pre-residual add: x_f = x + residual, then mean/var normalise + affine.
-  # One program per row. Symbol map: B -> x rows (x/residual dim 0, kernel grid
-  # extent), D -> hidden size (x dim 1 == weight/bias length, per-row reduction
-  # extent). eps is a scalar literal.
-  # FLOPs (vector): the pre-residual add is +1 op/element over the ~8-op
-  # LayerNorm body -> ~9*B*D.
-  # bytes (hbm): read x[B,D] + residual[B,D] + weight[D] + bias[D], write
-  # output[B,D] -> (3*B*D + 2*D) elements; all float32 primary family ->
-  # dtype_size.
-  flops: 9*B*D
+  # Symbol audit (approach §3.4). Single-pass LayerNorm with affine:
+  # mean/var normalise along the hidden dim then scale + shift. One
+  # program per row. Symbol map: B -> x rows (x dim 0, kernel grid
+  # extent), D -> hidden size (x dim 1 == weight/bias length, per-row
+  # reduction extent). eps is a scalar literal. The upstream kernel has
+  # no residual add; its optional second branch is the gating tensor z
+  # (Z=None here).
+  # FLOPs (vector): ~8-op LayerNorm body -> ~8*B*D.
+  # bytes (hbm): read x[B,D] + weight[D] + bias[D], write output[B,D]
+  # -> (2*B*D + 2*D) elements; all float32 primary family -> dtype_size.
+  flops: 8*B*D
   flops_class: vector
-  bytes: (3*B*D + 2*D) * dtype_size
+  bytes: (2*B*D + 2*D) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
@@ -83,15 +87,12 @@ param_constraints:
     x: float32
     weight: float32
     bias: float32
-    residual: float32
   dists:
     x:
       kind: randn
     weight:
       kind: randn
     bias:
-      kind: randn
-    residual:
       kind: randn
   scalars:
     eps: 0 < eps <= 1e-2

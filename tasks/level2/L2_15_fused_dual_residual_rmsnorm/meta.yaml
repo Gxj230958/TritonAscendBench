@@ -24,25 +24,34 @@ interface:
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
+  # The frozen upstream host wrapper returns (output, mid) where
+  # output = RMSNorm2(RMSNorm1(x) + residual) and mid = RMSNorm1(x) +
+  # residual. Project the tuple onto the oracle's named contract.
+  output_projection:
+    arity: 2
+    map:
+      output: 0
+      mid: 1
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::fused_dual_residual_rmsnorm
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Pre-RMSNorm dual-residual fuse: summed =
-  # x + residual_a + residual_b, then RMSNorm(summed) with a weight. One
-  # program per row. Symbol map: B -> x rows (x/residual_a/residual_b dim 0,
-  # kernel grid extent), D -> hidden size (x dim 1 == weight length, the
-  # per-row reduction extent). eps is a scalar literal.
-  # FLOPs (vector): per element two residual adds (~2), the centred-square +
-  # mean for the RMS (~2), rsqrt amortised (~1), the normalise mul (~1), the
-  # weight mul (~1) -> ~7*B*D.
-  # bytes (hbm): read x + residual_a + residual_b [B,D] (3*B*D) + weight[D],
-  # write output[B,D] + hidden[B,D] (2*B*D) -> (5*B*D + D) elements; all
+  # Symbol audit (approach §3.4). Fused dual-RMSNorm with one residual:
+  # y = RMSNorm2(RMSNorm1(x) + residual); mid = RMSNorm1(x) + residual.
+  # One program per row. Symbol map: B -> x rows (x/residual dim 0, the
+  # kernel grid extent), D -> hidden size (x dim 1 == weight1/weight2
+  # length, the per-row reduction extent). eps is a scalar literal.
+  # FLOPs (vector): per element RMSNorm1 (square+mean ~2, rsqrt amortised
+  # ~1, normalise mul ~1, weight1 mul ~1), residual add (~1), RMSNorm2
+  # (square+mean ~2, rsqrt ~1, normalise mul ~1, weight2 mul ~1)
+  # -> ~11*B*D.
+  # bytes (hbm): read x + residual [B,D] (2*B*D) + weight1[D] + weight2[D],
+  # write output[B,D] + mid[B,D] (2*B*D) -> (4*B*D + 2*D) elements; all
   # float32 primary family -> dtype_size.
-  flops: 7*B*D
+  flops: 11*B*D
   flops_class: vector
-  bytes: (5*B*D + D) * dtype_size
+  bytes: (4*B*D + 2*D) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -82,18 +91,20 @@ param_constraints:
   - B >= 1
   dtypes:
     x: float32
-    residual_a: float32
-    residual_b: float32
-    weight: float32
+    residual: float32
+    weight1: float32
+    weight2: float32
   dists:
     x:
       kind: randn
-    residual_a:
+    residual:
       kind: randn
-    residual_b:
+    weight1:
       kind: randn
-    weight:
+    weight2:
       kind: randn
   scalars:
     eps: 0 < eps <= 1e-2
-  tensor_invariants: []
+  tensor_invariants:
+  - x.shape == residual.shape
+  - x.dtype == residual.dtype
