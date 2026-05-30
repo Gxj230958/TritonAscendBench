@@ -3706,18 +3706,19 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': live device query (B-inert-shim)\n"
                 )
                 continue
-        # B-inert-shim: sglang.srt.utils pure platform/math predicates.
-        # is_hip/is_musa (constant backend gates), is_cuda (live honest
-        # query), ceil_div (pure integer math == cdiv). All four are
-        # setup-only backend/sizing gates that never enter a verified
-        # entrypoint's numeric path; the shim implements them against the
-        # upstream definitions. Subset-allowlisted, single-line, refuse if
-        # any other symbol shares the line so a future semantic import
-        # cannot sneak past.
+        # B-inert-shim: sglang.srt.utils inert helpers. is_hip/is_musa
+        # (constant backend gates), is_cuda (live honest query), ceil_div
+        # (pure integer math == cdiv), cached_triton_kernel (a launch-cache
+        # decorator whose non-CUDA fallback returns the kernel unchanged --
+        # affects dispatch, not values). None enter a verified entrypoint's
+        # numeric path; the shim mirrors the upstream definitions. Subset-
+        # allowlisted, single-line, refuse if any other symbol shares the
+        # line so a future semantic import cannot sneak past.
         if stripped.startswith("from sglang.srt.utils import "):
             _syms = stripped[len("from sglang.srt.utils import "):]
             _sym_set = {s.strip() for s in _syms.split(",")}
-            _allowed = {"is_hip", "is_musa", "is_cuda", "ceil_div"}
+            _allowed = {"is_hip", "is_musa", "is_cuda", "ceil_div",
+                        "cached_triton_kernel"}
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
@@ -3822,6 +3823,22 @@ def rewrite_imports_to_standalone(
                 out.append(
                     f"{indent}from tasks._frozen_shim import LoRABatchInfo"
                     f"  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang LoRA expand block-size config. Tile sizes are
+        # pure launch config (tiling only, never the computed result); the
+        # shim returns the upstream default. Single symbol only.
+        if stripped.startswith(
+            "from sglang.srt.lora.triton_ops.lora_tuning_config import "
+        ):
+            _syms = stripped[len(
+                "from sglang.srt.lora.triton_ops.lora_tuning_config import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"get_lora_expand_config"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import get_lora_expand_config"
+                    f"  # Phase A': LoRA expand block-size config (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import

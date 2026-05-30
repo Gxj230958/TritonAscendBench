@@ -267,6 +267,30 @@ def register_custom_op(*args, **kwargs):
     return _deco
 
 
+def cached_triton_kernel(key_fn=None):
+    """Passthrough mirror of sglang.srt.utils.cached_triton_kernel. Upstream
+    wraps a @triton.jit kernel in a custom key-based launch cache (CachedKernel)
+    to skip triton's specialization dispatch; its non-CUDA fallback returns the
+    kernel UNCHANGED. The bench takes that native-triton-cache path -- triton
+    re-specializes per constexpr, so it is always value-correct, where the custom
+    cache's coarser key is only a launch-overhead optimization. The S2 bit-exact
+    check validates this severed kernel against the original CachedKernel path."""
+
+    def _deco(fn):
+        return fn
+
+    return _deco
+
+
+# Block-size table for the CSGMV LoRA expand kernel, mirroring
+# sglang.srt.lora.triton_ops.lora_tuning_config.DEFAULT_EXPAND_CONFIG. Tile
+# sizes are pure launch-config (they affect only tiling, not the result), so
+# the untuned defaults are numerically equivalent to any tuned entry.
+def get_lora_expand_config(K, R, num_slices, chunk_size):
+    """Stand-in returning the upstream default expand block config."""
+    return {"BLOCK_N": 64, "BLOCK_K": 16}
+
+
 # vllm sampling/output/worker symbols carried at module scope by some frozen
 # kernels for SIBLING setup helpers (batch-state managers, add_request type
 # hints, logprob output containers). The verified free-function entrypoint
