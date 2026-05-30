@@ -15,24 +15,41 @@ import torch
 import torch.nn.functional as F
 
 
-def _act_quant(x: torch.Tensor, block_size: int, fp8_max: float = 448.0):
-    """Block-wise act-quant matching kernel.py::_act_quant_kernel:
-    amax = max(|blk|, 1e-4); scale = amax / fp8_max;
+def _act_quant(x: torch.Tensor, block_size: int, fp8_max: float = 448.0,
+               round_scale: bool = False):
+    """Block-wise act-quant matching kernel.py::_act_quant_kernel.
+
+    amax = max(|blk|, 1e-4).
+    Scale (kernel.py:74-82):
+      round_scale=False: scale = amax * (1 / fp8_max);
+      round_scale=True:  scale = exp2(ceil(log2(amax * (1 / fp8_max)))),
+                         i.e. the next power-of-two bucket of amax / fp8_max.
     q = clamp(blk / scale, -fp8_max, fp8_max).cast(fp8_e4m3fn).
     """
     *lead, n = x.shape
     bs = block_size
     xv = x.to(torch.float32).reshape(*lead, n // bs, bs)
-    # Kernel clamps amax (not scale) at 1e-4 BEFORE dividing by fp8_max
+    # Kernel clamps amax (not scale) at 1e-4 BEFORE forming the scale
     # at kernel.py:71; the older `s.clamp_min(1e-12)` form would miss
     # the 1e-4 floor when amax was below it and diverge.
     amax = xv.abs().amax(-1, keepdim=True).clamp_min(1e-4)
-    s = amax / float(fp8_max)
+    fp8_max_inv = 1.0 / float(fp8_max)
+    if round_scale:
+        # Mirror kernel.py:78-80 byte-for-byte: log2(amax * fp8_max_inv),
+        # ceil, exp2. Multiply by fp8_max_inv (not divide by fp8_max) to
+        # match the kernel's exact fp32 op ordering.
+        s = torch.exp2(torch.ceil(torch.log2(amax * fp8_max_inv)))
+    else:
+        s = amax * fp8_max_inv
     q = (xv / s).clamp(-float(fp8_max), float(fp8_max)).reshape(*lead, n)
     return q.to(torch.float8_e4m3fn), s.squeeze(-1).reshape(*lead, n // bs)
 
 
 def run(inputs: dict) -> dict:
+    # round_scale is driven by scale_fmt exactly as the host wrapper does
+    # (kernel.py:135): round_scale = scale_fmt is not None.
+    round_scale = inputs.get("scale_fmt") is not None
     q, s = _act_quant(inputs["x"], int(inputs["block_size"]),
-                      float(inputs.get("fp8_max", 448.0)))
+                      float(inputs.get("fp8_max", 448.0)),
+                      round_scale=round_scale)
     return {"q": q, "scale": s}
