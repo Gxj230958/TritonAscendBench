@@ -15,54 +15,52 @@ upstream:
   file_sha256: 3ea31c2bbc8b439b257e5d307807275b9efceb73686f4b89cde469b5b9536122
   function_hash: 3ea31c2bbc8b439b257e5d307807275b9efceb73686f4b89cde469b5b9536122
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: "frozen upstream; graded jit fused_moe_kernel_gptq_awq driven by authored _pa_launcher.py."
   vendored_snapshot: tasks/_vendored/L3_10_fused_moe_kernel_gptq_awq_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
-  stride_layout: TODO(scaffold)
+  stride_layout: row-major contiguous; b [E,N,K//2] int32, b_scale [E,N,K//GS], b_zp [E,N//2,K//GS] int32
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Grouped MoE expert GEMM (the GPTQ/AWQ
-  # variant): for each padded block of sorted tokens, multiply by that
-  # block's expert weight, then optionally scale by the token's routing
-  # weight. shapes.yaml binds: B -> n_tokens (a dim 0, oracle n_tok, only
-  # the gather domain — NOT the iterated extent), D -> hidden_dim K (a
-  # dim 1 == b dim 2, the kernel's K / GEMM contraction axis), E ->
-  # n_experts (b dim 0, expert_ids length; sorted_token_ids has E*4
-  # entries so with block_size=4 there are nblk = E*4/4 = E padded blocks
-  # of 4 rows each = E*4 padded rows), N -> expert output width (b dim 1,
-  # the kernel BLOCK_SIZE_N axis), APPW -> the `apply_weight` scalar_knob
-  # in [0,1]. block_size is the literal 4. This shapes config declares a
-  # and b as float32, so the oracle reference is a plain float32 grouped
-  # GEMM (no separate dequant scale tensors). The kernel iterates the E*4
-  # padded sorted-token rows, not the B real tokens, so token-side
-  # traffic uses the E*4 padded extent.
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel accumulates
-  # the block GEMM with accumulator = tl.dot(a, b). Per block y =
-  # a[rows] @ b[e].T is a [block_size,D]@[D,N] matmul = 2*4*N*D; over the
-  # E blocks -> 8*E*N*D (2 = multiply + accumulate). float32 operands run
-  # on the 910B Cube unit, peak_table exposes no fp32 cube class so cube
-  # matmul is keyed to fp16_cube. FLOPs(vector): the routing-weight
-  # epilogue y *= topk_weights runs ONLY when apply_weight is set — 1 mul
-  # per padded row * N -> APPW*4*E*N.
-  # bytes(hbm): read a's gathered rows [E*4,D] (padded-row extent, not
-  # [B,D]) + b [E,N,D], write output [E*4,N]; float32 primary family ->
-  # dtype_size. topk_weights [B,1] is gathered (one element per padded
-  # row) only when apply_weight is set -> APPW*4*E float32 reads.
-  # sorted_token_ids [E*4] and expert_ids [E] are int64 index tensors
-  # (non-primary, approach §3.2) -> literal *8.
+  # Symbol audit (approach §3.4). GPTQ/AWQ int4-w4a16 fused MoE expert GEMM:
+  # for each padded block of sorted tokens, dequantize that block's expert
+  # weight (w = (q - zp) * scale) then multiply by it, optionally scaling by
+  # the token's routing weight. shapes.yaml binds: B -> n_tokens (a dim 0,
+  # the gather domain), D -> hidden_dim K (a dim 1, the GEMM contraction;
+  # b's packed K extent is D//2 int32), E -> n_experts (b dim 0, expert_ids
+  # length; sorted_token_ids has E*4 entries so with block_size=4 there are
+  # nblk = E padded blocks of 4 rows = E*4 padded rows), N -> expert output
+  # width (b dim 1, BLOCK_SIZE_N axis), GS -> dequant group_size (D//GS
+  # groups), APPW -> the apply_weight scalar_knob in [0,1]. block_size is the
+  # literal 4. The kernel scatters each block-row store to C[token_id] in the
+  # [B,N] token-id output domain; the compute/store TRAFFIC iterates the E*4
+  # padded rows.
+  # Mixed compute -> map form. FLOPs(fp16_cube): accumulator = tl.dot(a, b)
+  # over the dequantized weight. Per block a[rows] @ w[e].T is a
+  # [block_size,D]@[D,N] matmul = 2*4*N*D; over E blocks -> 8*E*N*D. float32
+  # operands run on the 910B Cube unit; peak_table has no fp32 cube class so
+  # cube matmul keys to fp16_cube. FLOPs(vector): per-element dequant of the
+  # int4 weight (subtract zp, multiply scale) over the E*N*D weight elements
+  # -> 2*E*N*D, plus the routing-weight epilogue y *= topk_weights (only when
+  # apply_weight is set) -> APPW*4*E*N.
+  # bytes(hbm): read a's gathered rows [E*4,D] (padded-row extent) fp32 +
+  # packed weights b [E,N,D//2] int32 (4 bytes) + b_scale [E,N,D//GS] fp32 +
+  # b_zp [E,N//2,D//GS] int32, write output [E*4,N] fp32; fp32 primary family
+  # -> dtype_size. topk_weights [B,1] is gathered (one per padded row) only
+  # when apply_weight is set -> APPW*4*E fp32. sorted_token_ids [E*4] and
+  # expert_ids [E] are int64 index tensors (non-primary, approach §3.2) -> *8.
   flops:
     fp16_cube: 8*E*N*D
-    vector: APPW*4*E*N
+    vector: 2*E*N*D + APPW*4*E*N
   bytes:
-    hbm: (4*E*D + E*N*D + 4*E*N + APPW*4*E)*dtype_size + (4*E + E)*8
+    hbm: (4*E*D + 4*E*N + APPW*4*E)*dtype_size + (E*N*(D//2) + (E*N//2)*(D//GS))*4 + (E*N*(D//GS))*dtype_size + (4*E + E)*8
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -101,9 +99,12 @@ param_constraints:
   - D >= 1
   - E >= 1
   - N >= 1
+  - GS >= 1
   dtypes:
     a: float32
-    b: float32
+    b: int32
+    b_scale: float32
+    b_zp: int32
     topk_weights: float32
     sorted_token_ids: int64
     expert_ids: int64
@@ -111,14 +112,23 @@ param_constraints:
     a:
       kind: randn
     b:
-      kind: randn
-    topk_weights:
-      kind: rand
-    sorted_token_ids:
       kind: randint
       args:
         lo: '0'
-        hi: B
+        hi: '256'
+    b_scale:
+      kind: rand
+    b_zp:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '256'
+    topk_weights:
+      kind: rand
+    sorted_token_ids:
+      kind: moe_sorted_ids
+      args:
+        B: B
     expert_ids:
       kind: randint
       args:
@@ -126,12 +136,16 @@ param_constraints:
         hi: E
   scalars:
     block_size: block_size >= 1
+    group_size: group_size >= 1
     apply_weight: apply_weight in [0, 1]
   tensor_invariants:
+  # sorted_token_ids holds distinct token ids in [0, B) plus the padding
+  # sentinel == B (num_valid_tokens), which the kernel masks via
+  # `offs_token < num_valid_tokens`; valid range is [0, B], upper bound B+1.
   - type: index_in_range
     args:
       input: sorted_token_ids
-      value: B
+      value: B+1
   - type: index_in_range
     args:
       input: expert_ids

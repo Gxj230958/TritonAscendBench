@@ -15,7 +15,7 @@ upstream:
   file_sha256: d603287293ad1b6a5cfcdfa9100b36d590781e0f6e73d1a83d59d20a289f90f6
   function_hash: d603287293ad1b6a5cfcdfa9100b36d590781e0f6e73d1a83d59d20a289f90f6
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: kernel.py is the frozen upstream EagleSpeculator source; the graded unit is the in-module @triton.jit _prepare_eagle_inputs_kernel, driven by _pa_launcher.py::run.
   vendored_snapshot: tasks/_vendored/L1_29_prepare_eagle_inputs_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -26,24 +26,30 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: sampling_rng
 cost_model:
-  # Symbol audit (approach §3.4). EAGLE draft input prep: next position =
-  # clamp(last_token_indices + num_sampled - num_rejected, >= 0), a pure
-  # elementwise integer map. Symbol map: B -> input rows (last_token_indices
-  # dim 0, kernel grid extent), D -> input dim 1 (the per-row elementwise
-  # extent). All three inputs share the [B,D] shape.
-  # FLOPs (vector): per element add + subtract + clamp ~= 3 integer ops -> no
-  # floating-point arithmetic; reported as the small constant 3*B*D.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (last_token_indices declared first) -> dtype_size=8 for the int64 reads
-  # last_token_indices + num_sampled + num_rejected [B,D] -> 3*B*D*dtype_size.
-  # next_input_indices[B,D] is int32 (oracle returns .to(int32), non-primary
-  # dtype) -> literal byte width *4 -> + B*D*4.
-  flops: 3*B*D
+  # Symbol audit (approach §3.4). EAGLE draft input prep: one program per
+  # request (grid extent B == num_reqs) shifts the packed target_input_ids
+  # left by one over each request's truncated query span, copies positions,
+  # and writes per-request metadata. Symbol map: B -> num_reqs (kernel grid
+  # extent), T -> query_len (the per-request token span). Total packed tokens
+  # = B*T, the dominant memory-traffic extent.
+  # FLOPs (vector): per token a handful of integer index/add ops over B*T
+  # tokens -> no floating-point arithmetic; reported as the small constant
+  # 4*B*T.
+  # bytes (hbm), mixed-dtype rule (approach §3.2): int32 primary family
+  # (target_input_ids declared first). Upper bound over the full packed extent
+  # B*T (the kernel touches only each request's truncated span T-num_rejected,
+  # so actual traffic is sum(T-num_rejected) <= B*T). The kernel reads
+  # target_input_ids and writes eagle_input_ids (int32 -> 4 bytes each) and
+  # reads target_positions / writes eagle_positions (int64 -> 8 bytes each):
+  # (2*4 + 2*8)*B*T = 24*B*T. Per-request metadata (idx_mapping, num_sampled,
+  # num_rejected, seq_lens, query_start_loc, eagle_seq_lens, last_token_indices)
+  # adds a small O(B) term, negligible vs B*T.
+  flops: 4*B*T
   flops_class: vector
-  bytes: 3*B*D*dtype_size + B*D*4
+  bytes: 24*B*T
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -76,31 +82,78 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-29
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Prepares EAGLE speculative-decoding next-step input indices from last_token_indices / num_sampled / num_rejected, all [B, D] int64 counters.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). EAGLE
+# speculative-decoding draft input prep: one program per request (grid B ==
+# num_reqs) shifts the packed target_input_ids left by one over each request's
+# truncated query span (length T - num_rejected), overwrites the last slot with
+# the next sampled / prefill token, copies positions, and writes per-request
+# metadata (last_token_indices, eagle_query_start_loc, eagle_seq_lens) plus a
+# cudagraph pad tail out to max_num_reqs.
 param_constraints:
   scaffold: false
   dims:
-  - B >= 1
-  - D >= 1
+  - B >= 2
+  - T >= 2
+  - G >= 1
   dtypes:
-    last_token_indices: int64
+    target_input_ids: int32
+    target_positions: int64
+    idx_mapping: int64
     num_sampled: int64
     num_rejected: int64
+    last_sampled: int32
+    next_prefill_tokens: int32
+    seq_lens: int32
   dists:
-    last_token_indices:
+    target_input_ids:
+      kind: randint
+      args:
+        lo: '1'
+        hi: '1024'
+    target_positions:
       kind: randint
       args:
         lo: '0'
-        hi: '2'
+        hi: N
+    idx_mapping:
+      kind: cyclic_perm
+      args: {}
     num_sampled:
-      kind: randint
+      kind: window_pos
       args:
-        lo: '0'
-        hi: '2'
+        W: '2'
     num_rejected:
       kind: randint
       args:
         lo: '0'
-        hi: '2'
-  scalars: {}
-  tensor_invariants: []
+        hi: T
+    last_sampled:
+      kind: randint
+      args:
+        lo: '1'
+        hi: '1024'
+    next_prefill_tokens:
+      kind: randint
+      args:
+        lo: '1'
+        hi: '1024'
+    seq_lens:
+      kind: randint
+      args:
+        lo: '1'
+        hi: N
+  scalars:
+    num_reqs: num_reqs >= 2
+    query_len: query_len >= 2
+    max_num_reqs: max_num_reqs > B
+  tensor_invariants:
+  # num_rejected in [0, T) -> truncated query length T - num_rejected stays >= 1.
+  - type: index_in_range
+    args:
+      input: num_rejected
+      value: T
+  # idx_mapping is a permutation of [0, num_reqs), so every entry is in range.
+  - type: index_in_range
+    args:
+      input: idx_mapping
+      value: B

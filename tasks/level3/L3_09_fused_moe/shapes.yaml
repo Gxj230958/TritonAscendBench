@@ -165,7 +165,11 @@ inputs:
     dims:
     - E*4
     dtype: int64
-    dist: randint:0:B
+    # moe_align_block_size output: distinct route-slot ids in [0, B) padded
+    # with the sentinel == B. The fused_moe_kernel scatters C[sorted_token_ids
+    # [r]], so ids MUST be unique (a bare randint:0:B collides and makes two
+    # blocks race-write the same C row -- un-oracalable).
+    dist: moe_sorted_ids:B
   expert_ids:
     dims:
     - E

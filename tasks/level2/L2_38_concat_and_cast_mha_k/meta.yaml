@@ -26,25 +26,25 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). DeepSeek-V3 MHA K assembly: concat(k_nope,
-  # k_rope) along the head dim then cast to the cache dtype. One program per
-  # row. Symbol map: B -> row count (k_nope/k_rope dim 0, kernel grid extent),
-  # D -> their dim 1 (the per-row width); the output is [B, 2*D]. out_dtype is
-  # a scalar literal selecting the cast target.
+  # Symbol audit (approach §3.4). DeepSeek-V3 MLA K assembly: per head, concat
+  # the per-head nope part with the SHARED rope part then cast to the cache
+  # dtype. One grid program per token. Symbol map: B -> n_tokens (k_nope/k_rope
+  # dim 0, kernel grid extent), H -> num_local_heads (k_nope dim 1, k_rope dim 1
+  # is the broadcast singleton), Dn -> nope_dim, Dr -> rope_dim; the output is
+  # [B, H, Dn + Dr]. out_dtype is a scalar literal selecting the cast target.
   # FLOPs (vector): pure copy + dtype cast — no floating-point arithmetic.
-  # Reported as the small constant 2*B*D (one cast op per output element);
-  # the dominant cost is bytes.
+  # One cast op per output element -> B*H*(Dn+Dr); the dominant cost is bytes.
   # bytes (hbm), mixed-dtype rule (approach §3.2): float32 primary family
-  # (k_nope declared first) -> dtype_size=4 for the reads k_nope[B,D] +
-  # k_rope[B,D] -> 2*B*D*dtype_size. The output k[B,2*D] is cast to the
-  # out_dtype scalar (bf16, non-primary dtype) -> literal byte width *2 ->
-  # + 2*B*D*2.
-  flops: 2*B*D
+  # (k_nope declared first) -> dtype_size=4. Reads: k_nope[B,H,Dn] -> B*H*Dn*4
+  # plus the shared rope k_rope[B,1,Dr] -> B*Dr*4 (read once, broadcast across
+  # heads). The output k[B,H,Dn+Dr] is cast to the out_dtype scalar (bf16,
+  # non-primary dtype) -> literal byte width 2 -> + B*H*(Dn+Dr)*2.
+  flops: B*H*(Dn+Dr)
   flops_class: vector
-  bytes: 2*B*D*dtype_size + 2*B*D*2
+  bytes: (B*H*Dn + B*Dr)*dtype_size + B*H*(Dn+Dr)*2
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -62,8 +62,8 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
-    hidden: 1
+    public: 5
+    hidden: 4
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -77,12 +77,14 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-38
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Concatenates the nope/rope halves of an MLA K vector and casts to out_dtype. k_nope / k_rope are both [n_tokens, dim]=[B, D]. out_dtype names the output cast target.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). DeepSeek-V3 MLA K assembly: per head, concat the per-head nope part k_nope[B, H, Dn] with the shared rope part k_rope[B, 1, Dr] (broadcast across the H heads) and cast to out_dtype. The frozen @triton.jit kernel uses tl.arange(0, H/Dn/Dr) without masking, so H, Dn and Dr must be powers of two. out_dtype names the output cast target.
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
-  - D >= 1
+  - H >= 1
+  - Dn >= 1
+  - Dr >= 1
   dtypes:
     k_nope: float32
     k_rope: float32

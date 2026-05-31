@@ -80,8 +80,11 @@ def _unified_attention(
 
 
 def run(inputs: dict) -> dict:
+    # The QK scale is materialised under the shapes.yaml key ``softmax_scale``
+    # (inputs derive ``1/sqrt(D)``); accept the legacy ``scale`` alias too.
+    scale = inputs.get("softmax_scale", inputs.get("scale"))
     return {"output": _unified_attention(
         inputs["q"], inputs["k"], inputs["v"], inputs["cu_seqlens_q"],
-        inputs["seqused_k"], float(inputs["scale"]),
+        inputs["seqused_k"], float(scale),
         bool(inputs.get("causal", True)),
         inputs.get("alibi_slopes"), float(inputs.get("softcap", 0.0)))}

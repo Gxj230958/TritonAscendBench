@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
   # Symbol audit (approach §3.4). Grouped MoE expert GEMM: for each padded
@@ -51,9 +51,12 @@ cost_model:
   # runs ONLY when apply_weight is set — 1 mul per padded row * N ->
   # APPW*4*E*N.
   # bytes(hbm): read a's gathered rows [E*4,D] (padded-row extent, not
-  # [B,D]) + b [E,N,D], write output [E*4,N]; float32 primary family ->
-  # dtype_size. topk_weights [B,1] is gathered (one element per padded
-  # row) only when apply_weight is set -> APPW*4*E float32 reads.
+  # [B,D]) + b [E,N,D], write E*4 padded-row stores of width N (the kernel
+  # scatters each store to C[sorted_token_id] in the [B,N] token-id output
+  # domain; the store TRAFFIC is still the E*4 padded rows) -> 4*E*N;
+  # float32 primary family -> dtype_size. topk_weights [B,1] is gathered
+  # (one element per padded row) only when apply_weight is set -> APPW*4*E
+  # float32 reads.
   # sorted_token_ids [E*4] and expert_ids [E] are int64 index tensors
   # (non-primary, approach §3.2) -> literal *8.
   flops:
@@ -113,10 +116,9 @@ param_constraints:
     topk_weights:
       kind: rand
     sorted_token_ids:
-      kind: randint
+      kind: moe_sorted_ids
       args:
-        lo: '0'
-        hi: B
+        B: B
     expert_ids:
       kind: randint
       args:
@@ -126,10 +128,14 @@ param_constraints:
     block_size: block_size >= 1
     apply_weight: apply_weight in [0, 1]
   tensor_invariants:
+  # sorted_token_ids holds distinct token ids in [0, B) plus the padding
+  # sentinel == B (num_valid_tokens), which the kernel masks via
+  # `offs_token < num_valid_tokens`; the valid index range is therefore
+  # [0, B], so the upper bound is B+1 (exclusive).
   - type: index_in_range
     args:
       input: sorted_token_ids
-      value: B
+      value: B+1
   - type: index_in_range
     args:
       input: expert_ids

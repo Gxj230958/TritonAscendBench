@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). vLLM unified varlen flash attention:
@@ -34,7 +34,8 @@ cost_model:
   # (cu_seqlens_q has E+1 entries, seqused_k has E, the oracle's outer
   # `for i in range(len(cu)-1)` loop), L -> per-sequence length
   # (cu_seqlens_q is offsets:to=E*L so q/k/v dim 0 = E*L packs E sequences
-  # of length L; seqused_k is randint:1:L so KV length <= L), H -> head
+  # of length L; seqused_k is full:L so KV length == L, the in-domain
+  # full-causal-prefill regime context_len == 0), H -> head
   # count (q/k/v dim 1; here Hq == Hk so GQA group g=1, no FLOPs change),
   # D -> head_dim (q/k/v dim 2, the kernel BLOCK_DMODEL / dot contraction
   # axis), CAUSAL -> the `causal` scalar_knob in [0,1].
@@ -121,10 +122,13 @@ param_constraints:
       args:
         to: E*L
     seqused_k:
-      kind: randint
+      # KV length == context_len + query_len (vLLM domain invariant
+      # seqused_k >= query_len). Query span is L and the packed q/k/v carry
+      # exactly L KV positions per sequence, so the only in-domain length is
+      # L (full causal prefill, context_len == 0). See shapes.yaml seqused_k.
+      kind: full
       args:
-        lo: '1'
-        hi: L
+        value: L
   scalars:
     scale:
       derive: 1/sqrt(D)

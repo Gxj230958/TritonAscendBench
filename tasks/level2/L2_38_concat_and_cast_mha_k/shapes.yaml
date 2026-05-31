@@ -1,205 +1,95 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the elementwise family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator: DeepSeek-V3 MLA K assembly (concat_and_cast_mha_k).
+# Real upstream contract (sglang/srt/layers/attention/utils.py +
+# sarvam_moe.py / forward_mha.py call sites):
+#   k_nope : [B, H, Dn]  per-head nope part   (B = n_tokens, H = num_local_heads)
+#   k_rope : [B, 1, Dr]  shared rope part, broadcast across the H heads
+#   k      : [B, H, Dn + Dr] = empty(out_dtype); written by the kernel
+# The frozen @triton.jit kernel uses tl.arange(0, H/Dn/Dr) with no masking,
+# so H, Dn and Dr must all be powers of two; Dn + Dr need not be.
 size_knobs:
   B: 512
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
   H: 16
-  E: 16
-  C: 32
-  G: 8
+  Dn: 128
+  Dr: 64
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+    H: 2
+    Dn: 32
+    Dr: 16
 - id: P2
   name: small
   knobs:
     B: 64
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+    H: 4
+    Dn: 64
+    Dr: 32
 - id: P3
   name: medium
   knobs:
     B: 512
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
     H: 16
-    E: 16
-    C: 32
-    G: 8
+    Dn: 128
+    Dr: 64
 - id: P4
   name: large
   knobs:
     B: 2048
-    L: 256
-    D: 4096
-    Dv: 8
-    N: 2048
-    T: 512
     H: 32
-    E: 32
-    C: 64
-    G: 8
+    Dn: 128
+    Dr: 64
 - id: P5
-  name: wide
+  name: wide_heads
   knobs:
     B: 16
-    L: 64
-    D: 8192
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+    H: 64
+    Dn: 256
+    Dr: 64
 hidden_shapes:
 - id: H1
-  name: h_odd
+  name: h_deep_dim
   knobs:
     B: 384
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+    H: 8
+    Dn: 512
+    Dr: 128
 - id: H2
   name: h_singleton
   knobs:
     B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
     H: 2
-    E: 2
-    C: 2
-    G: 2
+    Dn: 16
+    Dr: 16
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 16384
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-- id: H4
-  name: h_wide
+  name: h_many_tokens
   knobs:
     B: 4096
-    L: 32
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
     H: 8
-    E: 8
-    C: 8
-    G: 4
+    Dn: 64
+    Dr: 32
+- id: H4
+  name: h_single_head
+  knobs:
+    B: 128
+    H: 1
+    Dn: 128
+    Dr: 64
 inputs:
   k_nope:
     dims:
     - B
-    - D
+    - H
+    - Dn
     dtype: float32
     dist: randn
   k_rope:
     dims:
     - B
-    - D
+    - 1
+    - Dr
     dtype: float32
     dist: randn
   out_dtype:
     scalar: bf16
-  k:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  q:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  key:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  input_emb:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  extend_seq_lens:
-    dims:
-    - B
-    dtype: int32
-    dist: randint:1:N
-  v:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  value:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  seq_lens:
-    dims:
-    - B
-    dtype: int32
-    dist: randint:1:N

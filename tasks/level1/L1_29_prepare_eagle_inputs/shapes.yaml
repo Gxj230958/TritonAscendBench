@@ -1,13 +1,16 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the spec_decode family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator-family knob grid for the spec_decode EAGLE input-prep kernel.
+# num_reqs = B (the grid extent, one program per request); query_len = T (the
+# constant raw per-request token span, so total tokens = B*T); max_num_reqs =
+# B + G > B (exercises the cudagraph tail padding). All rows keep B >= 2 (a
+# non-identity idx_mapping permutation) and T >= 2 (a non-trivial shift/reject
+# span). See docs/plans/2026-05-21-operator-param-validity-impl.md.
 size_knobs:
   B: 16
   L: 256
   D: 512
   Dv: 512
   N: 512
-  T: 256
+  T: 8
   H: 16
   E: 16
   C: 32
@@ -21,7 +24,7 @@ public_shapes:
     D: 64
     Dv: 64
     N: 64
-    T: 16
+    T: 6
     H: 4
     E: 4
     C: 8
@@ -34,7 +37,7 @@ public_shapes:
     D: 256
     Dv: 256
     N: 256
-    T: 64
+    T: 12
     H: 8
     E: 8
     C: 16
@@ -47,7 +50,7 @@ public_shapes:
     D: 512
     Dv: 512
     N: 512
-    T: 256
+    T: 8
     H: 16
     E: 16
     C: 32
@@ -60,7 +63,7 @@ public_shapes:
     D: 1024
     Dv: 1024
     N: 1024
-    T: 512
+    T: 16
     H: 32
     E: 32
     C: 64
@@ -87,11 +90,11 @@ hidden_shapes:
     D: 384
     Dv: 384
     N: 384
-    T: 96
+    T: 7
     H: 6
     E: 6
     C: 24
-    G: 4
+    G: 3
 - id: H2
   name: h_singleton
   knobs:
@@ -100,7 +103,7 @@ hidden_shapes:
     D: 16
     Dv: 16
     N: 8
-    T: 8
+    T: 2
     H: 2
     E: 2
     C: 2
@@ -113,7 +116,7 @@ hidden_shapes:
     D: 4096
     Dv: 4096
     N: 512
-    T: 512
+    T: 128
     H: 8
     E: 8
     C: 64
@@ -126,29 +129,73 @@ hidden_shapes:
     D: 64
     Dv: 64
     N: 128
-    T: 16
+    T: 4
     H: 8
     E: 8
     C: 8
     G: 4
 inputs:
-  last_token_indices:
+  # num_reqs = B (kernel grid extent). query_len = T (constant raw per-request
+  # token span). max_num_reqs = B + G (> B, so the cudagraph tail padding is
+  # exercised). These three scalars drive the launcher/oracle span layout.
+  num_reqs:
+    scalar_knob: B
+  query_len:
+    scalar_knob: T
+  max_num_reqs:
+    scalar_knob: B+G
+  # Packed target token ids over total = B*T tokens (int32; values nonzero so a
+  # missed shift store is visible). The kernel shifts these left by one within
+  # each request span.
+  target_input_ids:
+    dims:
+    - B*T
+    dtype: int32
+    dist: randint:1:1024
+  # Packed target positions over total = B*T tokens (int64), copied verbatim
+  # over each truncated span.
+  target_positions:
+    dims:
+    - B*T
+    dtype: int64
+    dist: randint:0:N
+  # req_idx -> req_state_idx remap (non-identity single-cycle permutation of
+  # [0, B)), used to index last_sampled / next_prefill_tokens.
+  idx_mapping:
     dims:
     - B
-    - D
     dtype: int64
-    dist: randint:0:2
+    dist: cyclic_perm
+  # >0 selects the last_sampled branch, ==0 selects the chunked-prefill
+  # next_prefill_tokens branch. window_pos:2 yields the alternating pattern
+  # [0, 1, 0, 1, ...], so BOTH branches are guaranteed exercised in every shape
+  # (B >= 2) -- a kernel that took the wrong branch is always discriminated.
   num_sampled:
     dims:
     - B
-    - D
     dtype: int64
-    dist: randint:0:2
+    dist: window_pos:2
+  # Rejected token count per request, in [0, T) (torch.randint hi is exclusive)
+  # so the truncated query length T - num_rejected stays >= 1.
   num_rejected:
     dims:
     - B
-    - D
     dtype: int64
-    dist: randint:0:2
-  current_draft_step:
-    scalar: 0
+    dist: randint:0:T
+  # Candidate next tokens, indexed by req_state_idx; length max_num_reqs (int32).
+  last_sampled:
+    dims:
+    - B+G
+    dtype: int32
+    dist: randint:1:1024
+  next_prefill_tokens:
+    dims:
+    - B+G
+    dtype: int32
+    dist: randint:1:1024
+  # Per-request target sequence lengths, copied into eagle_seq_lens[:num_reqs].
+  seq_lens:
+    dims:
+    - B
+    dtype: int32
+    dist: randint:1:N

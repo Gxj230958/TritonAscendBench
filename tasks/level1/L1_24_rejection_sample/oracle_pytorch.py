@@ -26,13 +26,21 @@ def _rejection_sample(
     is_greedy: torch.Tensor,           # [n_reqs] bool
     max_spec_len: int,
 ) -> torch.Tensor:
-    """Speculative-decoding rejection sampler (deterministic given uniforms).
+    """Random-sampling rejection sampler (deterministic given uniforms).
 
-    Accept draft token x if U < min(1, p(x)/q(x)); on first rejection emit
-    the pre-computed recovered (residual-distribution) token and stop the
-    chain for that request; if every draft token is accepted, append the
-    bonus token. Output is a [n_reqs, max_spec_len + 1] id matrix padded
-    with -1 (the upstream sentinel).
+    This is the reference for the *random* speculative-decode kernel
+    (`rejection_random_sample_kernel`), which processes only the
+    non-greedy requests. Greedy requests are handled by a separate
+    greedy kernel upstream, so this kernel early-exits on a greedy
+    request and leaves its row at the -1 sentinel. The reference mirrors
+    that contract: greedy rows stay all -1.
+
+    For a non-greedy request, accept draft token x while
+    `q(x) > 0 and p(x)/q(x) >= U` (matching the kernel's acceptance test
+    exactly, including reject-when-q<=0). On the first rejection emit the
+    pre-computed recovered (residual-distribution) token and stop the
+    chain; if every draft token is accepted, append the bonus token.
+    Output is a [n_reqs, max_spec_len + 1] id matrix padded with -1.
     """
     n_reqs = cu_num_draft_tokens.shape[0]
     out = torch.full(
@@ -43,6 +51,10 @@ def _rejection_sample(
         cu_num_draft_tokens.new_zeros(1), cu_num_draft_tokens[:-1]
     ]).to(torch.long)
     for r in range(n_reqs):
+        if bool(is_greedy[r].item()):
+            # Greedy requests are skipped by the random kernel (early
+            # exit); the row keeps its -1 sentinel padding.
+            continue
         s = int(starts[r].item())
         e = int(cu_num_draft_tokens[r].item())
         n = e - s
@@ -51,12 +63,9 @@ def _rejection_sample(
         for i in range(n):
             tok = int(draft_token_ids[s + i].item())
             p = float(target_probs[s + i, tok].item())
-            if bool(is_greedy[r].item()):
-                accept = True
-            else:
-                q = float(draft_probs[s + i, tok].item())
-                ratio = 1.0 if q <= 0.0 else min(1.0, p / q)
-                accept = float(uniform_probs[s + i].item()) < ratio
+            q = float(draft_probs[s + i, tok].item())
+            # Kernel accept test: draft_prob > 0 and p/q >= U.
+            accept = q > 0.0 and (p / q) >= float(uniform_probs[s + i].item())
             if accept:
                 out[r, col] = tok
                 col += 1

@@ -1,145 +1,109 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the moe family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# GPTQ/AWQ int4-w4a16 fused-MoE expert GEMM. The frozen kernel
+# `fused_moe_kernel_gptq_awq` consumes 4-bit packed expert weights plus
+# per-group dequant scales and zero-points; the fixture below supplies that
+# real quantized layout (NOT a plain fp32 GEMM). Layout, per the kernel and
+# the upstream `hidden_states.size(1)//2 == w1.size(2)` assert:
+#   a            [B, D]            fp32 activations (D == contraction K)
+#   b (qweight)  [E, N, D//2]      int32, two int4 nibbles packed along K
+#                                  (k=2j low nibble, k=2j+1 high nibble)
+#   b_scale      [E, N, D//GS]     fp32 per-(expert,n,group) dequant scale
+#   b_zp         [E, N//2, D//GS]  int32, two int4 zero-points packed along N
+#   topk_weights [B, 1]            fp32 routing weight (applied iff APPW)
+#   sorted_token_ids [E*4]         int64 moe_align buffer (distinct ids,
+#                                  sentinel == B for padding slots)
+#   expert_ids   [E]               int64 per-block expert index in [0, E)
+# Knob invariants the kernel requires: D % 64 == 0 and D even (b loaded
+# unmasked over K, BLOCK_SIZE_K up to 64), N even (zp packs 2 nibbles per
+# int32 along N), GS in {32,64,128} and GS | D (group dequant). top_k == 1.
 size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
+  B: 64
+  D: 256
+  N: 256
+  E: 8
+  GS: 128
   APPW: 0
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 8
-    L: 16
     D: 64
-    Dv: 8
     N: 64
-    T: 16
-    H: 4
     E: 4
-    C: 8
-    G: 2
+    GS: 32
     APPW: 0
 - id: P2
   name: small
   knobs:
     B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
+    D: 128
+    N: 128
     E: 8
-    C: 16
-    G: 4
+    GS: 64
     APPW: 1
 - id: P3
   name: medium
   knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+    B: 64
+    D: 256
+    N: 256
+    E: 8
+    GS: 128
     APPW: 0
 - id: P4
   name: large
   knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+    B: 128
+    D: 512
+    N: 512
+    E: 16
+    GS: 128
     APPW: 1
 - id: P5
   name: wide
   knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+    B: 16
+    D: 128
+    N: 256
+    E: 32
+    GS: 128
     APPW: 0
 hidden_shapes:
 - id: H1
   name: h_odd
   knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+    B: 48
+    D: 192
+    N: 128
+    E: 6
+    GS: 64
     APPW: 1
 - id: H2
   name: h_singleton
   knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
+    B: 4
+    D: 64
+    N: 64
     E: 2
-    C: 2
-    G: 2
+    GS: 64
     APPW: 0
 - id: H3
   name: h_deep
   knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
+    B: 8
+    D: 1024
+    N: 1024
     E: 8
-    C: 64
-    G: 8
+    GS: 128
     APPW: 1
 - id: H4
   name: h_wide
   knobs:
-    B: 512
-    L: 32
+    B: 64
     D: 128
-    Dv: 8
     N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+    E: 64
+    GS: 128
     APPW: 0
 inputs:
   a:
@@ -152,9 +116,23 @@ inputs:
     dims:
     - E
     - N
-    - D
+    - D//2
+    dtype: int32
+    dist: randint:0:256
+  b_scale:
+    dims:
+    - E
+    - N
+    - D//GS
     dtype: float32
-    dist: randn
+    dist: rand
+  b_zp:
+    dims:
+    - E
+    - N//2
+    - D//GS
+    dtype: int32
+    dist: randint:0:256
   topk_weights:
     dims:
     - B
@@ -165,7 +143,7 @@ inputs:
     dims:
     - E*4
     dtype: int64
-    dist: randint:0:B
+    dist: moe_sorted_ids:B
   expert_ids:
     dims:
     - E
@@ -173,5 +151,7 @@ inputs:
     dist: randint:0:E
   block_size:
     scalar: 4
+  group_size:
+    derive: GS
   apply_weight:
     scalar_knob: APPW

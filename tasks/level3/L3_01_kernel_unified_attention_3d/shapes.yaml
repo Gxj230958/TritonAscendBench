@@ -172,7 +172,18 @@ inputs:
     dims:
     - E
     dtype: int64
-    dist: randint:1:L
+    # KV length per sequence. The operator's domain invariant is
+    # seqused_k == context_len + query_len (vLLM builds seq_lens =
+    # num_computed_tokens + num_scheduled_tokens), so seqused_k >= query_len
+    # always. Here cu_seqlens_q is offsets:to=E*L over E sequences, making
+    # every query span exactly L, and the packed q/k/v carry exactly L KV
+    # positions per sequence -- so the only in-domain, non-overrunning KV
+    # length is L (full causal prefill, context_len == 0). A randint:1:L
+    # would drive seqused_k < query_len, an out-of-domain regime where early
+    # query rows have no causal key: the from-spec oracle softmaxes an all
+    # -inf row to NaN while the frozen kernel skips that q-block's tile loop
+    # and stores 0, a spurious mismatch the operator never exhibits upstream.
+    dist: full:L
   softmax_scale:
     derive: 1/sqrt(D)
   causal:
