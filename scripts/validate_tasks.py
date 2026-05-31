@@ -596,18 +596,27 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
     errs: list[str] = []
     gpu_triton = ((meta.get("oracle") or {}).get("gpu_triton")) or ""
 
-    # field-format check applies in every phase.
+    # field-format check applies in every phase. Two accepted module parts:
+    #   * ``kernel.py::<symbol>`` -- the upstream callable resolved in-module
+    #     (the common case: 94/100 placeholders + tasks with a host wrapper).
+    #   * ``_pa_launcher.py::run`` -- the jit-only convention. A bare @triton.jit
+    #     kernel.py has no host wrapper to call, so the task ships an authored
+    #     ``_pa_launcher.py`` exposing ``run(inputs)`` that drives the in-module
+    #     jit; the resolver / phase_a_prime splice it onto kernel.py at S2/oracle
+    #     time (siblings L2_06, L2_26 ship this way). Accept it here so the
+    #     static validator stays consistent with the actual resolution pipeline.
+    _ALLOWED_MODULE_PARTS = ("kernel.py", "_pa_launcher.py")
     if "::" not in str(gpu_triton):
         errs.append(
             f"{tid}: meta.oracle.gpu_triton {gpu_triton!r} is not in "
-            f"'kernel.py::<symbol>' form"
+            f"'kernel.py::<symbol>' or '_pa_launcher.py::run' form"
         )
         return errs
     module_part, _, symbol = str(gpu_triton).partition("::")
-    if module_part != "kernel.py" or not symbol:
+    if module_part not in _ALLOWED_MODULE_PARTS or not symbol:
         errs.append(
             f"{tid}: meta.oracle.gpu_triton {gpu_triton!r} is not in "
-            f"'kernel.py::<symbol>' form"
+            f"'kernel.py::<symbol>' or '_pa_launcher.py::run' form"
         )
         return errs
 
@@ -618,6 +627,30 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
         return errs
 
     # resolved (or phase_a_prime PASS): the callable must really be exported.
+    # For the jit-only launcher form the exporting module is _pa_launcher.py
+    # (which must exist and export ``run``); otherwise it is kernel.py.
+    if module_part == "_pa_launcher.py":
+        # The launcher convention is fixed: the entrypoint is ALWAYS ``run``.
+        # Reject any other symbol so a meta cannot point at an arbitrary
+        # launcher function (e.g. _pa_launcher.py::fake_pass).
+        if symbol != "run":
+            errs.append(
+                f"{tid}: _pa_launcher.py entrypoint must be 'run', got "
+                f"{symbol!r} (meta.oracle.gpu_triton={gpu_triton!r})"
+            )
+            return errs
+        launcher = task_dir / "_pa_launcher.py"
+        if not launcher.is_file():
+            errs.append(
+                f"{tid}: meta.oracle.gpu_triton points at _pa_launcher.py::"
+                f"{symbol} but _pa_launcher.py is missing"
+            )
+        elif not _module_exports(launcher.read_text(), symbol):
+            errs.append(
+                f"{tid}: _pa_launcher.py does not export the resolved gpu_triton "
+                f"entrypoint {symbol!r} (meta.oracle.gpu_triton={gpu_triton!r})"
+            )
+        return errs
     kernel_src = (task_dir / "kernel.py").read_text()
     if not _module_exports(kernel_src, symbol):
         errs.append(

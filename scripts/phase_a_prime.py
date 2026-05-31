@@ -3574,6 +3574,73 @@ def _launcher_launched_jit_roots(
     return roots
 
 
+def _symbol_off_launched_closure(
+    src: str, task_dir: "Path | None", symbol: str
+) -> bool:
+    """Return True iff ``symbol`` is referenced by NO kernel.py def in the
+    transitive module-level def-to-def closure of the @triton.jit kernels the
+    task's ``_pa_launcher.py`` actually launches.
+
+    Used to fail-closed gate a relative-import shim: a symbol an off-path
+    sibling jit kernel imports (and only that sibling references) is safe to
+    redirect to an inert raising stub, because the graded launch never traces
+    that sibling. Fail-closed: returns False (NOT off-path -> do NOT shim ->
+    leak surfaces) whenever the launcher / launched roots cannot be resolved,
+    the source does not parse, or ANY kept def references the symbol.
+
+    The closure walks module-level def/class references only; it does not
+    chase a top-level alias (``sp = symbol``) re-exported into a kept def.
+    That under-count is harmless for the gated shim: the redirected stub
+    RAISES on call, so a graded path that somehow reached it via an alias
+    would fail loudly (never silently pass). The vendored chunk_state /
+    chunk_cumsum sources reference the symbol directly, so the
+    direct-reference closure is exact for the corpus this gates."""
+    if task_dir is None:
+        return False
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return False
+    defs: dict[str, ast.AST] = {}
+    jit_names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            defs[node.name] = node
+            for d in getattr(node, "decorator_list", []):
+                src_d = ast.get_source_segment(src, d) or ""
+                if "triton.jit" in src_d or src_d.strip().endswith("jit"):
+                    jit_names.add(node.name)
+    roots = _launcher_launched_jit_roots(task_dir, jit_names)
+    if not roots:
+        return False  # no provable graded root -> cannot prove off-path
+
+    def _names_in(node: ast.AST) -> set[str]:
+        out: set[str] = set()
+        for n in ast.walk(node):
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+                out.add(n.id)
+        return out
+
+    keep: set[str] = set()
+    work = list(roots)
+    while work:
+        name = work.pop()
+        if name in keep:
+            continue
+        keep.add(name)
+        node = defs.get(name)
+        if node is None:
+            continue
+        for ref in _names_in(node):
+            if ref in defs and ref not in keep:
+                work.append(ref)
+    for name in keep:
+        node = defs.get(name)
+        if node is not None and symbol in _names_in(node):
+            return False  # graded closure reaches the symbol -> keep real import
+    return True
+
+
 def _slice_to_entrypoint_closure(
     src: str, task_dir: "Path | None"
 ) -> "str | None":
@@ -3923,6 +3990,34 @@ def rewrite_imports_to_standalone(
             _fla_is_fla_task = bool(_rel_fla) and _rel_fla <= _FLA_OPS_MODULES
     for ln in lines:
         stripped = ln.strip()
+        # mamba off-path softplus: `from .mamba_ssm import softplus`. The
+        # chunk_state frozen kernels (L2_03 / L3_03) carry this relative import,
+        # but softplus is a @triton.jit device function referenced ONLY inside
+        # the sibling _chunk_cumsum_fwd_kernel, which the chunk_state launcher
+        # never launches (proven by the launched-jit closure). Redirect it to
+        # the inert raising tasks._frozen_shim.softplus so the off-path jit
+        # sibling imports without compiling. Single-symbol + subset-allowlisted
+        # ({softplus}) + fail-closed on TWO independent gates: (1) the symbol
+        # must be OFF the launcher-launched jit closure (so the cumsum task
+        # L1_40, whose graded kernel DOES call softplus, keeps the real import),
+        # (2) any unexpected co-imported symbol or a parenthesised form leaves
+        # the line untouched (leak surfaces). A call to the stub fails loudly.
+        if stripped.startswith("from .mamba_ssm import "):
+            _syms = stripped[len("from .mamba_ssm import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            if (
+                _sym_set == {"softplus"}
+                and "(" not in _syms
+                and _symbol_off_launched_closure(src, task_dir, "softplus")
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import softplus"
+                    f"  # Phase A': off-path mamba softplus (B-inert-shim)\n"
+                )
+                continue
+            # gates not met (graded kernel reaches softplus, or unexpected
+            # symbol) -> leave untouched so the audit surfaces the dependency.
         # FLA-ops relative imports: `from .<mod> import ...` where <mod> is
         # ANY module in the vendored fla/ops package (_FLA_OPS_MODULES), in
         # a task whose upstream is the vllm FLA ops package. Redirect to the

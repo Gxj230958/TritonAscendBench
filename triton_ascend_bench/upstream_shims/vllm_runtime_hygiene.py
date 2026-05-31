@@ -17,7 +17,7 @@ the bench runners; vendored vLLM / SGLang source stays untouched.
 from __future__ import annotations
 
 import importlib.util
-from importlib.machinery import EXTENSION_SUFFIXES
+from importlib.machinery import EXTENSION_SUFFIXES, ModuleSpec
 import re
 import sys
 import types
@@ -28,6 +28,13 @@ _REGISTER_RE = re.compile(
     r"@\s*(?:[\w.]+\.)?(?:CustomOp|PluggableLayer)\.register"
     r"\(\s*[\"']([^\"']+)[\"']\s*\)"
 )
+# Marker for a module-level ``direct_register_custom_op(...)`` call. Unlike the
+# decorator forms above, this registers into a torch.library ``Library`` (the
+# process-global ``vllm_lib``), so a second exec of the same vendored kernel.py
+# (the oracle anchor loads it once per anchor shape) hits torch's hard
+# "registered ... multiple times" error -- which clearing vLLM's op_registry
+# cannot fix. Presence of this token gates installing the idempotent wrapper.
+_DIRECT_REGISTER_TOKEN = "direct_register_custom_op("
 _VLLM_C_EXTENSIONS = ("vllm._C", "vllm._C_stable_libtorch")
 
 # Bool cutlass capability probes that a version-skewed daemon's compiled _C
@@ -164,6 +171,130 @@ def install_vllm_c_stub(vllm_root: Path) -> bool:
     return installed
 
 
+# FlashInfer import surface needed by the whole-module vendored
+# vllm/v1/attention/backends/flashinfer.py (task L1_04_copy_page_indices). The
+# graded @triton.jit `_copy_page_indices_kernel` is a pure index copy that
+# touches NONE of these symbols -- they feed only the dead FlashInfer* sibling
+# classes in the same upstream file. The stub provides the exact names the
+# module imports at top level so it loads; every name is an inert object that
+# RAISES on instantiation/call, so a graded path reaching one fails loudly
+# (never silently faked). Keyed off the EXACT kernel.py import lines (verbatim,
+# commit 18f6bf5).
+_FLASHINFER_STUB_NAMES: dict[str, tuple[str, ...]] = {
+    "flashinfer": (
+        "BatchDecodeWithPagedKVCacheWrapper",
+        "BatchPrefillWithPagedKVCacheWrapper",
+        "BatchPrefillWithRaggedKVCacheWrapper",
+        "MultiLevelCascadeAttentionWrapper",
+    ),
+    "flashinfer.decode": (
+        "fast_decode_plan",
+        "trtllm_batch_decode_with_kv_cache",
+    ),
+    "flashinfer.prefill": ("trtllm_batch_context_with_kv_cache",),
+    "flashinfer.utils": ("FP4Tensor",),
+}
+_FLASHINFER_STUB_ATTR = "__tab_flashinfer_stub__"
+
+
+def _make_flashinfer_inert(qualname: str):
+    """An inert stand-in for an off-graded-path FlashInfer symbol. The name
+    resolves so the vendored module imports, but instantiating/calling it
+    RAISES -- a graded path reaching real FlashInfer is a true dependency, never
+    silently faked."""
+
+    class _Inert:
+        __tab_inert__ = True
+
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError(
+                f"{qualname} is an inert FlashInfer stub (off the graded "
+                f"_copy_page_indices_kernel path); the bench does not vendor the "
+                f"real FlashInfer wrapper into this surface."
+            )
+
+    _Inert.__name__ = qualname.rsplit(".", 1)[-1]
+    _Inert.__qualname__ = _Inert.__name__
+    return _Inert
+
+
+def _real_flashinfer_present() -> bool:
+    """True iff a REAL (non-stub) ``flashinfer`` package is importable. Guards
+    the stub install so a GPU daemon with FlashInfer actually installed keeps
+    the real package."""
+    existing = sys.modules.get("flashinfer")
+    if existing is not None:
+        return not getattr(existing, _FLASHINFER_STUB_ATTR, False)
+    try:
+        return importlib.util.find_spec("flashinfer") is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _install_flashinfer_find_spec_lie() -> None:
+    """Make availability probes (``importlib.util.find_spec("flashinfer")``)
+    see the TAB stub as ABSENT, so vllm/utils/flashinfer.py's
+    ``has_flashinfer()`` returns False even on an nvcc-equipped daemon. Without
+    this a spec-bearing stub would make ``has_flashinfer()`` lie True and run
+    the module-level ``if has_flashinfer():`` registration block -- an
+    availability lie. Idempotent; delegates for every non-stub module."""
+    current = importlib.util.find_spec
+    if getattr(current, "__tab_flashinfer_spec_shim__", False):
+        return
+
+    def _find_spec(name, package=None):
+        base = name.split(".", 1)[0]
+        mod = sys.modules.get(base)
+        if mod is not None and getattr(mod, _FLASHINFER_STUB_ATTR, False):
+            # The TAB stub is installed for this name -> report it ABSENT so
+            # has_flashinfer() / has_flashinfer_cubin() probes answer honestly.
+            return None
+        return current(name, package)
+
+    _find_spec.__tab_flashinfer_spec_shim__ = True
+    _find_spec.__wrapped__ = current
+    importlib.util.find_spec = _find_spec
+
+
+def install_flashinfer_stub() -> bool:
+    """Inject an inert ``flashinfer`` import surface for source-checkout vLLM
+    kernels that import FlashInfer at module top level only for dead sibling
+    classes (task L1_04_copy_page_indices).
+
+    Installs spec-bearing stub modules for ``flashinfer`` and its
+    ``decode``/``prefill``/``utils`` submodules, exposing exactly the names the
+    vendored kernel imports as inert raise-on-use objects, AND installs a
+    ``find_spec`` wrapper so availability probes still see FlashInfer as absent
+    (``has_flashinfer()`` stays False). Skips entirely when a REAL FlashInfer is
+    present (GPU daemon with the package) -- the real surface then loads and the
+    upstream availability path runs unchanged. Returns ``True`` iff the stub was
+    installed this call."""
+    if _real_flashinfer_present():
+        return False
+    if sys.modules.get("flashinfer") is not None and getattr(
+        sys.modules["flashinfer"], _FLASHINFER_STUB_ATTR, False
+    ):
+        # Already installed by us in this process -> keep the find_spec lie too.
+        _install_flashinfer_find_spec_lie()
+        return False
+
+    for module_name, names in _FLASHINFER_STUB_NAMES.items():
+        is_pkg = module_name == "flashinfer"
+        spec = ModuleSpec(module_name, loader=None, is_package=is_pkg)
+        mod = importlib.util.module_from_spec(spec)
+        mod.__file__ = "<tab-flashinfer-stub>"
+        setattr(mod, _FLASHINFER_STUB_ATTR, True)
+        if is_pkg:
+            mod.__path__ = []  # mark as a package for submodule resolution
+        for n in names:
+            setattr(mod, n, _make_flashinfer_inert(f"{module_name}.{n}"))
+        sys.modules[module_name] = mod
+
+    # Probes must see the stub as absent so has_flashinfer() answers honestly.
+    _install_flashinfer_find_spec_lie()
+    return True
+
+
 def install_vllm_capability_probe_stubs() -> list[str]:
     """Register MISSING vLLM ``_C`` bool capability probes as ``-> False``.
 
@@ -215,8 +346,87 @@ def install_vllm_capability_probe_stubs() -> list[str]:
     return newly
 
 
+def install_idempotent_direct_register() -> bool:
+    """Make ``vllm.utils.torch_utils.direct_register_custom_op`` idempotent.
+
+    The oracle anchor (``_pa_oracle_check_runner``) loads a vendored
+    ``kernel.py`` once per anchor shape in a single subprocess. When that
+    kernel mirrors an upstream module with a module-level
+    ``direct_register_custom_op(op_name=...)`` call, the second exec re-runs
+    ``vllm_lib.define(...)`` on the process-global library and torch raises
+    "Tried to register an operator ... multiple times" -- a hard crash the
+    op_registry hygiene below cannot reach (that registry is vLLM's, not
+    torch's dispatcher). We wrap the function so a re-registration of an op
+    already present in the dispatcher is a no-op: the first (real)
+    registration still installs the implementation, so the graded kernel is
+    unaffected; only the redundant duplicate define/impl is skipped.
+
+    Patches only this subprocess's import surface (same philosophy as
+    ``install_vllm_c_stub`` / the triton_utils inject shim); the subprocess is
+    per-task, so the wrapper dies with it and never leaks across tasks. Marked
+    so it installs exactly once. Returns ``True`` when installed/already
+    installed, ``False`` if vLLM is absent.
+    """
+    try:
+        import torch
+        from vllm.utils import torch_utils as _tu
+    except Exception:
+        return False
+
+    current = getattr(_tu, "direct_register_custom_op", None)
+    if current is None:
+        return False
+    if getattr(current, "__tab_idempotent_direct_register__", False):
+        return True
+
+    def _idempotent_direct_register(
+        op_name, op_func, mutates_args=None, fake_impl=None,
+        target_lib=None, dispatch_key=None, tags=(),
+    ):
+        my_lib = target_lib if target_lib is not None else getattr(
+            _tu, "vllm_lib", None
+        )
+        ns = getattr(my_lib, "ns", "vllm")
+        try:
+            already = torch._C._dispatch_has_kernel(f"{ns}::{op_name}")
+        except Exception:
+            already = False
+        if already:
+            # Identical op already defined in this process -- skip the
+            # duplicate define/impl/fake so the re-exec does not crash. The
+            # first registration's implementation stays installed.
+            return None
+        return current(
+            op_name, op_func, mutates_args, fake_impl,
+            target_lib, dispatch_key, tags,
+        )
+
+    _idempotent_direct_register.__tab_idempotent_direct_register__ = True
+    _idempotent_direct_register.__wrapped__ = current
+    _tu.direct_register_custom_op = _idempotent_direct_register
+    return True
+
+
 def clear_conflicting_vllm_registrations(kernel_src: str) -> list[str]:
     """Drop pre-existing vLLM op registrations that this kernel redefines."""
+    # Whole-module vendored kernels that import FlashInfer at MODULE TOP LEVEL
+    # (e.g. the L1_04 file vllm/v1/attention/backends/flashinfer.py) crash at
+    # import when FlashInfer is absent, even though the graded @triton.jit kernel
+    # never touches it. Install the inert FlashInfer import surface BEFORE
+    # exec_module (this helper runs just before it). Gated on a COLUMN-0 (import-
+    # time) flashinfer import -- a lazy import nested in a function body
+    # (L1_32/L1_33/L2_18/L2_38) imports fine without the stub, so it must not
+    # trigger -- and on the real package being absent, so a daemon with
+    # FlashInfer installed is untouched.
+    if re.search(r"^(?:from|import)\s+flashinfer\b", kernel_src, re.M):
+        install_flashinfer_stub()
+    # Kernels that register a torch.library op at module scope crash on the
+    # anchor's second per-shape load; install the idempotent wrapper BEFORE the
+    # kernel executes ``from vllm.utils.torch_utils import
+    # direct_register_custom_op`` (this helper runs just before exec_module).
+    if _DIRECT_REGISTER_TOKEN in kernel_src:
+        install_idempotent_direct_register()
+
     names = sorted(set(_REGISTER_RE.findall(kernel_src)))
     if not names:
         return []
