@@ -40,11 +40,14 @@ from __future__ import annotations
 
 import argparse
 import ast
+import builtins
 import hashlib
 import json
 import os
 import re
+import symtable
 import sys
+import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -830,6 +833,69 @@ def pool_module_path(sha12: str, module: str) -> Path:
     return FROZEN_DEPS_POOL / f"h_{sha12}" / safe_mod
 
 
+def _split_leading_future_imports(source_text: str) -> tuple[str, str]:
+    """Split out the leading ``from __future__ import ...`` statements from a
+    vendored module body so they can be hoisted above the pool provenance
+    header (the language requires future imports to be the first statement,
+    docstring aside). Returns ``(future_block, rest)``: ``future_block`` is the
+    contiguous run of future-import lines (possibly empty, terminated by a
+    newline) that appear before any non-docstring/non-comment code, and
+    ``rest`` is the remaining body verbatim. AST-driven so a ``from __future__``
+    mention inside a later string/comment is never mis-hoisted; falls back to
+    ``("", source_text)`` if the body does not parse or has no future import."""
+    try:
+        tree = ast.parse(source_text)
+    except SyntaxError:
+        return "", source_text
+    # Only the CONTIGUOUS LEADING run of future imports (after an optional
+    # module docstring) is hoistable. ``ast.parse`` tolerates a future import
+    # after real code (the SyntaxError surfaces only at compile/import), so a
+    # non-leading future import must NOT be silently "repaired" -- it is a
+    # malformed body that should fail loudly, not get hoisted. Walk top-level
+    # statements: skip a leading docstring, collect the contiguous future-import
+    # prefix, and stop at the first non-future statement.
+    body = tree.body
+    idx = 0
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(getattr(body[0], "value", None), ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        idx = 1  # skip module docstring
+    future_nodes: list[ast.ImportFrom] = []
+    for n in body[idx:]:
+        if isinstance(n, ast.ImportFrom) and n.module == "__future__":
+            future_nodes.append(n)
+        else:
+            break  # first non-future statement ends the hoistable prefix
+    if not future_nodes:
+        return "", source_text
+    # Defence in depth: if ANY future import in the body is NOT in the leading
+    # run we just collected, the body is malformed (future import after code).
+    # Leave it untouched so it fails loudly rather than being mis-repaired.
+    all_future = [
+        n for n in body
+        if isinstance(n, ast.ImportFrom) and n.module == "__future__"
+    ]
+    if len(all_future) != len(future_nodes):
+        return "", source_text
+    segments = [ast.get_source_segment(source_text, n) for n in future_nodes]
+    if any(s is None for s in segments):
+        return "", source_text  # fail-safe: cannot slice -> leave as-is
+    future_block = "".join(s + "\n" for s in segments)
+    # Drop those exact statements from the body (line-range removal keeps the
+    # rest byte-faithful). future imports are always single-line here.
+    drop_lines = set()
+    for n in future_nodes:
+        drop_lines.update(range(n.lineno, (n.end_lineno or n.lineno) + 1))
+    kept = [
+        ln for i, ln in enumerate(source_text.splitlines(keepends=True), 1)
+        if i not in drop_lines
+    ]
+    return future_block, "".join(kept)
+
+
 def vendor_symbol(module: str, source_text: str, repo: str) -> Path:
     """Content-address `source_text` into the pool. Idempotent: same
     content -> same `h_<sha12>` dir -> written once. Returns pool path.
@@ -852,8 +918,20 @@ def vendor_symbol(module: str, source_text: str, repo: str) -> Path:
         f"Frozen by: scripts/phase_a_prime.py (U2 pool vendoring)\n"
         f'"""\n\n'
     )
+    # `from __future__` imports are a hard language requirement: they must be
+    # the first statement (only a module docstring may precede them). Prepending
+    # the provenance docstring above a vendored body that starts with
+    # ``from __future__ import ...`` makes the future import no longer first ->
+    # SyntaxError at pool import. Hoist any leading future imports ABOVE the
+    # header so both the language rule and the provenance banner are satisfied.
+    # The body hash is computed on the unmodified ``source_text``, so this
+    # write-time reorder does not change the content address (pool key stable).
+    future_lines, rest = _split_leading_future_imports(source_text)
+    file_text = (future_lines + header + rest) if future_lines else (
+        header + source_text
+    )
     tmp = dst.with_suffix(".py.tmp")
-    tmp.write_text(header + source_text)
+    tmp.write_text(file_text)
     tmp.replace(dst)  # atomic: never a half-written pool entry
     _ensure_pool_init()
     _update_notice_for_vendoring()
@@ -870,6 +948,106 @@ def _ensure_pool_init() -> None:
             "verbatim (Apache-2.0) for a standalone, version-pinned\n"
             'kernel closure. See repo-root NOTICE.\n"""\n'
         )
+
+
+def _source_has_vllm_sglang_import(src: str) -> bool:
+    """True iff ``src`` contains ANY import that resolves to a vllm/sglang
+    module -- AST-based so it catches forms a line regex misses: multi-name
+    statements (``import os, vllm``), aliased (``import vllm.x as y``),
+    nested/indented imports, and ``from vllm... import``. Relative imports
+    (``from . import x``) are NOT flagged here (the caller's slice/closure logic
+    governs those). Unparseable source -> True (fail-closed: treat as suspect)."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return True
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                if a.name.split(".")[0] in ("vllm", "sglang"):
+                    return True
+        elif isinstance(n, ast.ImportFrom):
+            if n.level == 0 and (n.module or "").split(".")[0] in ("vllm", "sglang"):
+                return True
+    return False
+
+
+# Builtins / modules that can import or execute code WITHOUT a static
+# import node -- a dynamic-import escape hatch (``__import__("vllm")``,
+# ``eval("import vllm")``, ``importlib.import_module(...)``, etc.). The
+# static import scan + symtable free-name guard cannot see through these
+# (``__import__`` is a builtin, so it is subtracted as "not a free name"),
+# so any reference to one of these names makes a vendored slice/module
+# UNAUDITABLE -> refuse it (fail-closed). Upstream IntEnum / triton helper
+# modules never use these, so this rejects only genuinely-suspect drift.
+_DYNAMIC_EXEC_NAMES = frozenset({
+    "__import__", "eval", "exec", "compile", "importlib", "import_module",
+    "__builtins__", "globals", "locals", "vars",
+})
+
+
+def _helper_imports_are_allowlisted(src: str) -> bool:
+    """True iff EVERY import in a vendored helper module resolves to an
+    allowlisted top-level: stdlib, torch, or triton (``__future__`` is in
+    ``_STDLIB_TOPS``). Closed-by-default: a tiny single-purpose triton helper
+    has no other dependency, so any import outside the allowlist (``importlib``,
+    a stray third-party, a vllm/sglang residual) makes it unauditable -> reject.
+    Relative imports are NOT allowlisted (a vendored helper must be flat).
+    Unparseable -> False (fail-closed)."""
+    allowed = _STDLIB_TOPS | _TORCH_TRITON_TOPS | getattr(
+        sys, "stdlib_module_names", frozenset()
+    )
+    # Forbidden even though stdlib: dynamic-import / code-exec / introspection
+    # modules. A flat triton helper never needs these, and importing them
+    # (``from importlib import import_module as im``, ``from builtins import
+    # __import__ as im``) is the exact alias-escape that defeats the name-based
+    # dynamic-exec scan. Carving them out of the allowlist closes that hole at
+    # the import-statement level, independent of any later aliasing.
+    allowed = allowed - {
+        "importlib", "imp", "runpy", "pkgutil", "code", "builtins",
+        "__builtin__", "ctypes", "subprocess",
+    }
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return False
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                if a.name.split(".")[0] not in allowed:
+                    return False
+        elif isinstance(n, ast.ImportFrom):
+            if n.level and n.level > 0:
+                return False  # relative import -> not flat -> reject
+            if (n.module or "").split(".")[0] not in allowed:
+                return False
+            # Reject importing a dynamic-import/exec callable by its ORIGINAL
+            # name regardless of alias or source module (``from builtins import
+            # __import__ as im``): the imported name is the escape, not the
+            # alias the dynamic-exec Name-scan would later look for.
+            for a in n.names:
+                if a.name in _DYNAMIC_EXEC_NAMES:
+                    return False
+    return True
+
+
+def _source_has_dynamic_exec(src: str) -> bool:
+    """True iff ``src`` references any dynamic-import/exec name (see
+    ``_DYNAMIC_EXEC_NAMES``) -- a code path that can pull a module without a
+    static import node and thus defeat the import audit. Unparseable -> True
+    (fail-closed)."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return True
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Name) and n.id in _DYNAMIC_EXEC_NAMES:
+            return True
+        # attribute access like ``importlib.import_module`` is caught by the
+        # ``importlib`` Name above; ``builtins.__import__`` by the attr name.
+        if isinstance(n, ast.Attribute) and n.attr in _DYNAMIC_EXEC_NAMES:
+            return True
+    return False
 
 
 def _vendor_triton_helper_module(
@@ -906,6 +1084,27 @@ def _vendor_triton_helper_module(
             continue
         rewritten_lines.append(line)
     rewritten = "".join(rewritten_lines)
+    # Source-level fail-closed gate: the ONLY sanctioned
+    # upstream import in such a helper is the ``vllm.triton_utils`` re-export
+    # rewritten above. If upstream drift added any OTHER residual vllm/sglang
+    # import (top-level, nested, aliased, or co-imported on a multi-name
+    # ``import os, vllm`` line), vendoring it verbatim would copy a leak into
+    # the pool. AST-based detection (not a line regex, which misses multi-name
+    # forms). Refuse rather than emit a leaking artifact -- the caller's import
+    # line is then left untouched and the severed audit surfaces the real
+    # dependency. (The runtime S2 audit is the backstop; this catches it at
+    # rewrite time so no leaking pool entry is ever written.)
+    # Closed-by-default import allowlist: EVERY import in the rewritten helper
+    # must resolve to stdlib / torch / triton. This subsumes the vllm/sglang
+    # check AND rejects any other foreign import (e.g. ``importlib``, which an
+    # ``from importlib import import_module`` dynamic-import escape would need).
+    if not _helper_imports_are_allowlisted(rewritten):
+        return None
+    # Belt-and-braces: also refuse any dynamic-import/exec name reference
+    # (``__import__("vllm")`` / ``eval`` / ``import_module`` alias) that has no
+    # static import node for the allowlist to see.
+    if _source_has_dynamic_exec(rewritten):
+        return None
     dst = vendor_symbol(module, rewritten, repo)
     # dst = FROZEN_DEPS_POOL / h_<sha12> / <safe_mod>.py ; build dotted path.
     sha_dir = dst.parent.name           # h_<sha12>
@@ -1037,6 +1236,129 @@ def _vendor_mamba_softplus(repo: str) -> str | None:
     )
     body = f"{preamble}\n{triton3_seg}\n\n{softplus_seg}\n"
     dst = vendor_symbol(_MAMBA_SOFTPLUS_POOL_KEY, body, repo)
+    sha_dir = dst.parent.name           # h_<sha12>
+    safe_mod = dst.stem                 # <key-with-dots-as-underscores>
+    return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
+
+
+# Import-safe pool key for the extracted KVQuantMode IntEnum (no ':' so
+# pool_module_path's dot->underscore mapping yields a valid filename).
+_KVQUANTMODE_POOL_KEY = "vllm.v1.kv_cache_interface_KVQuantMode"
+_KVQUANTMODE_REL = "vllm/v1/kv_cache_interface.py"
+
+
+_PY_BUILTIN_NAMES = set(dir(builtins))
+
+
+def _global_refs_in_symtable(table: "symtable.SymbolTable") -> set[str]:
+    """Names a (sub)scope references that resolve to the ENCLOSING module --
+    i.e. implicit globals (referenced but neither local nor a closure var).
+    ``is_free()`` is deliberately NOT used: a closure variable captured from an
+    enclosing function is `free` but is NOT a module-level dependency. The
+    module-resolving references are exactly ``is_referenced() and is_global()``.
+    Recurses into child scopes (methods, lambdas, comprehensions) so a name
+    bound only in a nested scope can never mask a real module-level reference in
+    the class body."""
+    refs: set[str] = set()
+    for sym in table.get_symbols():
+        if sym.is_referenced() and sym.is_global():
+            refs.add(sym.get_name())
+    for child in table.get_children():
+        refs |= _global_refs_in_symtable(child)
+    return refs
+
+
+def _kvquantmode_free_names(cls_src: str, cls_name: str) -> set[str] | None:
+    """Module-level free names referenced by a single extracted class slice,
+    excluding Python builtins and the class's own name. Uses the stdlib
+    ``symtable`` (CPython's own scope analysis) rather than hand-rolled AST
+    scope tracking, so comprehension/lambda/walrus/annotation scoping is
+    handled exactly and a nested-scope binding can never mask a class-body
+    free load. Returns ``None`` on analysis failure (caller fails closed). For
+    a self-contained ``IntEnum`` this is exactly its base set (``{"IntEnum"}``)."""
+    try:
+        top = symtable.symtable(
+            textwrap.dedent(cls_src), "<kvquantmode-vendor-guard>", "exec"
+        )
+    except SyntaxError:
+        return None
+    class_tables = [
+        c for c in top.get_children()
+        if c.get_type() == "class" and c.get_name() == cls_name
+    ]
+    if len(class_tables) != 1:
+        return None
+    return _global_refs_in_symtable(top) - _PY_BUILTIN_NAMES - {cls_name}
+
+
+def _vendor_kvquantmode(repo: str) -> str | None:
+    """Vendor the REAL upstream ``KVQuantMode`` IntEnum into the U2 pool
+    and return its dotted pool import path, or ``None`` (fail-closed) if
+    the source is unreadable or the class fails the self-containment
+    guard.
+
+    Only the ``KVQuantMode`` class is extracted -- kv_cache_interface.py
+    as a whole is NOT vendorable (its top-level imports pull
+    ``vllm.logger`` / ``vllm.utils.math_utils`` / ``vllm.utils.torch_utils``
+    / ``vllm.v1.attention.backends.registry``, which would re-leak vllm on
+    the severed surface). The extraction is a verbatim source segment
+    (``ast.get_source_segment``, NOT an ``ast.unparse`` reconstruction),
+    so the enum is byte-faithful; its integer values (NONE=0 ... NVFP4=4)
+    are identical to upstream, so the S2 original-vs-severed compare is
+    unaffected. Guard: the class MUST be based solely on
+    ``IntEnum`` and have NO module-level free name other than ``IntEnum``,
+    so future upstream drift (a new vllm dependency in the class body)
+    fails closed instead of silently vendoring a leaking copy."""
+    if repo != "vllm":
+        return None
+    src_path = VLLM_ROOT / _KVQUANTMODE_REL
+    try:
+        ksrc = src_path.read_text()
+    except OSError:
+        return None
+    try:
+        tree = ast.parse(ksrc)
+    except SyntaxError:
+        return None
+    cls_node: ast.ClassDef | None = None
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == "KVQuantMode":
+            cls_node = node
+            break
+    if cls_node is None:
+        return None  # fail-closed: class not found -> leave the import line
+    # Guard: base must be exactly IntEnum, no keyword/metaclass bases, and
+    # the only module-level free name is IntEnum (self-contained).
+    bases = [ast.unparse(b) for b in cls_node.bases]
+    if bases != ["IntEnum"] or cls_node.keywords:
+        return None
+    # Reject ANY import / global / nonlocal inside the class body: an in-class
+    # ``from vllm.x import Y`` would re-leak vllm when the vendored slice is
+    # imported, and ``global``/``nonlocal`` perturb symtable scope resolution.
+    # A clean IntEnum has none of these, so this is a hard fail-closed gate.
+    if any(
+        isinstance(n, (ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal))
+        for n in ast.walk(cls_node)
+    ):
+        return None
+    seg = ast.get_source_segment(ksrc, cls_node)
+    if not seg:
+        return None
+    # Refuse a slice that reaches for a dynamic-import/exec name
+    # (``__import__("vllm")`` etc.): such a call pulls a module without a static
+    # import node and the symtable free-name guard subtracts builtins, so it
+    # would otherwise pass. A clean IntEnum never does this -> fail closed.
+    if _source_has_dynamic_exec(seg):
+        return None
+    # symtable-based self-containment check: the ONLY module-level free name the
+    # extracted slice may reference is its base ``IntEnum`` (which the pool body
+    # supplies via ``from enum import IntEnum``). Any other free name is an
+    # external dependency (possibly a re-leaking vllm symbol) -> fail closed.
+    free = _kvquantmode_free_names(seg, cls_node.name)
+    if free is None or (free - {"IntEnum"}):
+        return None
+    body = "from enum import IntEnum\n\n\n" + seg + "\n"
+    dst = vendor_symbol(_KVQUANTMODE_POOL_KEY, body, repo)
     sha_dir = dst.parent.name           # h_<sha12>
     safe_mod = dst.stem                 # <key-with-dots-as-underscores>
     return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
@@ -4405,6 +4727,26 @@ def rewrite_imports_to_standalone(
         flags=re.DOTALL,
     )
 
+    # Collapse the parenthesised multi-line ``from vllm.v1.attention.ops
+    # .triton_attention_helpers import (...)`` form (L3_01_kernel_unified_
+    # attention_3d) to one line so the U2 helper-vendor redirect below sees the
+    # full symbol set (otherwise its subset-allowlist check cannot read
+    # continuation lines and the rule is not actually fail-closed).
+    def _collapse_vllm_attn_helpers_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return (
+            "from vllm.v1.attention.ops.triton_attention_helpers import "
+            + ", ".join(syms)
+        )
+
+    src = re.sub(
+        r"from vllm\.v1\.attention\.ops\.triton_attention_helpers"
+        r" import \(\s*(.*?)\s*\)",
+        _collapse_vllm_attn_helpers_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
     # Collapse the parenthesised multi-line ``from vllm.model_executor.layers
     # .quantization.utils.w8a8_utils import (...)`` and ``from
     # vllm.model_executor.parameter import (...)`` forms (L2_11) to one line so
@@ -5503,6 +5845,72 @@ def rewrite_imports_to_standalone(
                         f"  # Phase A': U2 pool-vendored triton helper\n"
                     )
                     continue
+        # U2 pool vendoring: vllm.v1.attention.ops.triton_attention_helpers
+        # (L3_01_kernel_unified_attention_3d) is a tiny single-purpose module
+        # whose exports are pure @triton.jit attention device helpers on the
+        # graded path; its only non-stdlib external import is
+        # ``from vllm.triton_utils import tl, triton`` (the same re-export
+        # _vendor_triton_helper_module already rewrites to public triton). It
+        # cannot be shimmed (compute-path @triton.jit, not inert), so the
+        # sanctioned path is U2 content-addressed whole-module vendoring, then
+        # redirect the kernel's import at the pool path. Subset-allowlisted to
+        # the upstream export set + fail-closed on an unexpected symbol or a
+        # residual parenthesised form (the multi-line import is collapsed to one
+        # line above), so a real new dependency surfaces rather than being
+        # silently mis-rewritten.
+        if stripped.startswith(
+            "from vllm.v1.attention.ops.triton_attention_helpers import "
+        ):
+            _syms = stripped[
+                len("from vllm.v1.attention.ops.triton_attention_helpers import "):
+            ]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {
+                "apply_alibi_to_score", "apply_softcap", "cdiv_fn",
+                "compute_kv_seq_mask", "compute_tile_loop_bounds",
+                "find_seq_idx", "init_softmax_M", "load_qq_bias_tile",
+                "resolve_seq_and_query_len", "softmax_step",
+                "store_segm_reduce_scalars",
+            }
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                _pool_import = _vendor_triton_helper_module(
+                    "vllm.v1.attention.ops.triton_attention_helpers",
+                    VLLM_ROOT
+                    / "vllm/v1/attention/ops/triton_attention_helpers.py",
+                    "vllm",
+                )
+                if _pool_import is not None:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from {_pool_import} import {_syms}"
+                        f"  # Phase A': U2 pool-vendored triton helper\n"
+                    )
+                    continue
+        # U2 symbol-slice vendoring: vllm.v1.kv_cache_interface.KVQuantMode
+        # (L3_01). The graded host wrapper uses this IntEnum on-path
+        # (default kv_quant_mode=KVQuantMode.NONE, equality/membership checks,
+        # ``.name``, integer constexpr dispatch), so an inert shim is wrong.
+        # The whole module is NOT vendorable (its top-level imports pull
+        # vllm.logger / vllm.utils.* / vllm.v1.attention.backends.registry ->
+        # re-leak), so vendor ONLY the self-contained IntEnum class verbatim and
+        # redirect there. Single-symbol allowlisted ({KVQuantMode}) + fail-closed
+        # on a co-imported symbol, a parenthesised form, or the class failing the
+        # self-containment guard (then the import line is left and the leak
+        # surfaces rather than a silent mis-vendoring).
+        if stripped.startswith(
+            "from vllm.v1.kv_cache_interface import "
+        ):
+            _syms = stripped[len("from vllm.v1.kv_cache_interface import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            if _sym_set == {"KVQuantMode"} and "(" not in _syms:
+                _pool_import = _vendor_kvquantmode("vllm")
+                if _pool_import is not None:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from {_pool_import} import KVQuantMode"
+                        f"  # Phase A': U2 pool-vendored IntEnum slice\n"
+                    )
+                    continue
         # ────────────────────────────────────────────────────────────────
         # L1_28_pack_bitmatrix off-graded-path fused_moe surface. The frozen
         # kernel.py is upstream's whole gpt_oss_triton_kernels_moe.py; the
@@ -6033,6 +6441,83 @@ def synthesise_standalone_run(
     )
 
 
+def _stage_task_local_siblings(
+    staged_src: str, task_dir: Path, root: Path,
+) -> list[str]:
+    """Copy the task-local sibling ``.py`` modules a staged candidate still
+    imports via ``from .X import ...`` / ``from . import X`` into the staging
+    dir, so the severed package (``__path__ = [staging_dir]``) can resolve them.
+
+    The line rewrite never rewrites a relative import onto a TASK-LOCAL sibling
+    (e.g. L1_31's ``from .base import RotaryEmbeddingBase`` onto the
+    fail-closed ``base.py`` stub) -- no pool/shim rule matches it, so it falls
+    through verbatim. The ORIGINAL side already resolves these because its
+    synthetic package ``__path__`` is ``[task_dir, upstream_sibling]``
+    (``_build_synthetic_pkg_chain``); the severed side stages only ``kernel.py``
+    into a temp dir, so the sibling is absent and the import crashes
+    (``ModuleNotFoundError: No module named '_pa_pkg__pa_kernel.base'``). Copying
+    the SAME task-local module the original side resolves keeps the two sides
+    faithful with zero numeric change.
+
+    Fail-closed contract:
+      * Only level-1 (``from .X``) relative imports are followed; ``from ..X``
+        (level > 1) is left untouched -- the severed loader synthesises only a
+        single-dir package, so an upward import cannot be satisfied by copying a
+        file beside ``kernel.py`` and must surface as the real failure.
+      * Only an existing ``task_dir/<mod>.py`` is copied (verbatim); a missing
+        file is NOT synthesised -- the import then fails loudly (no silent fake).
+      * The closure is walked transitively but confined to ``task_dir`` and
+        cycle-guarded (a sibling importing another sibling is staged too; a
+        ``vllm``/``sglang`` import inside a copied sibling is still caught by the
+        severed import audit, so a dirty stub cannot fake a PASS).
+
+    Returns the list of copied module basenames (for diagnostics)."""
+    copied: list[str] = []
+    seen: set[str] = set()
+
+    def _rel_level1_modules(text: str) -> set[str]:
+        mods: set[str] = set()
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return mods
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level == 1:
+                if node.module:
+                    # ``from .pkg.sub import X`` -> top-level package ``pkg``
+                    # (a task-local package dir is out of scope; only a flat
+                    # ``<mod>.py`` sibling is staged, fail-closed otherwise).
+                    mods.add(node.module.split(".")[0])
+                else:
+                    # ``from . import base, yarn`` -> each imported name is a
+                    # candidate sibling module.
+                    for alias in node.names:
+                        mods.add(alias.name)
+        return mods
+
+    pending = list(_rel_level1_modules(staged_src))
+    while pending:
+        mod = pending.pop()
+        if mod in seen:
+            continue
+        seen.add(mod)
+        sib = task_dir / f"{mod}.py"
+        if not sib.is_file():
+            # Not a task-local sibling (e.g. a deps-pool/package import the
+            # rewrite was expected to handle) -> leave it; the severed import
+            # then surfaces the real failure rather than a silent stub.
+            continue
+        sib_src = sib.read_text(encoding="utf-8", errors="replace")
+        dst = root / f"{mod}.py"
+        tmp = dst.with_suffix(".py.tmp")
+        tmp.write_text(sib_src)
+        tmp.replace(dst)
+        copied.append(f"{mod}.py")
+        # Transitively follow this sibling's own task-local relative imports.
+        pending.extend(_rel_level1_modules(sib_src))
+    return copied
+
+
 def build_staged_candidate(
     task_dir: Path,
     classification: TaskClassification,
@@ -6075,6 +6560,11 @@ def build_staged_candidate(
     tmp = staged.with_suffix(".py.tmp")
     tmp.write_text(staged_src)
     tmp.replace(staged)
+    # Stage any task-local sibling modules the candidate still imports via
+    # ``from .X import ...`` (e.g. L1_31's fail-closed base.py / yarn_scaling_
+    # rope.py stubs) so the severed package can resolve them -- the original
+    # side already does (its synthetic package __path__ includes task_dir).
+    _stage_task_local_siblings(staged_src, task_dir, root)
     return staged
 
 

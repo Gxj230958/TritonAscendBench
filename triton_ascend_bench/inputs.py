@@ -83,6 +83,7 @@ DIST_KINDS = frozenset({
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "offsets",
     "cumcount", "arange", "randperm", "cyclic_perm", "full", "routing_ids",
     "window_pos", "window_req", "gumbel_temps", "gumbel_routing",
+    "moe_sorted_ids",
 })
 
 #: Dist kinds that carry no `args` (the bare-name DSL forms).
@@ -169,6 +170,17 @@ def parse_dist_spec(dist: Any) -> dict[str, Any]:
                 f"dist {dist!r}: 'routing_ids' needs 'routing_ids:<num_experts>'"
             )
         return {"kind": "routing_ids", "args": {"E": rest.strip()}}
+    if head == "moe_sorted_ids":
+        # `moe_sorted_ids:<B_expr>` -- a faithful moe_align_block_size
+        # sorted_token_ids buffer: distinct route-slot ids in [0, B) padded
+        # with the sentinel == B (num_valid_tokens). Unique ids are required
+        # because the fused_moe_kernel scatters C[sorted_token_ids[r]] (a
+        # duplicate id would race-write the same row).
+        if not rest.strip():
+            raise DistSpecError(
+                f"dist {dist!r}: 'moe_sorted_ids' needs 'moe_sorted_ids:<B>'"
+            )
+        return {"kind": "moe_sorted_ids", "args": {"B": rest.strip()}}
     if head == "gumbel_routing":
         # `gumbel_routing:<R>` -- per-token request index in [0, R) for the
         # gumbel-max sampler, pinned so token 0 -> request 0 and token 1 ->
@@ -301,6 +313,12 @@ def _normalise_structured_dist(spec: dict[str, Any]) -> dict[str, Any]:
                 f"dist 'routing_ids' args must be exactly {{E}}, "
                 f"got {sorted(args)}"
             )
+    elif kind == "moe_sorted_ids":
+        if set(args) != {"B"}:
+            raise DistSpecError(
+                f"dist 'moe_sorted_ids' args must be exactly {{B}}, "
+                f"got {sorted(args)}"
+            )
     elif kind == "gumbel_routing":
         if set(args) != {"R"}:
             raise DistSpecError(
@@ -355,6 +373,8 @@ def unparse_dist_spec(spec: dict[str, Any]) -> str:
         return f"full:{args['value']}"
     if kind == "routing_ids":
         return f"routing_ids:{args['E']}"
+    if kind == "moe_sorted_ids":
+        return f"moe_sorted_ids:{args['B']}"
     if kind == "gumbel_routing":
         return f"gumbel_routing:{args['R']}"
     if kind == "window_pos":
@@ -555,7 +575,11 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
             base = total // n
             inc += base
             inc[: total - base * n] += 1
-        return torch.cumsum(inc, 0)
+        # Honour the declared dtype: some upstream cumulative-count tensors are
+        # int32 on device (e.g. vLLM `cu_num_draft_tokens`, built from an int32
+        # numpy cumsum), and a kernel that mixes the loaded value with an int32
+        # literal in a dynamic ternary will not compile if forced to int64.
+        return torch.cumsum(inc, 0).to(dtype)
     elif kind == "arange":
         n = shape[-1] if shape else 1
         return torch.arange(n, dtype=torch.int64).reshape(shape)
@@ -601,6 +625,35 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
             if n >= 2:
                 ids[1] = -1  # pin dropped -> guaranteed discrimination
         return ids.reshape(shape)
+    elif kind == "moe_sorted_ids":
+        # `moe_align_block_size` output: the sorted_token_ids buffer the
+        # fused_moe_kernel scatters its per-block GEMM into. Each of its `n`
+        # slots holds a flattened route-slot id in [0, B); the kernel stores
+        # block row r to C[sorted_token_ids[r], :], so the ids MUST be unique
+        # (injective) -- a duplicate id makes two blocks race-write the same C
+        # row (non-atomic tl.store, undefined winner), which no deterministic
+        # oracle can match. Unused slots carry the sentinel == B (the kernel's
+        # num_valid_tokens), masked out via `offs_token < num_valid_tokens`.
+        # A bare `randint:0:B` (the scaffold default) collides heavily and is
+        # un-oracalable; this draws min(n, B) DISTINCT ids, scatters them to
+        # random slot positions, and pads the rest with the sentinel -- the
+        # real alignment invariant, not a degenerate narrowing.
+        # When the buffer is shorter than B (n = E*4 < B, e.g. shape H1) only
+        # min(n, B) tokens are routed; the rest are legitimately unrouted (a
+        # decode-like regime with fewer aligned slots than tokens) and their
+        # output rows stay zero -- this partial-routing case is in scope, not a
+        # bug. The injectivity (no duplicate valid id) is what matters for the
+        # kernel's C[token_id] scatter to be deterministic.
+        n = shape[-1] if shape else 1
+        B = max(int(eval_numeric(str(args["B"]), knobs)), 1)
+        n_valid = min(n, B)
+        # distinct token ids (a size-n_valid prefix of a permutation of [0, B))
+        token_ids = torch.randperm(B, generator=gen)[:n_valid].to(torch.int64)
+        # scatter them to random distinct slot positions; rest = sentinel B
+        out = torch.full((n,), B, dtype=torch.int64)
+        slots = torch.randperm(n, generator=gen)[:n_valid]
+        out[slots] = token_ids
+        return out.reshape(shape)
     elif kind == "gumbel_routing":
         # Per-token request index in [0, R) for the gumbel-max sampler. Random
         # ids from the seeded gen, then token 0 is pinned to request 0 and token

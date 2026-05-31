@@ -85,7 +85,7 @@ Knob grid in `shapes.yaml`.
 ### Input dtypes (`dtypes`)
 
 - `draft_token_ids`: `int64`
-- `cu_num_draft_tokens`: `int64`
+- `cu_num_draft_tokens`: `int32`
 - `draft_probs`: `float32`
 - `target_probs`: `float32`
 - `bonus_token_ids`: `int64`
