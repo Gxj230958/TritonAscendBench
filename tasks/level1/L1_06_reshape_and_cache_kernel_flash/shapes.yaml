@@ -166,7 +166,11 @@ inputs:
     dims:
     - B
     dtype: int64
-    dist: randint:0:C
+    # Unique slots spanning the full paged-cache capacity C*T (block_size=T,
+    # C blocks). randint:0:C only ever hit block 0 and could collide, leaving
+    # the kernel's block_idx = slot // T addressing untested and creating an
+    # ill-defined duplicate-scatter race against the oracle.
+    dist: offsets:to=C*T-1
   kv_cache_dtype:
     scalar: auto
   k_scale:

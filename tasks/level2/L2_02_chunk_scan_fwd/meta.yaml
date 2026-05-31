@@ -15,7 +15,7 @@ upstream:
   file_sha256: 7b990ec14efab7356e84b323976bdfd35a679ce4f5b1f74b3957f90ce593bda6
   function_hash: 7b990ec14efab7356e84b323976bdfd35a679ce4f5b1f74b3957f90ce593bda6
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: graded via _pa_launcher.py::run driving the in-module _chunk_scan_fwd host wrapper.
   vendored_snapshot: tasks/_vendored/L2_02_chunk_scan_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -26,35 +26,39 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). Mamba2 chunk-scan forward: per chunk it
-  # computes out = intra + inter, then optional D skip and silu(z) gating.
-  # shapes.yaml binds the operator axes as: B -> nchunks (cb/x/C/states/z
-  # dim 0, oracle einsum index `n`), L -> chunk_size (cb dim 1&2, x/C dim 1,
-  # the kernel's BLOCK_SIZE_M tile axis), Dv -> headdim P (x/states/z/D
-  # last axis, oracle index `p`, kernel BLOCK_SIZE_N), and the dstate axis
-  # N is itself dimensioned with the B knob (C is [B,L,B], states is
-  # [B,B,Dv]) so the inter contraction extent is B.
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two
-  # tl.dot's. inter = tl.dot(C,prev_states): per chunk [L,N]@[N,Dv] with
-  # N=B -> 2*L*B*Dv; intra = tl.dot(cb,x): per chunk causal [L,L]@[L,Dv]
-  # -> 2*L*L*Dv (dense analytic upper bound; causal computes ~half).
-  # Over B chunks -> 2*B*L*L*Dv + 2*B*L*B*Dv. float32 operands run on the
-  # 910B Cube unit; peak_table exposes no fp32 cube class so cube matmul is
-  # keyed to fp16_cube. FLOPs(vector): seg = exp(dA_m-dA_k)*causal ~3 ops
-  # over B*L*L, cb*=seg and cb*=dt are 2 muls over B*L*L (~5*B*L*L);
-  # Cf*exp(dAc) over B*L*B; intra+inter add, D*x skip (~3 ops) and
-  # silu(z) gate (z*sigmoid(z) ~6 ops) over B*L*Dv (~9*B*L*Dv).
-  # bytes(hbm): read cb [B,L,L] + x [B,L,Dv] + dt [B,L] + dA_cumsum [B,L]
-  # + C [B,L,B] + states [B,B,Dv] + D [Dv] + z [B,L,Dv], write out
-  # [B,L,Dv]; all float32 primary family -> dtype_size.
+  # Symbol audit (approach §3.4). Mamba2 chunk-scan forward over a varlen
+  # token stream: per (chunk, head) it computes out = intra + inter, then the
+  # optional D skip and silu(z) gating. shapes.yaml binds the PHYSICAL axes:
+  # S -> seqlen (x/C/z token axis; = sum of all logical-chunk lengths),
+  # H -> nheads, G -> ngroups (G | H), P -> headdim (the kernel BLOCK_SIZE_N
+  # tile axis), N -> dstate (the inter contraction extent), CS -> chunk_size
+  # (the kernel BLOCK_SIZE_M tile axis; per-chunk length len_c in (0, CS]).
+  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues two tl.dot's
+  # per (chunk, head). inter = tl.dot(C, prev_states): for the len_c tokens of
+  # a chunk it is [len_c, N] @ [N, P] -> 2*len_c*N*P; summed over all chunks
+  # (sum len_c = S) and H heads -> 2*S*H*N*P. intra = tl.dot(cb, x): per chunk
+  # causal [len_c, len_c] @ [len_c, P]; dense analytic upper bound per chunk is
+  # 2*len_c^2*P <= 2*CS*len_c*P, so summed over chunks/heads <= 2*S*CS*H*P
+  # (causal computes ~half). float32 operands run on the 910B Cube unit;
+  # peak_table exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
+  # FLOPs(vector): per (chunk, head) seg = exp(min(dA_m-dA_k,0))*causal ~3 ops
+  # plus cb*=seg, cb*=dt (2 muls) over len_c^2 entries (~5*CS*len_c summed);
+  # scale_m = exp(dA) over len_c; intra+inter add, D*x skip (~3 ops) and
+  # silu(z) gate (z*sigmoid(z) ~6 ops) over len_c*P. Summed over chunks/heads:
+  # ~5*S*CS*H + 9*S*H*P. bytes(hbm): read x [S,H,P] + C [S,G,N] + z [S,H,P]
+  # + D [H,P], plus the derived per-chunk cb/dt/dA_cumsum/states the wrapper
+  # reads, and write out [S,H,P]; all float32 primary family -> dtype_size.
+  # nchunks ~ S/CS (varlen, upper-bounded by 2*S/CS); cb is [nchunks,G,CS,CS]
+  # ~ (S/CS)*G*CS*CS = S*G*CS, dt/dA_cumsum [H,nchunks,CS] ~ S*H, states
+  # [nchunks,H,P,N] ~ (S/CS)*H*P*N.
   flops:
-    fp16_cube: 2*B*L*L*Dv + 2*B*L*B*Dv
-    vector: 5*B*L*L + B*L*B + 9*B*L*Dv
+    fp16_cube: 2*S*H*N*P + 2*S*CS*H*P
+    vector: 5*S*CS*H + 9*S*H*P
   bytes:
-    hbm: (B*L*L + 3*B*L*Dv + 2*B*L + B*L*B + B*B*Dv + Dv) * dtype_size
+    hbm: (3*S*H*P + S*G*N + H*P + S*G*CS + 2*S*H + (S/CS)*H*P*N) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -86,38 +90,39 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-02
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Mamba2 chunk-scan forward: the intra-chunk attention cb [B, L, L] (lower-triangular), inputs x / z [B, L, Dv], timestep dt / decay dA_cumsum [B, L], C [B, L, B], carried states [B, B, Dv], skip D [Dv]. fp32.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Mamba2
+# chunk-scan forward over a varlen token stream. The fixture materialises the
+# PHYSICAL upstream primitives: x / z [S, H, P], C [S, G, N], skip D [H, P],
+# and the chunk_size scalar. The varlen chunk partition (cu_chunk_seqlens,
+# seq_idx) and per-chunk tensors (cb [nchunks, G, CS, CS], dt / dA_cumsum
+# [H, nchunks, CS], states [nchunks, H, P, N]) are DERIVED deterministically
+# inside _pa_launcher.py / oracle_pytorch.py (byte-identical builders), since
+# their chunk-axis length depends on (S, CS). fp32 throughout.
 param_constraints:
   scaffold: false
   dims:
-  - B >= 1
-  - L >= 1
-  - Dv >= 1
+  - S >= 1
+  - H >= 1
+  - G >= 1
+  - P >= 1
+  - N >= 1
+  - CS >= 1
+  - H % G == 0
+  - S > CS
   dtypes:
-    cb: float32
     x: float32
-    dt: float32
-    dA_cumsum: float32
     C: float32
-    states: float32
-    D: float32
     z: float32
+    D: float32
   dists:
-    cb:
-      kind: tril
     x:
-      kind: randn
-    dt:
-      kind: randn
-    dA_cumsum:
       kind: randn
     C:
       kind: randn
-    states:
+    z:
       kind: randn
     D:
       kind: randn
-    z:
-      kind: randn
-  scalars: {}
+  scalars:
+    chunk_size: chunk_size in [16, 32, 64]
   tensor_invariants: []

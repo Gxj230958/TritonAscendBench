@@ -1218,6 +1218,101 @@ def _vendor_sglang_lora_kernel_utils() -> str | None:
     return vendor_package("sglang_lora_triton_ops", {"kernel_utils": raw}, "sglang")
 
 
+# SGLang FLA op/utils helper closure. The SGLang gated-delta recurrent
+# kernels (sglang/srt/layers/attention/fla/fused_recurrent.py) carry the
+# ABSOLUTE imports ``from sglang...fla.op import exp`` (the @triton.jit
+# compute-path exp, == tl.exp on the default env) and ``from sglang...fla.
+# utils import input_guard`` (the host wrapper's contiguous + device-ctx
+# decorator). Both are real behaviour: ``exp`` must be the genuine function
+# (compute path) and ``input_guard`` must keep the contiguous guarantee
+# (stubbing it would be a silent substitution). The vLLM FLA sibling
+# (L3_14) gets these from ``fla/ops`` via _vendor_fla_ops_package; the
+# SGLang variant is a SEPARATE 2-module closure {op, utils} with one quirk:
+# sglang op.py imports utils ABSOLUTELY (vLLM op.py uses ``from .utils``).
+_SGLANG_FLA_OP_ABS_UTILS = (
+    "from sglang.srt.layers.attention.fla.utils import is_gather_supported"
+)
+_SGLANG_FLA_UTILS_TORCH_RELEASE = (
+    "from sglang.srt.utils.common import torch_release"
+)
+
+
+def _rewrite_sglang_fla_op_source(src: str) -> str | None:
+    """Rewrite sglang fla/op.py's own externals for in-pool resolution.
+
+    The single sglang external is the ABSOLUTE intra-package import of
+    ``is_gather_supported`` -> relative ``from .utils import ...`` so it
+    resolves against the sibling vendored ``utils`` module. Any other
+    vllm/sglang import -> None (fail-closed: no half-severed pool)."""
+    out: list[str] = []
+    for line in src.splitlines(keepends=True):
+        s = line.strip()
+        indent = line[: len(line) - len(line.lstrip())]
+        if s == _SGLANG_FLA_OP_ABS_UTILS:
+            out.append(f"{indent}from .utils import is_gather_supported\n")
+            continue
+        if s.startswith(("from vllm", "import vllm", "from sglang", "import sglang")):
+            return None
+        out.append(line)
+    return "".join(out)
+
+
+def _rewrite_sglang_fla_utils_source(src: str) -> str | None:
+    """Rewrite sglang fla/utils.py's own externals for in-pool resolution.
+
+    The single sglang external is ``torch_release`` from sglang.srt.utils.
+    common; pulling the whole common.py is a huge transitive closure, so
+    inline its EXACT upstream definition
+    (``pkg_version.parse(torch.__version__).release``). ``torch_release``
+    is consumed only by utils.py's host-side ``custom_device_ctx`` version
+    gate -- never a Triton constexpr. Any other vllm/sglang import -> None
+    (fail-closed)."""
+    out: list[str] = []
+    for line in src.splitlines(keepends=True):
+        s = line.strip()
+        indent = line[: len(line) - len(line.lstrip())]
+        if s == _SGLANG_FLA_UTILS_TORCH_RELEASE:
+            out.append(
+                f"{indent}from packaging import version as _pa_pkg_version\n"
+            )
+            out.append(f"{indent}import torch as _pa_torch\n")
+            out.append(
+                f"{indent}torch_release = _pa_pkg_version.parse("
+                f"_pa_torch.__version__).release"
+                f"  # Phase A': inlined sglang.srt.utils.common.torch_release\n"
+            )
+            continue
+        if s.startswith(("from vllm", "import vllm", "from sglang", "import sglang")):
+            return None
+        out.append(line)
+    return "".join(out)
+
+
+def _vendor_sglang_fla_op_utils() -> str | None:
+    """Vendor the SGLang FLA {op, utils} closure into the U2 pool as one
+    content-addressed package; return its dotted prefix or None.
+
+    op.py / utils.py are copied verbatim except their own external imports
+    (rewritten by the helpers above). Fail-closed: an unreadable file or an
+    unsanctioned vllm/sglang import in either module returns None (the
+    kernel's leak then surfaces rather than a half-severed pool)."""
+    fla_dir = SGLANG_ROOT / "sglang/srt/layers/attention/fla"
+    modules: dict[str, str] = {}
+    for mod, rewriter in (
+        ("op", _rewrite_sglang_fla_op_source),
+        ("utils", _rewrite_sglang_fla_utils_source),
+    ):
+        try:
+            raw = (fla_dir / f"{mod}.py").read_text()
+        except OSError:
+            return None
+        rewritten = rewriter(raw)
+        if rewritten is None:
+            return None
+        modules[mod] = rewritten
+    return vendor_package("sglang_fla_op_utils", modules, "sglang")
+
+
 _NOTICE_PA_MARKER = "Phase A-prime vendored dependency pool"
 
 
@@ -4389,6 +4484,10 @@ def rewrite_imports_to_standalone(
     _fla_prefix: str | None = None
     _fla_attempted = False
     _fla_is_fla_task = False
+    # SGLang FLA {op,utils} package: vendored lazily on the first matching
+    # absolute import (sglang variant of the L3_14/L3_15 gated-delta family).
+    _sg_fla_prefix: str | None = None
+    _sg_fla_attempted = False
     if task_dir is not None:
         try:
             _meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
@@ -4505,6 +4604,52 @@ def rewrite_imports_to_standalone(
             # vendoring failed (fail-closed): leave the import untouched
             # so the severed audit surfaces the leak rather than a
             # half-rewritten kernel.
+        # ── SGLang FLA op/utils severance (L3_14/L3_15 gated-delta family) ──
+        # The SGLang gated-delta recurrent kernels import ``exp`` (the
+        # @triton.jit compute-path exp, == tl.exp on the default env) and
+        # ``input_guard`` (the host wrapper's contiguous + device-ctx
+        # decorator) ABSOLUTELY from sglang...fla.{op,utils}. Both are real
+        # behaviour -- exp is on the graded compute path and input_guard's
+        # .contiguous() guarantee is load-bearing on the wrapper -- so we
+        # vendor the REAL upstream modules into the U2 pool (NOT stub them;
+        # a stub would silently substitute compute / drop the contiguous
+        # guarantee). Vendored once, lazily. Both rules are single-line,
+        # subset-allowlisted, and fail-closed (refuse + leave untouched on
+        # an unexpected symbol / parenthesised form / vendoring failure, so
+        # the audit surfaces a real leak rather than a silent mis-rewrite).
+        if stripped == "from sglang.srt.layers.attention.fla.op import exp":
+            if not _sg_fla_attempted:
+                _sg_fla_attempted = True
+                _sg_fla_prefix = _vendor_sglang_fla_op_utils()
+            if _sg_fla_prefix is not None:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from {_sg_fla_prefix}.op import exp"
+                    f"  # Phase A': U2 SGLang FLA op vendoring\n"
+                )
+                continue
+            # vendoring failed (fail-closed): leave untouched -> leak surfaces.
+        if stripped.startswith(
+            "from sglang.srt.layers.attention.fla.utils import "
+        ):
+            _syms = stripped[
+                len("from sglang.srt.layers.attention.fla.utils import "):
+            ]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            # contiguous is the upstream alias ``contiguous = input_guard``.
+            _allowed = {"input_guard", "contiguous"}
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                if not _sg_fla_attempted:
+                    _sg_fla_attempted = True
+                    _sg_fla_prefix = _vendor_sglang_fla_op_utils()
+                if _sg_fla_prefix is not None:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from {_sg_fla_prefix}.utils import {_syms}"
+                        f"  # Phase A': U2 SGLang FLA utils vendoring\n"
+                    )
+                    continue
+                # vendoring failed (fail-closed): leave untouched.
         if stripped.startswith("from vllm.triton_utils import") or (
             stripped.startswith("from sglang.srt.utils import")
             and (" tl" in stripped or " triton" in stripped)

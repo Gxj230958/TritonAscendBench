@@ -68,11 +68,12 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `B >= 1`
+- `B >= 2`
 - `H >= 1`
 - `D >= 1`
 - `C >= 1`
 - `T >= 1`
+- `C*T >= B`
 
 ### Input dtypes (`dtypes`)
 
@@ -88,7 +89,7 @@ Knob grid in `shapes.yaml`.
 - `value`: `randn`
 - `key_cache`: `randn`
 - `value_cache`: `randn`
-- `slot_mapping`: `randint` — args `{'lo': '0', 'hi': 'C'}`
+- `slot_mapping`: `offsets` — args `{'to': 'C*T-1'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
@@ -96,6 +97,9 @@ _(none)_
 
 ### Tensor invariants (`tensor_invariants`)
 
-- `index_in_range` — args `{'input': 'slot_mapping', 'value': 'C'}`
+- `index_in_range` — args `{'input': 'slot_mapping', 'value': 'C*T'}`
+- `monotonic_nondecreasing` — args `{'input': 'slot_mapping'}`
+- `first_eq` — args `{'input': 'slot_mapping', 'value': '0'}`
+- `last_eq` — args `{'input': 'slot_mapping', 'value': 'C*T-1'}`
 
 <!-- /param_constraints mirror -->

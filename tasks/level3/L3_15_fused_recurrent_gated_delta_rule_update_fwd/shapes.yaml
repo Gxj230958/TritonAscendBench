@@ -1,136 +1,100 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the ssm family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Knob grid for the dense gated-delta recurrent UPDATE forward. q/k/v are
+# [B, T, H, D]; g/beta are [B, T, H]; initial_state is the per-sequence
+# state pool slot [B, HV, V, K] = [B, H, D, D] in the kernel's V-major
+# state layout (D = Dv = K = V, HV = H, square).
+#
+# Input recipe follows the upstream gated_delta_rule usage so the
+# recurrence is numerically stable at full scale: k is L2-normalised over
+# the head dim (`l2norm_rows`) -- the delta rule is only stable with
+# unit-norm keys -- and g is `logsigmoid(rand)` so exp(g) in (0, 1) is a
+# genuine forget-gate decay. With this recipe the kernel and oracle agree
+# to ~1e-6 even at T = 512, D = 256; a `randn` key + `rand` (positive) gate
+# would make exp(g) > 1 grow the state without bound and overflow fp32.
+# The kernel and oracle share identical inputs, so the comparison stays
+# honest; the recipe only keeps magnitudes finite. T >= 2 keeps the
+# multi-step recurrence (and the initial-state carry / final-state
+# write-back) load-bearing.
 size_knobs:
   B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
   T: 128
   H: 16
-  E: 8
-  C: 16
-  G: 8
+  D: 128
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
     T: 16
     H: 4
-    E: 2
-    C: 4
-    G: 2
+    D: 32
 - id: P2
   name: small
   knobs:
     B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
     T: 64
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    D: 64
 - id: P3
   name: medium
   knobs:
     B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
     T: 128
     H: 16
-    E: 8
-    C: 16
-    G: 8
+    D: 128
 - id: P4
   name: large
   knobs:
     B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
     T: 256
     H: 32
-    E: 16
-    C: 32
-    G: 8
+    D: 256
 - id: P5
   name: wide
   knobs:
     B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
     T: 32
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    D: 128
 hidden_shapes:
 - id: H1
   name: h_odd
   knobs:
     B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
     T: 96
     H: 6
-    E: 3
-    C: 12
-    G: 4
+    D: 96
 - id: H2
   name: h_singleton
   knobs:
     B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
     T: 8
     H: 2
-    E: 2
-    C: 2
-    G: 2
+    D: 16
 - id: H3
   name: h_deep
   knobs:
     B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
     T: 512
     H: 8
-    E: 8
-    C: 64
-    G: 8
+    D: 256
 - id: H4
   name: h_wide
   knobs:
     B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
     T: 16
     H: 8
-    E: 8
-    C: 8
-    G: 4
+    D: 64
+- id: H5
+  name: h_vtiled
+  # D = 48 so the kernel's value tiling (BV = min(pow2(V), 8) = 8) splits
+  # into NV = cdiv(48, 8) = 6 tiles, exercising every i_v program and the
+  # o_v < V mask -- a kernel that only wrote the first value tile would
+  # pass the pow2-D shapes but fail here.
+  knobs:
+    B: 2
+    T: 16
+    H: 4
+    D: 48
 inputs:
   q:
     dims:
@@ -147,7 +111,7 @@ inputs:
     - H
     - D
     dtype: float32
-    dist: randn
+    dist: l2norm_rows
   v:
     dims:
     - B
@@ -162,7 +126,7 @@ inputs:
     - T
     - H
     dtype: float32
-    dist: rand
+    dist: logsigmoid
   beta:
     dims:
     - B
@@ -170,5 +134,19 @@ inputs:
     - H
     dtype: float32
     dist: rand
+  initial_state:
+    dims:
+    - B
+    - H
+    - D
+    - D
+    dtype: float32
+    dist: randn
   scale:
-    derive: 1/sqrt(D)
+    # Deliberately NOT the kernel's built-in default (k.shape[-1] ** -0.5,
+    # i.e. 1/sqrt(D)): the launcher passes this scalar through to the
+    # wrapper, so a derived value distinct from the default makes the
+    # supplied `scale` independently load-bearing -- a kernel that ignored
+    # the argument and recomputed 1/sqrt(D) would mismatch. 2/sqrt(D) is a
+    # valid positive QK scale.
+    derive: 2/sqrt(D)

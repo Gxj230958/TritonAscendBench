@@ -39,18 +39,25 @@ def _fused_sigmoid_gating_delta_update(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Gated DeltaNet single-step update.
 
-    g = exp(-exp(A_log)·softplus(a+dt_bias)); state' = g·state + β·k^T(v − k·state);
-    out = q·state'. q,k,v: [B,H,D]; state: [B,H,D,D].
+    g = exp(-exp(A_log)·softplus(a+dt_bias)); Sg = g·state;
+    state' = Sg + β·k^T(v − k·Sg); out = q·state'. The kS contraction reads
+    the DECAYED state Sg (gate applied before the delta correction).
+    q,k,v: [B,H,D]; state: [B,H,D,D].
     """
     sp = _softplus(a.to(torch.float32) + dt_bias.to(torch.float32),
                    softplus_beta, softplus_threshold)
     g = torch.exp(-torch.exp(A_log.to(torch.float32)) * sp)   # [B,H]
     g = g.reshape(*g.shape, 1, 1)
     qf, kf, vf = (t.to(torch.float32) for t in (q, k, v))
-    S = state.to(torch.float32)
+    # Gate the state BEFORE the delta correction (gated DeltaNet: the kS
+    # contraction reads the decayed state g*S, not the raw S). This matches
+    # the frozen upstream triton kernel (b_h *= exp(b_g) precedes
+    # b_v -= sum(b_h*b_k)) and the Ascend NPU reference (state Muls by the
+    # decay precedes the state*k contraction).
+    S = g * state.to(torch.float32)
     kS = torch.einsum("bhd,bhde->bhe", kf, S)
     delta = (vf - kS) * beta.to(torch.float32).reshape(*beta.shape, 1)
-    S = g * S + torch.einsum("bhd,bhe->bhde", kf, delta)
+    S = S + torch.einsum("bhd,bhe->bhde", kf, delta)
     out = torch.einsum("bhd,bhde->bhe", qf, S)
     return out.to(q.dtype), S.to(state.dtype)
 
