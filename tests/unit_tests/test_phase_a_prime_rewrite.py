@@ -316,3 +316,106 @@ def test_customop_shim_is_nn_module_with_noop_register():
         pass
 
     assert _Demo.name == "op_x"  # register sets .name and returns the class
+
+
+def _write_min_meta(td: Path, entrypoint: str = "kernel.py::k") -> None:
+    (td / "meta.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "oracle": {"gpu_triton": entrypoint},
+                "interface": {"param_name_map": {}},
+            }
+        )
+    )
+
+
+def test_staged_candidate_copies_task_local_relative_siblings(tmp_path):
+    """A staged severed candidate that still imports a task-local sibling
+    via ``from .X import`` must have ``X.py`` copied into the staging dir,
+    so the severed package (__path__=[staging_dir]) resolves it instead of
+    crashing with ``ModuleNotFoundError: No module named
+    '_pa_pkg__pa_kernel.base'`` (the L1_31 regression)."""
+    td = tmp_path / "task"
+    td.mkdir()
+    # Sibling stub the kernel imports at module scope (off the graded path).
+    (td / "base.py").write_text(
+        "import torch.nn as nn\n\n\nclass RotaryEmbeddingBase(nn.Module):\n"
+        "    pass\n"
+    )
+    (td / "kernel.py").write_text(
+        "import torch\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "from .base import RotaryEmbeddingBase\n\n\n"
+        "def k(x):\n    return x\n"
+    )
+    _write_min_meta(td)
+    tc = pap.classify_task("task", (td / "kernel.py").read_text())
+    staged = pap.build_staged_candidate(td, tc)
+    # The relative import survives the rewrite (no pool/shim rule matches a
+    # task-local sibling) ...
+    assert "from .base import RotaryEmbeddingBase" in staged.read_text()
+    # ... so its source file must be staged alongside kernel.py.
+    assert (staged.parent / "base.py").is_file()
+    assert (staged.parent / "base.py").read_text() == (
+        td / "base.py"
+    ).read_text()
+
+
+def test_staged_candidate_follows_transitive_sibling_closure(tmp_path):
+    """Staging the sibling closure is transitive: if a copied sibling itself
+    imports another task-local sibling, that one is staged too (else the bug
+    just moves one hop)."""
+    td = tmp_path / "task"
+    td.mkdir()
+    (td / "leaf.py").write_text("VALUE = 1\n")
+    (td / "base.py").write_text("from .leaf import VALUE\n")
+    (td / "kernel.py").write_text(
+        "import torch\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "from .base import VALUE\n\n\n"
+        "def k(x):\n    return x\n"
+    )
+    _write_min_meta(td)
+    tc = pap.classify_task("task", (td / "kernel.py").read_text())
+    staged = pap.build_staged_candidate(td, tc)
+    assert (staged.parent / "base.py").is_file()
+    assert (staged.parent / "leaf.py").is_file()
+
+
+def test_staged_candidate_does_not_synthesise_missing_sibling(tmp_path):
+    """Fail-closed: a relative import with NO task-local file is left to
+    surface as the real failure -- nothing is fabricated into staging."""
+    td = tmp_path / "task"
+    td.mkdir()
+    (td / "kernel.py").write_text(
+        "import torch\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "from .nonexistent import X\n\n\n"
+        "def k(x):\n    return x\n"
+    )
+    _write_min_meta(td)
+    tc = pap.classify_task("task", (td / "kernel.py").read_text())
+    staged = pap.build_staged_candidate(td, tc)
+    assert not (staged.parent / "nonexistent.py").exists()
+
+
+def test_staged_candidate_ignores_upward_relative_import(tmp_path):
+    """Level-2 (``from ..X``) imports are NOT followed: the severed loader
+    synthesises only a single-dir package, so an upward import cannot be
+    satisfied by a flat copy and must surface as the real failure
+    (fail-closed)."""
+    td = tmp_path / "task"
+    td.mkdir()
+    (td / "base.py").write_text("X = 1\n")
+    (td / "kernel.py").write_text(
+        "import torch\n"
+        "from vllm.triton_utils import tl, triton\n"
+        "from ..base import X\n\n\n"
+        "def k(x):\n    return x\n"
+    )
+    _write_min_meta(td)
+    tc = pap.classify_task("task", (td / "kernel.py").read_text())
+    staged = pap.build_staged_candidate(td, tc)
+    # base.py lives in task_dir but the import is level-2 (../base) which a
+    # flat staging copy cannot satisfy -> NOT staged (fail-closed).
+    assert not (staged.parent / "base.py").exists()
