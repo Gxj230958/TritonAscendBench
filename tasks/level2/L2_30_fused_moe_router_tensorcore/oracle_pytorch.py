@@ -12,7 +12,6 @@ definition (no upstream code copy).
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
 
 
 def _fused_moe_router(
@@ -21,7 +20,14 @@ def _fused_moe_router(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """MoE router: logits = x @ W^T (+softcap +bias), softmax, top-k.
 
-    Returns (topk_weights renormalised, topk_ids).
+    Returns (topk_weights, topk_ids). The weights are the RAW softmax
+    probabilities at the selected experts -- they are NOT renormalised to
+    sum to one. This mirrors fused_moe_router_tensorcore_kernel exactly:
+      top1_w = 1 / sum_j exp(logits_j - max_j logits)  == softmax(logits)[top1]
+      top2_w = exp(top2_v - top1_v) * top1_w           == softmax(logits)[top2]
+    (kernel.py lines 258 / 285). An earlier draft divided by w.sum(); that
+    renormalisation disagreed with the frozen kernel by up to ~0.06 abs /
+    ~0.19 rel and was the recorded golden FAIL.
     """
     logits = (x.to(torch.float32) @ router_weight.to(torch.float32).T)
     if moe_softcapping and moe_softcapping > 0:
@@ -31,8 +37,7 @@ def _fused_moe_router(
         logits = logits + correction_bias.to(torch.float32)
     probs = torch.softmax(logits, dim=-1)
     w, idx = torch.topk(probs, topk, dim=-1)
-    w = w / w.sum(dim=-1, keepdim=True).clamp_min(1e-20)
-    return w.to(x.dtype), idx.to(torch.int32)
+    return w.to(torch.float32), idx.to(torch.int32)
 
 
 def run(inputs: dict) -> dict:

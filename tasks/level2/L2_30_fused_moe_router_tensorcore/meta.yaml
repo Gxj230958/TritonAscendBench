@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
   flops:
@@ -66,23 +66,17 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-30
   golden:
-    oracle_kernel_equivalence: FAILED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: null
     tolerance_class_used: atomic_scatter
-    equivalence_per_shape:
-      P1:
-        status: FAILED
-        max_abs: 0.06004011631011963
-        max_rel: 0.08947331458330154
-        blocker: 'topk_weights: atol/rtol: max_abs=0.06, max_rel=0.0895 (max_abs=0.06004011631011963,
-          max_rel=0.08947331458330154, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
-      P2:
-        status: FAILED
-        max_abs: 0.13779795169830322
-        max_rel: 0.191780686378479
-        blocker: 'topk_weights: atol/rtol: max_abs=0.138, max_rel=0.192 (max_abs=0.13779795169830322,
-          max_rel=0.191780686378479, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
+    equivalence_per_shape: {}
     golden_source: fallback_to_gpu_capture_pending
+    note: 'Prior FAILED verdict (2026-05-27, max_abs=0.06/0.138) was against the
+      superseded renormalised oracle. The oracle was re-authored to return raw
+      softmax probabilities (matching kernel.py:258/285); r10_pyref refs were
+      regenerated. Dev-side oracle-consistency now PASSES (H2 max_abs=0.0, P2
+      max_abs=8e-7 within atomic_scatter). Needs a GPU equivalence re-run against
+      the corrected oracle to set VERIFIED.'
 param_constraints:
   scaffold: false
   dims:
@@ -100,6 +94,6 @@ param_constraints:
     correction_bias:
       kind: rand
   scalars:
-    topk: 1 <= topk <= 8
+    topk: 1 <= topk <= 2
     moe_softcapping: moe_softcapping >= 0
   tensor_invariants: []

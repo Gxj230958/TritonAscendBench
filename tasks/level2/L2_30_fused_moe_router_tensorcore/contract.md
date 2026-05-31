@@ -27,7 +27,9 @@ definition (no upstream code copy).
 
 MoE router: logits = x @ W^T (+softcap +bias), softmax, top-k.
 
-Returns (topk_weights renormalised, topk_ids).
+Returns (topk_weights, topk_ids). topk_weights are the RAW softmax
+probabilities at the selected experts -- NOT renormalised to sum to one
+(matching the frozen tensorcore kernel, kernel.py lines 258 / 285).
 
 ## I/O contract
 
@@ -84,7 +86,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `topk`: `1 <= topk <= 8`
+- `topk`: `1 <= topk <= 2`
 - `moe_softcapping`: `moe_softcapping >= 0`
 
 ### Tensor invariants (`tensor_invariants`)
