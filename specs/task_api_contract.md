@@ -326,9 +326,12 @@ distribution vocabulary):
 | `tril` | well-conditioned lower-triangular | — |
 | `randint` | uniform integers | `lo`, `hi` (knob exprs) |
 | `softmax_rows` | row-stochastic (softmax over last dim) | — |
+| `l2norm_rows` | randn rows L2-normalised over the last dim (unit-norm keys; the stable delta-rule key recipe) | — |
+| `logsigmoid` | `logsigmoid(rand)` — strictly negative gate so `exp(g)` is a genuine decay in `(0, 1)` | — |
 | `offsets` | monotonic **leading-zero** indptr int64 vector (`[0] == 0`, total in `[-1]`) | `step` *or* `to` (knob expr) |
 | `cumcount` | monotonic **non-leading-zero** cumulative count int64 vector (element `r` = running count through segment `r`, total in `[-1]`) | `to` (knob expr) |
 | `arange` | `0 .. n-1` int64 | — |
+| `cyclic_perm` | single-cycle permutation `perm[i] = (i+1) % n` — a guaranteed non-identity bijection of `[0, n)` (every position remapped for `n >= 2`); honors the declared `int32`/`int64` dtype | — |
 | `full` | constant-filled int64 | `value` (knob expr) |
 
 #### `scalars` — non-tensor literal constraint

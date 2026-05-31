@@ -4,8 +4,8 @@
 size_knobs:
   B: 16
   L: 256
-  D: 512
-  Dv: 512
+  D: 192
+  Dv: 192
   N: 512
   T: 256
   H: 16
@@ -19,7 +19,7 @@ public_shapes:
     B: 4
     L: 32
     D: 64
-    Dv: 64
+    Dv: 64  # realistic small head_dim (pow2)
     N: 64
     T: 16
     H: 4
@@ -31,8 +31,8 @@ public_shapes:
   knobs:
     B: 8
     L: 128
-    D: 256
-    Dv: 256
+    D: 128
+    Dv: 128  # most common real head_dim (Llama/Mistral, pow2)
     N: 256
     T: 64
     H: 8
@@ -44,8 +44,8 @@ public_shapes:
   knobs:
     B: 16
     L: 256
-    D: 512
-    Dv: 512
+    D: 192
+    Dv: 192  # non-pow2 head_dim -> exercises dim_mask padding path
     N: 512
     T: 256
     H: 16
@@ -57,8 +57,8 @@ public_shapes:
   knobs:
     B: 32
     L: 512
-    D: 1024
-    Dv: 1024
+    D: 256
+    Dv: 256  # realistic MAX head_dim (Gemma-7B/PaLM/GPT-J, pow2)
     N: 1024
     T: 512
     H: 32
@@ -70,8 +70,8 @@ public_shapes:
   knobs:
     B: 4
     L: 128
-    D: 2048
-    Dv: 2048
+    D: 96
+    Dv: 96  # non-pow2 head_dim -> exercises dim_mask padding path
     N: 512
     T: 64
     H: 8
@@ -84,8 +84,8 @@ hidden_shapes:
   knobs:
     B: 6
     L: 192
-    D: 384
-    Dv: 384
+    D: 192
+    Dv: 192  # non-pow2 head_dim -> exercises dim_mask padding path
     N: 384
     T: 96
     H: 6
@@ -110,8 +110,8 @@ hidden_shapes:
   knobs:
     B: 2
     L: 1024
-    D: 4096
-    Dv: 4096
+    D: 256
+    Dv: 256  # realistic MAX head_dim (was 4096 scaffold artifact -> OOM)
     N: 512
     T: 512
     H: 8

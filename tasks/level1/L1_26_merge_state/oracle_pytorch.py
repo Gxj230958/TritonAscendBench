@@ -14,7 +14,6 @@ ORACLE-SCOPE (tier=upstream_oracle_required): covers fp32 LSE merge; NOT covered
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
 
 
 def _merge_attn_states(
@@ -27,22 +26,36 @@ def _merge_attn_states(
     flash-decoding). Inputs are per (token, head):
       *_output: [n_tokens, n_heads, head_size]
       *_lse:    [n_tokens, n_heads]   (natural-log sum-exp of scores)
-    Returns (merged_output, merged_lse). NaN/-inf LSE (an empty split)
-    contributes zero weight.
+    Returns (merged_output, merged_lse).
+
+    Empty-split sentinel: flash-decoding returns ``+inf`` LSE for a
+    zero-length split. The kernel maps ``+inf -> -inf`` so that split
+    gets zero softmax weight (it is DROPPED, not allowed to dominate).
+    When BOTH splits are empty the recombination is undefined: both
+    weights collapse to ``-inf``, ``max_lse == -inf``, ``exp(-inf -
+    (-inf)) == exp(nan) == nan`` propagates, so the merged output and
+    LSE are ``NaN`` -- exactly what the kernel emits. This mirrors
+    ``merge_state_kernel`` in kernel.py byte-for-byte (NOT a corrected
+    or smoothed reference): the ``+inf -> -inf`` collapse, the un-clamped
+    ``out_se`` denominator, and the un-clamped ``log`` are all faithful
+    to the frozen GPU source.
     """
     p_lse = prefix_lse.to(torch.float32)
     s_lse = suffix_lse.to(torch.float32)
-    p_lse = torch.nan_to_num(p_lse, nan=float("-inf"))
-    s_lse = torch.nan_to_num(s_lse, nan=float("-inf"))
-    m = torch.maximum(p_lse, s_lse)
-    m = torch.where(torch.isinf(m), torch.zeros_like(m), m)
-    p_w = torch.exp(p_lse - m)                       # [n, H]
+    # Kernel lines 41-42: +inf (empty-split sentinel) -> -inf (drop side).
+    neg_inf = torch.full((), float("-inf"), dtype=torch.float32)
+    p_lse = torch.where(p_lse == float("inf"), neg_inf, p_lse)
+    s_lse = torch.where(s_lse == float("inf"), neg_inf, s_lse)
+    m = torch.maximum(p_lse, s_lse)        # both -inf -> -inf (both empty)
+    p_w = torch.exp(p_lse - m)             # (-inf)-(-inf)=nan -> exp=nan
     s_w = torch.exp(s_lse - m)
-    denom = (p_w + s_w).clamp_min(1e-20)
+    out_se = p_w + s_w                      # NO clamp: both-empty -> nan
     po = prefix_output.to(torch.float32)
     so = suffix_output.to(torch.float32)
-    out = (po * p_w.unsqueeze(-1) + so * s_w.unsqueeze(-1)) / denom.unsqueeze(-1)
-    out_lse = m + torch.log(denom)
+    p_scale = (p_w / out_se).unsqueeze(-1)
+    s_scale = (s_w / out_se).unsqueeze(-1)
+    out = po * p_scale + so * s_scale
+    out_lse = torch.log(out_se) + m        # NO clamp: both-empty -> nan
     return out.to(prefix_output.dtype), out_lse.to(prefix_lse.dtype)
 
 

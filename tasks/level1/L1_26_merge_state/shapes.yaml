@@ -144,7 +144,10 @@ inputs:
     - B
     - H
     dtype: float32
-    dist: randn
+    # randn_inf injects the flash-decoding empty-split sentinel (+inf).
+    # The kernel maps +inf -> -inf (drop side); both-sides-inf -> NaN.
+    # Exercising this branch is the load-bearing discriminator here.
+    dist: randn_inf
   suffix_output:
     dims:
     - B
@@ -157,4 +160,4 @@ inputs:
     - B
     - H
     dtype: float32
-    dist: randn
+    dist: randn_inf

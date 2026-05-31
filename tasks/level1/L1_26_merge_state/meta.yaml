@@ -65,20 +65,16 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L1-26
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-05-27T13:53:50Z'
+    # Re-authored oracle (kernel-exact +inf->-inf drop / both-inf->NaN)
+    # plus randn_inf LSE inputs. The prior VERIFIED was captured against
+    # the old nan_to_num oracle on plain-randn inputs (no +inf ever
+    # generated), so it never exercised the empty-split branch -- it is
+    # tautological for the inf semantics. Demoted pending a real GPU
+    # equivalence recapture via apply_oracle_equivalence_verdict.py.
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: '2026-05-31T00:00:00Z'
     tolerance_class_used: elementwise
-    equivalence_per_shape:
-      P1:
-        status: VERIFIED
-        max_abs: 4.76837158203125e-07
-        max_rel: 4.511984661803581e-05
-      P2:
-        status: VERIFIED
-        max_abs: 4.76837158203125e-07
-        max_rel: 0.0014901140239089727
-    golden_sha256: 5fd9a829dba39e5976534476d2720fb227a6526ed4ef5cfd38db8f8efb8b74e4
-    golden_source: oracle_pytorch_verified
+    golden_source: fallback_to_gpu_capture_pending
 param_constraints:
   scaffold: false
   dims:
@@ -94,11 +90,11 @@ param_constraints:
     prefix_output:
       kind: randn
     prefix_lse:
-      kind: randn
+      kind: randn_inf
     suffix_output:
       kind: randn
     suffix_lse:
-      kind: randn
+      kind: randn_inf
   scalars: {}
   tensor_invariants: []
 phase_a_prime:

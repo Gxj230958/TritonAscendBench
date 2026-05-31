@@ -81,7 +81,7 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 DIST_KINDS = frozenset({
     "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril", "randint",
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "offsets",
-    "cumcount", "arange", "randperm", "full", "routing_ids",
+    "cumcount", "arange", "randperm", "cyclic_perm", "full", "routing_ids",
     "window_pos", "window_req", "gumbel_temps", "gumbel_routing",
 })
 
@@ -89,7 +89,7 @@ DIST_KINDS = frozenset({
 _NULLARY_DIST_KINDS = frozenset({
     "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril",
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "arange",
-    "randperm", "gumbel_temps",
+    "randperm", "cyclic_perm", "gumbel_temps",
 })
 
 #: Fraction of `randn_inf` entries replaced with +inf. Models a
@@ -566,6 +566,21 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
         # pass even when it computes the wrong direction.
         n = shape[-1] if shape else 1
         return torch.randperm(n, generator=gen).to(torch.int64).reshape(shape)
+    elif kind == "cyclic_perm":
+        # Single-cycle permutation `perm[i] = (i + 1) % n` -- a GUARANTEED
+        # non-identity bijection of [0, n) (every position is remapped for
+        # n >= 2). Unlike `randperm`, which can collapse to the identity at
+        # small n (e.g. n == 2 hits [0, 1] half the time), this never lets an
+        # index-ignoring kernel coincide with the oracle: the kernel that
+        # reads/writes cache line `i` instead of `perm[i]` mismatches on every
+        # row. Used for `conv_state_indices` (causal_conv1d_update), where the
+        # index selects which cache line each batch element reads its state
+        # from and writes the rolled state back to.
+        n = shape[-1] if shape else 1
+        idx_dtype = dtype if dtype in (torch.int32, torch.int64) else torch.int64
+        return (
+            torch.arange(1, n + 1, dtype=idx_dtype).remainder(n).reshape(shape)
+        )
     elif kind == "routing_ids":
         # MoE per-token expert assignment: a length-n int64 vector of expert
         # ids in [0, E) with a deterministic drop fraction set to -1, the

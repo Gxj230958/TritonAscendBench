@@ -1267,3 +1267,30 @@ def softplus(*args, **kwargs):
         "chunk_state launcher never launches; it is not vendored into the "
         "severed standalone and the graded chunk_state kernel must not invoke it"
     )
+
+
+def context_attention_fwd(*args, **kwargs):
+    """Loud-fail stand-in for the upstream vLLM
+    ``prefix_prefill.context_attention_fwd`` host wrapper
+    (``from .prefix_prefill import context_attention_fwd``).
+
+    The L3_02 frozen kernel.py carries this import at module scope, but
+    ``context_attention_fwd`` is called ONLY inside the host wrapper
+    ``chunked_prefill_paged_decode``'s prefill branch (``if max_query_len > 1``).
+    The graded surface is the @triton.jit ``kernel_paged_attention_2d`` decode
+    kernel, which the launcher drives directly with one query token per sequence
+    (max_query_len == 1), so the prefill branch and this symbol are off the
+    launched-jit closure (proven by ``_symbol_off_launched_closure``). The Phase
+    A' rewriter redirects the off-path import here so the severed standalone
+    resolves without pulling the real ``prefix_prefill`` module (which imports
+    the vllm ``_custom_ops`` / platform closure). Importing the name is inert;
+    calling it raises -- so any path that ever reached the prefill branch fails
+    loudly rather than silently faking the chunked-prefill attention.
+    Fail-closed."""
+    raise NotImplementedError(
+        "context_attention_fwd shim reached: the upstream prefix_prefill "
+        "context_attention_fwd is referenced only by the off-path prefill "
+        "branch of chunked_prefill_paged_decode (max_query_len > 1), which the "
+        "decode launcher never reaches; it is not vendored into the severed "
+        "standalone and the graded kernel_paged_attention_2d must not invoke it"
+    )

@@ -622,16 +622,15 @@ def _select_tasks(task_id: str | None) -> list[TaskDef]:
     capture.
 
     ``--all`` selects only the **score-eligible**
-    ``upstream_oracle_required`` tasks (18 today). The score-eligible
-    filter (:func:`eligibility.is_score_eligible`) is the SAME policy
+    ``upstream_oracle_required`` tasks. The score-eligible filter
+    (:func:`eligibility.is_score_eligible`) is the SAME policy
     ``gpu_pipeline`` step 20 (``phase_a_cost_xcheck.py``) applies: a
-    non-score-eligible ``upstream_oracle_required`` task
-    (``L1_21_gumbel_sample`` today -- a stub oracle / placeholder
-    kernel) can NEVER reach ``phase_a_prime.status == PASS``, so the
+    non-score-eligible ``upstream_oracle_required`` task (one with a stub
+    ``raise NotImplementedError`` oracle or a ``PHASE-C-MANUAL`` shapes
+    placeholder) can NEVER reach ``phase_a_prime.status == PASS``, so the
     Phase A' promote precondition is unsatisfiable for it and the
-    full-corpus sweep would otherwise hang on it forever. It is the
-    Task #20 acknowledged non-score-eligible special case and has no
-    offline golden to capture.
+    full-corpus sweep would otherwise hang on it forever. Such a task has
+    no offline golden to capture and is excluded from the sweep.
 
     Args:
         task_id: a single task id (``--task``) or ``None`` for the full

@@ -1,8 +1,8 @@
 """Tests for scripts/phase_b_golden_capture.py -- offline golden capture
 for upstream_oracle_required tasks (Phase B', GPU host).
 
-Covers the dev-machine-runnable surface: the 18-task enumeration (the
-score-eligible upstream_oracle_required set), the public + hidden shape
+Covers the dev-machine-runnable surface: the score-eligible
+upstream_oracle_required enumeration, the public + hidden shape
 enumeration, the golden artifact path / naming convention, the Phase A'
 promote precondition gate, and the --dry-run
 path. The actual GPU capture-child run is exercised through a mocked
@@ -139,11 +139,12 @@ def test_task_capture_result_all_shape_ids_order():
 
 def test_select_all_finds_exactly_the_score_eligible_uor_set():
     """--all selects exactly the SCORE-ELIGIBLE upstream_oracle_required
-    tasks (18 today), derived from trusted repo meta -- the same
-    score-eligible filter gpu_pipeline step 20 (phase_a_cost_xcheck)
-    applies. A non-score-eligible upstream_oracle_required task
-    (L1_21_gumbel_sample: stub oracle / placeholder kernel) has no
-    capturable offline golden and is excluded from the capture sweep."""
+    tasks, derived from trusted repo meta -- the same score-eligible
+    filter gpu_pipeline step 20 (phase_a_cost_xcheck) applies. The
+    selected set equals the score-eligible UOR set with no silent
+    over/under-selection; non-score-eligible UOR tasks (stub oracle /
+    PHASE-C-MANUAL shapes) are excluded because they have no capturable
+    offline golden."""
     from triton_ascend_bench import eligibility
     from triton_ascend_bench.dataset import iter_all_tasks
 
@@ -159,39 +160,53 @@ def test_select_all_finds_exactly_the_score_eligible_uor_set():
     for t in selected:
         assert eligibility.is_upstream_oracle_required(t)
         assert eligibility.is_score_eligible(t)
-    # The corpus has 19 upstream_oracle_required tasks; exactly one
-    # (L1_21_gumbel_sample) is non-score-eligible and excluded -> 18.
-    assert len(selected) == 18
+    # The selected set is exactly the score-eligible UOR set: any UOR task
+    # excluded from the sweep must be a NON-score-eligible one (and vice
+    # versa). No count is hardcoded -- the corpus composition is not frozen.
     uor = eligibility.compute_upstream_oracle_required(all_tasks)
-    assert len(uor) == 19
     excluded = uor - {t.task_id for t in selected}
-    assert excluded == {"L1_21_gumbel_sample"}
+    assert excluded == {
+        t.task_id for t in all_tasks
+        if eligibility.is_upstream_oracle_required(t)
+        and not eligibility.is_score_eligible(t)
+    }
 
 
-def test_select_all_excludes_non_score_eligible_uor():
-    """L1_21_gumbel_sample is upstream_oracle_required but non-score-
-    eligible (stub oracle) -- it must NOT appear in the capture sweep."""
-    selected_ids = {t.task_id for t in pbgc._select_tasks(None)}
-    assert "L1_21_gumbel_sample" not in selected_ids
-
-
-def test_select_task_rejects_non_score_eligible_uor():
-    """--task on a non-score-eligible upstream_oracle_required task is an
-    honest hard error: a stub-oracle task has no capturable golden."""
+def test_select_all_includes_resolved_gumbel_sample_uor():
+    """L1_21_gumbel_sample is a resolved upstream_oracle_required task
+    (real oracle + executable shapes), so it is score-eligible and MUST
+    appear in the capture sweep. (It was the corpus's last stub-oracle UOR
+    before resolution; this guards against a regression back to a stub.)"""
     from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import iter_all_tasks
+    from triton_ascend_bench.dataset import load_task
 
-    non_se_uor = next(
-        (t for t in iter_all_tasks()
-         if eligibility.is_upstream_oracle_required(t)
-         and not eligibility.is_score_eligible(t)),
-        None,
-    )
-    assert non_se_uor is not None, (
-        "expected at least one non-score-eligible upstream_oracle_required "
-        "task (L1_21_gumbel_sample) in the corpus")
+    gumbel = load_task("L1_21_gumbel_sample")
+    assert eligibility.is_upstream_oracle_required(gumbel)
+    assert eligibility.is_score_eligible(gumbel)
+    selected_ids = {t.task_id for t in pbgc._select_tasks(None)}
+    assert "L1_21_gumbel_sample" in selected_ids
+
+
+def test_select_task_rejects_non_score_eligible_uor(monkeypatch, tmp_path):
+    """--task on a non-score-eligible upstream_oracle_required task is an
+    honest hard error: a stub-oracle task has no capturable golden.
+
+    Built from a SYNTHETIC stub-oracle UOR task (``_write_task`` writes a
+    ``raise NotImplementedError`` oracle, which ``is_score_eligible`` flags
+    non-eligible) so the rejection branch stays covered regardless of
+    whether any real corpus task currently ships a stub oracle.
+    ``_select_tasks`` calls the module-local ``load_task`` directly, so we
+    monkeypatch that symbol to return the synthetic task."""
+    from triton_ascend_bench import eligibility
+
+    stub_dir = _write_task(tmp_path, "L1_99_stub_uor")
+    stub_task = _load(stub_dir)
+    # Sanity: the synthetic fixture is exactly the rejected category.
+    assert eligibility.is_upstream_oracle_required(stub_task)
+    assert not eligibility.is_score_eligible(stub_task)
+    monkeypatch.setattr(pbgc, "load_task", lambda tid: stub_task)
     with pytest.raises(ValueError, match="NOT score-eligible"):
-        pbgc._select_tasks(non_se_uor.task_id)
+        pbgc._select_tasks("L1_99_stub_uor")
 
 
 def test_select_all_is_sorted():
@@ -270,23 +285,29 @@ def test_dry_run_enumerates_without_promote_gate_or_write(tmp_path):
     assert not (task.task_dir / "golden").exists()
 
 
-def test_dry_run_all_18_tasks_enumerates_162_shapes():
+def test_dry_run_all_tasks_enumerates_every_eval_shape():
     """The documented dev-machine verification: --dry-run --all enumerates
-    the 18 score-eligible upstream_oracle_required tasks and their full
-    eval shape set."""
+    exactly the score-eligible upstream_oracle_required tasks and their
+    full eval shape set. Counts are derived from the eligibility filter, not
+    hardcoded, so the corpus composition is not frozen."""
+    from triton_ascend_bench import eligibility
+    from triton_ascend_bench.dataset import iter_all_tasks
+
+    expected_ids = {
+        t.task_id for t in iter_all_tasks()
+        if eligibility.is_upstream_oracle_required(t)
+        and eligibility.is_score_eligible(t)
+    }
     tasks = pbgc._select_tasks(None)
     results = [pbgc.capture_task(t, dry_run=True) for t in tasks]
-    assert len(results) == 18
+    assert {r.task_id for r in results} == expected_ids
+    assert results, "expected at least one score-eligible UOR task"
     assert all(r.precondition_error is None for r in results)
-    total = sum(len(r.all_shape_ids) for r in results)
-    # 162 = the score-eligible upstream_oracle_required eval shape count
-    # (the full 19-task corpus has 166; L1_21_gumbel_sample's 4 shapes
-    # are excluded with the task).
-    assert total == 162
-    # Every task has both public and hidden eval shapes.
+    # Every task contributes its full public + hidden eval shape set.
     for r in results:
         assert r.public_shapes, f"{r.task_id} has no public shapes"
         assert r.hidden_shapes, f"{r.task_id} has no hidden shapes"
+        assert len(r.all_shape_ids) == len(r.public_shapes) + len(r.hidden_shapes)
 
 
 # --- GPU capture path (mocked child) ----------------------------------

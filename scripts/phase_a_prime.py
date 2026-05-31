@@ -4576,6 +4576,40 @@ def rewrite_imports_to_standalone(
             # gates not met (provably off-path handled above; on-path vendor
             # declined / failed) -> leave untouched so the audit surfaces the
             # dependency (never a silent mis-rewrite / false PASS).
+        # vLLM prefix-prefill off-path host wrapper:
+        # `from .prefix_prefill import context_attention_fwd`. The L3_02 paged
+        # decode kernel.py carries this at module scope, but
+        # context_attention_fwd is called ONLY inside the host wrapper
+        # chunked_prefill_paged_decode's prefill branch (max_query_len > 1); the
+        # graded @triton.jit kernel_paged_attention_2d decode kernel (which the
+        # launcher drives with one query token per sequence) never reaches it.
+        # Redirect to the inert raising tasks._frozen_shim.context_attention_fwd
+        # so the severed standalone resolves without pulling the real
+        # prefix_prefill module (its vllm _custom_ops / platform closure).
+        # Single-symbol + subset-allowlisted ({context_attention_fwd}) +
+        # fail-closed on TWO independent gates: (1) the symbol must be OFF the
+        # launcher-launched jit closure, (2) any unexpected co-imported symbol
+        # or a parenthesised form leaves the line untouched (leak surfaces). A
+        # call to the stub raises loudly.
+        if stripped.startswith("from .prefix_prefill import "):
+            _syms = stripped[len("from .prefix_prefill import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _single = _sym_set == {"context_attention_fwd"} and "(" not in _syms
+            if (
+                _single
+                and _symbol_off_launched_closure(
+                    src, task_dir, "context_attention_fwd"
+                )
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"context_attention_fwd"
+                    f"  # Phase A': off-path prefix-prefill wrapper (B-inert-shim)\n"
+                )
+                continue
+            # gate not met (on-path / unexpected symbol) -> leave untouched so
+            # the audit surfaces the dependency (never a silent mis-rewrite).
         # FLA-ops relative imports: `from .<mod> import ...` where <mod> is
         # ANY module in the vendored fla/ops package (_FLA_OPS_MODULES), in
         # a task whose upstream is the vllm FLA ops package. Redirect to the

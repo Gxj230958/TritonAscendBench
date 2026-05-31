@@ -295,6 +295,152 @@ def install_flashinfer_stub() -> bool:
     return True
 
 
+# ``vllm.vllm_flash_attn`` is vLLM's vendored FlashAttention package. Its
+# ``__init__.py`` imports the compiled ``_vllm_fa2_C`` / ``_vllm_fa3_C``
+# extensions and, when BOTH are absent (a source checkout / dev box / a GPU
+# daemon whose vLLM was not built with flash-attn), raises a hard
+# ``ImportError("vllm.vllm_flash_attn requires the CUDA flash attention
+# extensions ...")`` at module load. Whole-file vendored kernels that mirror
+# an upstream model module (e.g. L2_18 Qwen3-Next, whose graded
+# ``fused_gdn_gating`` is a pure elementwise GDN gate) transitively reach that
+# package through a dead attention-backend import even though the graded
+# @triton.jit kernel never touches flash-attn -- so the off-graded-path import
+# blocks the whole candidate at load. The public surface ``__init__`` re-exports
+# (verbatim from the vendored __init__.__all__, commit 18f6bf5).
+_VLLM_FLASH_ATTN_STUB_ATTR = "__tab_vllm_flash_attn_stub__"
+_VLLM_FLASH_ATTN_PUBLIC_NAMES = (
+    "fa_version_unsupported_reason",
+    "flash_attn_varlen_func",
+    "get_scheduler_metadata",
+    "is_fa_version_supported",
+)
+
+
+def _make_vllm_flash_attn_inert(qualname: str):
+    """An inert stand-in for an off-graded-path ``vllm.vllm_flash_attn``
+    symbol. The name resolves so the vendored module imports, but CALLING it
+    RAISES -- a graded path that actually invokes flash-attn is a true
+    dependency, never silently faked."""
+
+    def _inert(*args, **kwargs):
+        raise RuntimeError(
+            f"{qualname} is an inert vllm.vllm_flash_attn stub (off the "
+            f"graded kernel path); the compiled flash-attn extensions "
+            f"(_vllm_fa2_C / _vllm_fa3_C) are absent from this checkout, so "
+            f"the bench does not provide a real flash-attn implementation here."
+        )
+
+    _inert.__name__ = qualname.rsplit(".", 1)[-1]
+    _inert.__qualname__ = _inert.__name__
+    _inert.__tab_inert__ = True
+    return _inert
+
+
+def _discover_vllm_root() -> Path | None:
+    """Locate the source-checkout vLLM root on ``sys.path`` -- the directory
+    whose ``vllm/vllm_flash_attn/__init__.py`` exists. The bench runners insert
+    ``infer/vllm`` onto ``sys.path`` before loading kernel.py, so the flash-attn
+    stub can find the checkout even when called without an explicit root (from
+    ``clear_conflicting_vllm_registrations``). Returns None when no such root is
+    on the path (a wheel install, or vLLM absent)."""
+    for entry in sys.path:
+        if not entry:
+            continue
+        try:
+            cand = Path(entry) / "vllm" / "vllm_flash_attn" / "__init__.py"
+        except (TypeError, ValueError):
+            continue
+        if cand.is_file():
+            return Path(entry)
+    return None
+
+
+def _real_vllm_flash_attn_present(vllm_root: Path | None) -> bool:
+    """True iff a REAL (non-stub) ``vllm.vllm_flash_attn`` is importable --
+    i.e. a compiled ``_vllm_fa2_C`` or ``_vllm_fa3_C`` extension exists in the
+    checkout, OR the package is already loaded as a non-stub. Guards the stub
+    install so a GPU daemon whose vLLM WAS built with flash-attn keeps the real
+    package and its upstream availability path runs unchanged."""
+    existing = sys.modules.get("vllm.vllm_flash_attn")
+    if existing is not None:
+        return not getattr(existing, _VLLM_FLASH_ATTN_STUB_ATTR, False)
+    if vllm_root is None:
+        return False
+    fa_pkg = vllm_root / "vllm" / "vllm_flash_attn"
+    for stem in ("_vllm_fa2_C", "_vllm_fa3_C"):
+        for suffix in EXTENSION_SUFFIXES:
+            if any(fa_pkg.glob(f"{stem}{suffix}")):
+                return True
+    return False
+
+
+def install_vllm_flash_attn_stub(vllm_root: Path | None = None) -> bool:
+    """Inject an inert ``vllm.vllm_flash_attn`` import surface for
+    source-checkout vLLM kernels that transitively reach the package at module
+    load only through a dead attention-backend import (task L2_18, same family
+    as L1_29).
+
+    Registers an inert ``vllm.vllm_flash_attn`` module exposing exactly the
+    names the upstream ``__init__`` re-exports (``__all__``) as inert
+    raise-on-CALL objects, plus ``FA2_AVAILABLE = FA3_AVAILABLE = False`` (the
+    honest answer for a checkout without the compiled extensions). The hard
+    ``raise ImportError`` in the real ``__init__`` therefore never fires, but
+    any graded path that actually CALLS a flash-attn function fails loudly
+    (never silently faked). Also stubs the ``flash_attn_interface`` submodule
+    the package re-exports from, for the same reason.
+
+    Skips entirely when a REAL flash-attn is present (a daemon whose vLLM was
+    built with ``_vllm_fa2_C`` / ``_vllm_fa3_C``) -- the real surface then loads
+    and the upstream path is untouched. ``vllm_root`` defaults to autodiscovery
+    from ``sys.path`` (the runners insert ``infer/vllm`` before kernel load), so
+    this can be called from ``clear_conflicting_vllm_registrations`` -- the
+    single shared loader hook -- without threading a root through every call
+    site. Skips when no source-checkout vLLM is on the path (wheel install /
+    vLLM absent). Idempotent. Returns ``True`` iff the stub was installed this
+    call."""
+    if vllm_root is None:
+        vllm_root = _discover_vllm_root()
+        if vllm_root is None:
+            # No source-checkout vLLM on sys.path: nothing transitively reaches
+            # this package's source __init__, so there is no leak to close (a
+            # wheel install ships the compiled extensions or its own surface).
+            return False
+    if _real_vllm_flash_attn_present(vllm_root):
+        return False
+    if sys.modules.get("vllm.vllm_flash_attn") is not None and getattr(
+        sys.modules["vllm.vllm_flash_attn"], _VLLM_FLASH_ATTN_STUB_ATTR, False
+    ):
+        return False  # already installed by us in this process
+
+    pkg = types.ModuleType("vllm.vllm_flash_attn")
+    pkg.__file__ = "<tab-vllm-flash-attn-stub>"
+    pkg.__package__ = "vllm.vllm_flash_attn"
+    pkg.__path__ = []  # mark as a package for submodule resolution
+    setattr(pkg, _VLLM_FLASH_ATTN_STUB_ATTR, True)
+    pkg.FA2_AVAILABLE = False
+    pkg.FA3_AVAILABLE = False
+    for n in _VLLM_FLASH_ATTN_PUBLIC_NAMES:
+        setattr(pkg, n, _make_vllm_flash_attn_inert(f"vllm.vllm_flash_attn.{n}"))
+
+    iface = types.ModuleType("vllm.vllm_flash_attn.flash_attn_interface")
+    iface.__file__ = "<tab-vllm-flash-attn-stub>"
+    iface.__package__ = "vllm.vllm_flash_attn"
+    setattr(iface, _VLLM_FLASH_ATTN_STUB_ATTR, True)
+    iface.FA2_AVAILABLE = False
+    iface.FA3_AVAILABLE = False
+    for n in _VLLM_FLASH_ATTN_PUBLIC_NAMES:
+        setattr(
+            iface, n,
+            _make_vllm_flash_attn_inert(
+                f"vllm.vllm_flash_attn.flash_attn_interface.{n}"
+            ),
+        )
+
+    sys.modules["vllm.vllm_flash_attn"] = pkg
+    sys.modules["vllm.vllm_flash_attn.flash_attn_interface"] = iface
+    return True
+
+
 def install_vllm_capability_probe_stubs() -> list[str]:
     """Register MISSING vLLM ``_C`` bool capability probes as ``-> False``.
 
@@ -420,6 +566,23 @@ def clear_conflicting_vllm_registrations(kernel_src: str) -> list[str]:
     # FlashInfer installed is untouched.
     if re.search(r"^(?:from|import)\s+flashinfer\b", kernel_src, re.M):
         install_flashinfer_stub()
+    # Whole-file vendored kernels that mirror a vLLM model/attention module
+    # (e.g. L2_18 Qwen3-Next) transitively reach ``vllm.vllm_flash_attn`` at
+    # module load through a dead attention-backend import even though the graded
+    # @triton.jit kernel never touches flash-attn. On a source checkout without
+    # the compiled ``_vllm_fa2_C`` / ``_vllm_fa3_C`` extensions that package's
+    # ``__init__`` raises ImportError, blocking the whole candidate at load.
+    # Install an inert fail-closed surface BEFORE exec_module (raise-on-CALL, so
+    # a real flash-attn dependency still fails loudly). The import is TRANSITIVE,
+    # not a column-0 line in kernel.py, so it cannot be gated on a kernel_src
+    # regex like flashinfer; the install autodiscovers the source-checkout vLLM
+    # on sys.path and skips when a real flash-attn (compiled extension) is
+    # present, so a daemon whose vLLM was built with flash-attn is untouched.
+    # Gated on the kernel importing vllm at all (a non-vllm kernel never reaches
+    # the package). This is the single shared loader hook, so it also closes the
+    # GPU oracle-equivalence load path that bypasses the runners' setup blocks.
+    if re.search(r"^(?:from|import)\s+vllm\b", kernel_src, re.M):
+        install_vllm_flash_attn_stub()
     # Kernels that register a torch.library op at module scope crash on the
     # anchor's second per-shape load; install the idempotent wrapper BEFORE the
     # kernel executes ``from vllm.utils.torch_utils import

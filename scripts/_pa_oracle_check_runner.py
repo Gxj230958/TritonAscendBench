@@ -420,6 +420,7 @@ def _check_one_shape(
     _pnm: dict = {}
     _oproj: dict = {}
     _inplace_outs: list | None = None
+    _rpi: dict = {}
     try:
         import yaml as _yaml
 
@@ -433,10 +434,12 @@ def _check_one_shape(
             _io = _iface.get("inplace_outputs")
             if _io is not None:
                 _inplace_outs = list(_io)
+            _rpi = _iface.get("return_plus_inplace") or {}
     except Exception:
         _pnm = {}
         _oproj = {}
         _inplace_outs = None
+        _rpi = {}
     try:
         sig, bound, kwargs = _map_inputs_by_name(
             fn, entrypoint, dict(kernel_inputs), _pnm
@@ -475,6 +478,57 @@ def _check_one_shape(
                 f"declared={_oproj}, actual return len={len(cand_ret)}) -- "
                 "fail-closed, not projecting"
             ), False, False
+    # meta.interface.return_plus_inplace (ANCHOR-ONLY): a REVIEWED declaration
+    # for wrappers that BOTH return a single output tensor AND mutate one or
+    # more bound input tensors in place (e.g. causal_conv1d_update returns the
+    # conv output `out` and rolls `conv_state` in place). Neither
+    # output_projection (tuple-only) nor inplace_outputs (return-None-only)
+    # covers this shape, so a bare-tensor return would flatten as `_root` and
+    # never expose the mutated buffers -> structure mismatch vs the oracle's
+    # multi-key dict. This knob names the return tensor and the in-place
+    # buffers, building the candidate output dict from BOTH so the anchor
+    # compares the full contract. S2 already captures the in-place mutation
+    # generically (mutated-input snapshot), so this is anchor-only and does not
+    # weaken the bit-exact severed-vs-original gate. Fail-closed validation:
+    # mutually exclusive with output_projection/inplace_outputs, cand_ret must
+    # be a single tensor, `return_name` a non-empty string, `inplace` a
+    # non-empty unique list of bound tensor-valued task keys; harvest the
+    # mutated buffers from kernel_inputs (post-call), not the pristine `inputs`.
+    if _rpi and torch.is_tensor(cand_ret):
+        _ret_name = _rpi.get("return_name")
+        _inpl = _rpi.get("inplace")
+        _bad = (
+            bool(_oproj)
+            or _inplace_outs is not None
+            or not isinstance(_ret_name, str)
+            or not _ret_name
+            or not isinstance(_inpl, list)
+            or not _inpl
+            or len(set(_inpl)) != len(_inpl)
+            or any(not isinstance(p, str) for p in _inpl)
+            or _ret_name in _inpl
+            or any(
+                p not in bound or not torch.is_tensor(kernel_inputs.get(p))
+                for p in _inpl
+            )
+        )
+        if _bad:
+            return False, (
+                "return_plus_inplace invalid (mutually exclusive with "
+                "output_projection/inplace_outputs; return_name must be a "
+                "non-empty string distinct from inplace; inplace must be a "
+                "non-empty unique list of bound tensor-valued task keys; "
+                f"declared={_rpi}, bound={sorted(bound)}) -- fail-closed, "
+                "not projecting"
+            ), False, False
+        cand_ret = {_ret_name: cand_ret}
+        cand_ret.update({p: kernel_inputs[p] for p in _inpl})
+    elif _rpi:
+        return False, (
+            "return_plus_inplace declared but candidate did not return a "
+            f"single tensor (got {type(cand_ret).__name__}) -- fail-closed, "
+            "not projecting"
+        ), False, False
     if cand_ret is None:
         # meta.interface.inplace_outputs (ANCHOR-ONLY): a REVIEWED
         # declaration naming the bound task keys an in-place wrapper writes
@@ -523,17 +577,18 @@ def _check_one_shape(
     if not orac_t:
         return False, "oracle produced no tensors to compare", False, False
 
-    # inplace_outputs is anchor-only and could narrow the compared set, so it
-    # must cover the oracle's flattened keys exactly and match same-key only
-    # (fallback disabled below) -- else a too-narrow declaration hides a wrong
+    # inplace_outputs / return_plus_inplace are anchor-only and build the
+    # candidate output dict from named keys, so they must cover the oracle's
+    # flattened keys EXACTLY and match same-key only (fallback shape/dtype
+    # pairing disabled below) -- else a too-narrow declaration hides a wrong
     # output behind a same-shape sibling.
-    _strict_keys = _inplace_outs is not None
+    _strict_keys = _inplace_outs is not None or bool(_rpi)
     if _strict_keys and set(cand_t.keys()) != set(orac_t.keys()):
         return False, (
-            f"inplace_outputs harvested keys {sorted(cand_t.keys())} do NOT "
+            f"named-output harvested keys {sorted(cand_t.keys())} do NOT "
             f"match the oracle output keys {sorted(orac_t.keys())} exactly -- "
-            f"the declaration must name precisely the kernel's real outputs "
-            f"(fail-closed, no narrowing)"
+            f"the inplace_outputs / return_plus_inplace declaration must name "
+            f"precisely the kernel's real outputs (fail-closed, no narrowing)"
         ), False, False
 
     details: list[str] = []

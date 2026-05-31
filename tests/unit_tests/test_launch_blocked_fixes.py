@@ -14,6 +14,7 @@ from triton_ascend_bench.inputs import build_inputs
 from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
     clear_conflicting_vllm_registrations,
     install_vllm_c_stub,
+    install_vllm_flash_attn_stub,
     install_vllm_source_version_shim,
 )
 
@@ -118,6 +119,99 @@ def test_install_vllm_c_stub_skips_when_compiled_extension_exists(
                 sys.modules.pop(name, None)
             else:
                 sys.modules[name] = mod
+
+
+_FA_STUB_MODS = (
+    "vllm.vllm_flash_attn",
+    "vllm.vllm_flash_attn.flash_attn_interface",
+)
+
+
+def _save_fa_mods():
+    return {n: sys.modules.get(n) for n in _FA_STUB_MODS}
+
+
+def _restore_fa_mods(saved):
+    for name, mod in saved.items():
+        if mod is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = mod
+
+
+def test_install_vllm_flash_attn_stub_injects_inert_surface(
+    tmp_path, monkeypatch,
+):
+    # Source checkout with the package source but NO compiled extension.
+    vroot = tmp_path / "vllm_src"
+    fa = vroot / "vllm" / "vllm_flash_attn"
+    fa.mkdir(parents=True)
+    (fa / "__init__.py").write_text("raise ImportError('needs _vllm_fa2_C')\n")
+    monkeypatch.syspath_prepend(str(vroot))
+
+    saved = _save_fa_mods()
+    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    try:
+        # Autodiscovery from sys.path (the form clear_conflicting uses).
+        assert install_vllm_flash_attn_stub() is True
+        pkg = sys.modules["vllm.vllm_flash_attn"]
+        assert getattr(pkg, "__tab_vllm_flash_attn_stub__", False) is True
+        # FA flags honest: no compiled extension -> both False.
+        assert pkg.FA2_AVAILABLE is False
+        assert pkg.FA3_AVAILABLE is False
+        # Public names resolve but RAISE on call (never silently faked).
+        for n in (
+            "flash_attn_varlen_func",
+            "get_scheduler_metadata",
+            "is_fa_version_supported",
+            "fa_version_unsupported_reason",
+        ):
+            fn = getattr(pkg, n)
+            try:
+                fn()
+            except RuntimeError as exc:
+                assert "inert" in str(exc)
+            else:
+                raise AssertionError(f"{n} must fail loudly on call")
+        # Submodule the real __init__ re-exports from is stubbed too.
+        iface = sys.modules["vllm.vllm_flash_attn.flash_attn_interface"]
+        assert getattr(iface, "__tab_vllm_flash_attn_stub__", False) is True
+        # Idempotent.
+        assert install_vllm_flash_attn_stub() is False
+    finally:
+        _restore_fa_mods(saved)
+
+
+def test_install_vllm_flash_attn_stub_skips_when_compiled_extension_exists(
+    tmp_path, monkeypatch,
+):
+    vroot = tmp_path / "vllm_src"
+    fa = vroot / "vllm" / "vllm_flash_attn"
+    fa.mkdir(parents=True)
+    (fa / "__init__.py").write_text("# real package\n")
+    (fa / f"_vllm_fa2_C{EXTENSION_SUFFIXES[0]}").write_text("")
+    monkeypatch.syspath_prepend(str(vroot))
+
+    saved = _save_fa_mods()
+    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    try:
+        # Compiled extension present -> real flash-attn, leave it untouched.
+        assert install_vllm_flash_attn_stub(vroot) is False
+        assert "vllm.vllm_flash_attn" not in sys.modules
+    finally:
+        _restore_fa_mods(saved)
+
+
+def test_install_vllm_flash_attn_stub_noop_without_source_checkout(monkeypatch):
+    # No source-checkout vLLM on sys.path -> nothing to close, no-op.
+    monkeypatch.setattr(sys, "path", [p for p in sys.path if "vllm" not in p])
+    saved = _save_fa_mods()
+    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    try:
+        assert install_vllm_flash_attn_stub() is False
+        assert "vllm.vllm_flash_attn" not in sys.modules
+    finally:
+        _restore_fa_mods(saved)
 
 
 def test_install_vllm_c_stub_imports_real_upstream_cuda_without_extensions(
