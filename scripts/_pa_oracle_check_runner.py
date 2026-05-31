@@ -678,6 +678,28 @@ def main() -> int:
         if p not in sys.path:
             sys.path.insert(0, p)
 
+    # Under TRITON_INTERPRET=1 the inputs live on CPU, where
+    # ``torch.get_device_module(x.device)`` resolves to ``torch.cpu`` -- which
+    # has no ``device`` attribute, so an upstream host wrapper's
+    # ``with torch.get_device_module(x.device).device(...):`` guard (the
+    # standard Mamba2/SSD launch pattern) raises AttributeError before the
+    # kernel runs. Install a no-op ``torch.cpu.device`` context manager so the
+    # graded kernel is actually invoked; it has zero numeric effect (everything
+    # is CPU under interpret) and never touches the native CUDA path. Skipped on
+    # the GPU fallback (interpret=False), where torch.cuda.device is real.
+    if interpret:
+        try:
+            from triton_ascend_bench.upstream_shims.torch_cpu_device_interp import (
+                install as _install_cpu_device_shim,
+            )
+
+            _install_cpu_device_shim()
+        except ImportError as e:
+            # Surface a broken shim import rather than silently degrading back
+            # to a false "upstream-not-invocable" verdict.
+            print(f"[anchor] torch_cpu_device_interp unavailable: {e}",
+                  file=sys.stderr)
+
     try:
         from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
             install_vllm_c_stub,
