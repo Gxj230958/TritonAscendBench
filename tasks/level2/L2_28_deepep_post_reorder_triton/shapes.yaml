@@ -131,6 +131,11 @@ hidden_shapes:
     E: 256
     C: 8
     G: 4
+# DeepEP post-reorder contract inputs (the entrypoint's actual signature).
+# src2dst is a FLAT [B*2] permutation of expert-major row slots -> randperm,
+# NOT arange: with identity (arange) src2dst[i*topk+j] == i*topk+j, so a kernel
+# that ignores src2dst and reads x[i*topk+j] directly would pass bit-for-bit.
+# A random permutation makes src2dst load-bearing -- the gather must honour it.
 inputs:
   x:
     dims:
@@ -142,7 +147,7 @@ inputs:
     dims:
     - B*2
     dtype: int64
-    dist: arange
+    dist: randperm
   topk_weights:
     dims:
     - B
@@ -151,37 +156,3 @@ inputs:
     dist: rand
   topk:
     scalar: 2
-  down_output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  input:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  x_scale:
-    dims:
-    - B
-    dtype: float32
-    dist: randn
-  masked_m:
-    dims:
-    - B
-    - N
-    dtype: bool
-  output:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-  problem_sizes1:
-    dims:
-    - E
-    - "3"
-    dtype: int32

@@ -75,7 +75,7 @@ Knob grid in `shapes.yaml`.
 ### Input distributions (`dists`)
 
 - `x`: `randn`
-- `src2dst`: `arange`
+- `src2dst`: `randperm`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
