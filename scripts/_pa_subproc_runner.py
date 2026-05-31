@@ -50,6 +50,7 @@ import importlib.util
 import json
 import re
 import sys
+import traceback
 import types
 from pathlib import Path
 
@@ -905,7 +906,13 @@ def _run_side(args: argparse.Namespace) -> int:
         (out_dir / f"{side}_manifest.json").write_text(json.dumps(manifest))
         status["ran"] = True
     except Exception as e:
-        status["error"] = f"{type(e).__name__}: {e}"
+        # Diagnostic-only: append the failing frame so a *-no-run verdict
+        # pinpoints the exact line (the bare type/message hides which call
+        # exploded under real-GPU autotune/launch paths). Does not change the
+        # ran/blocked outcome.
+        _tb = traceback.format_exc()
+        status["error"] = f"{type(e).__name__}: {e} || tb: {_tb[-700:]}"
+        status["traceback"] = _tb
 
     if side == "severed" and guard is not None and guard.runtime_leaks:
         # A runtime import leak raised ImportError inside run() -> the

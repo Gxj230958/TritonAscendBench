@@ -1694,7 +1694,13 @@ def compare_s2_manifests(
 
         # 1. Output structure (nested / non-tensor) must match exactly.
         if _strip_tensor_keys(o["tree"]) != _strip_tensor_keys(s["tree"]):
-            return False, f"{sid}: output structure differs (nested/non-tensor)"
+            # Diagnostic-only: surface both descriptors so the diverging side
+            # is visible (the bare phrase hides which side is nested/non-tensor).
+            # Leading phrase kept intact for the category recogniser.
+            return False, (
+                f"{sid}: output structure differs (nested/non-tensor): "
+                f"orig={_strip_tensor_keys(o['tree'])!r} sev={_strip_tensor_keys(s['tree'])!r}"
+            )
 
         o_meta, s_meta = o["leaf_meta"], s["leaf_meta"]
         # Only OUTPUT leaves (not __mut__ inputs) for the value compare.
