@@ -12,25 +12,41 @@ definition (no upstream code copy).
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
 
 
 def _segmented_lora_expand(
     x: torch.Tensor, weights: torch.Tensor, seg_indptr: torch.Tensor,
     weight_indices: torch.Tensor, lora_ranks: torch.Tensor,
-    scalings: torch.Tensor, base_output: torch.Tensor | None,
+    scalings: torch.Tensor, slice_offsets: torch.Tensor,
+    base_output: torch.Tensor | None,
 ) -> torch.Tensor:
-    """SGMV LoRA expand: out = base + scaling[adapter] * (x @ B[adapter]^T).
+    """Chunked SGMV LoRA-B expand — per-segment, per-slice GEMM.
 
-    x: [n_tokens, max_rank]; weights (B): [n_adapters, OUT, max_rank].
-    Only the first `lora_ranks[adapter]` columns of x contribute.
+    The input x packs ``num_slices`` rank-r projections side by side, and each
+    slice maps to a distinct output band (qkv-style fused expand). For each
+    segment (token range) and each slice i::
+
+        out[rows, slice_offsets[i]:slice_offsets[i+1]] +=
+            scaling[ad] * (x[rows, i*r:(i+1)*r] @ weights[ad, band_i, :r]^T)
+
+    where ``ad = weight_indices[segment]`` selects the LoRA-B slab and
+    ``r = min(MAX_RANK, lora_ranks[ad])`` is that adapter's effective rank.
+
+    x: [n_tokens, num_slices * MAX_RANK]; weights (B): [n_adapters, OUT,
+    MAX_RANK]; slice_offsets: [num_slices + 1] boundaries into the output
+    dim. Each slice strides x by the adapter rank r (not MAX_RANK), matching
+    the kernel's ``slice_id * cur_rank`` x offset. Only the first r columns of
+    each slice's weight band contribute.
     """
     n_tokens = x.shape[0]
     out_dim = weights.shape[1]
+    max_rank = weights.shape[2]
     out = (base_output.to(torch.float32).clone()
            if base_output is not None
            else x.new_zeros((n_tokens, out_dim), dtype=torch.float32))
     seg = seg_indptr.to(torch.long).tolist()
+    soff = slice_offsets.to(torch.long).tolist()
+    num_slices = len(soff) - 1
     xf = x.to(torch.float32)
     wf = weights.to(torch.float32)
     for i in range(len(seg) - 1):
@@ -38,9 +54,17 @@ def _segmented_lora_expand(
         if e <= s:
             continue
         ad = int(weight_indices[i].item())
-        r = int(lora_ranks[ad].item())
+        r = min(max_rank, int(lora_ranks[ad].item()))
+        if r <= 0:
+            continue
         sc = float(scalings[ad].item())
-        out[s:e] += sc * (xf[s:e, :r] @ wf[ad, :, :r].T)
+        for sl in range(num_slices):
+            c0, c1 = soff[sl], soff[sl + 1]
+            if c1 <= c0:
+                continue
+            xb = xf[s:e, sl * r:sl * r + r]
+            wb = wf[ad, c0:c1, :r]
+            out[s:e, c0:c1] += sc * (xb @ wb.T)
     return out.to(x.dtype)
 
 
@@ -49,6 +73,10 @@ def run(inputs: dict) -> dict:
         "output": _segmented_lora_expand(
             inputs["x"], inputs["weights"], inputs["seg_indptr"],
             inputs["weight_indices"], inputs["lora_ranks"],
-            inputs["scalings"], inputs.get("base_output"),
+            inputs["scalings"], inputs["slice_offsets"],
+            inputs.get("base_output"),
         )
     }
+# NOTE: x packs num_slices rank-r projections side by side; each slice writes a
+# distinct output band. The earlier oracle did a single full-width GEMM, which
+# only realized slice 0 and dropped every other slice. See _segmented_lora_expand.

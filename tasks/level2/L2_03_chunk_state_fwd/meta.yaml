@@ -15,7 +15,7 @@ upstream:
   file_sha256: bf88061b850b779d2ad64355c23b803ae1fe8791a9a55a343f6f6b3ca0e4f57f
   function_hash: bf88061b850b779d2ad64355c23b803ae1fe8791a9a55a343f6f6b3ca0e4f57f
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: graded via _pa_launcher.py::run driving the in-module _chunk_state_fwd host wrapper.
   vendored_snapshot: tasks/_vendored/L2_03_chunk_state_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
   # Symbol audit (approach §3.4). Mamba2 intra-chunk state:

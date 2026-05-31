@@ -36,12 +36,50 @@ Tensor layouts (matching the kernel's ``make_block_ptr`` strides):
     -> w:     [B, T, H,  K]
     -> u:     [B, T, H,  V]
 
-The kernel keeps everything in the input dtype with an fp32 dot accumulate;
-for the float32 contract this is fp32 end to end.
+The kernel keeps everything in the input dtype with an fp32 dot accumulate.
+The two dots differ in precision pinning, which the oracle MUST mirror:
+
+* ``u`` dot (kernel.py:107) is pinned ``tl.dot(b_A, b_vb, allow_tf32=False)``
+  -- IEEE/full-fp32 -- so the oracle computes ``u`` in full fp32.
+* ``w`` dot (kernel.py:129) is ``tl.dot(b_A, b_kb)`` with NO precision pin.
+  On the CUDA daemon (Ampere+/Hopper) Triton's default f32 ``tl.dot`` runs on
+  the TF32 tensor cores: each fp32 operand is truncated to a 19-bit TF32 value
+  (10 mantissa bits) before the multiply, with fp32 accumulate. The oracle
+  therefore truncates BOTH ``w``-dot operands (the A matrix and the already
+  gated key operand ``kb``) to TF32 (see ``_to_tf32``), matching the sibling
+  fla oracles L3_18 / L3_19. This models the kernel's REAL hardware precision
+  -- it is a faithful reference, not a narrowed one.
 """
 from __future__ import annotations
 
 import torch
+
+
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round a float32 tensor to TF32 precision the way the kernel's GPU
+    ``tl.dot`` does for the UNPINNED ``w`` dot.
+
+    ``kernel.py`` line 129 computes ``b_w = tl.dot(b_A, b_kb)`` with no
+    ``allow_tf32=False`` / ``input_precision="ieee"`` pin (contrast the ``u``
+    dot at line 107, which IS pinned). On Ampere+ an unpinned float32
+    ``tl.dot`` runs on the TF32 tensor cores: each float32 operand is reduced
+    to a 19-bit TF32 value (8 exp + 10 mantissa bits) before the multiply,
+    with float32 accumulate. Triton's default ``tl.dot`` TRUNCATES the low 13
+    of the 23 float32 mantissa bits (it does not round-to-nearest-even), so we
+    truncate. The sibling fla oracles L3_18 / L3_19 use the identical
+    emulation. Tolerance (elementwise atol/rtol=1e-3) is unchanged; the
+    residual oracle-vs-kernel diff is then only float32 accumulation-order
+    noise.
+
+    NOTE on the local CPU anchor: under ``TRITON_INTERPRET=1`` the interpreter
+    ignores f32 ``input_precision`` and runs the dot in full fp32, so the
+    CPU-interpret oracle-consistency anchor can report a (known, documented)
+    false-negative for this fp32-output task. The GPU bit-exact re-run -- which
+    runs the kernel's real TF32 dot -- is the authoritative confirm.
+    """
+    bits = x.contiguous().view(torch.int32)
+    truncated = bits & ~((1 << 13) - 1)
+    return truncated.view(torch.float32)
 
 
 def _recompute_w_u_fwd(
@@ -82,8 +120,14 @@ def _recompute_w_u_fwd(
     vb = bc.unsqueeze(-1) * vc                                   # [.., col, H, V]
     kb = (bc * torch.exp(gc)).unsqueeze(-1) * kc                 # [.., col, H, K]
 
+    # u dot is IEEE-pinned in the kernel (allow_tf32=False, kernel.py:107),
+    # so keep full fp32. The w dot is UNPINNED (kernel.py:129) and runs in
+    # TF32 on the CUDA daemon, so truncate BOTH w-dot operands (the A matrix
+    # and the already gated key operand kb) to TF32 before contracting.
     u = torch.einsum("bnrhc,bnchv->bnrhv", Ac, vb).reshape(B, T, H, V)
-    w = torch.einsum("bnrhc,bnchk->bnrhk", Ac, kb).reshape(B, T, H, K)
+    w = torch.einsum(
+        "bnrhc,bnchk->bnrhk", _to_tf32(Ac), _to_tf32(kb)
+    ).reshape(B, T, H, K)
 
     return w.to(k.dtype), u.to(v.dtype)
 

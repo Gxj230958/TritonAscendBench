@@ -19,13 +19,23 @@ def _chunk_state_fwd(
     B: torch.Tensor, x: torch.Tensor, dt: torch.Tensor,
     dA_cumsum: torch.Tensor,
 ) -> torch.Tensor:
-    """Mamba2 intra-chunk state: states = sum_t exp(dA_last - dA_t)·dt_t·
-    B_t ⊗ x_t. B: [n_chunks,L,N]; x: [n_chunks,L,P]; dt,dA: [n_chunks,L].
+    """Mamba2 intra-chunk state: states = sum_t exp(min(dA_last - dA_t, 0))·
+    dt_t · B_t ⊗ x_t. B: [n_chunks,L,N]; x: [n_chunks,L,P]; dt,dA:
+    [n_chunks,L].
+
+    The decay weight exp(dA_last - dA_t) is CLAMPED to <= 1 via
+    min(dA_last - dA_t, 0): this mirrors the upstream Mamba2 chunk-state
+    kernel (state-spaces/mamba, vLLM commit 18f6bf5,
+    ``scale = fast_exp(tl.minimum(dA_cs_last - dA_cs_k, 0.0)) * dt``) and is
+    load-bearing here -- dA_cumsum is i.i.d. uniform (NOT a monotone running
+    cumsum), so its last element is not the running max and dA_last - dA_t is
+    positive for many t; without the clamp the exponent blows up O(1) past the
+    true decay (the clamp keeps the geometric memory weight bounded by 1).
     """
     Bf, xf = B.to(torch.float32), x.to(torch.float32)
     dtf = dt.to(torch.float32)
     dAc = dA_cumsum.to(torch.float32)
-    decay = torch.exp(dAc[:, -1:] - dAc)                     # [C,L]
+    decay = torch.exp(torch.clamp(dAc[:, -1:] - dAc, max=0.0))   # [C,L]
     w = (decay * dtf).unsqueeze(-1)                          # [C,L,1]
     return torch.einsum("cln,clp->cnp", Bf * w, xf).to(x.dtype)
 
