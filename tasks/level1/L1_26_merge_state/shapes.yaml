@@ -160,4 +160,8 @@ inputs:
     - B
     - H
     dtype: float32
-    dist: randn_inf
+    # Paired empty-split sentinel: inject +inf only where prefix_lse is finite,
+    # so the two splits are never BOTH empty (both-empty is the undefined NaN
+    # domain, non-physical in flash-decoding). Keeps the one-sided drop branch
+    # exercised on both sides; removes the NaN rows that broke strict torch.equal.
+    dist: randn_inf_excl:prefix_lse

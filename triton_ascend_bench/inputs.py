@@ -79,7 +79,8 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 #: Closed dist-kind enum — bound to the `build_inputs` distribution
 #: vocabulary and to the `specs/task_api_contract.md §5.2` dist-kind table.
 DIST_KINDS = frozenset({
-    "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril", "randint",
+    "randn", "randn_inf", "randn_inf_excl",
+    "rand", "ones", "zeros", "eye", "tril", "randint",
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "offsets",
     "cumcount", "arange", "randperm", "cyclic_perm", "full", "routing_ids",
     "window_pos", "window_req", "gumbel_temps", "gumbel_routing",
@@ -159,6 +160,18 @@ def parse_dist_spec(dist: Any) -> dict[str, Any]:
             )
         return {"kind": "randint",
                 "args": {"lo": parts[0].strip(), "hi": parts[1].strip()}}
+    if head == "randn_inf_excl":
+        # `randn_inf_excl:<ref>` -- randn with +inf injected at the same
+        # fraction as randn_inf, but ONLY where the referenced (already
+        # materialised) tensor is FINITE, so the two never carry +inf at the
+        # same position. Used to pair the two flash-decoding split LSEs so a
+        # position is empty on at most ONE side (both-empty is the undefined /
+        # non-physical NaN domain; a merge always has >=1 non-empty split).
+        if not rest.strip():
+            raise DistSpecError(
+                f"dist {dist!r}: 'randn_inf_excl' needs 'randn_inf_excl:<ref>'"
+            )
+        return {"kind": "randn_inf_excl", "args": {"ref": rest.strip()}}
     if head == "routing_ids":
         # `routing_ids:<num_experts_expr>` -- a per-token MoE expert-assignment
         # vector in [0, E) with a deterministic drop fraction set to -1 (the
@@ -289,6 +302,12 @@ def _normalise_structured_dist(spec: dict[str, Any]) -> dict[str, Any]:
                 f"dist 'randint' args must be exactly {{lo, hi}}, "
                 f"got {sorted(args)}"
             )
+    elif kind == "randn_inf_excl":
+        if set(args) != {"ref"}:
+            raise DistSpecError(
+                f"dist 'randn_inf_excl' args must be exactly {{ref}}, "
+                f"got {sorted(args)}"
+            )
     elif kind == "offsets":
         if set(args) not in ({"to"}, {"step"}):
             raise DistSpecError(
@@ -363,6 +382,8 @@ def unparse_dist_spec(spec: dict[str, Any]) -> str:
         return kind
     if kind == "randint":
         return f"randint:{args['lo']}:{args['hi']}"
+    if kind == "randn_inf_excl":
+        return f"randn_inf_excl:{args['ref']}"
     if kind == "offsets":
         if "to" in args:
             return f"offsets:to={args['to']}"
@@ -441,7 +462,8 @@ def _resolve_dtype(name: str) -> "torch.dtype":
 
 
 def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
-                 gen: torch.Generator) -> torch.Tensor:
+                 gen: torch.Generator,
+                 out: dict[str, Any] | None = None) -> torch.Tensor:
     """Materialise one tensor input from a ``shapes.yaml`` tensor spec.
 
     The spec's ``dist`` declaration is normalised through the shared
@@ -469,6 +491,34 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
         # the inf/nan-position comparator).
         t = torch.randn(shape, generator=gen, dtype=torch.float32)
         inf_mask = torch.rand(shape, generator=gen) < _RANDN_INF_FRACTION
+        t = torch.where(inf_mask, torch.full_like(t, float("inf")), t)
+    elif kind == "randn_inf_excl":
+        # randn with +inf injected at _RANDN_INF_FRACTION, but ONLY where the
+        # referenced (already materialised) tensor is FINITE -- so the two
+        # never carry +inf at the same position (no both-empty). both-empty is
+        # the undefined / non-physical NaN domain (a flash-decoding merge
+        # always has >=1 non-empty split); excluding it keeps the load-bearing
+        # one-sided +inf -> -inf DROP branch fully exercised on BOTH sides.
+        # Fail-closed: the ref tensor must be materialised earlier (declared
+        # before this input in shapes.yaml) and share this tensor's shape.
+        ref_name = str(args["ref"])
+        if out is None or ref_name not in out:
+            raise DistSpecError(
+                f"randn_inf_excl:{ref_name} -- reference tensor {ref_name!r} "
+                f"not materialised before this input; declare it earlier in "
+                f"shapes.yaml inputs:"
+            )
+        ref = out[ref_name]
+        if not torch.is_tensor(ref) or tuple(ref.shape) != shape:
+            raise DistSpecError(
+                f"randn_inf_excl:{ref_name} -- reference must be a tensor with "
+                f"the same shape {shape}, got "
+                f"{tuple(ref.shape) if torch.is_tensor(ref) else type(ref).__name__}"
+            )
+        t = torch.randn(shape, generator=gen, dtype=torch.float32)
+        inf_mask = (torch.rand(shape, generator=gen) < _RANDN_INF_FRACTION) & (
+            ref != float("inf")
+        )
         t = torch.where(inf_mask, torch.full_like(t, float("inf")), t)
     elif kind == "rand":
         t = torch.rand(shape, generator=gen, dtype=torch.float32)
@@ -933,7 +983,10 @@ def build_inputs(
         elif "scalar_knob" in spec:
             out[name] = int(eval_numeric(str(spec["scalar_knob"]), knobs))
         else:
-            out[name] = _make_tensor(spec, knobs, gen)
+            # Pass the partial `out` so a coupled dist (randn_inf_excl) can
+            # reference an EARLIER-declared sibling tensor. Ordering in
+            # shapes.yaml inputs: matters -- the ref must appear first.
+            out[name] = _make_tensor(spec, knobs, gen, out)
     return out
 
 

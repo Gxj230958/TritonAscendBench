@@ -377,3 +377,59 @@ def test_build_inputs_unknown_dist_fails_loud():
                              "dist": "gaussian"}})
     with pytest.raises(DistSpecError, match="unknown kind"):
         build_inputs(doc, "P1", seed=0)
+
+
+# ==========================================================================
+# randn_inf_excl — coupled empty-split sentinel (L1_26 paired-inf)
+# ==========================================================================
+
+def test_parse_dist_randn_inf_excl_round_trip():
+    spec = parse_dist_spec("randn_inf_excl:prefix_lse")
+    assert spec == {"kind": "randn_inf_excl", "args": {"ref": "prefix_lse"}}
+    assert unparse_dist_spec(spec) == "randn_inf_excl:prefix_lse"
+
+
+def test_parse_dist_randn_inf_excl_needs_ref():
+    with pytest.raises(DistSpecError, match="randn_inf_excl"):
+        parse_dist_spec("randn_inf_excl")
+
+
+def test_parse_dist_structured_randn_inf_excl_bad_args_rejected():
+    with pytest.raises(DistSpecError, match="must be exactly"):
+        parse_dist_spec({"kind": "randn_inf_excl", "args": {"wrong": "x"}})
+
+
+def test_build_inputs_randn_inf_excl_no_both_empty():
+    """The load-bearing invariant: a position is +inf on AT MOST one side
+    (no both-empty NaN), while one-sided +inf fires on BOTH sides."""
+    doc = _shapes_doc({
+        "a": {"dims": ["D"], "dtype": "float32", "dist": "randn_inf"},
+        "b": {"dims": ["D"], "dtype": "float32",
+              "dist": "randn_inf_excl:a"},
+    }, knobs={"D": 4096})
+    out = build_inputs(doc, "P1", seed=0)
+    ainf, binf = torch.isinf(out["a"]), torch.isinf(out["b"])
+    assert int((ainf & binf).sum()) == 0          # never both empty
+    assert int((ainf & ~binf).sum()) > 0          # a-only empty occurs
+    assert int((binf & ~ainf).sum()) > 0          # b-only empty occurs
+
+
+def test_build_inputs_randn_inf_excl_missing_ref_fails():
+    """Fail-closed when the referenced tensor is not declared earlier."""
+    doc = _shapes_doc({
+        "b": {"dims": ["D"], "dtype": "float32",
+              "dist": "randn_inf_excl:a"},
+    })
+    with pytest.raises(DistSpecError, match="not materialised before"):
+        build_inputs(doc, "P1", seed=0)
+
+
+def test_build_inputs_randn_inf_excl_shape_mismatch_fails():
+    """Fail-closed when the ref shape differs from this tensor's shape."""
+    doc = _shapes_doc({
+        "a": {"dims": ["B", "D"], "dtype": "float32", "dist": "randn_inf"},
+        "b": {"dims": ["D"], "dtype": "float32",
+              "dist": "randn_inf_excl:a"},
+    })
+    with pytest.raises(DistSpecError, match="same shape"):
+        build_inputs(doc, "P1", seed=0)
