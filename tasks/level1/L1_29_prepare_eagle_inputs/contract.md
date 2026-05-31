@@ -58,8 +58,8 @@ never invokes the kernel.
 - `target_input_ids` `[num_reqs * query_len]` int32
 - `target_positions` `[num_reqs * query_len]` int64
 - `idx_mapping` `[num_reqs]` int64 (permutation of `[0, num_reqs)`)
-- `num_sampled` `[num_reqs]` int64
-- `num_rejected` `[num_reqs]` int64 (in `[0, query_len)`)
+- `num_sampled` `[num_reqs]` int32
+- `num_rejected` `[num_reqs]` int32 (in `[0, query_len)`)
 - `last_sampled` `[max_num_reqs]` int32
 - `next_prefill_tokens` `[max_num_reqs]` int32
 - `seq_lens` `[num_reqs]` int32
@@ -99,8 +99,8 @@ Public: 5 (P1..P5). Hidden: 4 (H1..H4). Knob grid in `shapes.yaml`.
 - `target_input_ids`: `int32`
 - `target_positions`: `int64`
 - `idx_mapping`: `int64`
-- `num_sampled`: `int64`
-- `num_rejected`: `int64`
+- `num_sampled`: `int32`
+- `num_rejected`: `int32`
 - `last_sampled`: `int32`
 - `next_prefill_tokens`: `int32`
 - `seq_lens`: `int32`

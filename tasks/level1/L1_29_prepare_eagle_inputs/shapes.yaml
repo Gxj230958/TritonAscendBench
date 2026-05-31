@@ -173,14 +173,14 @@ inputs:
   num_sampled:
     dims:
     - B
-    dtype: int64
+    dtype: int32
     dist: window_pos:2
   # Rejected token count per request, in [0, T) (torch.randint hi is exclusive)
   # so the truncated query length T - num_rejected stays >= 1.
   num_rejected:
     dims:
     - B
-    dtype: int64
+    dtype: int32
     dist: randint:0:T
   # Candidate next tokens, indexed by req_state_idx; length max_num_reqs (int32).
   last_sampled:
