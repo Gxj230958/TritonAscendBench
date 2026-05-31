@@ -56,6 +56,7 @@ import ast
 import datetime
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -80,7 +81,14 @@ _ORACLE_CHECK_RUNNER = SCRIPTS_DIR / "_pa_oracle_check_runner.py"
 # to upstream-not-invocable-here in the worst-news-first classifier
 # (the "timeout" substring matches neither _is_shapes_incomplete nor
 # _is_numeric_mismatch, so the fallback bucket is correctly chosen).
-_ORACLE_TIMEOUT_S = 180
+#
+# Override via TAB_ORACLE_TIMEOUT_S for the rare operator whose CPU-interpret
+# anchor is legitimately slow (e.g. the einsum-heavy Mamba2 SSD varlen scan,
+# whose median-volume anchor runs the interpreter element-by-element for
+# minutes). This only raises the hang guard; it never weakens the numeric
+# comparison. The GPU daemon (interpret=False, real CUDA) runs in milliseconds
+# and never needs it.
+_ORACLE_TIMEOUT_S = int(os.environ.get("TAB_ORACLE_TIMEOUT_S", "180"))
 
 # MUST-FIX 1 (codex r2 [confirmed]): the resolver-verdict cache must be
 # a DETERMINISTIC, REPRODUCIBLE in-repo artifact -- NOT a stray /tmp
@@ -1258,6 +1266,29 @@ def oracle_consistency_check(
             timeout=_ORACLE_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired:
+        # A CPU-interpret timeout is a tooling SPEED skew, not an operator
+        # defect: a heavy op (e.g. a per-expert batched GEMM over thousands
+        # of program instances x K-loop tiles) is simply too slow to
+        # Python-interpret in the per-candidate budget, while the SAME op on
+        # the real device runs in milliseconds. When a GPU is present, retry
+        # the SAME anchor ONCE on device (interpret=False) with the task's
+        # UNCHANGED tolerance -- the same rescue mechanism the completed-run
+        # interpret_error / narrow_float_output paths use below. A wrong
+        # operator still fails there (tolerance is not relaxed); only the
+        # interpret-speed limitation is corrected. interpret=False cannot
+        # re-enter this branch (its runner subprocess never times out the
+        # same way -- it runs on device, not the interpreter) -> fail-closed.
+        # On a no-GPU host the rescue does not engage and the fail-closed
+        # BLOCKED verdict is preserved exactly as before.
+        if interpret and _gpu_available():
+            g_ok, g_why, g_closure = oracle_consistency_check(
+                task_dir, entrypoint, interpret=False
+            )
+            suffix = (
+                f" [via GPU re-confirm: CPU-interpret timeout after "
+                f"{_ORACLE_TIMEOUT_S}s -> {'PASS' if g_ok else 'FAIL'}]"
+            )
+            return g_ok, g_why + suffix, g_closure
         return False, (
             f"oracle-check subprocess timeout after {_ORACLE_TIMEOUT_S}s "
             f"(per-candidate hard limit -- a hung subprocess would "

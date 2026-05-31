@@ -913,6 +913,135 @@ def _vendor_triton_helper_module(
     return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
 
 
+# Import-safe pool key for the extracted mamba softplus (no ':' -- a colon
+# would survive pool_module_path's dot-replacement into an invalid filename).
+_MAMBA_SOFTPLUS_POOL_KEY = (
+    "vllm.model_executor.layers.mamba.ops.mamba_ssm_softplus"
+)
+_MAMBA_SSM_REL = "vllm/model_executor/layers/mamba/ops/mamba_ssm.py"
+
+
+def _kernel_uses_triton_autotune(src: str) -> bool:
+    """True iff a kernel.py def carries a ``@triton.autotune(...)`` decorator.
+
+    AST-backed (a bare ``@triton.autotune`` text match would false-positive on
+    a comment / docstring mention, e.g. L3_05). Matches both the bare attribute
+    and the call form ``triton.autotune(...)``; an unparseable source returns
+    False (fail-safe: no clone rebind -> the existing plain-``import triton``
+    behaviour, which only matters for genuinely autotuned kernels)."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for deco in getattr(node, "decorator_list", []):
+            target = deco.func if isinstance(deco, ast.Call) else deco
+            if (
+                isinstance(target, ast.Attribute)
+                and target.attr == "autotune"
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "triton"
+            ):
+                return True
+    return False
+
+
+def _task_upstream_repo(task_dir: "Path | None") -> str:
+    """Normalised upstream repo name for the task (``"vllm"`` / ``"sglang"`` /
+    ``""``), read from ``meta.yaml.repo`` (or ``meta.upstream.repo``). Used to
+    repo-gate on-path vendoring so a vLLM-only helper is never vendored for an
+    SGLang task. Unreadable/absent -> ``""`` (fail-closed: gate declines)."""
+    if task_dir is None:
+        return ""
+    try:
+        meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+    except (OSError, ValueError):
+        return ""
+    repo = meta.get("repo") or ((meta.get("upstream") or {}).get("repo")) or ""
+    repo = str(repo).strip().lower()
+    if "vllm" in repo:
+        return "vllm"
+    if "sglang" in repo:
+        return "sglang"
+    return ""
+
+
+def _mamba_softplus_on_path(src: str, task_dir: "Path | None") -> bool:
+    """True iff this is a launcher task whose graded surface may reach the
+    real mamba ``softplus`` -- the case where the off-path raising stub is
+    WRONG and the real device function must be vendored.
+
+    The discriminator is an authored ``_pa_launcher.py``: a chunk_state task
+    that ships NO launcher keeps the untouched-line behaviour. A launcher task
+    that imports ``from .mamba_ssm import softplus`` either calls it on the
+    graded path (L1_40) or carries it on a never-launched sibling (L3_03's
+    launcher drives ``chunk_state_varlen`` and the ``_chunk_state_fwd``
+    prerequisite, neither of which reaches softplus, but the import is still at
+    module scope); vendoring the REAL function is correct either way (it
+    computes the right value if reached, is inert if not), so this positive
+    gate need not trace through the host wrapper the launcher calls.
+    Fail-closed: no launcher -> False."""
+    if task_dir is None:
+        return False
+    return (task_dir / "_pa_launcher.py").is_file()
+
+
+def _vendor_mamba_softplus(repo: str) -> str | None:
+    """Vendor the REAL upstream mamba ``softplus`` @triton.jit device
+    function into the U2 pool and return its dotted pool import path, or
+    ``None`` (fail-closed) if the upstream source is unreadable or the
+    softplus block cannot be located by AST.
+
+    Only ``softplus`` (plus its ``TRITON3`` version branch) is extracted --
+    mamba_ssm.py as a whole is not vendorable (it imports ``_custom_ops`` and
+    an attention-backend symbol). The extraction is verbatim source segments,
+    not an ``ast.unparse`` reconstruction, so the device function is
+    byte-faithful. ``HAS_TRITON`` is pinned True: the severed runtime always
+    has triton, and the S2 original side forces ``vllm.triton_utils.HAS_TRITON
+    = True`` identically (with the real ``triton.__version__``), so both sides
+    select the SAME ``TRITON3`` branch -> bit-exact parity."""
+    if repo != "vllm":
+        return None
+    src_path = VLLM_ROOT / _MAMBA_SSM_REL
+    try:
+        msrc = src_path.read_text()
+    except OSError:
+        return None
+    try:
+        tree = ast.parse(msrc)
+    except SyntaxError:
+        return None
+    triton3_seg: str | None = None
+    softplus_seg: str | None = None
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "TRITON3" for t in node.targets
+        ):
+            triton3_seg = ast.get_source_segment(msrc, node)
+        if isinstance(node, ast.If) and "softplus" in {
+            n.name for n in ast.walk(node) if isinstance(n, ast.FunctionDef)
+        }:
+            softplus_seg = ast.get_source_segment(msrc, node)
+    if not triton3_seg or not softplus_seg:
+        return None  # fail-closed: extraction failed -> leave the import line
+    preamble = (
+        "import triton\n"
+        "import triton.language as tl\n"
+        "from packaging import version\n\n"
+        "# HAS_TRITON pinned True: the severed runtime always has triton, and\n"
+        "# the S2 original side forces vllm.triton_utils.HAS_TRITON=True with\n"
+        "# the same triton.__version__, so both pick the SAME TRITON3 branch.\n"
+        "HAS_TRITON = True\n"
+    )
+    body = f"{preamble}\n{triton3_seg}\n\n{softplus_seg}\n"
+    dst = vendor_symbol(_MAMBA_SOFTPLUS_POOL_KEY, body, repo)
+    sha_dir = dst.parent.name           # h_<sha12>
+    safe_mod = dst.stem                 # <key-with-dots-as-underscores>
+    return f"tasks._frozen_deps_pool.{sha_dir}.{safe_mod}"
+
+
 # FLA-ops package U2 vendoring (codex design A). Each module's external
 # vllm imports are rewritten to public triton / the frozen shim; any
 # OTHER vllm/sglang import aborts the vendoring (fail-closed, return
@@ -3528,23 +3657,108 @@ def _has_top_level_flashinfer_import(tree: "ast.Module") -> bool:
     return False
 
 
+def _has_top_level_dead_vllm_import(
+    tree: "ast.Module", src: str, task_dir: "Path | None"
+) -> bool:
+    """True iff the module has a MODULE-LEVEL ``from vllm/sglang... import X``
+    whose binding ``X`` is referenced by NO def in the launcher's launched-jit
+    transitive closure -- i.e. an upstream import that feeds only DEAD siblings
+    (the host-wrapper class / off-path helpers the launcher bypasses). Such an
+    import is dead weight on the graded launch path, so the entrypoint-closure
+    slice can drop it (and its dead siblings) while keeping the launched jit
+    byte-identical.
+
+    This is the launcher-task analogue of ``_has_top_level_flashinfer_import``:
+    it gates the slice for a jit-only launcher whose stray upstream import is
+    vllm/sglang rather than flashinfer. It is strictly NARROWER than "any
+    top-level vllm import": it fires ONLY for imports whose binding is provably
+    off the launched-jit closure. A launcher whose launched jit (or its def-to-
+    def closure) references the imported symbol returns False, so that symbol
+    stays a real import the line rewriter / frozen shim must handle.
+
+    Firing the slice for such a launcher is safe regardless of how that task
+    PREVIOUSLY severed (full-module line-rewrite vs. slice): the slice is itself
+    fail-closed -- it only returns sliced source when every kept def's free
+    names are in the std/triton/torch allow-set AND the result carries no
+    residual vllm/sglang import; otherwise it declines and the original
+    full-module path runs unchanged. So a task that needs the symbol on its
+    graded path can never be silently narrowed by this gate. Fail-closed:
+    returns False whenever the launcher / launched roots cannot be resolved.
+    """
+    if task_dir is None:
+        return False
+    # Collect kernel.py @triton.jit names so the off-closure check can resolve
+    # the launched roots against them.
+    jit_names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            for d in getattr(node, "decorator_list", []):
+                src_d = ast.get_source_segment(src, d) or ""
+                if "triton.jit" in src_d or src_d.strip().endswith("jit"):
+                    jit_names.add(node.name)
+    if not _launcher_launched_jit_roots(task_dir, jit_names, kernel_src=src):
+        return False  # no provable graded root -> cannot prove dead -> decline
+    for node in tree.body:  # top-level statements only (not ast.walk)
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        top = (node.module or "").split(".", 1)[0]
+        if top not in {"vllm", "sglang"}:
+            continue
+        for alias in node.names:
+            bound = alias.asname or alias.name
+            if _symbol_off_launched_closure(src, task_dir, bound):
+                return True
+    return False
+
+
+def _jit_launches_in(node: ast.AST, jit_names: set[str]) -> set[str]:
+    """Collect kernel.py @triton.jit names launched (``NAME[grid](...)`` /
+    ``obj.NAME[grid](...)``) anywhere under ``node``, restricted to ``jit_names``."""
+    found: set[str] = set()
+    for n in ast.walk(node):
+        if not isinstance(n, ast.Call) or not isinstance(n.func, ast.Subscript):
+            continue
+        base = n.func.value
+        if isinstance(base, ast.Name):
+            nm = base.id
+        elif isinstance(base, ast.Attribute):
+            nm = base.attr
+        else:
+            continue
+        if nm in jit_names:
+            found.add(nm)
+    return found
+
+
 def _launcher_launched_jit_roots(
-    task_dir: "Path | None", jit_names: set[str]
+    task_dir: "Path | None", jit_names: set[str], kernel_src: "str | None" = None
 ) -> set[str]:
     """Return the kernel.py ``@triton.jit`` kernels that ``_pa_launcher.py``
-    LAUNCHES (``kernel[grid](...)``), restricted to the kernel's own jit names.
+    drives, restricted to the kernel's own jit names.
 
     Used by the entrypoint-closure slice for jit-only launcher tasks, where
     ``meta.gpu_triton`` is the launcher's ``run`` rather than a kernel.py def.
     The launched kernels are the real graded roots; their transitive closure is
     what the slice must keep.
 
-    A triton launch is a subscript-then-call: ``NAME[grid](...)`` or
-    ``obj.NAME[grid](...)`` (the launcher may reach the kernel via a module
-    alias, e.g. ``_kmod._foo_kernel[grid](...)``). Both the bare-name and the
-    attribute forms are collected; only targets that are actual kernel.py jit
-    names are returned (fail-closed: an unknown launch target is ignored, and an
-    empty result makes the caller decline the slice)."""
+    Two launch forms are recognised:
+
+      * DIRECT: a subscript-then-call ``NAME[grid](...)`` / ``obj.NAME[grid](...)``
+        in the launcher, where ``NAME`` is a kernel.py jit name (the launcher may
+        reach the kernel via a module alias, e.g. ``_kmod._foo_kernel[grid]``).
+      * VIA HOST WRAPPER: a plain call ``NAME(...)`` in the launcher where
+        ``NAME`` is an in-module kernel.py ``def`` (a host wrapper) that itself
+        launches jit kernels. The wrapper's launched jit kernels are the real
+        graded roots. Wrapper-calls-wrapper nesting is resolved transitively so
+        the root set is COMPLETE; an in-module wrapper whose body we cannot
+        resolve makes the function fail closed (returns the empty set, so the
+        caller declines the off-path shim and the dependency surfaces) rather
+        than trusting a partial root set.
+
+    ``kernel_src`` is the frozen kernel.py source (needed to map host wrappers to
+    the jit kernels they launch). When omitted only DIRECT launches are detected
+    (legacy behaviour). Fail-closed throughout: unknown targets are ignored and
+    an empty result makes the caller decline the slice."""
     if task_dir is None:
         return set()
     launcher = task_dir / "_pa_launcher.py"
@@ -3554,23 +3768,96 @@ def _launcher_launched_jit_roots(
         ltree = ast.parse(launcher.read_text(encoding="utf-8", errors="replace"))
     except (OSError, SyntaxError):
         return set()
+
+    # Map each in-module kernel.py host wrapper (plain def) to the jit kernels it
+    # launches, resolving wrapper-calls-wrapper nesting transitively.
+    wrapper_jits: dict[str, set[str]] = {}
+    if kernel_src:
+        try:
+            ktree = ast.parse(kernel_src)
+        except SyntaxError:
+            return set()
+        kdefs: dict[str, ast.AST] = {}
+        for node in ktree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                # Host wrappers are plain defs; the jit kernels themselves carry
+                # a @triton.jit decorator and are NOT host wrappers.
+                is_jit = any(
+                    "triton.jit" in (ast.get_source_segment(kernel_src, d) or "")
+                    or (ast.get_source_segment(kernel_src, d) or "").strip().endswith("jit")
+                    for d in getattr(node, "decorator_list", [])
+                )
+                if not is_jit:
+                    kdefs[node.name] = node
+        # Direct jit launches inside each wrapper + the in-module wrappers it calls.
+        direct: dict[str, set[str]] = {}
+        calls: dict[str, set[str]] = {}
+        for name, node in kdefs.items():
+            direct[name] = _jit_launches_in(node, jit_names)
+            callees: set[str] = set()
+            for n in ast.walk(node):
+                if not isinstance(n, ast.Call):
+                    continue
+                # In-module wrapper-calls-wrapper, bare or attribute form
+                # (``foo(...)`` / ``mod.foo(...)``). Both are traced so a
+                # wrapper that reaches a jit via a nested aliased wrapper call
+                # is never under-included.
+                if isinstance(n.func, ast.Name):
+                    cname = n.func.id
+                elif isinstance(n.func, ast.Attribute):
+                    cname = n.func.attr
+                else:
+                    continue
+                if cname in kdefs:
+                    callees.add(cname)
+            calls[name] = callees
+        # Transitive closure of launched jit kernels per wrapper.
+        for name in kdefs:
+            seen: set[str] = set()
+            stack = [name]
+            jits: set[str] = set()
+            while stack:
+                w = stack.pop()
+                if w in seen:
+                    continue
+                seen.add(w)
+                jits |= direct.get(w, set())
+                stack.extend(calls.get(w, set()))
+            wrapper_jits[name] = jits
+
     roots: set[str] = set()
     for node in ast.walk(ltree):
-        # Match the call ``<target>[<grid>](...)`` where <target> is the kernel.
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if not isinstance(func, ast.Subscript):
+        # DIRECT launch: NAME[grid](...) / obj.NAME[grid](...).
+        if isinstance(func, ast.Subscript):
+            base = func.value
+            if isinstance(base, ast.Name):
+                name = base.id
+            elif isinstance(base, ast.Attribute):
+                name = base.attr
+            else:
+                continue
+            if name in jit_names:
+                roots.add(name)
             continue
-        base = func.value
-        if isinstance(base, ast.Name):
-            name = base.id
-        elif isinstance(base, ast.Attribute):
-            name = base.attr
+        # VIA HOST WRAPPER: NAME(...) or obj.NAME(...) where NAME is an
+        # in-module wrapper (the launcher may reach the wrapper bare or via a
+        # module alias, e.g. ``_kmod.chunk_state_varlen(...)``). Both forms are
+        # collected so an aliased wrapper call is never silently under-included
+        # (which would drop a real graded jit root and wrongly mark a symbol
+        # off-path); over-inclusion stays safe because the downstream
+        # ``_symbol_off_launched_closure`` re-checks the symbol against every
+        # kept def.
+        if isinstance(func, ast.Name):
+            wname = func.id
+        elif isinstance(func, ast.Attribute):
+            wname = func.attr
         else:
-            continue
-        if name in jit_names:
-            roots.add(name)
+            wname = None
+        if wname is not None and wname in wrapper_jits:
+            roots |= wrapper_jits[wname]
     return roots
 
 
@@ -3610,7 +3897,7 @@ def _symbol_off_launched_closure(
                 src_d = ast.get_source_segment(src, d) or ""
                 if "triton.jit" in src_d or src_d.strip().endswith("jit"):
                     jit_names.add(node.name)
-    roots = _launcher_launched_jit_roots(task_dir, jit_names)
+    roots = _launcher_launched_jit_roots(task_dir, jit_names, kernel_src=src)
     if not roots:
         return False  # no provable graded root -> cannot prove off-path
 
@@ -3698,20 +3985,34 @@ def _slice_to_entrypoint_closure(
     # task the meta entrypoint is the launcher's ``run`` (NOT a kernel.py def),
     # so derive the roots from the @triton.jit kernels the launcher LAUNCHES.
     #
-    # The launcher branch activates ONLY when the module carries a MODULE-LEVEL
-    # (top-of-file, executed at import) upstream import the line-level rewriter
-    # cannot sever -- i.e. a non-vllm/sglang third-party (``from flashinfer
-    # import ...`` at column 0). For a launcher task whose only upstream imports
-    # are vllm/sglang (handled by the line rewriter + frozen shim, the proven
-    # path for L1_02/L1_05/L1_28), or whose flashinfer import is LAZY inside a
-    # function body (L1_32/L1_33/L2_18/L2_38 -- never run at import on the graded
-    # path), the slice keeps DECLINING so their established severance is
-    # untouched. Fail-closed: if no launched jit root resolves into the kernel's
-    # jit_names, decline so the leak surfaces rather than a silent narrowing.
+    # The launcher branch activates when the module carries a MODULE-LEVEL
+    # (top-of-file, executed at import) upstream import that is dead weight on
+    # the graded launch path:
+    #   * a non-vllm/sglang third-party (``from flashinfer import ...`` at
+    #     column 0), or
+    #   * a vllm/sglang import whose binding feeds ONLY dead siblings (the
+    #     L3_07 pattern: ``from vllm.distributed.parallel_state import
+    #     GroupCoordinator`` used only by the off-path _cp_lse_* helpers, never
+    #     by the launched jit closure -- and also the L1_02/L1_05/L1_28 pattern,
+    #     where the launcher reconstructs the value the dead host-wrapper class
+    #     fetched from the import). In both cases the slice keeps the launched
+    #     jit byte-identical and drops the dead import.
+    # A flashinfer import that is LAZY inside a function body (L1_32/L1_33/
+    # L2_18/L2_38 -- never run at import on the graded path) is NOT a top-level
+    # import, so neither probe fires and the slice declines, leaving those
+    # tasks' established severance untouched. The slice is fail-closed
+    # downstream regardless: it returns sliced source only when every kept def's
+    # free names are std/triton/torch and the result carries no residual
+    # vllm/sglang import, so a launcher that genuinely needs an upstream symbol
+    # on its graded path is never silently narrowed -- the slice declines and
+    # the full-module path runs. Fail-closed here too: if no launched jit root
+    # resolves into the kernel's jit_names, decline so the leak surfaces.
     if ep_name in defs:
         ep_roots = {ep_name}
-    elif _has_top_level_flashinfer_import(tree):
-        ep_roots = _launcher_launched_jit_roots(task_dir, jit_names)
+    elif _has_top_level_flashinfer_import(tree) or _has_top_level_dead_vllm_import(
+        tree, src, task_dir
+    ):
+        ep_roots = _launcher_launched_jit_roots(task_dir, jit_names, kernel_src=src)
         if not ep_roots:
             return None
     else:
@@ -3834,9 +4135,24 @@ def _slice_to_entrypoint_closure(
 # ───────────────────────────────────────────────────────────────────────────
 # U5: standalone rewrite operation (wired into verify -> PASS flow)
 # ───────────────────────────────────────────────────────────────────────────
+# A residual upstream import that would actually LEAK on the severed side is one
+# executed at MODULE LOAD -- i.e. a TOP-LEVEL (column-0, no leading indent)
+# ``from vllm/sglang ...`` / ``import vllm/sglang ...``. The severed import audit
+# (_pa_subproc_runner: _import_audit_modules over the post-exec sys.modules delta)
+# only sees what the module imported when it executed, so a LAZY import nested in
+# a function body (indented) never trips it unless that function runs on the
+# graded path. Matching only column-0 imports keeps the slice fallback from
+# firing on tasks whose only residual is an off-path lazy import (e.g. L1_28's
+# ``from vllm.third_party.triton_kernels...`` inside a helper body).
+_RESIDUAL_UPSTREAM_IMPORT_RE = re.compile(
+    r"^(?:from|import)\s+(?:vllm|sglang)\b", re.M
+)
+
+
 def rewrite_imports_to_standalone(
     src: str, classification: TaskClassification,
     task_dir: "Path | None" = None,
+    _try_slice: bool = True,
 ) -> str:
     """Rewrite a kernel.py's external imports to the standalone
     surface (plan U5). B-rewrite-public symbols become public
@@ -3845,17 +4161,41 @@ def rewrite_imports_to_standalone(
     pool-backed (the pool entry is written separately by U2). This is
     a conservative line-level rewrite of the *import statements only*;
     it never edits kernel numeric logic (plan: changing values = A'
-    failure)."""
-    # Whole-module vendored kernels (a full upstream file copied verbatim,
-    # graded op in the tail) carry vllm/sglang imports that feed only dead
-    # sibling classes; the line-level rewrite below cannot sever them. Slice
-    # the source to the graded entrypoint's module-level closure FIRST -- the
+    failure).
+
+    ``_try_slice`` (internal): when True (the default), the entrypoint-closure
+    slice is applied ONLY as a fallback -- after the line-level rewrite below
+    is shown to leave a residual vllm/sglang import on THIS source. That makes
+    the slice a true fallback: a task that already severs cleanly through the
+    line rewrite is never re-routed through the slice (its staged artifact is
+    byte-for-byte what it was), so the slice only ever touches a task that would
+    otherwise leak. The residual probe re-runs this function with
+    ``_try_slice=False`` (slice disabled) to get the line-rewrite-only result;
+    the recursion is one level deep and cannot re-enter (fail-closed)."""
+    # Fallback slice: a whole-module vendored kernel (a full upstream file
+    # copied verbatim, graded op in the tail) can carry vllm/sglang imports the
+    # line-level rewrite cannot sever (e.g. ``from vllm.distributed.parallel_
+    # state import GroupCoordinator`` feeding only dead sibling classes). Only
+    # when the line rewrite ALONE still leaves a residual upstream import do we
+    # slice the source to the graded entrypoint's module-level closure -- the
     # kept defs stay byte-identical (the kernel under test is unchanged), only
     # dead siblings + their imports are dropped. Fail-closed: if the closure
-    # needs an upstream symbol the slice declines and the leak surfaces.
-    _sliced = _slice_to_entrypoint_closure(src, task_dir)
-    if _sliced is not None:
-        src = _sliced
+    # needs an upstream symbol the slice declines and the leak surfaces; if the
+    # line rewrite already severs cleanly the slice is never attempted.
+    if _try_slice:
+        line_only = rewrite_imports_to_standalone(
+            src, classification, task_dir, _try_slice=False
+        )
+        if _RESIDUAL_UPSTREAM_IMPORT_RE.search(line_only):
+            _sliced = _slice_to_entrypoint_closure(src, task_dir)
+            if _sliced is not None:
+                # Re-run the line rewrite on the sliced source (the slice keeps
+                # the public-triton re-export line, which still needs rewriting).
+                return rewrite_imports_to_standalone(
+                    _sliced, classification, task_dir, _try_slice=False
+                )
+        # Line rewrite alone severs cleanly (or the slice declined): use it.
+        return line_only
     # Collapse the cuda-gated multi-line `from sglang.srt.layers.quantization.
     # fp8_kernel import (...)` to one line (symbols + aliases preserved) so the
     # line-level redirect below can rewrite it verbatim. The bundled
@@ -3947,9 +4287,100 @@ def rewrite_imports_to_standalone(
         src,
         flags=re.DOTALL,
     )
+
+    # Collapse the parenthesised multi-line ``from vllm.utils.deep_gemm import
+    # (...)`` form (L1_38_silu_mul_fp8_quant_deep_gemm) to one line so the
+    # subset-allowlist deep_gemm redirect below sees the full symbol set
+    # (otherwise its allowlist check cannot read continuation lines and the
+    # rule is not actually fail-closed).
+    def _collapse_vllm_deep_gemm_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return "from vllm.utils.deep_gemm import " + ", ".join(syms)
+
+    src = re.sub(
+        r"from vllm\.utils\.deep_gemm import \(\s*(.*?)\s*\)",
+        _collapse_vllm_deep_gemm_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    # Collapse the parenthesised multi-line ``from vllm.model_executor.layers
+    # .quantization.utils.w8a8_utils import (...)`` and ``from
+    # vllm.model_executor.parameter import (...)`` forms (L2_11) to one line so
+    # their subset-allowlist redirects below see the full symbol set (otherwise
+    # the allowlist check cannot read continuation lines -> not fail-closed).
+    def _collapse_vllm_w8a8_utils_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return (
+            "from vllm.model_executor.layers.quantization.utils.w8a8_utils import "
+            + ", ".join(syms)
+        )
+
+    src = re.sub(
+        r"from vllm\.model_executor\.layers\.quantization\.utils\.w8a8_utils"
+        r" import \(\s*(.*?)\s*\)",
+        _collapse_vllm_w8a8_utils_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    def _collapse_vllm_me_parameter_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return "from vllm.model_executor.parameter import " + ", ".join(syms)
+
+    src = re.sub(
+        r"from vllm\.model_executor\.parameter import \(\s*(.*?)\s*\)",
+        _collapse_vllm_me_parameter_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    # Collapse the parenthesised multi-line ``from sglang.srt.layers
+    # .quantization.int8_kernel import (...)`` and ``from sglang.srt.utils import
+    # (...)`` forms carried by the frozen SGLang fused_moe_triton_kernels file
+    # (L1_15_act_and_mul) to one line so the single-line subset-allowlist
+    # redirects below see the full symbol set (otherwise the allowlist check
+    # cannot read continuation lines -> not fail-closed). Only these exact
+    # L1_15 sibling-surface modules are collapsed; any other parenthesised
+    # sglang import falls through untouched (and stays caught by the fail-closed
+    # guard).
+    def _collapse_sglang_int8_kernel_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return (
+            "from sglang.srt.layers.quantization.int8_kernel import "
+            + ", ".join(syms)
+        )
+
+    src = re.sub(
+        r"from sglang\.srt\.layers\.quantization\.int8_kernel import"
+        r" \(\s*(.*?)\s*\)",
+        _collapse_sglang_int8_kernel_multiline,
+        src,
+        flags=re.DOTALL,
+    )
+
+    def _collapse_sglang_srt_utils_multiline(m: "re.Match") -> str:
+        syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
+        return "from sglang.srt.utils import " + ", ".join(syms)
+
+    src = re.sub(
+        r"from sglang\.srt\.utils import \(\s*(.*?)\s*\)",
+        _collapse_sglang_srt_utils_multiline,
+        src,
+        flags=re.DOTALL,
+    )
     lines = src.splitlines(keepends=True)
     out: list[str] = []
     in_multiline_import = False
+    # Autotuned kernels: real ``triton.autotune`` benchmarks configs on a
+    # device, aborting with ``0 active drivers`` on the CPU/TRITON_INTERPRET
+    # severed pre-filter. When the kernel carries ``@triton.autotune`` the
+    # ``import triton`` re-export below is rebound to an interpreter-aware
+    # clone (first-config fallback, identical to what the original side's
+    # vllm.triton_utils shim uses) so both sides pick the SAME config -> the
+    # S2 compare stays bit-exact. Computed once via AST (no comment false hit).
+    _kernel_autotuned = _kernel_uses_triton_autotune(src)
+    _autotune_clone_emitted = False
     # FLA-ops package vendoring (codex design A): metadata-gated, not
     # module-name-gated. Only when the task's upstream.path is in the
     # vllm FLA ops package do we vendor {utils,index,op} and redirect the
@@ -4005,9 +4436,9 @@ def rewrite_imports_to_standalone(
         if stripped.startswith("from .mamba_ssm import "):
             _syms = stripped[len("from .mamba_ssm import "):]
             _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _single_softplus = _sym_set == {"softplus"} and "(" not in _syms
             if (
-                _sym_set == {"softplus"}
-                and "(" not in _syms
+                _single_softplus
                 and _symbol_off_launched_closure(src, task_dir, "softplus")
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
@@ -4016,8 +4447,36 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': off-path mamba softplus (B-inert-shim)\n"
                 )
                 continue
-            # gates not met (graded kernel reaches softplus, or unexpected
-            # symbol) -> leave untouched so the audit surfaces the dependency.
+            # ON-PATH softplus (the graded kernel calls it, so the inert
+            # raising stub above is wrong): vendor the REAL @triton.jit
+            # softplus from upstream mamba_ssm.py into the U2 pool and redirect
+            # there. The real device function is always correct -- if reached
+            # it computes the right value, if not it is harmless -- so unlike
+            # the raising stub this is safe whenever the symbol is NOT provably
+            # off-path. Gated to launcher tasks (an authored _pa_launcher.py)
+            # whose upstream is vLLM, the only origin of this exact softplus;
+            # L2_03/L3_03 (no launcher) keep the untouched-line behaviour, and
+            # a non-vLLM origin falls through (fail-closed against divergence).
+            if (
+                _single_softplus
+                and _mamba_softplus_on_path(src, task_dir)
+                and _task_upstream_repo(task_dir) == "vllm"
+            ):
+                # repo gate: this exact softplus is the vLLM mamba_ssm copy.
+                # A non-vLLM origin (e.g. an SGLang launcher task) is declined
+                # so we never vendor a wrong-repo function (fail-closed; the
+                # untouched line then surfaces the dependency).
+                _sp_import = _vendor_mamba_softplus("vllm")
+                if _sp_import is not None:
+                    indent = ln[: len(ln) - len(ln.lstrip())]
+                    out.append(
+                        f"{indent}from {_sp_import} import softplus"
+                        f"  # Phase A': U2 pool-vendored on-path mamba softplus\n"
+                    )
+                    continue
+            # gates not met (provably off-path handled above; on-path vendor
+            # declined / failed) -> leave untouched so the audit surfaces the
+            # dependency (never a silent mis-rewrite / false PASS).
         # FLA-ops relative imports: `from .<mod> import ...` where <mod> is
         # ANY module in the vendored fla/ops package (_FLA_OPS_MODULES), in
         # a task whose upstream is the vllm FLA ops package. Redirect to the
@@ -4057,7 +4516,78 @@ def rewrite_imports_to_standalone(
                 f"vllm/sglang triton re-export (B-rewrite-public)\n"
             )
             out.append(f"{indent}import triton.language as tl\n")
+            # Autotuned kernel: rebind ``triton`` to the interpreter-aware
+            # clone (only ``.autotune`` differs; jit/Config/cdiv/etc. are the
+            # real module by reference). On a real GPU the clone's autotune
+            # delegates to the real autotuner, so GPU benchmarking is intact.
+            if _kernel_autotuned and not _autotune_clone_emitted:
+                out.append(
+                    f"{indent}from triton_ascend_bench.upstream_shims."
+                    f"triton_autotune_interp import make_triton_clone as "
+                    f"_pa_make_triton_clone"
+                    f"  # Phase A': interpreter-aware autotune fallback\n"
+                )
+                out.append(f"{indent}triton = _pa_make_triton_clone()\n")
+                _autotune_clone_emitted = True
             continue
+        # ── L1_15_act_and_mul severance (SGLang fused_moe_triton_kernels) ──
+        # (The sglang.srt.utils platform/env predicates this file reads at
+        # module scope -- is_cpu / cpu_has_amx_support / get_bool_env_var /
+        # is_sm90_supported, alongside is_cuda / is_hip -- are handled by the
+        # shared ``from sglang.srt.utils import`` B-inert-shim rule below, whose
+        # allowlist now covers them.)
+        # B-inert-shim: sglang.srt.layers.moe.utils.get_moe_padding_size -- a
+        # module-scope MoE padding query the frozen file reads
+        # (``padding_size = get_moe_padding_size(_use_aiter)``); the value feeds
+        # only the dead invoke_fused_moe_kernel sibling. Shimmed verbatim
+        # against upstream (non-aiter default env -> 0). Subset-allowlisted.
+        if stripped.startswith("from sglang.srt.layers.moe.utils import "):
+            _syms = stripped[len("from sglang.srt.layers.moe.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            if _sym_set == {"get_moe_padding_size"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import get_moe_padding_size"
+                    f"  # Phase A': MoE padding query (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: sglang.srt.batch_invariant_ops.is_batch_invariant_mode_enabled
+        # -- a module flag default-False (no server bootstrap on the bench), read
+        # only by the dead should_enable_swap_ab sibling. Subset-allowlisted.
+        if stripped.startswith("from sglang.srt.batch_invariant_ops import "):
+            _syms = stripped[len("from sglang.srt.batch_invariant_ops import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            if _sym_set == {"is_batch_invariant_mode_enabled"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import is_batch_invariant_mode_enabled"
+                    f"  # Phase A': batch-invariant gate (B-inert-shim)\n"
+                )
+                continue
+        # Fail-closed loud-fail shim: sglang.srt.layers.quantization.int8_kernel
+        # int8 quant kernels -- real CUDA quant ops reached ONLY inside the dead
+        # invoke_fused_moe_kernel sibling (the graded act_and_mul_kernel never
+        # calls them). Redirected to RAISING stubs so the module imports
+        # standalone but any graded-path invocation surfaces loudly.
+        if stripped.startswith(
+            "from sglang.srt.layers.quantization.int8_kernel import "
+        ):
+            _syms = stripped[
+                len("from sglang.srt.layers.quantization.int8_kernel import "):
+            ]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {
+                "per_token_group_quant_int8",
+                "per_token_quant_int8",
+                "sglang_per_token_group_quant_int8",
+            }
+            if _sym_set and _sym_set <= _allowed and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import {', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': int8 quant -> loud-fail stub (off-path)\n"
+                )
+                continue
         if stripped.startswith(
             ("from vllm.logger import", "from sglang.srt.utils.logging import")
         ):
@@ -4079,15 +4609,27 @@ def rewrite_imports_to_standalone(
                 f"  # Phase A': platform stub (B-inert-shim)\n"
             )
             continue
-        # B-inert-shim: vllm.utils.torch_utils pure predicates. Subset-
-        # allowlisted -- is_quantized_kv_cache (string predicate) and
-        # is_torch_equal_or_newer (version predicate). Both are inert
-        # (no platform/dtype/device branch); refuse if any other symbol is
-        # on the line so a future deeper import cannot sneak past.
+        # B-inert-shim: vllm.utils.torch_utils inert helpers. Subset-
+        # allowlisted -- is_quantized_kv_cache (string predicate),
+        # is_torch_equal_or_newer (version predicate), direct_register_custom_op
+        # (a custom-op registration the frozen file runs at MODULE IMPORT time to
+        # register an off-path op; the shim is an inert no-op registration, the
+        # graded launcher never dispatches through it), and async_tensor_h2d (a
+        # real host->device copy used only by sibling state-manager setup, e.g.
+        # L1_23 PenaltiesState.apply_staged_writes; the shim LOUD-FAILS so it can
+        # never silently no-op a verified path, only let the module import).
+        # All inert on the graded path (no platform/dtype/device branch); refuse
+        # if any other symbol is on the line so a future deeper import cannot
+        # sneak past.
         if stripped.startswith("from vllm.utils.torch_utils import "):
             _syms = stripped[len("from vllm.utils.torch_utils import "):]
             _sym_set = {s.strip() for s in _syms.split(",")}
-            _allowed = {"is_quantized_kv_cache", "is_torch_equal_or_newer"}
+            _allowed = {
+                "is_quantized_kv_cache",
+                "is_torch_equal_or_newer",
+                "direct_register_custom_op",
+                "async_tensor_h2d",
+            }
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
@@ -4170,11 +4712,15 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': live device query (B-inert-shim)\n"
                 )
                 continue
-        # B-inert-shim: sglang.srt.utils inert helpers. is_hip/is_musa
+        # B-inert-shim: sglang.srt.utils inert helpers. is_hip/is_musa/is_cpu
         # (constant backend gates), is_cuda (live honest query), ceil_div
         # (pure integer math == cdiv), cached_triton_kernel (a launch-cache
         # decorator whose non-CUDA fallback returns the kernel unchanged --
-        # affects dispatch, not values). None enter a verified entrypoint's
+        # affects dispatch, not values), cpu_has_amx_support (constant False on
+        # the GPU bench target), get_bool_env_var (faithful env-var parse, read
+        # at module scope so a loud-fail would break import), is_sm90_supported
+        # (live SM90 capability query, read only by the L1_15 dead
+        # should_enable_swap_ab sibling). None enter a verified entrypoint's
         # numeric path; the shim mirrors the upstream definitions. Subset-
         # allowlisted, single-line, refuse if any other symbol shares the
         # line so a future semantic import cannot sneak past.
@@ -4182,7 +4728,8 @@ def rewrite_imports_to_standalone(
             _syms = stripped[len("from sglang.srt.utils import "):]
             _sym_set = {s.strip() for s in _syms.split(",")}
             _allowed = {"is_hip", "is_musa", "is_cuda", "ceil_div",
-                        "cached_triton_kernel"}
+                        "cached_triton_kernel", "is_cpu", "cpu_has_amx_support",
+                        "get_bool_env_var", "is_sm90_supported"}
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
@@ -4370,6 +4917,25 @@ def rewrite_imports_to_standalone(
                 out.append(
                     f"{indent}from tasks._frozen_shim import InputBatch"
                     f"  # Phase A': sibling batch-state stand-in (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.v1.worker.gpu.states.RequestState -- a sibling
+        # request batch-state manager (per-request token ids / lens / penalty
+        # vectors). The frozen L1_23 kernel.py carries it ONLY as the
+        # PenaltiesState.__init__ constructor argument type and its attribute
+        # reads (req_states.max_num_reqs / .vocab_size / .device / .all_token_ids
+        # / .prompt_len / .prefill_len); PenaltiesState is the host state manager,
+        # never constructed on the graded path (the launcher drives
+        # _penalties_kernel from flat tensors). The setup-only stand-in resolves
+        # the type + loud-fails on any attribute access. Single symbol only.
+        if stripped.startswith("from vllm.v1.worker.gpu.states import "):
+            _syms = stripped[len("from vllm.v1.worker.gpu.states import "):]
+            _sym_set = {s.strip() for s in _syms.split(",")}
+            if _sym_set == {"RequestState"} and "(" not in _syms:
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import RequestState"
+                    f"  # Phase A': sibling request-state stand-in (B-inert-shim)\n"
                 )
                 continue
         # U2 vendoring: sglang LoRA triton helper kernel_utils (the bare kernel
@@ -4572,17 +5138,130 @@ def rewrite_imports_to_standalone(
         # accel surface, so it is redirected to the loud-fail shim. Single symbol,
         # subset-allowlisted, single-line.
         if stripped.startswith("from vllm.utils.deep_gemm import "):
+            # B-inert-shim: vllm.utils.deep_gemm accel surface. Subset-allowlist
+            # over the names the frozen corpus carries off-path: the L2_26 scatter
+            # task's get_mk_alignment_for_contiguous_layout, plus the L1_38
+            # batched_deep_gemm_moe set (DeepGemmQuantScaleFMT scale-format enum +
+            # the DeepGEMM grouped-gemm / capability predicates). Every allowed
+            # name is ADDITIONALLY gated by _symbol_off_launched_closure so the
+            # redirect only fires when the symbol is provably OFF the launcher's
+            # launched-jit closure (a subset-allowlist alone does not prove
+            # off-path for a future task; the closure gate makes it fail-closed
+            # cross-task). The shim exports each verbatim where def-time binding
+            # matters (the enum members) and loud-fails the rest. Parenthesised
+            # multi-line forms are collapsed at the top of this function.
             _syms = stripped[len("from vllm.utils.deep_gemm import "):]
-            _sym_set = {s.strip() for s in _syms.split(",")}
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {
+                "get_mk_alignment_for_contiguous_layout",
+                "DeepGemmQuantScaleFMT",
+                "fp8_m_grouped_gemm_nt_masked",
+                "is_deep_gemm_e8m0_used",
+                "is_deep_gemm_supported",
+                # L2_11 off-path scale-layout helpers (kernel.py:556, :1041, :1063)
+                "get_tma_aligned_size",
+                "transform_sf_into_required_layout",
+            }
             if (
-                _sym_set == {"get_mk_alignment_for_contiguous_layout"}
+                _sym_set
+                and _sym_set <= _allowed
                 and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
                     f"{indent}from tasks._frozen_shim import "
-                    f"get_mk_alignment_for_contiguous_layout"
-                    f"  # Phase A': off-path deep_gemm accel helper (B-inert-shim)\n"
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path deep_gemm accel surface (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.model_executor.layers.quantization.utils.w8a8_utils
+        # {all_close_1d, per_tensor_dequantize} (task L2_11). Weight-comparison /
+        # per-tensor dequant helpers reached only inside the off-path fp8 MoE
+        # tensor-strategy path; the graded launcher drives the @triton.jit kernel
+        # directly. Subset-allowlisted AND closure-gated (fail-closed): the shim
+        # exports loud-fail stubs (per_tensor dequant on a graded path is a real
+        # dependency, never silently faked).
+        if stripped.startswith(
+            "from vllm.model_executor.layers.quantization.utils.w8a8_utils import "
+        ):
+            _pfx = (
+                "from vllm.model_executor.layers.quantization.utils."
+                "w8a8_utils import "
+            )
+            _syms = stripped[len(_pfx):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {"all_close_1d", "per_tensor_dequantize"}
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path w8a8 weight utils (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.model_executor.parameter {BlockQuantScaleParameter,
+        # ChannelQuantScaleParameter, PerTensorScaleParameter} (task L2_11). fp8
+        # weight-loading Parameter subclasses constructed only inside the off-path
+        # create_fp8_* helpers; never the launched-jit closure. Subset-allowlisted
+        # + closure-gated; the shim binds loud-fail stubs (fail-closed).
+        if stripped.startswith("from vllm.model_executor.parameter import "):
+            _syms = stripped[len("from vllm.model_executor.parameter import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {
+                "BlockQuantScaleParameter",
+                "ChannelQuantScaleParameter",
+                "PerTensorScaleParameter",
+            }
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path weight-loader params (B-inert-shim)\n"
+                )
+                continue
+        # B-inert-shim: vllm.model_executor.utils.set_weight_attrs (task L2_11).
+        # Attaches loader metadata to a weight Parameter, called only inside the
+        # off-path create_fp8_input_scale helper; never the launched-jit closure.
+        # Subset-allowlisted + closure-gated; the shim loud-fails (fail-closed).
+        if stripped.startswith("from vllm.model_executor.utils import "):
+            _syms = stripped[len("from vllm.model_executor.utils import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {"set_weight_attrs"}
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path weight-attr setter (B-inert-shim)\n"
                 )
                 continue
         # B-inert-shim: `import vllm.model_executor.layers.fused_moe.modular_kernel
@@ -4720,8 +5399,14 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': off-path mixin base (B-inert-shim)\n"
                 )
                 continue
-        # vllm...fused_moe.topk_weight_and_reduce.TopKWeightAndReduceNoOP --
-        # constructed only in the off-path finalize helper. Single symbol.
+        # vllm...fused_moe.topk_weight_and_reduce.{TopKWeightAndReduceNoOP,
+        # TopKWeightAndReduceDelegate} -- both constructed only inside the
+        # off-path finalize_weight_and_reduce_impl helper (L1_28 carries the NoOP,
+        # L1_38 the Delegate). Subset-allowlist + single-line + the off-launched-
+        # closure gate (so the redirect only fires when every imported name is
+        # provably off the launcher's launched-jit closure). Both shim symbols are
+        # loud-fail callables (the name binds; constructing one on the graded path
+        # raises).
         if stripped.startswith(
             "from vllm.model_executor.layers.fused_moe.topk_weight_and_reduce"
             " import "
@@ -4729,12 +5414,22 @@ def rewrite_imports_to_standalone(
             _syms = stripped[len(
                 "from vllm.model_executor.layers.fused_moe."
                 "topk_weight_and_reduce import "):]
-            _sym_set = {s.strip() for s in _syms.split(",")}
-            if _sym_set == {"TopKWeightAndReduceNoOP"} and "(" not in _syms:
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {"TopKWeightAndReduceNoOP", "TopKWeightAndReduceDelegate"}
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from tasks._frozen_shim import TopKWeightAndReduceNoOP"
-                    f"  # Phase A': off-path reduce no-op (B-inert-shim)\n"
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path reduce helper (B-inert-shim)\n"
                 )
                 continue
         # vllm...fused_moe.utils._resize_cache -- off-path workspace reshape.
@@ -4782,6 +5477,34 @@ def rewrite_imports_to_standalone(
                 f"  # Phase A': off-path swiglu helper (B-inert-shim)\n"
             )
             continue
+        # B-inert-shim: vllm.forward_context.{get_forward_context,
+        # is_forward_context_available} (L1_38_silu_mul_fp8_quant_deep_gemm). Read
+        # ONLY inside the off-path BatchedDeepGemmExperts.estimate_expected_m to
+        # consult DP metadata; the graded @triton.jit kernel (driven by
+        # _pa_launcher.py) never reaches forward-context state. Subset-allowlist +
+        # single-line + the off-launched-closure gate (fail-closed cross-task).
+        # Both shim symbols loud-fail (a graded path consulting real forward
+        # context is a true dependency, never silently faked).
+        if stripped.startswith("from vllm.forward_context import "):
+            _syms = stripped[len("from vllm.forward_context import "):]
+            _sym_set = {s.strip() for s in _syms.split(",") if s.strip()}
+            _allowed = {"get_forward_context", "is_forward_context_available"}
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
+                indent = ln[: len(ln) - len(ln.lstrip())]
+                out.append(
+                    f"{indent}from tasks._frozen_shim import "
+                    f"{', '.join(sorted(_sym_set))}"
+                    f"  # Phase A': off-path forward-context (B-inert-shim)\n"
+                )
+                continue
         _QUANT_UTILS = (
             "from vllm.model_executor.layers.quantization.utils.quant_utils import"
         )
@@ -4802,8 +5525,26 @@ def rewrite_imports_to_standalone(
             # ever sees a single-line import.
             _syms_text = stripped[len(_QUANT_UTILS):].strip().lstrip("(").rstrip(")")
             _sym_set = {s.strip() for s in _syms_text.split(",") if s.strip()}
-            _allowed = {"FP8_DTYPE", "get_fp8_min_max", "QuantKey", "kMxfp4Static"}
-            if _sym_set and _sym_set <= _allowed and "(" not in _syms_text:
+            # FP8_DTYPE / get_fp8_min_max: CUDA-class quant constants. QuantKey:
+            # def-time annotation type. kMxfp4Static / kFp8Dynamic128Sym /
+            # kFp8Static128BlockSym: off-path scheme sentinels (the L1_38 kFp8*
+            # pair is read only inside _supports_quant_scheme's membership test).
+            # Every name is additionally gated by _symbol_off_launched_closure so
+            # the redirect only fires when the symbol is provably off the
+            # launcher's launched-jit closure (fail-closed cross-task).
+            _allowed = {
+                "FP8_DTYPE", "get_fp8_min_max", "QuantKey", "kMxfp4Static",
+                "kFp8Dynamic128Sym", "kFp8Static128BlockSym",
+            }
+            if (
+                _sym_set
+                and _sym_set <= _allowed
+                and "(" not in _syms_text
+                and all(
+                    _symbol_off_launched_closure(src, task_dir, _s)
+                    for _s in _sym_set
+                )
+            ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
                     f"{indent}from tasks._frozen_shim import "

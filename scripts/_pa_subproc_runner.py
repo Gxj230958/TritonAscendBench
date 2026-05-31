@@ -718,6 +718,25 @@ def _run_side(args: argparse.Namespace) -> int:
         import torch
         from safetensors.torch import save_file
 
+        # Under the CPU / TRITON_INTERPRET=1 S2-smoke (spec device 'cpu'),
+        # tensors live on CPU and an upstream host wrapper's
+        # ``with torch.get_device_module(x.device).device(...):`` launch guard
+        # resolves to ``torch.cpu.device`` -- which does not exist, so the
+        # original side crashes with AttributeError before the kernel runs
+        # ("original-no-run"). Install a no-op ``torch.cpu.device`` context
+        # manager (only when absent) so the graded kernel actually executes;
+        # it has zero numeric effect (everything is CPU under interpret) and is
+        # skipped on the CUDA S2-gpu pass where ``torch.cuda.device`` is real.
+        if str(spec.get("device", "cpu")) == "cpu":
+            try:
+                from triton_ascend_bench.upstream_shims.torch_cpu_device_interp import (  # noqa: E501
+                    install as _install_cpu_device_shim,
+                )
+
+                _install_cpu_device_shim()
+            except ImportError:
+                pass
+
         # Baseline = every module already present BEFORE the kernel
         # module executes (interpreter / .pth / editable-install
         # finders, dill, torch, triton, safetensors -- legit noise).

@@ -21,6 +21,7 @@ Invariants:
 from __future__ import annotations
 
 import enum
+import os
 import typing
 
 import torch
@@ -39,6 +40,19 @@ def init_logger(name: str = ""):
         def critical(self, *a, **kw): pass
 
     return _Silent()
+
+
+class DeviceCapability(typing.NamedTuple):
+    """Mirror of ``vllm.platforms.interface.DeviceCapability`` (major,
+    minor) with ``to_int()`` -> major*10 + minor. Compares equal to a
+    plain ``(major, minor)`` tuple, which is how the frozen kernel.py
+    Turing check (``get_device_capability() == (7, 5)``) consumes it."""
+
+    major: int
+    minor: int
+
+    def to_int(self) -> int:
+        return self.major * 10 + self.minor
 
 
 class _CurrentPlatformStub:
@@ -85,6 +99,32 @@ class _CurrentPlatformStub:
     @staticmethod
     def num_compute_units(device_id: int = 0) -> int:
         return 128
+
+    @staticmethod
+    def get_device_capability(device_id: int = 0) -> "DeviceCapability":
+        """Compute-capability of the verify device. On a CUDA verify host
+        the real torch query wins (faithful to upstream, which reads
+        ``torch.cuda.get_device_capability`` / NVML); off-GPU (import-time
+        on the CPU oracle pre-filter) fall back to (8, 0), the sm80 A100
+        class the bench targets -- matching upstream BASE_BLOCK=128 /
+        IS_TURING=False. These feed module-level tiling/precision constants
+        only, never the kernel's numeric path."""
+        if torch.cuda.is_available():
+            major, minor = torch.cuda.get_device_capability(device_id)
+            return DeviceCapability(int(major), int(minor))
+        return DeviceCapability(8, 0)
+
+    @staticmethod
+    def has_device_capability(
+        capability: "int | tuple[int, int]", device_id: int = 0
+    ) -> bool:
+        """Upstream semantics (interface.py): True iff the device capability
+        meets ``capability``. Accepts an int (compared against
+        ``major*10+minor``) or a (major, minor) tuple."""
+        cap = _CurrentPlatformStub.get_device_capability(device_id)
+        if isinstance(capability, tuple):
+            return cap.to_int() >= DeviceCapability(*capability).to_int()
+        return cap.to_int() >= capability
 
 
 current_platform = _CurrentPlatformStub()
@@ -410,6 +450,21 @@ def sglang_per_token_group_quant_fp8(*args, **kwargs):
 per_token_group_quant_fp8 = sglang_per_token_group_quant_fp8
 
 
+def scaled_fp8_quant(*args, **kwargs):
+    """Loud-fail stand-in for sglang fp8_kernel.scaled_fp8_quant. The frozen
+    L1_15 fused_moe_triton_kernels file imports it ONLY for the dead
+    invoke_fused_moe_kernel sibling (kernel.py:764, fp8 activation quant); the
+    graded act_and_mul_kernel entrypoint never calls it. Importing the real
+    symbol pulls the sglang fp8-quant CUDA closure into the severed standalone,
+    so it is redirected here. Raising keeps any task that genuinely needs fp8
+    quant honest -- the severed kernel must not silently fake it."""
+    raise NotImplementedError(
+        "scaled_fp8_quant is a sibling-only fp8 quant path (the dead "
+        "invoke_fused_moe_kernel branch); it is not vendored into the severed "
+        "standalone and the graded act_and_mul_kernel must not invoke it"
+    )
+
+
 # vllm sampling/output/worker symbols carried at module scope by some frozen
 # kernels for SIBLING setup helpers (batch-state managers, add_request type
 # hints, logprob output containers). The verified free-function entrypoint
@@ -482,6 +537,16 @@ class InputBatch(_SetupOnlyShim):
     batch-state container, only a type hint on the graded path); B-inert."""
 
 
+class RequestState(_SetupOnlyShim):
+    """Inert stand-in for vllm.v1.worker.gpu.states.RequestState (a sibling
+    per-request batch-state manager). Carried by the L1_23 frozen kernel.py only
+    as the PenaltiesState constructor argument type + its attribute reads
+    (max_num_reqs / vocab_size / device / all_token_ids / prompt_len /
+    prefill_len). PenaltiesState is the host state manager, never constructed on
+    the graded path (the launcher drives _penalties_kernel from flat tensors), so
+    the name only needs to resolve; any attribute access loud-fails. B-inert."""
+
+
 class LoRABatchInfo(_SetupOnlyShim):
     """Inert stand-in for sglang.srt.lora.utils.LoRABatchInfo (a batch-state
     dataclass, only a host-wrapper type hint on the graded path); B-inert."""
@@ -495,6 +560,20 @@ def async_copy_to_gpu(*args, **kwargs):
     raise NotImplementedError(
         "async_copy_to_gpu shim reached: a real host->device copy is setup-only "
         "and must not enter a verified entrypoint's path."
+    )
+
+
+def async_tensor_h2d(*args, **kwargs):
+    """Stand-in for vllm.utils.torch_utils.async_tensor_h2d -- a real pinned
+    host->device tensor copy used only by sibling state-manager setup (e.g. the
+    L1_23 PenaltiesState.apply_staged_writes idx-mapping upload). The import must
+    resolve so the module loads, but it LOUD-FAILS if a verified entrypoint ever
+    calls it (never silently a no-op): the graded launcher drives the kernel from
+    flat tensors and never stages a host->device copy through it."""
+    raise NotImplementedError(
+        "async_tensor_h2d shim reached: a real host->device copy is setup-only "
+        "(sibling state-manager staging) and must not enter a verified "
+        "entrypoint's path."
     )
 
 
@@ -862,3 +941,329 @@ def has_triton_kernels() -> bool:
     import block; returning False skips that block (the graded pack_bitmatrix
     path imports none of it), matching the standalone surface. B-inert."""
     return False
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# L1_38_silu_mul_fp8_quant_deep_gemm off-path stand-ins. The frozen file is the
+# whole vLLM batched_deep_gemm_moe.py; the graded unit is the @triton.jit
+# _silu_mul_fp8_quant_deep_gemm driven by _pa_launcher.py::run (which
+# reimplements the host-wrapper body verbatim). Every symbol below is imported
+# at module scope ONLY for dead sibling defs (the host wrapper
+# persistent_masked_m_silu_mul_quant, the BatchedDeepGemmExperts methods); the
+# launched kernel references none of them (each is proven off the launcher's
+# launched-jit closure). Names bind so the module imports standalone; any real
+# use LOUD-FAILS (fail-closed -- a graded path reaching real DeepGEMM/MoE
+# behaviour is a true dependency to classify, never silently fake).
+# ───────────────────────────────────────────────────────────────────────────
+class _FailClosedSentinel:
+    """An inert sentinel whose EVERY interaction loud-fails -- attribute access,
+    call, equality, and membership. Used for the ``kFp8*`` QuantKey constants the
+    frozen file references only inside the off-path ``_supports_quant_scheme``
+    ``(weight_key, activation_key) in SUPPORTED_W_A`` membership test. Unlike a
+    plain ``_SetupOnlyShim`` (whose default ``__eq__`` would silently return a
+    bool), this raises on ``==``/``in`` too, so a future on-path read can never
+    silently resolve to a wrong scheme decision. The name only needs to bind on
+    the graded path (the membership test is never reached)."""
+
+    __slots__ = ("_name",)
+
+    def __init__(self, _name: str = "_FailClosedSentinel") -> None:
+        object.__setattr__(self, "_name", _name)
+
+    def _fail(self, op: str):
+        raise NotImplementedError(
+            f"{object.__getattribute__(self, '_name')} shim: '{op}' "
+            f"reached. This off-path vLLM quant-scheme sentinel must not enter a "
+            f"verified entrypoint's path; a frozen kernel reaching real quant-key "
+            f"comparison is a true dependency, not a clean standalone."
+        )
+
+    def __getattr__(self, name):
+        self._fail(f".{name}")
+
+    def __call__(self, *args, **kwargs):
+        self._fail("call")
+
+    def __eq__(self, other):
+        self._fail("==")
+
+    def __hash__(self):
+        self._fail("hash")
+
+
+# vllm...quantization.utils.quant_utils.kFp8Dynamic128Sym / kFp8Static128BlockSym
+# -- module-scope QuantKey instances referenced only inside the off-path
+# BatchedDeepGemmExperts._supports_quant_scheme membership test. Fail-closed
+# sentinels (loud-fail on any use, including ==/in).
+kFp8Dynamic128Sym = _FailClosedSentinel("kFp8Dynamic128Sym")
+kFp8Static128BlockSym = _FailClosedSentinel("kFp8Static128BlockSym")
+
+# vllm.forward_context.{get_forward_context, is_forward_context_available} --
+# read only inside the off-path BatchedDeepGemmExperts.estimate_expected_m. Both
+# loud-fail callables (fail-closed): the launcher never reaches forward-context
+# state, so a graded path calling either is a real dependency.
+get_forward_context = _l1_28_sibling_only_call("get_forward_context")
+is_forward_context_available = _l1_28_sibling_only_call(
+    "is_forward_context_available"
+)
+
+# vllm...fused_moe.topk_weight_and_reduce.TopKWeightAndReduceDelegate --
+# constructed only inside the off-path finalize_weight_and_reduce_impl. Loud-fail
+# callable (the name binds; constructing it on the graded path raises).
+TopKWeightAndReduceDelegate = _l1_28_sibling_only_call(
+    "TopKWeightAndReduceDelegate"
+)
+
+# vllm.utils.deep_gemm.{fp8_m_grouped_gemm_nt_masked, is_deep_gemm_e8m0_used,
+# is_deep_gemm_supported} -- the DeepGEMM accel surface, reached only inside the
+# off-path apply / _supports_current_device / supports_packed_ue8m0_act_scales.
+# All loud-fail (fail-closed): we cannot prove the off-path capability semantics
+# and the launcher never runs them, so an honest False/True would silently alter
+# off-path logic. (get_mk_alignment_for_contiguous_layout is already defined
+# above as the L2_26 loud-fail stand-in and is reused here.)
+fp8_m_grouped_gemm_nt_masked = _l1_28_sibling_only_call(
+    "fp8_m_grouped_gemm_nt_masked"
+)
+is_deep_gemm_e8m0_used = _l1_28_sibling_only_call("is_deep_gemm_e8m0_used")
+is_deep_gemm_supported = _l1_28_sibling_only_call("is_deep_gemm_supported")
+
+# vllm.utils.deep_gemm.{get_tma_aligned_size, transform_sf_into_required_layout}
+# (task L2_11_w8a8_triton_block_scaled_mm). DeepGEMM scale-layout helpers reached
+# only inside the off-path fp8 weight-prep / requant functions (get_tma_aligned_size
+# at kernel.py:556, transform_sf_into_required_layout at :1041,:1063); the graded
+# launcher drives _w8a8_triton_block_scaled_mm directly and never touches them.
+# Fail-closed: an honest layout transform we cannot prove would silently alter
+# off-path logic, so both loud-fail if a graded path ever reaches them.
+get_tma_aligned_size = _l1_28_sibling_only_call("get_tma_aligned_size")
+transform_sf_into_required_layout = _l1_28_sibling_only_call(
+    "transform_sf_into_required_layout"
+)
+
+
+class DeepGemmQuantScaleFMT(enum.Enum):
+    """Inert stand-in for ``vllm.utils.deep_gemm.DeepGemmQuantScaleFMT`` -- the
+    quant-scale layout enum. Members mirror upstream verbatim (deep_gemm.py,
+    commit 18f6bf5) so the frozen file's DEF-TIME default value
+    ``quant_scale_fmt: DeepGemmQuantScaleFMT = DeepGemmQuantScaleFMT.FLOAT32`` on
+    the off-path host wrapper ``persistent_masked_m_silu_mul_quant`` resolves at
+    import time. The members are never compared on the graded path (the launcher
+    drives the @triton.jit kernel directly with ceil_ue8m0=False); the oracle
+    decision classmethods loud-fail (fail-closed -- a graded path selecting a
+    scale format at runtime is a real dependency)."""
+
+    FLOAT32 = 0
+    FLOAT32_CEIL_UE8M0 = 1
+    UE8M0 = 2
+
+    @classmethod
+    def init_oracle_cache(cls) -> None:
+        raise NotImplementedError(
+            "DeepGemmQuantScaleFMT.init_oracle_cache shim reached: the oracle "
+            "scale-format decision is off the graded path (the launcher pins the "
+            "FLOAT32 format with ceil_ue8m0=False) and must not be selected at "
+            "runtime on a verified entrypoint."
+        )
+
+    @classmethod
+    def from_oracle(cls) -> "DeepGemmQuantScaleFMT":
+        raise NotImplementedError(
+            "DeepGemmQuantScaleFMT.from_oracle shim reached: the oracle "
+            "scale-format decision is off the graded path (the launcher pins the "
+            "FLOAT32 format with ceil_ue8m0=False) and must not be selected at "
+            "runtime on a verified entrypoint."
+        )
+
+
+# ── L2_11_w8a8_triton_block_scaled_mm off-path weight-management surface ──────
+# The frozen kernel.py copies the whole vLLM block-fp8 utils module; the graded
+# unit is the @triton.jit _w8a8_triton_block_scaled_mm, driven directly by
+# _pa_launcher.py. The symbols below are imported at module scope but referenced
+# ONLY inside off-path fp8 weight-loading / quant helpers (create_fp8_* and the
+# per-tensor dequant cross-checks), never in the launched-jit closure. Each is
+# redirected here, gated by phase_a_prime._symbol_off_launched_closure.
+
+
+def direct_register_custom_op(
+    op_name, op_func, mutates_args=None, fake_impl=None, *args, **kwargs
+):
+    """Inert no-op mirroring ``vllm.utils.torch_utils.direct_register_custom_op``.
+    The frozen kernel.py calls this at MODULE IMPORT time (kernel.py:87) to
+    register the off-path ``triton_per_token_group_quant_fp8`` custom op (backed
+    by a different sibling quant impl). The graded launcher invokes the
+    @triton.jit kernel directly and never dispatches through that op, so skipping
+    the registration removes only an off-path import-time side effect and changes
+    no graded numeric output. Must NOT raise -- it runs unconditionally at import.
+    B-inert (no registry side effect)."""
+    return None
+
+
+# Off-path fp8 weight-loading Parameter subclasses
+# (vllm.model_executor.parameter) -- constructed only inside the off-path
+# create_fp8_scale_parameter / create_fp8_input_scale helpers (kernel.py:1202,
+# 1208, 1222, 1242). The name must bind for import; constructing one on the
+# graded path loud-fails (fail-closed).
+BlockQuantScaleParameter = _l1_28_sibling_only_call("BlockQuantScaleParameter")
+ChannelQuantScaleParameter = _l1_28_sibling_only_call(
+    "ChannelQuantScaleParameter"
+)
+PerTensorScaleParameter = _l1_28_sibling_only_call("PerTensorScaleParameter")
+
+# vllm.model_executor.utils.set_weight_attrs -- attaches loader metadata to a
+# weight Parameter, called only inside the off-path create_fp8_input_scale helper
+# (kernel.py:1232). Loud-fails if a graded path ever reaches it.
+set_weight_attrs = _l1_28_sibling_only_call("set_weight_attrs")
+
+# vllm.model_executor.layers.quantization.utils.w8a8_utils.{all_close_1d,
+# per_tensor_dequantize} -- weight-comparison / per-tensor dequant helpers reached
+# only inside the off-path process_fp8_input_tensor_strategy_moe path
+# (kernel.py:1336, 1353). Loud-fail (fail-closed): the launcher never dequantises
+# per-tensor scales.
+all_close_1d = _l1_28_sibling_only_call("all_close_1d")
+per_tensor_dequantize = _l1_28_sibling_only_call("per_tensor_dequantize")
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# L1_15_act_and_mul off-path stand-ins. The frozen kernel.py is the whole
+# SGLang fused_moe_triton_kernels.py; the graded unit is the @triton.jit
+# `act_and_mul_kernel`, driven by `_pa_launcher.py::run`. Every symbol below is
+# imported at module scope, but each is referenced ONLY by module-scope setup
+# (platform/env gates) or by the dead sibling host wrappers
+# (`invoke_fused_moe_kernel` / `should_enable_swap_ab`); the launched
+# `act_and_mul_kernel` closure references NONE of them. The module-scope
+# predicates return their honest bench-target value (CUDA verify host / Ascend
+# NPU) so the standalone imports + runs; the dead-sibling-only quant helpers
+# loud-fail (fail-closed). B-inert.
+# ───────────────────────────────────────────────────────────────────────────
+def get_moe_padding_size(is_aiter_moe) -> int:
+    """Verbatim from sglang.srt.layers.moe.utils.get_moe_padding_size
+    (AITER_PADDING_SIZE / TRITON_PADDING_SIZE both == 128). The bench graded
+    path is the non-aiter Triton MoE with the default SGLANG_MOE_PADDING env
+    (unset -> "0"), so this returns 0. Read at module scope
+    (``padding_size = get_moe_padding_size(_use_aiter)``); the value is then
+    consumed ONLY inside the dead ``invoke_fused_moe_kernel`` sibling, never
+    the graded ``act_and_mul_kernel`` path. B-inert (faithful to upstream)."""
+    _AITER_PADDING_SIZE = 128
+    _TRITON_PADDING_SIZE = 128
+    if is_aiter_moe:
+        return _AITER_PADDING_SIZE
+    return (
+        _TRITON_PADDING_SIZE
+        if bool(int(os.getenv("SGLANG_MOE_PADDING", "0")))
+        else 0
+    )
+
+
+def cpu_has_amx_support() -> bool:
+    """Pure backend predicate mirroring sglang.srt.utils.common.cpu_has_amx_support
+    (AMX tile support AND the intel-amx sgl_kernel backend). The bench verify
+    host is NVIDIA CUDA / Ascend NPU, neither an Intel-AMX CPU, so this is a
+    constant False. Read only at module scope
+    (``_is_cpu_amx_available = cpu_has_amx_support()``); the graded
+    act_and_mul_kernel path never reads it. B-inert."""
+    return False
+
+
+def is_cpu() -> bool:
+    """Pure backend predicate mirroring sglang.srt.utils.common.is_cpu -- True
+    only when SGLANG_USE_CPU_ENGINE=1 on a supported x86/arm64 host. The bench
+    runs the standalone on the GPU device, so this is False. Module-scope setup
+    gate only (``_is_cpu = is_cpu()``); never the graded path. B-inert."""
+    return False
+
+
+def get_bool_env_var(name: str, default: str = "false") -> bool:
+    """Faithful mirror of sglang.srt.utils.common.get_bool_env_var -- a real
+    env-var truthy parse (no platform/dtype branch). Must run at import time
+    (``_use_aiter = get_bool_env_var("SGLANG_USE_AITER") and _is_hip``), so a
+    loud-fail stub would break the module load; a faithful parser is the
+    correct severance. Unrecognised values are treated as false (upstream warns
+    once; the shim silently treats-as-false, identical return value)."""
+    value = os.getenv(name, default).lower()
+    return value in ("true", "1")
+
+
+def is_sm90_supported() -> bool:
+    """Live mirror of sglang.srt.utils.common.is_sm90_supported -- upstream's
+    ``_check_cuda_device_version(device_capability_majors=[9], cuda_version=
+    (12, 3))``: True iff the CUDA device major capability is EXACTLY 9 (SM90,
+    Hopper) AND the CUDA toolkit is >= 12.3. Read ONLY inside the dead sibling
+    ``should_enable_swap_ab`` (never the graded act_and_mul_kernel path), so the
+    value is B-inert; we still answer honestly from the live device (False
+    off-GPU / on the CPU oracle pre-filter, where there is no SM90 device).
+    B-inert."""
+    if not (torch.cuda.is_available() and torch.version.cuda is not None):
+        return False
+    try:
+        major, _ = torch.cuda.get_device_capability()
+        cuda_major, cuda_minor = (
+            int(x) for x in torch.version.cuda.split(".")[:2]
+        )
+        return major == 9 and (cuda_major, cuda_minor) >= (12, 3)
+    except Exception:
+        return False
+
+
+def is_batch_invariant_mode_enabled() -> bool:
+    """Faithful mirror of
+    sglang.srt.batch_invariant_ops.is_batch_invariant_mode_enabled -- upstream
+    returns a module-global flag (``_batch_invariant_MODE``) that defaults to
+    False and is only flipped True by an explicit ``enable_batch_invariant_mode``
+    server bootstrap. The bench runs the standalone with no such bootstrap, so
+    the honest value is False. Read ONLY inside the dead sibling
+    ``should_enable_swap_ab`` (never the graded path). B-inert."""
+    return False
+
+
+def _l1_15_int8_quant(_name: str):
+    """Build a loud-failing stand-in for an sglang int8 per-token/group quant
+    kernel that the frozen L1_15 kernel imports but only reaches inside the dead
+    sibling ``invoke_fused_moe_kernel`` (int8 quant branch). The name must bind
+    so the module imports; invoking it means a verified entrypoint reached a
+    real int8 quant kernel -- a true dependency to classify, never to fake.
+    Fail-closed."""
+
+    def _stub(*args, **kwargs):
+        raise NotImplementedError(
+            f"{_name} shim reached: this sglang int8 quant kernel is off-path "
+            f"(the dead invoke_fused_moe_kernel sibling) and must not enter the "
+            f"graded act_and_mul_kernel entrypoint's path."
+        )
+
+    _stub.__name__ = _name
+    _stub.__qualname__ = _name
+    return _stub
+
+
+# sglang.srt.layers.quantization.int8_kernel.{per_token_group_quant_int8,
+# per_token_quant_int8, sglang_per_token_group_quant_int8} -- real CUDA int8
+# quant kernels called ONLY inside the dead invoke_fused_moe_kernel sibling
+# (kernel.py:785/791/793); loud-fail if a graded path ever reaches them.
+per_token_group_quant_int8 = _l1_15_int8_quant("per_token_group_quant_int8")
+per_token_quant_int8 = _l1_15_int8_quant("per_token_quant_int8")
+sglang_per_token_group_quant_int8 = _l1_15_int8_quant(
+    "sglang_per_token_group_quant_int8"
+)
+
+
+def softplus(*args, **kwargs):
+    """Loud-fail stand-in for the upstream Mamba2 ``mamba_ssm.softplus``
+    @triton.jit device function (``from .mamba_ssm import softplus``).
+
+    The frozen chunk_state kernels (e.g. L3_03 ``_chunk_state_varlen_kernel``,
+    L2_03 ``_chunk_state_fwd_kernel``) carry this import at module scope, but
+    ``softplus`` is referenced ONLY inside the sibling ``_chunk_cumsum_fwd_kernel``
+    -- which the chunk_state launcher never launches (proven by the launched-jit
+    closure: the launcher drives ``chunk_state_varlen`` / ``_chunk_state_fwd``,
+    not ``_chunk_cumsum_fwd``). The Phase A' rewriter redirects the off-path
+    import here so the severed standalone resolves without pulling the real
+    ``mamba_ssm`` module (which imports ``_custom_ops`` and the vllm/sglang
+    closure). Importing the name is inert; calling it raises -- so a graded path
+    that ever reached it (e.g. a cumsum task whose kernel DOES call softplus,
+    which keeps the REAL import via the on-path gate) fails loudly here rather
+    than silently faking the activation. Fail-closed."""
+    raise NotImplementedError(
+        "softplus shim reached: the upstream mamba_ssm softplus is referenced "
+        "only by the off-path _chunk_cumsum_fwd_kernel sibling, which the "
+        "chunk_state launcher never launches; it is not vendored into the "
+        "severed standalone and the graded chunk_state kernel must not invoke it"
+    )

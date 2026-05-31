@@ -80,14 +80,16 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 #: vocabulary and to the `specs/task_api_contract.md §5.2` dist-kind table.
 DIST_KINDS = frozenset({
     "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril", "randint",
-    "tril_chunk", "softmax_rows", "offsets", "cumcount", "arange",
-    "randperm", "full",
+    "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "offsets",
+    "cumcount", "arange", "randperm", "full", "routing_ids",
+    "window_pos", "window_req", "gumbel_temps", "gumbel_routing",
 })
 
 #: Dist kinds that carry no `args` (the bare-name DSL forms).
 _NULLARY_DIST_KINDS = frozenset({
     "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril",
-    "tril_chunk", "softmax_rows", "arange", "randperm",
+    "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "arange",
+    "randperm", "gumbel_temps",
 })
 
 #: Fraction of `randn_inf` entries replaced with +inf. Models a
@@ -156,6 +158,56 @@ def parse_dist_spec(dist: Any) -> dict[str, Any]:
             )
         return {"kind": "randint",
                 "args": {"lo": parts[0].strip(), "hi": parts[1].strip()}}
+    if head == "routing_ids":
+        # `routing_ids:<num_experts_expr>` -- a per-token MoE expert-assignment
+        # vector in [0, E) with a deterministic drop fraction set to -1 (the
+        # upstream "token dropped / no expert" sentinel act_and_mul_kernel skips
+        # via `if expert_id == -1: return`). Guarantees >=1 dropped and >=1 valid
+        # entry whenever n >= 2 so the routing mask is always discriminating.
+        if not rest.strip():
+            raise DistSpecError(
+                f"dist {dist!r}: 'routing_ids' needs 'routing_ids:<num_experts>'"
+            )
+        return {"kind": "routing_ids", "args": {"E": rest.strip()}}
+    if head == "gumbel_routing":
+        # `gumbel_routing:<R>` -- per-token request index in [0, R) for the
+        # gumbel-max sampler, pinned so token 0 -> request 0 and token 1 ->
+        # request 1 (paired with `gumbel_temps`, which pins request 0 greedy and
+        # request 1 noisy). This GUARANTEES by construction that every shape
+        # routes >=1 token through the greedy branch and >=1 through the gumbel
+        # branch -- random routing alone would not. Remaining tokens are random.
+        if not rest.strip():
+            raise DistSpecError(
+                f"dist {dist!r}: 'gumbel_routing' needs 'gumbel_routing:<R>'"
+            )
+        return {"kind": "gumbel_routing", "args": {"R": rest.strip()}}
+    if head == "window_pos":
+        # `window_pos:<W>` -- per-token local position within fixed-size draft
+        # windows of length W tiling [0, n): pos[t] = t % W. Models the
+        # speculative-decode draft-window local index the penalties kernel reads
+        # as `expanded_local_pos` (kernel.py draft scan: start = t - pos). pos<=t
+        # by construction, so the kernel's unclamped `token_ids[t-pos+1 .. t]`
+        # reads are always in-bounds. Paired with `window_req:<W>:<E>` so request
+        # ids are constant within each window (the upstream layout precondition).
+        if not rest.strip():
+            raise DistSpecError(
+                f"dist {dist!r}: 'window_pos' needs 'window_pos:<W>'"
+            )
+        return {"kind": "window_pos", "args": {"W": rest.strip()}}
+    if head == "window_req":
+        # `window_req:<W>:<E>` -- per-token request id, CONSTANT within each
+        # length-W draft window: req[t] = (t // W) % E. The window-constant
+        # routing the penalties kernel's `expanded_idx_mapping` carries (each
+        # speculative-decode window belongs to one request). Pairs with
+        # `window_pos:<W>` on the SAME W so (req, local_pos) are mutually
+        # consistent.
+        parts = rest.split(":")
+        if len(parts) != 2 or not all(p.strip() for p in parts):
+            raise DistSpecError(
+                f"dist {dist!r}: 'window_req' needs 'window_req:<W>:<E>'"
+            )
+        return {"kind": "window_req",
+                "args": {"W": parts[0].strip(), "E": parts[1].strip()}}
     if head == "offsets":
         # `offsets:to=<expr>` (final value pinned) or `offsets:<step>`
         # (random increments ≤ step); a bare `offsets` defaults step to 3.
@@ -243,6 +295,30 @@ def _normalise_structured_dist(spec: dict[str, Any]) -> dict[str, Any]:
                 f"dist 'full' args must be exactly {{value}}, "
                 f"got {sorted(args)}"
             )
+    elif kind == "routing_ids":
+        if set(args) != {"E"}:
+            raise DistSpecError(
+                f"dist 'routing_ids' args must be exactly {{E}}, "
+                f"got {sorted(args)}"
+            )
+    elif kind == "gumbel_routing":
+        if set(args) != {"R"}:
+            raise DistSpecError(
+                f"dist 'gumbel_routing' args must be exactly {{R}}, "
+                f"got {sorted(args)}"
+            )
+    elif kind == "window_pos":
+        if set(args) != {"W"}:
+            raise DistSpecError(
+                f"dist 'window_pos' args must be exactly {{W}}, "
+                f"got {sorted(args)}"
+            )
+    elif kind == "window_req":
+        if set(args) != {"W", "E"}:
+            raise DistSpecError(
+                f"dist 'window_req' args must be exactly {{W, E}}, "
+                f"got {sorted(args)}"
+            )
     return {"kind": kind, "args": {k: args[k] for k in sorted(args)}}
 
 
@@ -277,6 +353,14 @@ def unparse_dist_spec(spec: dict[str, Any]) -> str:
         return f"cumcount:to={args['to']}"
     if kind == "full":
         return f"full:{args['value']}"
+    if kind == "routing_ids":
+        return f"routing_ids:{args['E']}"
+    if kind == "gumbel_routing":
+        return f"gumbel_routing:{args['R']}"
+    if kind == "window_pos":
+        return f"window_pos:{args['W']}"
+    if kind == "window_req":
+        return f"window_req:{args['W']}:{args['E']}"
     raise DistSpecError(f"cannot unparse dist kind {kind!r}")
 
 
@@ -419,6 +503,20 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
         t = torch.randint(lo_i, hi_i, shape, generator=gen, dtype=torch.int64)
     elif kind == "softmax_rows":
         t = torch.softmax(torch.randn(shape, generator=gen, dtype=torch.float32), dim=-1)
+    elif kind == "l2norm_rows":
+        # randn rows L2-normalised over the last dim (unit-norm keys). The
+        # delta-rule / gated-delta recurrence is only numerically stable when
+        # the keys are unit-norm -- this is the upstream input recipe
+        # (fla gated_delta_rule docstring: k = F.normalize(randn, p=2, dim=-1)).
+        base = torch.randn(shape, generator=gen, dtype=torch.float32)
+        t = torch.nn.functional.normalize(base, p=2.0, dim=-1)
+    elif kind == "logsigmoid":
+        # logsigmoid(rand) -- a strictly negative gate so exp(g) in (0, 1) is a
+        # genuine decay (upstream uses g = F.logsigmoid(rand) for the gated
+        # delta-rule forget gate; a positive gate would make exp(g) > 1 grow
+        # the recurrent state without bound).
+        base = torch.rand(shape, generator=gen, dtype=torch.float32)
+        t = torch.nn.functional.logsigmoid(base)
     elif kind == "offsets":
         # Monotonic [0, c1, ..., total] int64 of length = shape[-1].
         # `offsets:<step>`     random increments ≤ step.
@@ -468,6 +566,80 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
         # pass even when it computes the wrong direction.
         n = shape[-1] if shape else 1
         return torch.randperm(n, generator=gen).to(torch.int64).reshape(shape)
+    elif kind == "routing_ids":
+        # MoE per-token expert assignment: a length-n int64 vector of expert
+        # ids in [0, E) with a deterministic drop fraction set to -1, the
+        # upstream "token dropped / no expert" sentinel that act_and_mul_kernel
+        # honours via `if expert_id == -1: return` (the masked row is left
+        # untouched). Random valid ids over [0, E) come from the seeded gen; a
+        # fixed ~1/3 of the positions are then forced to -1. To make the routing
+        # mask ALWAYS discriminating (a kernel ignoring the ids would write the
+        # dropped rows), position 0 is pinned valid and position 1 is pinned -1
+        # whenever n >= 2 -- so every shape has >=1 written and >=1 skipped row.
+        n = shape[-1] if shape else 1
+        E = max(int(eval_numeric(str(args["E"]), knobs)), 1)
+        ids = torch.randint(0, E, (n,), generator=gen, dtype=torch.int64)
+        if n >= 1:
+            drop = torch.rand(n, generator=gen) < 0.34
+            ids[drop] = -1
+            ids[0] = int(torch.randint(0, E, (1,), generator=gen).item())  # pin valid
+            if n >= 2:
+                ids[1] = -1  # pin dropped -> guaranteed discrimination
+        return ids.reshape(shape)
+    elif kind == "gumbel_routing":
+        # Per-token request index in [0, R) for the gumbel-max sampler. Random
+        # ids from the seeded gen, then token 0 is pinned to request 0 and token
+        # 1 to request 1 (when present). Paired with `gumbel_temps` (request 0
+        # greedy, request 1 noisy), this guarantees by construction that every
+        # shape routes >=1 token through the greedy branch and >=1 through the
+        # gumbel-noise branch -- so both kernel paths are always exercised and
+        # any kernel ignoring `expanded_idx_mapping` is discriminated.
+        n = shape[-1] if shape else 1
+        R = max(int(eval_numeric(str(args["R"]), knobs)), 1)
+        ids = torch.randint(0, R, (n,), generator=gen, dtype=torch.int64)
+        if n >= 1:
+            ids[0] = 0  # token 0 -> request 0 (greedy)
+        if n >= 2 and R >= 2:
+            ids[1] = 1  # token 1 -> request 1 (noisy)
+        return ids.reshape(shape)
+    elif kind == "window_pos":
+        # Per-token local position within fixed-size draft windows tiling
+        # [0, n): pos[t] = t % W. Deterministic (no RNG) so it stays consistent
+        # with the paired `window_req` over the same W. pos<=t by construction
+        # keeps the penalties kernel's unclamped draft scan in-bounds.
+        n = shape[-1] if shape else 1
+        W = max(int(eval_numeric(str(args["W"]), knobs)), 1)
+        t = torch.arange(n, dtype=torch.int64)
+        return (t % W).reshape(shape)
+    elif kind == "window_req":
+        # Per-token request id, CONSTANT within each length-W draft window:
+        # req[t] = (t // W) % E. Deterministic, so it is mutually consistent
+        # with `window_pos:<W>` on the same W (each window maps to one request).
+        n = shape[-1] if shape else 1
+        W = max(int(eval_numeric(str(args["W"]), knobs)), 1)
+        E = max(int(eval_numeric(str(args["E"]), knobs)), 1)
+        t = torch.arange(n, dtype=torch.int64)
+        return ((t // W) % E).reshape(shape)
+    elif kind == "gumbel_temps":
+        # Per-request sampling temperature for the gumbel-max sampler: a float
+        # vector mixing greedy (temp == 0.0, the argmax-only branch) and noisy
+        # (temp > 0, the gumbel-noise + temperature-scaling branch) requests so
+        # BOTH kernel paths are exercised. ~1/3 of entries are forced to 0.0;
+        # the rest get positive temps in [0.3, 1.7) from the seeded gen. To make
+        # the temperature ALWAYS discriminating (a kernel ignoring temp would
+        # take the wrong branch / skip the scale), entry 0 is pinned greedy
+        # (0.0) and entry 1 is pinned noisy whenever n >= 2 -- so every shape
+        # has >=1 greedy and >=1 noisy request.
+        n = shape[-1] if shape else 1
+        base = torch.rand(n, generator=gen, dtype=torch.float32)
+        t = 0.3 + 1.4 * base  # positive temps in [0.3, 1.7)
+        greedy = torch.rand(n, generator=gen) < 0.34
+        t[greedy] = 0.0
+        if n >= 1:
+            t[0] = 0.0  # pin greedy -> guaranteed argmax-branch coverage
+        if n >= 2:
+            t[1] = 0.3 + 1.4 * float(torch.rand(1, generator=gen).item())  # pin noisy
+        return t.reshape(shape)
     elif kind == "full":
         # Constant-filled int64 tensor; value = eval_numeric(expr, knobs).
         # Used when a length vector must match an offsets cumsum (e.g.
