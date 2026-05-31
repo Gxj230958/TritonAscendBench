@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
   # Symbol audit (approach §3.4). Gated DeltaNet recurrent fwd (token-by-
@@ -55,7 +55,7 @@ cost_model:
   bytes: (4*B*T*H*D + 2*B*T*H + B*H*D*D) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-oracle_simplified: upstream_oracle_required
+oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
   - 1
@@ -70,8 +70,8 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
-    hidden: 1
+    public: 5
+    hidden: 5
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -83,8 +83,30 @@ provenance:
   added_in: v0.1-scaffold
   authors:
   - triton-ascend-bench team
-  last_modified: '2026-05-15'
+  last_modified: '2026-05-31'
   source_md_id: L3-14
+  golden:
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: null
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_recurrent_state_contract
+    notes: >-
+      oracle_pytorch.py re-authored to the frozen kernel's exact
+      token-by-token recurrence (decay applied to the carried state BEFORE
+      the kS contraction; kS uses the decayed state), state carried in the
+      kernel's V-major [B,H,V,K] layout so output AND final_state match the
+      kernel bit-exact (verified 0.0 diff vs a line-by-line kernel emulation
+      over multiple seeds/shapes). _pa_launcher.py drives the declared jit
+      kernel fused_recurrent_gated_delta_rule_fwd_kernel via the host wrapper
+      one sequence at a time (inplace_final_state=False, cu_seqlens=None,
+      ssm_state_indices=None -- the only in-bounds dense path), returning
+      batched output [B,T,H,D] and end-state [B,H,V,K]. shapes.yaml adds
+      initial_state [B,H,D,D] randn as a load-bearing recurrence carry (T<=8
+      keeps exp(g)^T finite in fp32). Numeric oracle-vs-kernel equivalence
+      requires a GPU run to populate (the dev-host interpret anchor hits the
+      Triton 3.6 tl.exp _semantic skew, same GPU-rescue path as the L3_13
+      sibling).
 # Operator input contract (WA.1, specs/task_api_contract.md §5.2). Fused recurrent gated delta-rule forward: q / k / v [B, T, H, D], per-step gate g and beta [B, T, H]. scale is the QK scale, derived as 1/sqrt(D) (was a 0.125 placeholder; WB.1 derive-form fix).
 param_constraints:
   scaffold: false
@@ -99,6 +121,7 @@ param_constraints:
     v: float32
     g: float32
     beta: float32
+    initial_state: float32
   dists:
     q:
       kind: randn
@@ -110,6 +133,8 @@ param_constraints:
       kind: rand
     beta:
       kind: rand
+    initial_state:
+      kind: randn
   scalars:
     scale:
       derive: 1/sqrt(D)

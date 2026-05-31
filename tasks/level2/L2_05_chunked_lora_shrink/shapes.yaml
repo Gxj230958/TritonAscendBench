@@ -131,6 +131,19 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+# Dense fixture for the chunked SGMV LoRA-A shrink. The authored
+# _pa_launcher.py drives the in-module @triton.jit
+# `_chunked_lora_shrink_kernel` directly (bypassing the upstream host wrapper,
+# whose get_device_name() is None off-GPU and whose LoRABatchInfo import is a
+# T3 BLOCKED closure) and derives the wrapper's batch_info fields from these
+# dense tensors: num_segments = len(seg_indptr) - 1, BLOCK_M = max(diff(
+# seg_indptr)), permutation = identity arange(S) (the oracle's row mapping).
+# Knob roles: B -> total tokens s (x rows); D -> input_dim K (contracted);
+# E -> num_segments == num_lora adapters; G -> max LoRA rank (output cols N).
+# seg_indptr `offsets:to=B` pins the segment cumsum to B so the segments tile
+# [0, B) and every kernel row read stays in-bounds. weight_indices selects the
+# adapter slab per segment and lora_ranks masks the active output columns --
+# both are load-bearing (a kernel ignoring either fails the oracle compare).
 inputs:
   x:
     dims:
@@ -149,7 +162,7 @@ inputs:
     dims:
     - E+1
     dtype: int64
-    dist: offsets:2
+    dist: offsets:to=B
   weight_indices:
     dims:
     - E
@@ -160,23 +173,5 @@ inputs:
     - E
     dtype: int64
     dist: randint:1:G
-  scalings:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-  batch_info:
-    struct: "sglang.srt.lora.utils.LoRABatchInfo"
-    fields:
-      use_cuda_graph: {scalar: false}
-      bs:             {scalar_knob: B}
-      num_segments:   {scalar_knob: E}
-      seg_indptr:     {ref: seg_indptr}
-      weight_indices: {ref: weight_indices}
-      lora_ranks:     {ref: lora_ranks}
-      scalings:       {ref: scalings}
-      max_len:        {scalar_knob: L}
-      seg_lens:       {dims: [E], dtype: int32, dist: "randint:1:N"}
-      permutation:    {dims: [B], dtype: int32, dist: "randint:0:B"}
   num_slices:
     scalar: 1
