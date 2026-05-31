@@ -94,13 +94,19 @@ hidden_shapes:
     G: 4
 - id: H2
   name: h_singleton
+  # T is the paged-cache block_size (PHYSICAL_BLOCK_SIZE). The kernel tiles
+  # the per-tile P@V matmul over BLOCK_SIZE = min(T, 64) for pow2 T, and
+  # Triton's tl.dot requires the contraction dim K >= 16. Real vLLM paged
+  # KV block_size is always a pow2 >= 16; T=8 is outside the op's valid
+  # regime and made tl.dot(p, V) fail to compile (K=8<16). T=16 is the
+  # smallest realistic block_size and keeps this the smallest hidden shape.
   knobs:
     B: 2
     L: 16
     D: 32
     Dv: 8
     N: 32
-    T: 8
+    T: 16
     H: 2
     E: 2
     C: 4

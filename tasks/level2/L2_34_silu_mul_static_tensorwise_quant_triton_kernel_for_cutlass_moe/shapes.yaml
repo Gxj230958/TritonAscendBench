@@ -1,24 +1,32 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the moe family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Knob grid for the MoE masked silu-and-mul + FP8 group-quant family.
+# The GRADED host wrapper is `silu_and_mul_masked_post_quant_fwd`
+# (kernel.py line 380), which drives the @triton.jit
+# `_silu_and_mul_post_quant_kernel`. Its documented contract:
+#   input        [expert_num, token_num_padded, hidden_dim]   (gate||up)
+#   output       [expert_num, token_num_padded, hidden_dim//2] float8_e4m3fn
+#   output_scale [expert_num, token_num_padded, hidden_dim//2 // quant_group_size] f32
+#   masked_m     [expert_num]  (per-expert valid token count)
+# size_n = hidden_dim // 2 must be a multiple of quant_group_size.
+# Here E=expert_num, T=token_num_padded, D=size_n (== hidden_dim//2);
+# input last dim is 2*D, output last dim is D, scale last dim is D//G.
 size_knobs:
-  B: 128
+  B: 64
   L: 128
-  D: 1024
+  D: 512
   Dv: 8
   N: 1024
   T: 256
   H: 16
-  E: 32
+  E: 16
   C: 32
   G: 8
 public_shapes:
 - id: P1
   name: tiny
   knobs:
-    B: 8
+    B: 4
     L: 16
-    D: 64
+    D: 128
     Dv: 8
     N: 64
     T: 16
@@ -29,7 +37,7 @@ public_shapes:
 - id: P2
   name: small
   knobs:
-    B: 32
+    B: 16
     L: 64
     D: 256
     Dv: 8
@@ -42,27 +50,27 @@ public_shapes:
 - id: P3
   name: medium
   knobs:
-    B: 128
+    B: 64
     L: 128
-    D: 1024
+    D: 512
     Dv: 8
     N: 1024
     T: 256
     H: 16
-    E: 32
+    E: 16
     C: 32
     G: 8
 - id: P4
   name: large
   knobs:
-    B: 256
+    B: 128
     L: 256
-    D: 2048
+    D: 1024
     Dv: 8
     N: 2048
     T: 512
     H: 32
-    E: 64
+    E: 32
     C: 64
     G: 8
 - id: P5
@@ -70,19 +78,19 @@ public_shapes:
   knobs:
     B: 8
     L: 64
-    D: 512
+    D: 2048
     Dv: 8
     N: 512
     T: 64
     H: 8
-    E: 128
+    E: 8
     C: 16
     G: 4
 hidden_shapes:
 - id: H1
   name: h_odd
   knobs:
-    B: 96
+    B: 48
     L: 96
     D: 384
     Dv: 8
@@ -97,7 +105,7 @@ hidden_shapes:
   knobs:
     B: 2
     L: 16
-    D: 16
+    D: 128
     Dv: 8
     N: 8
     T: 8
@@ -108,7 +116,7 @@ hidden_shapes:
 - id: H3
   name: h_deep
   knobs:
-    B: 4
+    B: 2
     L: 512
     D: 4096
     Dv: 8
@@ -121,44 +129,54 @@ hidden_shapes:
 - id: H4
   name: h_wide
   knobs:
-    B: 512
+    B: 256
     L: 32
     D: 128
     Dv: 8
     N: 128
     T: 16
     H: 8
-    E: 256
+    E: 8
     C: 8
     G: 4
-# Buffer layout mirrors the upstream call site in cutlass_w4a8_moe.py:
-#   silu_mul_static_tensorwise_quant_for_cutlass_moe(
-#       c1, intermediate_q, a2_scale.float(), expert_offsets[-1:], m*topk, n)
-# B  = num_tokens (= m*topk);  D = intermediate_size (= n).
-# input  (c1):            [num_tokens, 2*intermediate_size], bf16 (gate||up).
-# output (intermediate_q):[num_tokens, intermediate_size],  float8_e4m3fn (in place).
-# scale  (a2_scale):      scalar fp32.
-# num_tokens_tensor (expert_offsets[-1:]): 1-elem int == m*topk == num_tokens.
 inputs:
+  # input[e, t, :D] = gate, input[e, t, D:] = up. fp32 so the kernel's
+  # `gate.to(input.dtype)` cast (silu result back to input dtype) is a
+  # no-op and the oracle's fp32 silu matches bit-for-bit.
   input:
     dims:
-    - B
+    - E
+    - T
     - 2*D
-    dtype: bfloat16
+    dtype: float32
     dist: randn
+  # Per-expert valid token count in [0, T): exercises the mask so tokens
+  # t >= masked_m[e] are never written (both outputs stay zero-init there).
+  masked_m:
+    dims:
+    - E
+    dtype: int64
+    dist: randint:0:T
+  # candidate_inplace: the runner pre-allocates these output buffers (zeros)
+  # and the launcher / graded kernel writes into them. Rows t >= masked_m[e]
+  # are never touched and stay zero, matching the masked oracle.
   output:
     dims:
-    - B
+    - E
+    - T
     - D
     dtype: float8_e4m3fn
     dist: zeros
-  scale:
+  # last dim = size_n // quant_group_size = D // 8 (quant_group_size is the
+  # fixed scalar 8 below, NOT the generic `G` family knob).
+  output_scale:
     dims:
-    - '1'
+    - E
+    - T
+    - D//8
     dtype: float32
-    dist: rand
-  num_tokens_tensor:
-    dims:
-    - '1'
-    dtype: int64
-    dist: full:B
+    dist: zeros
+  quant_group_size:
+    scalar: 8
+  fp8_max:
+    scalar: 448.0

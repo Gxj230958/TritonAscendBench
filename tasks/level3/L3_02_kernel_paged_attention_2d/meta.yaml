@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). Paged decode SDPA: one query token per
@@ -106,7 +106,12 @@ param_constraints:
   - H >= 1
   - D >= 1
   - C >= 1
-  - T >= 1
+  # T is the paged-cache block_size (kernel PHYSICAL_BLOCK_SIZE). The kernel
+  # tiles the per-tile P@V matmul over BLOCK_SIZE = min(T, 64) (pow2 T) and
+  # Triton's tl.dot requires the contraction dim K >= 16; real vLLM paged KV
+  # block_size is always a pow2 >= 16, so T < 16 is outside the op's valid
+  # regime (it makes tl.dot(p, V) fail to compile).
+  - T >= 16
   - N >= 1
   dtypes:
     query: float32

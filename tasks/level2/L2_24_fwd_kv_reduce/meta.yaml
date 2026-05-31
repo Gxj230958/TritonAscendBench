@@ -17,6 +17,20 @@ upstream:
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_24_fwd_kv_reduce_18f6bf5.py
+  # BLOCKED: upstream-kernel-bug. The frozen vLLM kernel has an off-by-one in
+  # the cross-block decay. Host k_decay (kernel.py:444-445) is
+  # array = arange(0,BLOCK)+1 ; exp(-s*(BLOCK-array)) = exp(-s*(BLOCK-r-1)),
+  # so a query at global pos t attending a cross-block key at pos s gets total
+  # decay exp(-s*((t-s)-1)) -- one step short. The canonical OpenNLPLab
+  # lightning-attn2 _fwd_kernel uses k_trans_decay = exp(-s*(BLOCK-off_block))
+  # with off_block = arange(0,BLOCK) (no +1), giving exp(-s*(t-s)); the kernel's
+  # OWN diagonal stage (kernel.py:118-122) also uses exp(-s*(t-s)) within block.
+  # The oracle (oracle_pytorch.py:35, exp(-slope*(t-s))) is the correct, self-
+  # consistent convention matching canonical upstream + the diagonal stage; it
+  # is NOT corrupted to mirror the kernel. Cross-block error is localized at
+  # block boundaries (probe: ~1.1 abs at first cross-block query, ~1e-7 within
+  # block) and is absorbed only by attention_flash tolerance -> false pass.
+  # Ref: OpenNLPLab/lightning-attention lightning_attn/ops/triton/lightning_attn2.py.
 interface:
   alias_map: {}
   mutability: unspecified
