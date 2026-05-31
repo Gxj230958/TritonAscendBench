@@ -1,6 +1,13 @@
 # Operator-family knob grid (WB.1 R2-3): values reflect
 # the ssm family's real axes — not the legacy
 # uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+#
+# Graded contract: dt[T, H] (T = seqlen, H = nheads), A[H], chunk_size = 16.
+# cu_chunk_seqlens is derived (non-uniform, chunk-aligned) by the launcher and
+# the oracle from the SAME (T, chunk_size). Every shape uses T >= 25 with
+# chunk_size = 16 so the genuine non-uniform chunk count differs from a uniform
+# ceil(T / 16) split (segmentation is load-bearing on every graded shape) and
+# nchunks >= 2 (the per-chunk cumsum reset is exercised everywhere).
 size_knobs:
   B: 8
   L: 128
@@ -22,7 +29,7 @@ public_shapes:
     D: 32
     Dv: 32
     N: 16
-    T: 16
+    T: 28
     H: 4
     E: 2
     C: 4
@@ -78,7 +85,7 @@ public_shapes:
     D: 128
     Dv: 128
     N: 64
-    T: 32
+    T: 40
     H: 8
     E: 4
     C: 8
@@ -107,7 +114,7 @@ hidden_shapes:
     D: 16
     Dv: 16
     N: 8
-    T: 8
+    T: 26
     H: 2
     E: 2
     C: 2
@@ -135,7 +142,7 @@ hidden_shapes:
     D: 64
     Dv: 64
     N: 32
-    T: 16
+    T: 48
     H: 8
     E: 8
     C: 8
@@ -144,16 +151,16 @@ hidden_shapes:
 inputs:
   dt:
     dims:
-    - B
-    - L
+    - T
+    - H
     dtype: float32
     dist: rand
   A:
     dims:
-    - B
+    - H
     dtype: float32
     dist: rand
   dt_softplus:
     scalar_knob: DTSP
   chunk_size:
-    scalar: 64
+    scalar: 16

@@ -7,7 +7,7 @@
 
 - Benchmark id: `L1_40_chunk_cumsum_fwd`
 - Upstream: `vllm-project/vllm` — `_chunk_cumsum_fwd_kernel`
-- Source path: ``vllm/model_executor/layers/fla/ops/``
+- Source path: `vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py`
 - Category: `ssm` · oracle tier: `formula_exact_manual` · tolerance: `recurrent_chunk`
 
 ## Required semantics
@@ -25,18 +25,33 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-Mamba2 chunk cumsum: dt' = softplus(dt + dt_bias) (clamped to
-dt_limit); dA_cumsum = cumsum(A · dt') along the sequence.
-dt: [..., L]; A: [...] (per-head). Returns (dt', dA_cumsum).
+Mamba2 chunk cumsum (matches kernel.py `_chunk_cumsum_fwd`):
+`dt: [seqlen, nheads]`, `A: [nheads]`. The sequence is split into logical
+chunks by `cu_chunk_seqlens` (exclusive prefix-sum, leading 0, last ==
+seqlen, each chunk length in (0, chunk_size]); chunk boundaries are derived
+deterministically from `seqlen` and `chunk_size` (a non-uniform,
+chunk-aligned partition mirroring upstream `compute_varlen_chunk_metadata`).
+Per chunk `c` (token rows `[s, e)`, `len_c = e - s`) and head `h`, over the
+`chunk_size` axis `k`:
+`dt_k = dt[s+k, h]` for `k < len_c` else 0; optional `dt_k = softplus(dt_k)`
+where `dt_k <= 20` (gated on `dt_softplus`); `dt_k = clamp(dt_k, dt_limit)`
+(default `(0, inf)`); re-mask the chunk tail `k >= len_c` to 0;
+`dt_out[h,c,k] = dt_k`; `dA_cumsum[h,c,:] = cumsum(dt_k * A[h])` over the
+`chunk_size` axis. The cumsum RESETS at every chunk boundary (per-chunk, not
+a single scan over the whole sequence). Returns
+`(dt_out, dA_cumsum)`, each `[nheads, nchunks, chunk_size]` float32.
 
 ## I/O contract
 
 `oracle_pytorch.run(inputs: dict) -> dict`. Inputs (keys consumed):
-- `dt`
-- `A`
-- `dt_limit`
-- `dt_bias`
-- `dt_softplus`
+- `dt` — `[seqlen, nheads]` float32
+- `A` — `[nheads]` float32
+- `dt_softplus` — bool (the DTSP knob)
+- `chunk_size` — int scalar (power of two; 16)
+
+Outputs: `dt_out`, `dA_cumsum`, each `[nheads, nchunks, chunk_size]` float32.
+`cu_chunk_seqlens` is derived from `seqlen` + `chunk_size`; `dt_bias` is
+absent and `dt_limit` keeps its default `(0, inf)` at the bound shapes.
 
 Concrete per-shape tensors are built by
 `triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
@@ -67,8 +82,8 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `B >= 1`
-- `L >= 1`
+- `T > 16`
+- `H >= 2`
 
 ### Input dtypes (`dtypes`)
 
@@ -83,6 +98,7 @@ Knob grid in `shapes.yaml`.
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `dt_softplus`: `dt_softplus in [0, 1]`
+- `chunk_size`: `chunk_size == 16`
 
 ### Tensor invariants (`tensor_invariants`)
 

@@ -10,7 +10,7 @@ category: ssm
 npu_difficulty: medium
 upstream:
   repo: vllm-project/vllm
-  path: '`vllm/model_executor/layers/fla/ops/`'
+  path: 'vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py'
   commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
   file_sha256: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
   function_hash: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
@@ -26,23 +26,28 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). Mamba2 chunk cumsum: dt' = softplus(dt) then
-  # dA_cumsum = cumsum(A * dt') along the sequence axis. Symbol map: B -> dt
-  # dim 0 (per-head rows == A length, kernel grid extent), L -> dt dim 1 (the
-  # per-row sequence / cumsum extent), DTSP -> the `dt_softplus` scalar_knob
-  # in [0,1]; dt_bias / dt_limit are absent at the bound shapes.
-  # FLOPs (vector): the A*dt' multiply (~1) + the cumsum accumulate (~1) are
-  # always done -> 2*B*L. The softplus pre-transform (~5 ops/element: exp,
-  # add, log, plus the overflow-safe branch) runs ONLY when dt_softplus is
-  # set, so it is gated on DTSP -> +5*DTSP*B*L. Total 2*B*L + 5*DTSP*B*L.
-  # bytes (hbm): read dt[B,L] + A[B], write dt_out[B,L] + dA_cumsum[B,L] ->
-  # (3*B*L + B) elements; all float32 primary family -> dtype_size.
-  flops: 2*B*L + 5*DTSP*B*L
+  # Symbol audit (approach §3.4). Mamba2 chunk cumsum (kernel.py
+  # _chunk_cumsum_fwd_kernel): per head and per logical chunk, dt' =
+  # softplus(dt) (gated) then clamp, and dA_cumsum = cumsum(A * dt') along the
+  # within-chunk axis. Symbol map: T -> dt dim 0 (seqlen, the cumsum extent),
+  # H -> dt dim 1 (nheads == A length == kernel grid head extent), DTSP -> the
+  # `dt_softplus` scalar_knob in [0,1]; dt_bias / dt_limit are absent at the
+  # bound shapes (dt_limit defaults to (0, inf)).
+  # FLOPs (vector): the A*dt' multiply (~1) + the per-chunk cumsum accumulate
+  # (~1) are always done over the T*H tokens -> 2*T*H. The softplus
+  # pre-transform (~5 ops/element: exp, add, log, plus the overflow-safe
+  # branch) runs ONLY when dt_softplus is set -> +5*DTSP*T*H. The per-chunk
+  # padding (chunk_size axis vs the ragged chunk length) is a small constant
+  # overhead folded into the leading factor. Total 2*T*H + 5*DTSP*T*H.
+  # bytes (hbm): read dt[T,H] + A[H], write dt_out + dA_cumsum (each ~T*H live
+  # elements across [H,nchunks,chunk_size]) -> (3*T*H + H) elements; all
+  # float32 primary family -> dtype_size.
+  flops: 2*T*H + 5*DTSP*T*H
   flops_class: vector
-  bytes: (3*B*L + B) * dtype_size
+  bytes: (3*T*H + H) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -78,8 +83,12 @@ provenance:
 param_constraints:
   scaffold: false
   dims:
-  - B >= 1
-  - L >= 1
+  # dt is [T, H] (T = seqlen, H = nheads); A is [H]. T must exceed
+  # chunk_size (=16) so the derived non-uniform chunk count differs from a
+  # uniform ceil(T/16) split (the cu_chunk_seqlens segmentation is the
+  # load-bearing input); H >= 2 keeps the per-head axis non-degenerate.
+  - T > 16
+  - H >= 2
   dtypes:
     dt: float32
     A: float32
@@ -90,4 +99,5 @@ param_constraints:
       kind: rand
   scalars:
     dt_softplus: dt_softplus in [0, 1]
+    chunk_size: chunk_size == 16
   tensor_invariants: []
