@@ -131,26 +131,34 @@ hidden_shapes:
     E: 256
     C: 8
     G: 4
+# Buffer layout mirrors the upstream call site in cutlass_w4a8_moe.py:
+#   silu_mul_static_tensorwise_quant_for_cutlass_moe(
+#       c1, intermediate_q, a2_scale.float(), expert_offsets[-1:], m*topk, n)
+# B  = num_tokens (= m*topk);  D = intermediate_size (= n).
+# input  (c1):            [num_tokens, 2*intermediate_size], bf16 (gate||up).
+# output (intermediate_q):[num_tokens, intermediate_size],  float8_e4m3fn (in place).
+# scale  (a2_scale):      scalar fp32.
+# num_tokens_tensor (expert_offsets[-1:]): 1-elem int == m*topk == num_tokens.
 inputs:
   input:
     dims:
     - B
-    - N
-    - D
-    dtype: float32
+    - 2*D
+    dtype: bfloat16
     dist: randn
+  output:
+    dims:
+    - B
+    - D
+    dtype: float8_e4m3fn
+    dist: zeros
   scale:
     dims:
     - '1'
     dtype: float32
     dist: rand
-  output:
+  num_tokens_tensor:
     dims:
-    - B
-    - N
-    - D//2
-    dtype: float8_e4m3fn
-  masked_m:
-    dims:
-    - B
-    dist: full:N
+    - '1'
+    dtype: int64
+    dist: full:B

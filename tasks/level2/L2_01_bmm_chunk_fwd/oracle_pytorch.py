@@ -20,10 +20,24 @@ def _bmm_chunk_fwd(
     cu_chunk_seqlens: torch.Tensor, causal: bool,
 ) -> torch.Tensor:
     """Mamba2/SSD chunked BMM. a,b: [seqlen, ngroups, K]. For each chunk
-    (token span [s,e) from cu_chunk_seqlens) compute per-group
-    out = a_chunk @ b_chunk^T → [n_chunks, ngroups, chunk_size, chunk_size];
-    optionally lower-triangular (causal) masked. Shorter tail chunks are
-    zero-padded to chunk_size.
+    (token span [s,e) from cu_chunk_seqlens) compute the per-group full
+    product out = a_chunk @ b_chunk^T -> [n_chunks, ngroups,
+    chunk_size, chunk_size]. Shorter tail chunks are zero-padded to
+    chunk_size.
+
+    No triangular masking is applied. The kernel's ``causal`` flag only
+    enables a block-level early-return that skips entire output tiles
+    lying strictly above the diagonal -- it triggers solely when
+    ``chunk_size > BLOCK_SIZE_M`` (the kernel's smallest tile is 32). For
+    ``chunk_size <= 32`` the whole chunk fits one tile, the skip never
+    fires, and the kernel writes the full unmasked ``a @ b^T`` regardless
+    of ``causal`` (verified bit-identical for causal True vs False). The
+    upstream Mamba2 caller (ssd_combined.py) invokes this op with
+    ``causal=False``; the lower-triangular masking of CB happens
+    downstream, not here. The oracle therefore mirrors the kernel's real
+    output -- the full product -- so every guaranteed element is graded.
+    The strict-upper-triangle "arbitrary" region the docstring mentions
+    only exists when the (unreached, ungradeable) block-skip fires.
     """
     seqlen, ngroups, K = a.shape
     cu = cu_chunk_seqlens.to(torch.long).tolist()
@@ -38,9 +52,6 @@ def _bmm_chunk_fwd(
         ac = af[s:e].permute(1, 0, 2)                # [G, ln, K]
         bc = bf[s:e].permute(1, 0, 2)                # [G, ln, K]
         prod = torch.bmm(ac, bc.transpose(1, 2))     # [G, ln, ln]
-        if causal:
-            tri = torch.tril(torch.ones(ln, ln, device=a.device))
-            prod = prod * tri
         out[c, :, :ln, :ln] = prod
     return out.to(a.dtype)
 

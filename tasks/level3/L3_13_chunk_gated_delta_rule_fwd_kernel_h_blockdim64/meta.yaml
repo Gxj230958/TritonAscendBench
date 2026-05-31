@@ -24,16 +24,29 @@ interface:
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
+  # Host wrapper returns (h, v_new, final_state); the oracle contract is
+  # the per-chunk state snapshot h (index 0). v_new and final_state are
+  # auxiliary upstream outputs, not part of this task's reference.
+  output_projection:
+    arity: 3
+    map:
+      output: 0
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::chunk_gated_delta_rule_fwd_h
 tolerance_class: recurrent_chunk
 cost_model:
+  # Chunked state recurrence over NT = ceil(T/64) chunks per (B, H) program.
+  # Cube: dv = w @ S^T ([BT,K]x[K,V]) and S += k^T @ dv ([K,BT]x[BT,V]),
+  # each 2*BT*K*V per chunk, summing to 4*B*H*T*K*V across all rows.
+  # Vector: per-row value gating (B*H*T*V) plus the scalar g gate (B*T*H).
   flops:
-    fp16_cube: 4*B*T*D*D
-    vector: 2*B*T*D*D + B*T*D
+    fp16_cube: 4*B*H*T*K*V
+    vector: 2*B*H*T*V + B*T*H
   bytes:
-    hbm: (3*B*T*D + B*T + B*T*D*D) * dtype_size
+    # Reads k/w/gk ([B,T,H,K] each, Hg==H), u ([B,T,H,V]), g ([B,T,H]);
+    # writes the per-chunk state snapshot h ([B,NT,H,V,K], NT=T/64).
+    hbm: (3*B*T*H*K + B*T*H*V + B*T*H + B*(T/64)*H*V*K) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -50,7 +63,7 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
+    public: 5
     hidden: 1
 is_canary: false
 is_hidden_only: false
@@ -66,31 +79,39 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-13
   golden:
-    oracle_kernel_equivalence: ORACLE_KERNEL_LAYOUT_MISMATCH
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: '2026-05-30T00:00:00Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape:
-      P1:
-        status: ORACLE_KERNEL_LAYOUT_MISMATCH
-        blocker: 'oracle helper and wrapper disagree on rank for [''k'']; route to
-          source (2). Details: k: wrapper expects rank [4], build_inputs gave 3'
-      P2:
-        status: ORACLE_KERNEL_LAYOUT_MISMATCH
-        blocker: 'oracle helper and wrapper disagree on rank for [''k'']; route to
-          source (2). Details: k: wrapper expects rank [4], build_inputs gave 3'
-    golden_source: blocked_oracle_kernel_layout_mismatch
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_chunk_state_contract
+    notes: >-
+      oracle_pytorch.py re-authored to the upstream chunked headed contract
+      (k/w:[B,T,H,K], u:[B,T,H,V], g:[B,T,H], gk:[B,T,H,K] -> h:[B,NT,H,V,K],
+      BT=64). shapes.yaml + param_constraints aligned to that layout;
+      output_projection selects wrapper return index 0 (h). gk added to drive
+      the kernel's USE_GK per-K-channel state-decay branch (exp(gk[:,last]));
+      all shape rows pinned to NT>=3 (T>=129) so that decay reaches a graded h
+      snapshot. Numeric oracle-vs-kernel equivalence requires a GPU/NPU run to
+      populate.
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
-  - T >= 1
-  - D >= 1
-  - D <= 256
+  # T >= 129 (= 2*BT + 1, BT=64) guarantees NT >= 3 so the USE_GK
+  # per-channel state decay reaches a graded h snapshot (chunk-2 onward).
+  - T >= 129
+  - H >= 1
+  - K >= 1
+  - V >= 1
+  - K <= 256
+  - V <= 256
+  - K % 64 == 0
   dtypes:
     k: float32
     w: float32
     u: float32
     g: float32
+    gk: float32
   dists:
     k:
       kind: randn
@@ -100,5 +121,10 @@ param_constraints:
       kind: randn
     g:
       kind: rand
+    gk:
+      kind: rand
   scalars: {}
+  # No value-domain invariants: all inputs are dense randn/rand tensors.
+  # Rank/shape contracts are enforced by shapes.yaml dims (k/w/gk [B,T,H,K],
+  # u [B,T,H,V], g [B,T,H] -> h [B,ceil(T/64),H,V,K]).
   tensor_invariants: []

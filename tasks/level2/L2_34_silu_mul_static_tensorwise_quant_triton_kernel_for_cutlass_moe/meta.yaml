@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
   flops: 9*B*D/2
@@ -79,16 +79,21 @@ provenance:
 param_constraints:
   scaffold: false
   dims:
-  - D % 2 == 0
-  - D >= 2
+  - D >= 1
   - B >= 1
   dtypes:
-    input: float32
+    input: bfloat16
+    output: float8_e4m3fn
     scale: float32
+    num_tokens_tensor: int64
   dists:
     input:
       kind: randn
     scale:
       kind: rand
+    num_tokens_tensor:
+      kind: full
+      args:
+        value: B
   scalars: {}
   tensor_invariants: []

@@ -162,6 +162,9 @@ inputs:
     dims:
     - C+1
     dtype: int64
-    dist: offsets:to=C*4
+    # Non-uniform chunk spans (random increments in [1, chunk_size]); breaks
+    # the identity uniform mapping so a kernel ignoring cu_chunk_seqlens (or
+    # mis-indexing the per-chunk token span / tail padding) cannot pass.
+    dist: offsets:4
   causal:
     scalar_knob: CAUSAL

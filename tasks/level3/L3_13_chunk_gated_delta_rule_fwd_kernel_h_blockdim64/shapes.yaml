@@ -1,161 +1,112 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the ssm family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator-family knob grid for chunk_gated_delta_rule_fwd_h.
+# Layout follows the frozen upstream wrapper exactly:
+#   k: [B, T, Hg, K]   w: [B, T, H, K]   u: [B, T, H, V]
+#   g: [B, T, H]       gk: [B, T, H, K]
+#   output h: [B, NT, H, V, K], BT = FLA_CHUNK_SIZE = 64.
+# Hg == H here (the fla common case where Q/K share head counts), so the
+# kernel's head-grouping i_h // (H // Hg) is the identity. K, V <= 256 to
+# respect the kernel assertion `K <= 256` and the blockdim64 K-tiling
+# (K in {64,128,192,256}).
+# gk drives the kernel's USE_GK branch (per-K-channel state decay by
+# exp(gk[:, chunk_last])). Because that decay multiplies the carried state
+# S whose chunk-0 value is zero (no initial_state) and h snapshots S at each
+# chunk START, the decay only reaches a GRADED output from the chunk-2
+# snapshot onward -- so every shape must span NT >= 3, i.e. T >= 129
+# (= 2*BT + 1). Do NOT lower any T below 129 or the USE_GK branch stops
+# affecting the output and becomes effectively untested.
 size_knobs:
   B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
+  T: 192
   H: 16
-  E: 8
-  C: 16
-  G: 8
+  K: 128
+  V: 128
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
+    T: 144
     H: 4
-    E: 2
-    C: 4
-    G: 2
+    K: 64
+    V: 64
 - id: P2
   name: small
   knobs:
     B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
+    T: 160
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    K: 64
+    V: 64
 - id: P3
   name: medium
   knobs:
     B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
+    T: 192
     H: 16
-    E: 8
-    C: 16
-    G: 8
+    K: 128
+    V: 128
 - id: P4
   name: large
   knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
+    B: 4
     T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+    H: 8
+    K: 256
+    V: 256
 - id: P5
   name: wide
   knobs:
     B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
+    T: 192
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    K: 128
+    V: 64
 hidden_shapes:
 - id: H1
-  name: h_odd
+  name: h_multichunk
   knobs:
     B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
+    T: 160
     H: 6
-    E: 3
-    C: 12
-    G: 4
-- id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-- id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-- id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+    K: 192
+    V: 128
 inputs:
   k:
     dims:
     - B
     - T
-    - D
+    - H
+    - K
     dtype: float32
     dist: randn
   w:
     dims:
     - B
     - T
-    - D
+    - H
+    - K
     dtype: float32
     dist: randn
   u:
     dims:
     - B
     - T
-    - D
+    - H
+    - V
     dtype: float32
     dist: randn
   g:
     dims:
     - B
     - T
+    - H
+    dtype: float32
+    dist: rand
+  gk:
+    dims:
+    - B
+    - T
+    - H
+    - K
     dtype: float32
     dist: rand
