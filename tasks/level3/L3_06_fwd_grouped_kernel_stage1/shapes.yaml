@@ -1,82 +1,108 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the other family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Grouped (GQA) decode-attention stage-1 (flash-decoding partials).
+# The authored _pa_launcher.py drives the frozen @triton.jit
+# `_fwd_grouped_kernel_stage1` exactly as the upstream host wrapper
+# `_decode_grouped_att_m_fwd` does (vLLM
+# vllm/v1/attention/ops/triton_decode_attention.py, commit 18f6bf5a214).
+#
+# Knob roles for this operator family (NOT the legacy uniform template):
+#   B  -> decode batch (one query token per request; q dim 0, att_out dim 0)
+#   H  -> query head count H_Q (q dim 1, att_out dim 1, kernel BLOCK_H axis)
+#   E  -> KV head count H_KV (k_buffer/v_buffer dim 1); kv_group_num = H/E
+#         MUST be > 1 to exercise the grouped (GQA) head mapping
+#   D  -> QK head dim Lk (q dim 2 == k_buffer dim 2, score contraction)
+#   Dv -> value head dim Lv (v_buffer dim 2 == att_out context width)
+#   C  -> max cached context length per request (req_to_tokens width;
+#         k_buffer/v_buffer hold B*C cached latent tokens)
+# NUM_KV_SPLITS (att_out dim 2, the flash-decoding split count) is the
+# fixed `num_kv_splits` scalar (4, > 1 so the per-split online-softmax
+# recurrence is exercised); it is NOT a size knob. L/N/T/G are legacy
+# family knobs carried by the grid template but unused by this operator.
+#
+# Discrimination (every input below is load-bearing -- a kernel ignoring
+# any one fails the oracle compare):
+#   req_to_tokens `randperm` is a NON-identity global permutation of the
+#   B*C cached slots; a kernel that gathers b*C+n directly (ignoring the
+#   page table) reads the wrong tokens. b_seqlen `randint:1:C+1` gives a
+#   DIFFERENT context length per request; a kernel that hard-codes the
+#   full C ignores B_Seqlen and gets the split bounds wrong. scale,
+#   q/k_buffer/v_buffer and the GQA head mapping are load-bearing by
+#   construction.
 size_knobs:
   B: 16
   L: 256
-  D: 512
-  Dv: 512
+  D: 128
+  Dv: 128
   N: 512
   T: 256
   H: 16
-  E: 16
-  C: 32
-  G: 8
+  E: 4
+  C: 40
+  G: 4
 public_shapes:
 - id: P1
   name: tiny
   knobs:
-    B: 4
+    B: 2
     L: 32
-    D: 64
-    Dv: 64
+    D: 32
+    Dv: 32
     N: 64
     T: 16
     H: 4
-    E: 4
-    C: 8
-    G: 2
+    E: 2
+    C: 10
+    G: 3
 - id: P2
   name: small
   knobs:
-    B: 8
+    B: 4
     L: 128
-    D: 256
-    Dv: 256
+    D: 64
+    Dv: 64
     N: 256
     T: 64
     H: 8
-    E: 8
-    C: 16
+    E: 2
+    C: 24
     G: 4
 - id: P3
   name: medium
   knobs:
-    B: 16
+    B: 8
     L: 256
-    D: 512
-    Dv: 512
+    D: 128
+    Dv: 128
     N: 512
     T: 256
     H: 16
-    E: 16
-    C: 32
-    G: 8
+    E: 4
+    C: 50
+    G: 5
 - id: P4
   name: large
   knobs:
-    B: 32
+    B: 16
     L: 512
-    D: 1024
-    Dv: 1024
+    D: 128
+    Dv: 96
     N: 1024
     T: 512
     H: 32
-    E: 32
-    C: 64
+    E: 4
+    C: 70
     G: 8
 - id: P5
   name: wide
   knobs:
     B: 4
     L: 128
-    D: 2048
-    Dv: 2048
+    D: 80
+    Dv: 80
     N: 512
     T: 64
     H: 8
-    E: 8
-    C: 16
+    E: 2
+    C: 33
     G: 4
 hidden_shapes:
 - id: H1
@@ -84,14 +110,14 @@ hidden_shapes:
   knobs:
     B: 6
     L: 192
-    D: 384
-    Dv: 384
+    D: 96
+    Dv: 96
     N: 384
     T: 96
     H: 6
-    E: 6
-    C: 24
-    G: 4
+    E: 3
+    C: 37
+    G: 5
 - id: H2
   name: h_singleton
   knobs:
@@ -101,35 +127,55 @@ hidden_shapes:
     Dv: 16
     N: 8
     T: 8
-    H: 2
+    H: 4
     E: 2
-    C: 2
+    C: 6
     G: 2
 - id: H3
   name: h_deep
   knobs:
     B: 2
     L: 1024
-    D: 4096
-    Dv: 4096
+    D: 64
+    Dv: 64
     N: 512
     T: 512
     H: 8
-    E: 8
-    C: 64
-    G: 8
+    E: 2
+    C: 100
+    G: 6
 - id: H4
   name: h_wide
   knobs:
-    B: 64
+    B: 8
+    L: 32
+    D: 64
+    Dv: 48
+    N: 128
+    T: 16
+    H: 8
+    E: 4
+    C: 20
+    G: 4
+- id: H5
+  name: h_biggroup
+  # kv_group_num = H/E = 20 > BLOCK_H (16): exercises the kernel's
+  # block-based KV-head mapping cur_kv_head = cur_head_id //
+  # cdiv(kv_group_num, BLOCK_H) (kernel.py:312/315), where the divisor
+  # cdiv(20,16)=2 is > 1. With H/E <= 16 (every other shape) that divisor
+  # is 1 and the mapping collapses to h // kv_group_num; this shape locks
+  # in the genuine block-quantised mapping so a candidate correct only for
+  # kv_group_num <= 16 fails. H=40 is a non-multiple of 16.
+  knobs:
+    B: 2
     L: 32
     D: 64
     Dv: 64
     N: 128
     T: 16
-    H: 8
-    E: 8
-    C: 8
+    H: 40
+    E: 2
+    C: 24
     G: 4
 inputs:
   q:
@@ -141,22 +187,29 @@ inputs:
     dist: randn
   k_buffer:
     dims:
-    - C
+    - B*C
+    - E
     - D
     dtype: float32
     dist: randn
   v_buffer:
     dims:
-    - C
-    - D
+    - B*C
+    - E
+    - Dv
     dtype: float32
     dist: randn
-  scale:
-    derive: 1/sqrt(D)
-  att_out:
+  req_to_tokens:
+    dims:
+    - B*C
+    dtype: int64
+    dist: randperm
+  b_seqlen:
     dims:
     - B
-    - H
-    - N
-    - D
-    dtype: float16
+    dtype: int64
+    dist: randint:1:C+1
+  scale:
+    derive: 1/sqrt(D)
+  num_kv_splits:
+    scalar: 4

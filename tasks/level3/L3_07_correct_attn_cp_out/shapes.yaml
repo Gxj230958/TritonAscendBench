@@ -95,7 +95,11 @@ hidden_shapes:
     N: 192
     T: 48
     H: 12
-    E: 12
+    # E (cp rank count) must be a power of 2: the kernel does
+    # tl.arange(0, N_ROUNDED=E) over the rank axis, and triton.arange
+    # requires a power-of-2 extent. cp world size is always a power of 2
+    # upstream, so this is the operator's real domain (not a difficulty cut).
+    E: 8
     C: 24
     G: 4
     LSEB: 1
@@ -160,10 +164,3 @@ inputs:
     scalar: 0
   is_lse_base_on_e:
     scalar_knob: LSEB
-  x:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn

@@ -134,16 +134,14 @@ hidden_shapes:
 inputs:
   act:
     scalar: silu
-  x:
+  gateup_output:
     dims:
     - B
     - D
     dtype: float32
     dist: randn
-  input:
+  topk_ids:
     dims:
     - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
+    dtype: int64
+    dist: routing_ids:E

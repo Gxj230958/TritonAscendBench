@@ -142,13 +142,36 @@ inputs:
     dims:
     - B
     dtype: int64
-    dist: randint:0:E
+    # Per-token request id, CONSTANT within each length-W draft window
+    # (req = (t // W) % E). The window-structured routing the kernel's draft
+    # scan presumes: each speculative-decode window belongs to one request.
+    # Paired with expanded_local_pos on the same W = 4.
+    dist: window_req:4:E
+  expanded_local_pos:
+    dims:
+    - B
+    dtype: int64
+    # Local position within each length-W draft window (pos = t % W). Drives
+    # the kernel's draft-token scan (start = t - pos; reads token_ids[start+1
+    # .. t]). pos <= t by construction keeps the unclamped scan in-bounds.
+    dist: window_pos:4
+  token_ids:
+    dims:
+    - B
+    dtype: int32
+    # Flat per-token-row sampled token id (the kernel indexes token_ids as a
+    # 1-D vector in the draft scan). Vocab range [0, N).
+    dist: randint:0:N
   output_token_counts:
     dims:
     - E
     - N
     dtype: float32
-    dist: rand
+    # Generated-token histogram counts: non-negative integers (the kernel
+    # reads output_bin_counts as int32). Stored as integer-valued float32
+    # (exactly representable) so the oracle's float `freq * counts` term and
+    # the launcher's int32 cast agree bit-for-bit.
+    dist: randint:0:4
   prompt_bin_mask:
     dims:
     - E
@@ -170,15 +193,3 @@ inputs:
     - E
     dtype: float32
     dist: rand
-  token_ids:
-    dims:
-    - B
-    - N
-    dtype: int32
-    dist: randint:0:V
-  all_token_ids:
-    dims:
-    - B
-    - N
-    dtype: int32
-    dist: randint:0:V

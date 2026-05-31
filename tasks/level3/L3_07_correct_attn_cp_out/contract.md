@@ -74,6 +74,9 @@ Knob grid in `shapes.yaml`.
 - `H >= 1`
 - `D >= 1`
 - `E >= 1`
+- `E is a power of 2` — the kernel does `tl.arange(0, N_ROUNDED=E)` over the
+  rank axis and `triton.arange` requires a power-of-2 extent; the upstream cp
+  world size is always a power of 2.
 
 ### Input dtypes (`dtypes`)
 

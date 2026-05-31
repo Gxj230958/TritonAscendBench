@@ -10,12 +10,14 @@ category: moe
 npu_difficulty: medium
 upstream:
   repo: vllm-project/vllm
-  path: '`vllm/model_executor/layers/quantization/utils/fp8_utils.py`'
+  path: '`vllm/model_executor/layers/fused_moe/experts/batched_deep_gemm_moe.py`'
   commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
   file_sha256: c3193b38c5dfd6137cdacf041467266249cc7a5f9c021d353a3eb2678b912208
   function_hash: c3193b38c5dfd6137cdacf041467266249cc7a5f9c021d353a3eb2678b912208
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: Triton-fallback path of persistent_masked_m_silu_mul_quant; graded
+    via _pa_launcher.py::run driving the @triton.jit
+    _silu_mul_fp8_quant_deep_gemm (FLOAT32 scale format).
   vendored_snapshot: tasks/_vendored/L1_38_silu_mul_fp8_quant_deep_gemm_18f6bf5.py
 interface:
   alias_map: {}
@@ -26,8 +28,8 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
-tolerance_class: atomic_scatter
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: vector_reduce
 cost_model:
   # Symbol audit (approach §3.4). Masked SiLU·mul followed by per-group FP8
   # quant (DeepGEMM MoE path): z = silu(gate)*up over valid tokens, then
@@ -39,14 +41,15 @@ cost_model:
   # plus the valid-mask multiply (~1) plus the per-group quant ~= 4 (abs,
   # amax, divide, clamp) -> ~11 ops over E*T*D -> 11*E*T*D.
   # bytes (hbm): float32 primary family (y declared first) -> dtype_size=4.
-  # fp32-width terms: read y[E,T,2*D] (2*E*T*D) + write scale[E,T,D//8] fp32
-  # -> (2*E*T*D + E*T*D/8)*dtype_size. output[E,T,D] is the float8_e4m3fn
+  # group_size == 128, so the scale has D//128 columns. fp32-width terms:
+  # read y[E,T,2*D] (2*E*T*D) + write scale[E,T,D//128] fp32
+  # -> (2*E*T*D + E*T*D/128)*dtype_size. output[E,T,D] is the float8_e4m3fn
   # quant output (non-primary dtype, approach §3.2) -> literal byte width *1
   # -> + E*T*D. tokens_per_expert[E] is an int64 index tensor -> literal *8
   # -> + E*8.
   flops: 11*E*T*D
   flops_class: vector
-  bytes: (2*E*T*D + E*T*D/8)*dtype_size + E*T*D + E*8
+  bytes: (2*E*T*D + E*T*D/128)*dtype_size + E*T*D + E*8
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -85,7 +88,12 @@ param_constraints:
   dims:
   - E >= 1
   - T >= 1
-  - D >= 1
+  # The kernel's H == D (y last dim is 2*D) must be a multiple of
+  # group_size == 128: G = H // 128 groups, grid = (E * G,), and each
+  # program loads a full BLOCK == 128 column tile, so a non-multiple
+  # D reads/writes out of bounds.
+  - D >= 128
+  - D % 128 == 0
   dtypes:
     y: float32
     tokens_per_expert: int64
@@ -98,6 +106,7 @@ param_constraints:
         lo: '0'
         hi: T
   scalars:
-    group_size: group_size >= 1
+    # The Triton-fallback kernel asserts group_size == 128 (BLOCK == 128).
+    group_size: group_size == 128
     fp8_max: 0 < fp8_max <= 1e4
   tensor_invariants: []

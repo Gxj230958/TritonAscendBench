@@ -25,17 +25,35 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-KDA inter-sub scaled-dot KKT: A_{ij}=scale·β_i·(q_i·k_j)·
-exp(gk_i − gk_j), causal (i>j).
+KDA inter-sub scaled-dot KKT for the frozen kernel
+`chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter`. Dense non-varlen
+layout `q,k,gk: [B,T,H,K]`, `beta: [B,T,H]`; per-dimension gate `gk`
+(consumed as-is — the cumulative transform lives upstream). Chunk size
+`BT = FLA_CHUNK_SIZE = 64`, sub-chunk width `BC = min(16, BT) = 16`,
+`NC = BT/BC = 4`. The kernel writes ONLY strictly off-diagonal sub-chunk
+blocks of each `BT`-row time chunk (row sub-chunk `i_i` > col sub-chunk
+`i_j`); the diagonal sub-blocks are produced by a different named kernel
+(`..._intra_sub_intra`) and stay zero here. For row `i` in sub-chunk `i_i`
+and col `j` in sub-chunk `i_j < i_i` (output column index is LOCAL to the
+time chunk):
+
+- `A[i,j]   = β_i · Σ_d k_{i,d} · k_{j,d} · exp(gk_{i,d} − gk_{j,d})`
+- `Aqk[i,j] = scale · Σ_d q_{i,d} · k_{j,d} · exp(gk_{i,d} − gk_{j,d})`
+
+The unpinned `tl.dot` runs TF32-truncated on Ampere+; the oracle emulates
+that (truncate the two dot operands' low 13 mantissa bits) so it stays a
+faithful reference. β is applied after the dot (A only); scale is folded
+into the q operand before the dot (Aqk only).
 
 ## I/O contract
 
-`oracle_pytorch.run(inputs: dict) -> dict`. Inputs (keys consumed):
-- `q`
-- `k`
-- `gk`
-- `beta`
-- `scale`
+`oracle_pytorch.run(inputs: dict) -> dict` returns `{"A", "Aqk"}`, both
+`[B,T,H,BT]`. Inputs (keys consumed):
+- `q`   `[B,T,H,K]`
+- `k`   `[B,T,H,K]`
+- `gk`  `[B,T,H,K]`
+- `beta` `[B,T,H]`
+- `scale` (derived `1/sqrt(K)`)
 
 Concrete per-shape tensors are built by
 `triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.

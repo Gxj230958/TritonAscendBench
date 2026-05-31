@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). Context-parallel attention output
@@ -94,6 +94,10 @@ param_constraints:
   - H >= 1
   - D >= 1
   - E >= 1
+  # E (cp rank count, the kernel's tl.arange(0, N_ROUNDED=E) reduce axis)
+  # must be a power of 2 -- triton.arange requires a power-of-2 extent and
+  # the upstream cp world size is always a power of 2.
+  - E is a power of 2
   dtypes:
     out: float32
     lses: float32

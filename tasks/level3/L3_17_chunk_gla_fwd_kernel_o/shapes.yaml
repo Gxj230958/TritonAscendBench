@@ -1,6 +1,17 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the ssm family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator-family knob grid for the ssm family. Head-structured layouts
+# match the frozen kernel's make_block_ptr strides (non-varlen path):
+# L is the sequence length T; C is the chunk size BT (L % C == 0); H is the
+# head count; D is the key/query dim K; Dv the value dim V. NT = L // C is
+# the number of chunks; the per-chunk state h carries that axis.
+#
+# C (= BT) is the kernel's chunk-size TILING constant, not a free data axis:
+# the intra term is b_o += tl.dot(A[BT,BT], v[BT,BV]) with contraction dim
+# BT, and the inter term is b_o += tl.dot(qg[BT,BK], trans(h)[BK,BV]).
+# Triton's tl.dot requires the contraction dim to be a power of two and
+# >= 16 (the tensor-core MMA tile minimum); upstream flash-linear-attention
+# pins it to FLA_CHUNK_SIZE = 64. A non-pow2 or < 16 chunk size is an INVALID
+# call to this kernel (real-GPU CompilationError "K >= 16"), so every shape
+# uses C in {16, 32, 64} with L % C == 0.
 size_knobs:
   B: 8
   L: 128
@@ -10,74 +21,54 @@ size_knobs:
   T: 128
   H: 16
   E: 8
-  C: 16
+  C: 64
   G: 8
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 2
-    L: 16
+    L: 32
     D: 32
     Dv: 32
-    N: 16
-    T: 16
+    C: 16
     H: 4
-    E: 2
-    C: 4
-    G: 2
 - id: P2
   name: small
   knobs:
     B: 4
-    L: 64
+    L: 128
     D: 64
     Dv: 64
-    N: 32
-    T: 64
+    C: 32
     H: 8
-    E: 4
-    C: 8
-    G: 4
 - id: P3
   name: medium
   knobs:
     B: 8
-    L: 128
+    L: 256
     D: 128
     Dv: 128
-    N: 64
-    T: 128
+    C: 64
     H: 16
-    E: 8
-    C: 16
-    G: 8
 - id: P4
   name: large
   knobs:
-    B: 16
+    B: 4
     L: 256
     D: 256
     Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+    C: 64
+    H: 8
 - id: P5
   name: wide
   knobs:
     B: 2
-    L: 64
+    L: 128
     D: 128
-    Dv: 128
-    N: 64
-    T: 32
+    Dv: 256
+    C: 64
     H: 8
-    E: 4
-    C: 8
-    G: 4
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -86,56 +77,41 @@ hidden_shapes:
     L: 96
     D: 96
     Dv: 96
-    N: 48
-    T: 96
+    C: 16
     H: 6
-    E: 3
-    C: 12
-    G: 4
 - id: H2
   name: h_singleton
   knobs:
     B: 2
-    L: 16
+    L: 32
     D: 16
     Dv: 16
-    N: 8
-    T: 8
+    C: 16
     H: 2
-    E: 2
-    C: 2
-    G: 2
 - id: H3
   name: h_deep
   knobs:
     B: 2
     L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
+    D: 128
+    Dv: 128
     C: 64
-    G: 8
+    H: 8
 - id: H4
   name: h_wide
   knobs:
-    B: 32
-    L: 32
+    B: 8
+    L: 64
     D: 64
     Dv: 64
-    N: 32
-    T: 16
+    C: 16
     H: 8
-    E: 8
-    C: 8
-    G: 4
 inputs:
   q:
     dims:
     - B
     - L
+    - H
     - D
     dtype: float32
     dist: randn
@@ -143,6 +119,7 @@ inputs:
     dims:
     - B
     - L
+    - H
     - Dv
     dtype: float32
     dist: randn
@@ -150,6 +127,7 @@ inputs:
     dims:
     - B
     - L
+    - H
     - D
     dtype: float32
     dist: randn
@@ -157,21 +135,18 @@ inputs:
     dims:
     - B
     - L
-    - L
+    - H
+    - C
     dtype: float32
-    dist: tril
+    dist: randn
   h:
     dims:
     - B
-    - D
+    - L//C
+    - H
     - Dv
+    - D
     dtype: float32
     dist: randn
   scale:
     derive: 1/sqrt(D)
-  o:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16

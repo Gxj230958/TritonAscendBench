@@ -25,18 +25,25 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-Repetition + frequency + presence penalties (OpenAI/HF formula).
+Repetition + frequency + presence penalties (OpenAI/HF formula). This frozen
+`_penalties_kernel` has no temperature term despite the task name.
 
-Order is load-bearing: repetition scaling first, then additive
-frequency / presence terms. Repetition uses the standard
-`logit / rp if logit > 0 else logit * rp` rule applied to any token
-seen in the prompt OR the generated continuation.
+Order is load-bearing: the draft-token scan first folds each row's preceding
+draft tokens (`token_ids[start+1 .. t]`, `start = t - expanded_local_pos[t]`)
+into the generated counts, then repetition scaling, then the additive
+frequency / presence terms. Repetition multiplies by `1/rp` for positive
+logits / `rp` otherwise (`logit * (1/rp)`, the kernel's reciprocal-then-multiply
+order — NOT a direct `logit / rp` divide; matched here so the `sampling_rng`
+bit-exact comparison holds) applied to any token seen in the prompt OR the
+generated continuation (base counts + draft increments).
 
 ## I/O contract
 
 `oracle_pytorch.run(inputs: dict) -> dict`. Inputs (keys consumed):
 - `logits`
 - `expanded_idx_mapping`
+- `expanded_local_pos`
+- `token_ids`
 - `output_token_counts`
 - `prompt_bin_mask`
 - `repetition_penalty`
@@ -80,6 +87,8 @@ Knob grid in `shapes.yaml`.
 
 - `logits`: `float32`
 - `expanded_idx_mapping`: `int64`
+- `expanded_local_pos`: `int64`
+- `token_ids`: `int32`
 - `output_token_counts`: `float32`
 - `prompt_bin_mask`: `int64`
 - `repetition_penalty`: `float32`
@@ -89,8 +98,10 @@ Knob grid in `shapes.yaml`.
 ### Input distributions (`dists`)
 
 - `logits`: `randn`
-- `expanded_idx_mapping`: `randint` — args `{'lo': '0', 'hi': 'E'}`
-- `output_token_counts`: `rand`
+- `expanded_idx_mapping`: `window_req` — args `{'W': '4', 'E': 'E'}`
+- `expanded_local_pos`: `window_pos` — args `{'W': '4'}`
+- `token_ids`: `randint` — args `{'lo': '0', 'hi': 'N'}`
+- `output_token_counts`: `randint` — args `{'lo': '0', 'hi': '4'}`
 - `prompt_bin_mask`: `randint` — args `{'lo': '0', 'hi': '2'}`
 - `repetition_penalty`: `rand`
 - `frequency_penalty`: `rand`

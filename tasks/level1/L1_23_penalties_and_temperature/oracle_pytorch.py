@@ -12,42 +12,103 @@ definition (no upstream code copy).
 from __future__ import annotations
 
 import torch
-import torch.nn.functional as F
+
+
+def _draft_scan_counts(
+    output_token_counts: torch.Tensor,   # [n_reqs, vocab] int-valued float
+    expanded_idx_mapping: torch.Tensor,  # [n_tokens] -> request idx
+    token_ids: torch.Tensor,             # [n_tokens] flat sampled token id per row
+    expanded_local_pos: torch.Tensor,    # [n_tokens] local pos within draft window
+) -> torch.Tensor:
+    """Per-token generated-token counts with the draft-token scan folded in.
+
+    Reproduces the kernel's in-loop accumulation (kernel.py): for token row
+    ``t`` at local position ``pos = expanded_local_pos[t]`` with
+    ``start = t - pos``, the kernel adds one to the count of each draft token
+    ``token_ids[start + j + 1]`` for ``j in range(pos)`` -- i.e. token ids at the
+    ``pos`` global rows ``[start + 1 .. t]`` (the draft window up to and INCLUDING
+    row ``t``) -- on top of the request's base ``output_token_counts``. The scan
+    reads global flat indices and does NOT check request membership, so this
+    mirrors it exactly.
+
+    Returns ``[n_tokens, vocab]`` float32 counts (base[req] + draft increments).
+    """
+    req = expanded_idx_mapping.to(torch.long)
+    counts = output_token_counts.to(torch.float32)[req].clone()   # [n_tokens, vocab]
+    n_tokens = counts.shape[0]
+    pos = expanded_local_pos.to(torch.long)
+    tok = token_ids.to(torch.long)
+
+    # Gather every (row, draft-token) increment, then accumulate duplicate
+    # (row, vocab) pairs with index_put_(accumulate=True) -- a plain
+    # advanced-index ``+=`` would drop repeated draft tokens.
+    rows = []
+    cols = []
+    for t in range(n_tokens):
+        p = int(pos[t].item())
+        if p <= 0:
+            continue
+        start = t - p
+        for j in range(p):
+            rows.append(t)
+            cols.append(int(tok[start + j + 1].item()))
+    if rows:
+        r = torch.tensor(rows, dtype=torch.long, device=counts.device)
+        c = torch.tensor(cols, dtype=torch.long, device=counts.device)
+        ones = torch.ones(len(rows), dtype=counts.dtype, device=counts.device)
+        counts.index_put_((r, c), ones, accumulate=True)
+    return counts
 
 
 def _apply_penalties(
     logits: torch.Tensor,
-    expanded_idx_mapping: torch.Tensor,        # [n_tokens] → request idx
+    expanded_idx_mapping: torch.Tensor,        # [n_tokens] -> request idx
     output_token_counts: torch.Tensor,          # [n_reqs, vocab] generated counts
     prompt_bin_mask: torch.Tensor,              # [n_reqs, vocab] bool/int prompt presence
     repetition_penalty: torch.Tensor,           # [n_reqs]
     frequency_penalty: torch.Tensor,            # [n_reqs]
     presence_penalty: torch.Tensor,             # [n_reqs]
+    token_ids: torch.Tensor,                    # [n_tokens] flat draft token ids
+    expanded_local_pos: torch.Tensor,           # [n_tokens] draft-window local pos
 ) -> torch.Tensor:
-    """Repetition + frequency + presence penalties (OpenAI/HF formula).
+    """Repetition + frequency + presence penalties (OpenAI/HF formula) with the
+    kernel's draft-token count accumulation.
 
-    Order is load-bearing: repetition scaling first, then additive
-    frequency / presence terms. Repetition uses the standard
-    `logit / rp if logit > 0 else logit * rp` rule applied to any token
-    seen in the prompt OR the generated continuation.
+    Order is load-bearing: the draft-token scan first folds preceding draft
+    tokens into each row's counts, then repetition scaling, then the additive
+    frequency / presence terms. Repetition scales any token seen in the prompt
+    OR the generated continuation (base counts + draft increments).
+
+    Float order mirrors the kernel exactly so the comparison is bit-exact under
+    the `sampling_rng` (atol=rtol=0) tolerance: the kernel forms a per-token
+    `scale` (the repetition penalty where seen, else 1.0) and multiplies by
+    `1/scale` for positive logits / `scale` otherwise -- i.e. `logit * (1/rp)`,
+    NOT a direct `logit / rp` divide. The two differ by one float32 ULP on ~13%
+    of elements, which the bit-exact tolerance would (correctly) reject;
+    matching the kernel's reciprocal-then-multiply order is the faithful fix,
+    not a relaxation.
     """
     out = logits.to(torch.float32).clone()
     req = expanded_idx_mapping.to(torch.long)
 
-    counts = output_token_counts.to(torch.float32)[req]          # [n_tokens, vocab]
-    prompt_seen = prompt_bin_mask.to(torch.bool)[req]            # [n_tokens, vocab]
+    # Counts INCLUDING the draft-token scan (the kernel's in-loop accumulation).
+    counts = _draft_scan_counts(
+        output_token_counts, expanded_idx_mapping, token_ids, expanded_local_pos
+    )                                                            # [n_tokens, vocab]
+    prompt_seen = prompt_bin_mask.to(torch.bool)[req]           # [n_tokens, vocab]
     seen = (counts > 0) | prompt_seen
 
     rp = repetition_penalty.to(torch.float32)[req].unsqueeze(-1)
     fp = frequency_penalty.to(torch.float32)[req].unsqueeze(-1)
     pp = presence_penalty.to(torch.float32)[req].unsqueeze(-1)
 
-    # Repetition: scale only the tokens that have been seen.
+    # Repetition: scale only the tokens that have been seen. `scale` is rp
+    # where seen and 1.0 elsewhere (a no-op), exactly as the kernel forms it.
     pos = out > 0
-    scaled = torch.where(pos, out / rp, out * rp)
-    out = torch.where(seen, scaled, out)
+    scale = torch.where(seen, rp.expand_as(out), torch.ones_like(out))
+    out = out * torch.where(pos, 1.0 / scale, scale)
 
-    # Frequency (∝ count) and presence (binary) — additive.
+    # Frequency (proportional to count) and presence (binary) -- additive.
     out = out - fp * counts
     out = out - pp * (counts > 0).to(torch.float32)
     return out.to(logits.dtype)
@@ -59,6 +120,7 @@ def run(inputs: dict) -> dict:
             inputs["logits"], inputs["expanded_idx_mapping"],
             inputs["output_token_counts"], inputs["prompt_bin_mask"],
             inputs["repetition_penalty"], inputs["frequency_penalty"],
-            inputs["presence_penalty"],
+            inputs["presence_penalty"], inputs["token_ids"],
+            inputs["expanded_local_pos"],
         )
     }

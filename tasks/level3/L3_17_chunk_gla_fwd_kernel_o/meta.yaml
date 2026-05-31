@@ -26,14 +26,17 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
   flops:
-    fp16_cube: 2*B*L*L*Dv + 2*B*L*D*Dv
-    vector: 3*B*L*D + B*L*Dv
+    # H heads. Intra: per-chunk masked A[BT,BT] @ v[BT,Dv] -> 2*B*L*C*Dv*H.
+    # Inter: gated q[L,D] @ per-chunk state h[D,Dv] -> 2*B*L*D*Dv*H.
+    fp16_cube: 2*B*L*C*Dv*H + 2*B*L*D*Dv*H
+    vector: 2*B*L*D*H + B*L*Dv*H
   bytes:
-    hbm: (2*B*L*D + 2*B*L*Dv + B*L*L + B*D*Dv) * dtype_size
+    # q,g: B*L*H*D each; v,o: B*L*H*Dv each; A: B*L*H*C; h: B*(L//C)*H*Dv*D.
+    hbm: (2*B*L*H*D + 2*B*L*H*Dv + B*L*H*C + B*(L//C)*H*Dv*D) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -50,8 +53,8 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
-    hidden: 1
+    public: 5
+    hidden: 4
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -66,21 +69,22 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-17
   golden:
-    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: null
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape:
-      P1:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `chunk_gla_fwd_o_gk` unpack. Details: q: wrapper expects rank [4], build_inputs
-          gave 3'
-      P2:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `chunk_gla_fwd_o_gk` unpack. Details: q: wrapper expects rank [4], build_inputs
-          gave 3'
-    golden_source: blocked_wrapper_contract_mismatch
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_pending_gpu
+    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the
+      frozen kernel''s head-structured, block-diagonal (per-BT-chunk) contract:
+      q[B,L,H,D], g[B,L,H,D], v[B,L,H,Dv], A[B,L,H,C] (local within-chunk column),
+      h[B,L//C,H,Dv,D] per-chunk state. Output o = (q*scale*exp(g)) @ h_state
+      (inter-chunk) + tril-masked A @ v (intra-chunk). Oracle cross-checked against
+      a literal make_block_ptr transcription of the kernel (rel err ~6e-6,
+      recurrent_chunk). Launcher drives chunk_gla_fwd_o_gk non-varlen path. The
+      CPU/TRITON_INTERPRET pass raises a triton InterpreterError on this kernel''s
+      make_block_ptr/dot constructs (interpret_error=True), so the runner''s GPU
+      rescue re-runs this anchor on the real device with the unchanged tolerance.
+      Final GPU equivalence pending.'
 param_constraints:
   scaffold: false
   dims:
@@ -88,6 +92,8 @@ param_constraints:
   - L >= 1
   - D >= 1
   - Dv >= 1
+  - C in [16, 32, 64]
+  - L % C == 0
   dtypes:
     q: float32
     v: float32
@@ -102,7 +108,7 @@ param_constraints:
     g:
       kind: randn
     A:
-      kind: tril
+      kind: randn
     h:
       kind: randn
   scalars:

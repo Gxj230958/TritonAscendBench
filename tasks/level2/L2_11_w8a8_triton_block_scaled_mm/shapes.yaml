@@ -131,46 +131,40 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+# Inputs match the graded host wrapper
+# kernel.py::w8a8_triton_block_scaled_mm. The jit reads N, K = B.shape and
+# contracts over K (B is [N, K], the GEMM is A @ B.T), with Bs laid out
+# [ceil(N/block_n), ceil(K/block_k)]. block_size = [block_n, block_k] = [8, 32]:
+# block_n=8 is the N-block scale tile, block_k=32 is the K-block scale tile and
+# also BLOCK_SIZE_K. block_k must be >= 32 because the int8 tl.dot launch
+# requires a K-tile of at least 32 (see scripts/lint_shapes_against_kernel.py;
+# the passed sibling L2_10 uses the same [8, 32]).
 inputs:
   A:
     dims:
     - B
     - D
-    dtype: int64
+    dtype: int8
     dist: randint:0:8
   B:
     dims:
-    - D
     - N
-    dtype: int64
+    - D
+    dtype: int8
     dist: randint:0:8
   As:
     dims:
     - B
-    - D//8
+    - (D+31)//32
     dtype: float32
     dist: rand
   Bs:
     dims:
-    - D//8
     - N//8
+    - (D+31)//32
     dtype: float32
     dist: rand
-  group_n:
-    scalar: 8
-  group_k:
-    scalar: 8
-  x:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  input:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
+  block_size:
+    scalar_seq:
+    - 8
+    - 32

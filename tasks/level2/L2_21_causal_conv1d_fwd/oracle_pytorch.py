@@ -19,11 +19,17 @@ def _causal_conv1d_fwd(
     x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor | None,
     activation: str | None,
 ) -> torch.Tensor:
-    """Depthwise causal 1-D conv (Mamba prefill).
+    """Depthwise causal 1-D conv (Mamba prefill), single sequence.
 
-    x: [dim, seqlen]; weight: [dim, KERNEL_WIDTH]. Left-pad by
-    KERNEL_WIDTH-1 zeros so output[d,t] = sum_{j} x[d, t-K+1+j]·w[d,j]
-    (+bias), optional SiLU. Returns [dim, seqlen].
+    x: [dim, seqlen]; weight: [dim, KERNEL_WIDTH]; bias: [dim]. Left-pad
+    by KERNEL_WIDTH-1 zeros so
+        output[d, t] = sum_{j} x[d, t - (KW-1) + j] * w[d, j] (+ bias[d]),
+    with optional SiLU. Returns [dim, seqlen].
+
+    Matches the frozen `_causal_conv1d_fwd_kernel` simple path (one
+    sequence, no prior initial state): per channel the kernel accumulates
+    a length-KW causal window dot product, adds the per-channel bias, and
+    applies SiLU when requested.
     """
     dim, seqlen = x.shape
     kw = weight.shape[-1]
@@ -32,7 +38,7 @@ def _causal_conv1d_fwd(
     xp = F.pad(xf, (kw - 1, 0))
     y = F.conv1d(xp, wf, groups=dim).squeeze(0)             # [dim, L]
     if bias is not None:
-        y = y + bias.to(torch.float32).unsqueeze(-1)
+        y = y + bias.to(torch.float32).unsqueeze(-1)        # [dim, 1] broadcast
     if activation in ("silu", "swish"):
         y = F.silu(y)
     return y.to(x.dtype)

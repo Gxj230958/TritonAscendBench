@@ -7,8 +7,8 @@
 
 - Benchmark id: `L1_38_silu_mul_fp8_quant_deep_gemm`
 - Upstream: `vllm-project/vllm` — `_silu_mul_fp8_quant_deep_gemm`
-- Source path: ``vllm/model_executor/layers/quantization/utils/fp8_utils.py``
-- Category: `moe` · oracle tier: `formula_exact_manual` · tolerance: `atomic_scatter`
+- Source path: ``vllm/model_executor/layers/fused_moe/experts/batched_deep_gemm_moe.py``
+- Category: `moe` · oracle tier: `formula_exact_manual` · tolerance: `vector_reduce`
 
 ## Required semantics
 
@@ -43,7 +43,7 @@ Concrete per-shape tensors are built by
 
 ## Tolerance class
 
-`atomic_scatter` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`vector_reduce` — see `triton_ascend_bench/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 
@@ -69,7 +69,8 @@ Knob grid in `shapes.yaml`.
 
 - `E >= 1`
 - `T >= 1`
-- `D >= 1`
+- `D >= 128`
+- `D % 128 == 0`
 
 ### Input dtypes (`dtypes`)
 
@@ -83,7 +84,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `group_size`: `group_size >= 1`
+- `group_size`: `group_size == 128`
 - `fp8_max`: `0 < fp8_max <= 1e4`
 
 ### Tensor invariants (`tensor_invariants`)

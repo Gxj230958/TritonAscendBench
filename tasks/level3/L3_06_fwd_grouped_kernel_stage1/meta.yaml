@@ -26,32 +26,33 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
-tolerance_class: elementwise
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). DeepSeek MLA decode stage-1 attention:
-  # sc = q.k^T * scale, softmax, context = p.v. shapes.yaml binds:
-  # B -> n_tokens (q dim 0, oracle index `n`), H -> q head count (q dim 1,
-  # the kernel BLOCK_H axis), D -> head/latent dim (q dim 2 ==
-  # k_buffer/v_buffer dim 1, the kernel feature axis), C -> n_ctx cached
-  # KV positions (k_buffer/v_buffer dim 0, the kernel's BLOCK_N context
-  # loop extent, oracle index `c`). k_buffer/v_buffer are MLA latent KV
-  # shared across heads.
-  # Single compute class -> scalar form. This task's kernel-under-test is
-  # _fwd_grouped_kernel_stage1 (NOT the _rope/stage2 variant): it does the
-  # [D]x[C,D] score and the [C]x[C,D] context with tl.sum over an
-  # elementwise product (qk = tl.sum(q[None,:]*k,1); acc += tl.sum(
-  # p[:,None]*v,0)) — NOT tl.dot — so both contractions run on the 910B
-  # Vector unit; flops_class is vector.
-  # FLOPs(vector) per (n,h): score qk = sum_D(q*k) over C positions is
-  # mul+sum over C*D (~2*C*D); online softmax over the [C] score row
-  # (max, exp, sum, rescale ~8 ops/element) -> 8*C; context acc =
-  # sum_C(p*v) is mul+sum over C*D (~2*C*D). Over B*H -> B*H*(4*C*D + 8*C).
-  # bytes(hbm): read q [B,H,D] + k_buffer [C,D] + v_buffer [C,D], write
-  # output [B,H,D]; all float32 primary family -> dtype_size.
-  flops: B*H*(4*C*D + 8*C)
-  flops_class: vector
-  bytes: (2*B*H*D + 2*C*D) * dtype_size
+  # Symbol audit (approach §3.4). Grouped (GQA) decode stage-1 attention
+  # `_fwd_grouped_kernel_stage1`: per (batch, query-head, kv-split) it
+  # scores q against the split's cached KV (qk = tl.dot, kernel.py:387),
+  # runs an online softmax, and accumulates the context (tl.dot, line 427).
+  # shapes.yaml binds:
+  #   B  -> decode batch (q dim 0), H -> query head count H_Q (q dim 1,
+  #   kernel BLOCK_H axis), E -> KV head count H_KV (k/v_buffer dim 1;
+  #   kv_group_num = H/E), D -> QK head dim Lk (q dim 2 == k_buffer dim 2),
+  #   Dv -> value head dim Lv (v_buffer dim 2 == att_out context width),
+  #   C  -> max cached context length (req_to_tokens width; k/v_buffer hold
+  #   B*C latent tokens). NUM_KV_SPLITS (att_out dim 2) is the fixed
+  #   num_kv_splits scalar (4), not a size knob.
+  # Both contractions are tl.dot (Cube unit on the 910B); flops_class is
+  # the fused-flash class. Per (b, h) the kernel sweeps the full C context:
+  # score qk = sum_D(q*k) over C -> 2*C*D, online softmax over C -> ~8*C,
+  # context acc = sum_C(p*v) over Dv -> 2*C*Dv. Over B*H ->
+  # B*H*(2*C*D + 2*C*Dv + 8*C). The NUM_KV_SPLITS partition only changes
+  # how the C sweep is tiled, not the total work.
+  # bytes(hbm): read q [B,H,D] + k_buffer [B*C,E,D] + v_buffer [B*C,E,Dv],
+  # write att_out [B,H,G,Dv+1]; all float32 -> dtype_size. Aux index
+  # tensors: req_to_tokens [B*C] int64 *8, b_seqlen [B] int64 *8.
+  flops: B*H*(2*C*D + 2*C*Dv + 8*C)
+  flops_class: fp16_cube
+  bytes: (B*H*D + B*C*E*D + B*C*E*Dv + B*H*4*(Dv+1)) * dtype_size + B*C*8 + B*8
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -84,18 +85,31 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-06
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Grouped attention stage-1: q [B, H, D] attends over a paged k_buffer / v_buffer [C, D]. scale is the QK softmax scale, derived as 1/sqrt(D) (was a hardcoded 0.125 placeholder; WB.1 derive-form fix).
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Grouped
+# (GQA) decode-attention stage-1: q [B, H, D] attends over paged latent KV
+# k_buffer [B*C, E, D] / v_buffer [B*C, E, Dv] (E = H_KV, kv_group_num=H/E),
+# gathered through req_to_tokens [B*C] (a non-identity slot permutation,
+# page_size=1) for the first b_seqlen[b] cached tokens of each request, in
+# NUM_KV_SPLITS contiguous splits. scale is the QK softmax scale 1/sqrt(D).
+# Output att_out [B, H, NUM_KV_SPLITS, Dv+1] is the per-split partials.
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
   - H >= 1
+  - E >= 1
+  - H % E == 0
+  - H / E >= 2
   - D >= 1
+  - Dv >= 1
   - C >= 1
+  - G >= 1
   dtypes:
     q: float32
     k_buffer: float32
     v_buffer: float32
+    req_to_tokens: int64
+    b_seqlen: int64
   dists:
     q:
       kind: randn
@@ -103,7 +117,15 @@ param_constraints:
       kind: randn
     v_buffer:
       kind: randn
+    req_to_tokens:
+      kind: randperm
+    b_seqlen:
+      kind: randint
+      args:
+        lo: '1'
+        hi: C+1
   scalars:
     scale:
       derive: 1/sqrt(D)
+    num_kv_splits: num_kv_splits == 4
   tensor_invariants: []

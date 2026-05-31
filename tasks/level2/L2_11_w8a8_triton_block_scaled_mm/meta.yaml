@@ -26,33 +26,37 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Block-scaled W8A8 INT8 GEMM (oracle
-  # _w8a8_block_scaled_mm, kernel _w8a8_triton_block_scaled_mm):
-  # C[m,n] = sum_k A[m,k]*B[k,n]*As[m,k//gk]*Bs[k//gk,n//gn], fp32 acc.
-  # shapes.yaml: A is [B, D], B is [D, N], output C is [B, N]. The GEMM
-  # is [B, D] @ [D, N] in standard (non-transposed) layout. GEMM dims:
-  # M = B (A rows = C rows), K = D (contracted dim = A dim 1 = B dim 0),
-  # N = N (B dim 1 = C cols). Symbol map: B -> token rows (GEMM M),
+  # Symbol audit (approach §3.4). Block-scaled W8A8 INT8 GEMM. Graded
+  # kernel: host wrapper kernel.py::w8a8_triton_block_scaled_mm launching
+  # the @triton.jit _w8a8_triton_block_scaled_mm. The jit reads
+  # N, K = B.shape and contracts over K (B is [N, K] in memory; the GEMM
+  # is A @ B.T), so:
+  # C[m,n] = sum_k A[m,k]*B[n,k]*As[m,k//bk]*Bs[n//bn,k//bk], fp32 acc.
+  # shapes.yaml: A is [B, D], B is [N, D], output C is [B, N]. GEMM dims:
+  # M = B (A rows = C rows), K = D (contracted dim = A dim 1 = B dim 1),
+  # N = N (B dim 0 = C cols). Symbol map: B -> token rows (GEMM M),
   # D -> contracted feature dim (GEMM K), N -> output dim (GEMM N).
-  # As is [B, D//8], Bs is [D//8, N//8].
+  # block_size = [block_n, block_k] = [8, 32]: block_n=8 is the N-block
+  # scale tile, block_k=32 is the K-block scale tile (and BLOCK_SIZE_K;
+  # int8 tl.dot needs K-tile >= 32). As is [B, ceil(D/32)], Bs is
+  # [ceil(N/8), ceil(D/32)].
   # FLOPs (cube): 2*B*N*D (2 = multiply + accumulate). The per-K-block
   # scale multiply is a small vector op vs the matmul, folded into cube.
   # flops_class: int8 — A and B carry int8-range quantised values
-  # (dist randint:0:8); the operation is a W8A8 quantised GEMM, so it
-  # runs on the 910B Cube unit's int8 pipe (approach §3.1 decision
-  # table). The shapes.yaml int64 storage dtype is the test container,
-  # not the arithmetic class.
-  # bytes (hbm): read A [B,D] + B [D,N]; shapes.yaml declares them
-  # int64, so the int64-sized primary family -> dtype_size (= 8). The
-  # float32 scale tensors As [B,D//8] and Bs [D//8,N//8] are
-  # non-primary dtype, counted at the literal 4-byte width. Output C
-  # [B,N] is written in the fp16 default output dtype, literal 2 bytes.
+  # (dist randint:0:8, dtype int8); the operation is a W8A8 quantised
+  # GEMM, so it runs on the 910B Cube unit's int8 pipe (approach §3.1
+  # decision table).
+  # bytes (hbm): read A [B,D] + B [N,D], both int8 primary family ->
+  # dtype_size (= 1). The float32 scale tensors As [B,ceil(D/32)] and
+  # Bs [ceil(N/8),ceil(D/32)] are non-primary dtype, counted at the
+  # literal 4-byte width. Output C [B,N] is written in the fp16 default
+  # output dtype, literal 2 bytes.
   flops: 2*B*N*D
   flops_class: int8
-  bytes: (B*D + D*N) * dtype_size + B*(D//8)*4 + (D//8)*(N//8)*4 + B*N*2
+  bytes: (B*D + N*D) * dtype_size + B*((D+31)//32)*4 + (N//8)*((D+31)//32)*4 + B*N*2
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -85,7 +89,7 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-11
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). W8A8 block-scaled matmul: A [B, D] @ B [D, N] with per-block scales As [B, D/8] / Bs [D/8, N/8]. group_n / group_k are the quant tile dims (8); D % 8 == 0 / N % 8 == 0.
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). W8A8 block-scaled matmul: A [B, D] @ B [N, D].T with per-block scales As [B, ceil(D/32)] / Bs [ceil(N/8), ceil(D/32)]. block_size = [block_n, block_k] = [8, 32] is the quant tile (block_k>=32 for the int8 tl.dot K-tile); N % 8 == 0.
 param_constraints:
   scaffold: false
   dims:
@@ -95,8 +99,8 @@ param_constraints:
   - N >= 8
   - B >= 1
   dtypes:
-    A: int64
-    B: int64
+    A: int8
+    B: int8
     As: float32
     Bs: float32
   dists:
@@ -115,6 +119,5 @@ param_constraints:
     Bs:
       kind: rand
   scalars:
-    group_n: group_n == 8
-    group_k: group_k == 8
+    block_size: len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 32
   tensor_invariants: []

@@ -1,162 +1,114 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the ssm family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator-family knob grid for the KDA inter-sub scaled-dot KKT kernel
+# chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter.
+#
+# The frozen kernel consumes a dense [B, T, H, K] layout (non-varlen path)
+# and writes A / Aqk of shape [B, T, H, BT] where BT = FLA_CHUNK_SIZE = 64.
+# It fills ONLY the strictly off-diagonal sub-chunk blocks (sub-chunk width
+# BC = min(16, BT) = 16, NC = BT/BC = 4), so a shape must give at least two
+# occupied row sub-chunks (T > BC = 16) for the kernel to write anything.
+# T is kept a multiple of BC = 16 so sub-chunk boundaries are clean; H1 uses
+# T not a multiple of BT = 64 to exercise the partial-time-chunk boundary.
 size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
+  B: 4
   T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
+  H: 8
+  K: 128
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
+    T: 64
     H: 4
-    E: 2
-    C: 4
-    G: 2
+    K: 32
 - id: P2
   name: small
   knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
+    B: 2
+    T: 128
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    K: 64
 - id: P3
   name: medium
   knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
+    B: 4
     T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
+    H: 8
+    K: 128
 - id: P4
   name: large
   knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
+    B: 2
     T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+    H: 8
+    K: 256
 - id: P5
   name: wide
   knobs:
     B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+    T: 64
+    H: 16
+    K: 128
 hidden_shapes:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
-- id: H2
-  name: h_singleton
+  name: h_partial_chunk
   knobs:
     B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
+    T: 96
+    H: 6
+    K: 96
+- id: H2
+  name: h_minimal_offdiag
+  knobs:
+    B: 2
+    T: 32
     H: 2
-    E: 2
-    C: 2
-    G: 2
+    K: 16
 - id: H3
   name: h_deep
   knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
+    B: 1
+    T: 256
     H: 8
-    E: 8
-    C: 64
-    G: 8
+    K: 256
 - id: H4
-  name: h_wide
+  name: h_wide_head
   knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+    B: 4
+    T: 64
+    H: 16
+    K: 64
 inputs:
   q:
     dims:
-    - C
-    - L
-    - D
+    - B
+    - T
+    - H
+    - K
     dtype: float32
     dist: randn
   k:
     dims:
-    - C
-    - L
-    - D
+    - B
+    - T
+    - H
+    - K
     dtype: float32
     dist: randn
   gk:
     dims:
-    - C
-    - L
+    - B
+    - T
+    - H
+    - K
     dtype: float32
     dist: rand
   beta:
     dims:
-    - C
-    - L
+    - B
+    - T
+    - H
     dtype: float32
     dist: rand
   scale:
-    derive: 1/sqrt(D)
+    derive: 1/sqrt(K)

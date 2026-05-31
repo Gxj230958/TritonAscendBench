@@ -25,9 +25,24 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-GLA chunk output: o = (A·v) + (q·exp(g))·h, A precomputed
-intra-chunk score matrix. q: [n,L,D]; A: [n,L,L]; v: [n,L,Dv];
-h: [n,D,Dv]; g: [n,L,D].
+Chunked-GLA output kernel `chunk_gla_fwd_kernel_o` (non-varlen path).
+Head-structured, block-diagonal (per-BT-chunk) layout matching the
+frozen kernel's make_block_ptr strides:
+
+- q, g: [B, L, H, D]      (D = K; kernel applies q*scale*exp(g))
+- v:    [B, L, H, Dv]     (Dv = V)
+- A:    [B, L, H, C]      (C = BT chunk size; last axis is the LOCAL
+                           within-chunk column, block-diagonal in time)
+- h:    [B, L//C, H, Dv, D]  (per-chunk state, read as a [V, K] tile)
+- o:    [B, L, H, Dv]
+
+For a chunk c (rows r = c*C + i, local row i, local col j in [0, C)):
+
+  o[b, r, h, :] = sum_k (q[b,r,h,k]*scale*exp(g[b,r,h,k])) * h[b, c, h, :, k]
+                + sum_{j<=i} A[b, r, h, j] * v[b, c*C+j, h, :]
+
+The inter-chunk term reads the per-chunk state; the intra-chunk term is
+the causal-masked (lower-triangular, diagonal kept) score x value.
 
 ## I/O contract
 
@@ -72,6 +87,8 @@ Knob grid in `shapes.yaml`.
 - `L >= 1`
 - `D >= 1`
 - `Dv >= 1`
+- `C in [16, 32, 64]`
+- `L % C == 0`
 
 ### Input dtypes (`dtypes`)
 
@@ -86,7 +103,7 @@ Knob grid in `shapes.yaml`.
 - `q`: `randn`
 - `v`: `randn`
 - `g`: `randn`
-- `A`: `tril`
+- `A`: `randn`
 - `h`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)

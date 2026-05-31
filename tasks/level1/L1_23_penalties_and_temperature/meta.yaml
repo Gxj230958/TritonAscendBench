@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: sampling_rng
 cost_model:
   # Symbol audit (approach §3.4). Repetition + frequency + presence penalties:
@@ -79,7 +79,7 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-23
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies repetition/frequency/presence penalties and temperature to logits [B, N], routed per-request via expanded_idx_mapping [B] (request id in [0, E)). Penalties / counts are per-request [E] / [E, N].
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies repetition/frequency/presence penalties to logits [B, N] (this frozen _penalties_kernel has no temperature term despite the task name). Routed per-request via expanded_idx_mapping [B] (request id in [0, E)), window-constant per length-4 draft window. Per-row draft tokens (token_ids [B], expanded_local_pos [B]) are scanned into the generated counts. Penalties / counts / prompt-mask are per-request [E] / [E, N].
 param_constraints:
   scaffold: false
   dims:
@@ -89,6 +89,8 @@ param_constraints:
   dtypes:
     logits: float32
     expanded_idx_mapping: int64
+    expanded_local_pos: int64
+    token_ids: int32
     output_token_counts: float32
     prompt_bin_mask: int64
     repetition_penalty: float32
@@ -98,12 +100,24 @@ param_constraints:
     logits:
       kind: randn
     expanded_idx_mapping:
+      kind: window_req
+      args:
+        W: '4'
+        E: E
+    expanded_local_pos:
+      kind: window_pos
+      args:
+        W: '4'
+    token_ids:
       kind: randint
       args:
         lo: '0'
-        hi: E
+        hi: N
     output_token_counts:
-      kind: rand
+      kind: randint
+      args:
+        lo: '0'
+        hi: '4'
     prompt_bin_mask:
       kind: randint
       args:

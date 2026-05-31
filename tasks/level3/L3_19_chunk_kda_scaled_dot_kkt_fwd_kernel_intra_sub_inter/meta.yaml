@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::run
 tolerance_class: recurrent_chunk
 cost_model:
   flops:
@@ -54,8 +54,8 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
-    hidden: 1
+    public: 5
+    hidden: 4
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -70,20 +70,33 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-19
   golden:
-    oracle_kernel_equivalence: LAUNCH_BLOCKED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: null
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape:
-      '*':
-        status: LAUNCH_BLOCKED
-        blocker: 'Duplicate op name: fused_rms_norm_gated'
-    golden_source: blocked_kernel_launch
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_pending_gpu
+    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the
+      frozen INTER kernel chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter:
+      dense [B,T,H,K] q/k/gk, [B,T,H] beta, two outputs A (beta*k*k*decay) and
+      Aqk (scale*q*k*decay) over strictly off-diagonal sub-chunk blocks only.
+      Oracle cross-checked on CPU against a literal make_block_ptr transcription
+      of the kernel body (TF32-truncated dot, max abs diff ~2e-5 across shapes,
+      well inside recurrent_chunk 5e-3) and fault-injection on every load-bearing
+      input (g/k/q/beta/scale/sub-chunk-mask) diverges beyond tolerance. Final
+      GPU oracle-kernel equivalence pending the eval daemon.'
 param_constraints:
   scaffold: false
   dims:
-  - C >= 1
-  - L >= 1
-  - D >= 1
+  - B >= 1
+  - T >= 1
+  - H >= 1
+  - K >= 1
+  - K <= 256
+  # The named INTER kernel fills only strictly off-diagonal sub-chunk blocks
+  # (sub-chunk width BC = min(16, BT) with BT = FLA_CHUNK_SIZE = 64), so it
+  # writes nothing unless T > BC = 16. T is kept a multiple of BC so sub-chunk
+  # boundaries are clean. K <= 256 is the kernel's own assert (kernel.py:763).
+  - T > 16
   dtypes:
     q: float32
     k: float32
@@ -100,5 +113,5 @@ param_constraints:
       kind: rand
   scalars:
     scale:
-      derive: 1/sqrt(D)
+      derive: 1/sqrt(K)
   tensor_invariants: []

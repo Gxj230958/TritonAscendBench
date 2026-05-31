@@ -1,10 +1,16 @@
 # Operator-family knob grid (WB.1 R2-3): values reflect
 # the convolution family's real axes — not the legacy
 # uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# KW is the depthwise causal-conv KERNEL_WIDTH. The frozen
+# `_causal_conv1d_fwd_kernel` only implements widths 2/3/4 in its main
+# compute loop; 4 is the canonical Mamba causal_conv1d width and exercises
+# all four weight taps plus the full 3-token causal history. It is a fixed
+# kernel constant, not a swept size axis, so it is pinned to 4 everywhere.
 size_knobs:
   B: 8
   L: 512
   D: 512
+  KW: 4
   Dv: 8
   N: 512
   T: 256
@@ -141,12 +147,11 @@ inputs:
   weight:
     dims:
     - D
-    - D
+    - KW
     dtype: float32
     dist: randn
   bias:
     dims:
-    - B
     - D
     dtype: float32
     dist: randn
