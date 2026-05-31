@@ -25,8 +25,12 @@ definition (no upstream code copy).
 
 ### Reference math (oracle helper)
 
-FLA chunk output: o = (intra causal (q·k) decay v) + q·h state,
-decay = exp(g_i − g_j). q,k,v: [n,L,D]; h: [n,D,Dv]; g: [n,L].
+FLA chunk output (headed, per-chunk state):
+`o = scale * ((q @ h_state^T) * exp(g) + tril(exp(g_i − g_j) * (q @ k^T)) @ v)`,
+evaluated independently per chunk i_t (NT = ceil(T/64), BT = 64).
+Layout: q,k: [B,T,Hg,K]; v: [B,T,H,V]; h: [B,NT,H,V,K] (per-chunk state
+snapshot, chunk i_t reads h[:, i_t]); g: [B,T,H]; output o: [B,T,H,V].
+Value head h reads query/key head `h // (H // Hg)` (GQA grouping).
 
 ## I/O contract
 
@@ -54,8 +58,9 @@ task before enabling.
 
 ## Shape coverage
 
-Public: 5 (P1..P5). Hidden: 4 (H1..H4).
-Knob grid in `shapes.yaml`.
+Public: 5 (P1..P5). Hidden: 1 (H1).
+Knob grid in `shapes.yaml`. All rows pin NT >= 2 (T >= 65) and Hg < H so
+the per-chunk h index and the GQA head grouping are load-bearing.
 
 <!-- param_constraints mirror: auto-generated -->
 
@@ -67,9 +72,14 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `C >= 1`
-- `L >= 1`
-- `D >= 1`
+- `B >= 1`
+- `T >= 65`
+- `H >= 1`
+- `Hg >= 1`
+- `K >= 1`
+- `V >= 1`
+- `H % Hg == 0`
+- `Hg < H`
 
 ### Input dtypes (`dtypes`)
 
@@ -89,7 +99,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `scale`: derive `1/sqrt(D)`
+- `scale`: derive `1/sqrt(K)`
 
 ### Tensor invariants (`tensor_invariants`)
 

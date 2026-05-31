@@ -26,14 +26,22 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: kernel.py::chunk_fwd_o
 tolerance_class: recurrent_chunk
 cost_model:
+  # Per (B, H) program over NT = ceil(T/64) chunks, chunk size BT = 64.
+  # Cube ops per chunk row-block: inter q@h^T (BT*V*K), the score A = q@k^T
+  # (BT*BT*K) and intra A@v (BT*BT*V). Summed across all rows (NT*BT ~ T):
+  #   inter  -> 2*B*H*T*K*V,  A -> 2*B*H*T*BT*K,  intra -> 2*B*H*T*BT*V.
   flops:
-    fp16_cube: 4*C*L*L*D + 2*C*L*D*D
-    vector: 4*C*L*L + C*L + C*L*D
+    fp16_cube: 2*B*H*T*K*V + 2*B*H*T*64*K + 2*B*H*T*64*V
+    # exp(g) gating on inter (B*H*T*V) and on A (B*H*T*BT), plus the final
+    # scale + add (B*H*T*V).
+    vector: 2*B*H*T*V + B*H*T*64
   bytes:
-    hbm: (4*C*L*D + C*D*D + C*L) * dtype_size
+    # Reads q/k ([B,T,Hg,K]), v ([B,T,H,V]), h ([B,NT,H,V,K], NT=T/64),
+    # g ([B,T,H]); writes o ([B,T,H,V]).
+    hbm: (2*B*T*Hg*K + 2*B*T*H*V + B*(T/64)*H*V*K + B*T*H) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -66,27 +74,43 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-16
   golden:
-    oracle_kernel_equivalence: WRAPPER_CONTRACT_MISMATCH
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: NEEDS_MANUAL
+    verified_at: '2026-05-31T00:00:00Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape:
-      P1:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `chunk_fwd_o` unpack. Details: q: wrapper expects rank [4], build_inputs
-          gave 3'
-      P2:
-        status: WRAPPER_CONTRACT_MISMATCH
-        blocker: 'shapes.yaml.inputs.dims rank disagrees with kernel host wrapper
-          `chunk_fwd_o` unpack. Details: q: wrapper expects rank [4], build_inputs
-          gave 3'
-    golden_source: blocked_wrapper_contract_mismatch
+    equivalence_per_shape: {}
+    golden_source: oracle_reauthored_chunk_output_contract
+    notes: >-
+      oracle_pytorch.py re-authored to the upstream headed chunk-output
+      contract of the frozen wrapper `chunk_fwd_o` (q/k:[B,T,Hg,K],
+      v:[B,T,H,V], h:[B,NT,H,V,K] per-chunk state snapshots, g:[B,T,H] ->
+      o:[B,T,H,V], BT=FLA_CHUNK_SIZE=64). shapes.yaml + param_constraints
+      aligned to that layout; the wrapper binds by name (no _pa_launcher
+      needed). Three load-bearing inputs are pinned to be DISCRIMINATING on
+      the committed seeded fixture: (1) h's chunk index -- all rows span
+      NT>=2 (T>=65) so chunk i_t reads its OWN h[:, i_t]; a shared-state
+      kernel diverges (P1 rel ~0.26). (2) head grouping i_h // (H//Hg) --
+      all rows pin Hg<H (group>=2) so an identity head map mis-reads q/k
+      (P1 rel ~1.45). (3) the within-chunk causal+g-decay mask on A (drop
+      causal rel ~1.33, drop g-decay rel ~0.41). Oracle cross-checked
+      against a literal make_block_ptr transcription of the kernel body
+      (rel err ~2e-8, float32 round-off). Numeric oracle-vs-kernel
+      equivalence requires a GPU/NPU run to populate (the FLA chunk kernels
+      do not execute under TRITON_INTERPRET on a driverless host).
 param_constraints:
   scaffold: false
   dims:
-  - C >= 1
-  - L >= 1
-  - D >= 1
+  # NT = ceil(T/64) >= 2 (T >= 65) keeps h's per-chunk index load-bearing:
+  # chunk i_t reads h[:, i_t], so a single shared state diverges from chunk 1.
+  - B >= 1
+  - T >= 65
+  - H >= 1
+  - Hg >= 1
+  - K >= 1
+  - V >= 1
+  # Hg < H (and H % Hg == 0) makes the kernel's integer head grouping
+  # i_h // (H // Hg) non-trivial; group == 1 would not exercise GQA mapping.
+  - H % Hg == 0
+  - Hg < H
   dtypes:
     q: float32
     k: float32
@@ -106,5 +130,8 @@ param_constraints:
       kind: rand
   scalars:
     scale:
-      derive: 1/sqrt(D)
+      derive: 1/sqrt(K)
+  # Layouts (q/k[B,T,Hg,K], v[B,T,H,V], h[B,NT,H,V,K], g[B,T,H]) are enforced
+  # structurally by shapes.yaml.inputs.dims; this op has no value-domain
+  # invariants (all inputs dense randn/rand).
   tensor_invariants: []

@@ -1,170 +1,122 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the ssm family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
+# Operator-family knob grid for chunk_fwd_kernel_o (vLLM fla ops, chunk_o.py).
+# Layout follows the frozen upstream host wrapper `chunk_fwd_o` exactly:
+#   q: [B, T, Hg, K]   k: [B, T, Hg, K]   v: [B, T, H, V]
+#   h: [B, NT, H, V, K]   g: [B, T, H]   scale = 1/sqrt(K)
+#   output o: [B, T, H, V],  BT = FLA_CHUNK_SIZE = 64,  NT = ceil(T/BT).
+#
+# h is the per-CHUNK state snapshot the kernel reads with i_tg = i_b*NT + i_t,
+# i.e. chunk i_t reads its OWN slice h[:, i_t]. NT >= 2 is mandatory (T >= 65)
+# so that index is load-bearing: a kernel/oracle that uses a single shared
+# state instead of the per-chunk slice diverges from chunk 1 onward. Do NOT
+# lower any T below 65 or the chunk-index dependence stops being tested.
+#
+# Hg < H (here Hg == H/2, so group = H // Hg = 2 != 1) makes the kernel's
+# head-grouping `i_h // (H // Hg)` non-trivial: value head h reads q/k head
+# h // group. An identity head map would mis-read q/k for half the heads.
+# H % Hg == 0 is required by that integer grouping.
 size_knobs:
   B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
+  T: 192
   H: 16
-  E: 8
-  C: 16
-  G: 8
+  Hg: 8
+  K: 128
+  V: 128
 public_shapes:
 - id: P1
   name: tiny
   knobs:
     B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
+    T: 80
     H: 4
-    E: 2
-    C: 4
-    G: 2
+    Hg: 2
+    K: 32
+    V: 32
 - id: P2
   name: small
   knobs:
     B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
+    T: 144
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    Hg: 4
+    K: 64
+    V: 64
 - id: P3
   name: medium
   knobs:
     B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
+    T: 192
     H: 16
-    E: 8
-    C: 16
-    G: 8
+    Hg: 8
+    K: 128
+    V: 128
 - id: P4
   name: large
   knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
+    B: 4
     T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+    H: 8
+    Hg: 4
+    K: 128
+    V: 128
 - id: P5
   name: wide
   knobs:
     B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
+    T: 130
     H: 8
-    E: 4
-    C: 8
-    G: 4
+    Hg: 2
+    K: 64
+    V: 128
 hidden_shapes:
 - id: H1
-  name: h_odd
+  name: h_groupwide
   knobs:
     B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
-- id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-- id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-- id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+    T: 160
+    H: 12
+    Hg: 4
+    K: 96
+    V: 96
 inputs:
   q:
     dims:
-    - C
-    - L
-    - D
+    - B
+    - T
+    - Hg
+    - K
     dtype: float32
     dist: randn
   k:
     dims:
-    - C
-    - L
-    - D
+    - B
+    - T
+    - Hg
+    - K
     dtype: float32
     dist: randn
   v:
     dims:
-    - C
-    - L
-    - D
+    - B
+    - T
+    - H
+    - V
     dtype: float32
     dist: randn
   h:
     dims:
-    - C
-    - D
-    - D
+    - B
+    - ceil(T/64)
+    - H
+    - V
+    - K
     dtype: float32
     dist: randn
   g:
     dims:
-    - C
-    - L
+    - B
+    - T
+    - H
     dtype: float32
     dist: rand
   scale:
-    derive: 1/sqrt(D)
+    derive: 1/sqrt(K)
