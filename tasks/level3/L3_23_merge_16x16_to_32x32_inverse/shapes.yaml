@@ -81,4 +81,6 @@ inputs:
     - H
     - BT
     dtype: float32
-    dist: tril
+    # tril_chunk = dense strict-lower per [BT,BT] chunk; plain `tril` masks the
+    # [H,BT] axes, leaving single-chunk H=1 shapes non-discriminating.
+    dist: tril_chunk

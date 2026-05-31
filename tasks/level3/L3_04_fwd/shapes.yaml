@@ -152,14 +152,17 @@ inputs:
   k:
     dims:
     - B*L
-    - H
+    # Fewer KV heads than Q (H//2) so kv_group_num = H/(H//2) = 2: exercises the
+    # GQA head-grouping (kernel cur_head//kv_group_num, oracle repeat_interleave).
+    # Pinning K/V to H q-heads made kv_group_num==1, leaving GQA untested.
+    - H//2
     - D
     dtype: float32
     dist: randn
   v:
     dims:
     - B*L
-    - H
+    - H//2
     - D
     dtype: float32
     dist: randn

@@ -82,4 +82,7 @@ inputs:
     - H
     - BT
     dtype: float32
-    dist: tril
+    # tril_chunk = dense strict-lower per [BT,BT] chunk (the op's real plane);
+    # plain `tril` masks the [H,BT] axes, leaving blocks nilpotent of degree H+1
+    # so a solver that drops the forward-substitution recurrence passes trivially.
+    dist: tril_chunk
