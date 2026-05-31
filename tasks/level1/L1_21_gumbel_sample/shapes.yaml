@@ -1,34 +1,97 @@
-# PHASE-C-MANUAL: L1_21_gumbel_sample_kernel cannot be reconciled in WB.1.
-# oracle_pytorch.run is an unimplemented NotImplementedError stub, the kernel
-# entrypoint is unresolved (meta.oracle.gpu_triton: kernel.py::placeholder),
-# and this shapes.yaml is a non-executable placeholder with no size_knobs /
-# inputs block. The operator (vLLM _gumbel_sample_kernel) is a multi-stage
-# RNG + block-argmax sampler over 13 tensor args; deriving a faithful input
-# contract requires first authoring the oracle and GPU-verifying the chunked
-# RNG semantics — out of WB.1 scope. param_constraints stays scaffold:true
-# (genuinely un-reconciled). Non-score-eligible via the stub-oracle path
-# (eligibility.is_score_eligible). Hand-author inputs before enabling.
-#
-# TODO(scaffold): the `kernel.py` body is a no-op. Once the real kernel is
-# frozen, replace these dummy shapes with the upstream coverage suite
-# (Public ≥ 5, Hidden ≥ 4 per task_api_contract §6).
-
+# Operator input contract for vLLM _gumbel_sample_kernel (gumbel-max sampler).
+# Size knobs:
+#   T = num_tokens (kernel grid dim 0; one program column per token)
+#   V = vocab_size (inner reduction axis, tiled into BLOCK_SIZE=1024 blocks)
+#   R = max_num_reqs (request axis; temperature[R], seed[R] are per-request)
+# Each token t routes to request expanded_idx_mapping[t] in [0, R); its
+# temperature + seed come from that request. pos[t] is the per-token sampling
+# position feeding the Philox gumbel-noise seed.
+size_knobs:
+  T: 128
+  V: 4096
+  R: 8
 public_shapes:
-  - id: P1
-    name: scaffold_smoke
-    num_tokens: 4
-    dtype: float32
-  - id: P2
-    name: scaffold_medium
-    num_tokens: 128
-    dtype: float32
-  - id: P3
-    name: scaffold_large
-    num_tokens: 1024
-    dtype: float32
-
+- id: P1
+  name: tiny
+  knobs:
+    T: 4
+    V: 2048
+    R: 3
+- id: P2
+  name: small
+  knobs:
+    T: 32
+    V: 4096
+    R: 8
+- id: P3
+  name: medium_multiblock
+  knobs:
+    T: 64
+    V: 5000
+    R: 8
+- id: P4
+  name: large
+  knobs:
+    T: 256
+    V: 8192
+    R: 16
+- id: P5
+  name: wide_vocab
+  knobs:
+    T: 8
+    V: 12000
+    R: 4
 hidden_shapes:
-  - id: H1
-    name: scaffold_hidden_smoke
-    num_tokens: 8
+- id: H1
+  name: h_single_block_edge
+  knobs:
+    T: 16
+    V: 1024
+    R: 4
+- id: H2
+  name: h_singleton
+  knobs:
+    T: 2
+    V: 1500
+    R: 2
+- id: H3
+  name: h_block_boundary
+  knobs:
+    T: 6
+    V: 3072
+    R: 3
+- id: H4
+  name: h_many_reqs
+  knobs:
+    T: 96
+    V: 6000
+    R: 32
+inputs:
+  logits:
+    dims:
+    - T
+    - V
     dtype: float32
+    dist: randn
+  expanded_idx_mapping:
+    dims:
+    - T
+    dtype: int64
+    dist: gumbel_routing:R
+  temperature:
+    dims:
+    - R
+    dtype: float32
+    dist: gumbel_temps
+  seed:
+    dims:
+    - R
+    dtype: int64
+    dist: randint:0:2147483647
+  pos:
+    dims:
+    - T
+    dtype: int64
+    dist: randint:0:1024
+  apply_temperature:
+    scalar: true

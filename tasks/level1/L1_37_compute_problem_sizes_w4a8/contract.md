@@ -28,8 +28,8 @@ definition (no upstream code copy).
 Cutlass grouped-GEMM problem-size metadata for a W4A8 MoE.
 
 For expert e with m = masked_m[e] active tokens:
-  problem_sizes1[e] = (m, n, k)   — first GEMM (gate/up proj)
-  problem_sizes2[e] = (m, k, n)   — second GEMM (down proj)
+  problem_sizes1[e] = (2*n, m, k)   — first GEMM (gate+up fused, N doubled)
+  problem_sizes2[e] = (k,   m, n)   — second GEMM (down proj)
 Pure integer bookkeeping; no numerics.
 
 ## I/O contract

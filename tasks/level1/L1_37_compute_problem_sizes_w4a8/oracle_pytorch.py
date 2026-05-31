@@ -21,19 +21,19 @@ def _compute_problem_sizes_w4a8(
     """Cutlass grouped-GEMM problem-size metadata for a W4A8 MoE.
 
     For expert e with m = masked_m[e] active tokens:
-      problem_sizes1[e] = (m, n, k)   — first GEMM (gate/up proj)
-      problem_sizes2[e] = (m, k, n)   — second GEMM (down proj)
+      problem_sizes1[e] = (2*n, m, k)   — first GEMM (gate+up fused, N doubled)
+      problem_sizes2[e] = (k,   m, n)   — second GEMM (down proj)
     Pure integer bookkeeping; no numerics.
     """
     m = masked_m.to(torch.int32)
     ps1 = torch.stack([
+        torch.full((num_experts,), 2 * int(n), dtype=torch.int32, device=m.device),
         m,
-        torch.full((num_experts,), int(n), dtype=torch.int32, device=m.device),
         torch.full((num_experts,), int(k), dtype=torch.int32, device=m.device),
     ], dim=1)
     ps2 = torch.stack([
-        m,
         torch.full((num_experts,), int(k), dtype=torch.int32, device=m.device),
+        m,
         torch.full((num_experts,), int(n), dtype=torch.int32, device=m.device),
     ], dim=1)
     return ps1, ps2

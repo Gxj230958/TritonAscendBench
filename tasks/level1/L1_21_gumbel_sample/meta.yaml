@@ -15,18 +15,18 @@ upstream:
   file_sha256: 164528e9c30a027664a3ddecdd0b020d896762513aee0c7f397105d9fb8b0093
   function_hash: 164528e9c30a027664a3ddecdd0b020d896762513aee0c7f397105d9fb8b0093
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: frozen upstream gumbel-max sampler; driven via _pa_launcher.py::run.
   vendored_snapshot: tasks/_vendored/L1_21_gumbel_sample_kernel_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
-  stride_layout: TODO(scaffold)
+  stride_layout: row-major
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: sampling_rng
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -43,8 +43,8 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 3
-    hidden: 1
+    public: 5
+    hidden: 4
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -59,23 +59,58 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L1-21
 cost_model:
-  # PLACEHOLDER cost_model — non-real, NOT actual FLOPs/bytes.
-  # L1_21_gumbel_sample has an unimplemented stub oracle and a non-executable
-  # placeholder shapes.yaml (no size_knobs), so there is no size-knob symbol
-  # from which to write a real shape-dependent formula. These are constant
-  # placeholders that let the validate_tasks cost_model dimension pass; the
-  # real formulas are filled once this task gets an oracle plus an executable
-  # shapes.yaml. L1_21 is non-score-eligible (stub oracle), so the placeholder
-  # cost_model never enters the scored denominator and does not affect scoring.
-  flops: '1'
+  # Symbol audit. Gumbel-max sampler: per (token, vocab) element on the noisy
+  # path the kernel runs a Philox draw (10 rounds of integer mix) + a fp64
+  # double-log gumbel transform + add, then a block argmax. Symbol map:
+  # T -> num_tokens (grid dim 0), V -> vocab_size (the reduced inner axis).
+  # FLOPs (vector): ~20 ops per element for the Philox 4x32-10 round mix and the
+  # -log(-log(u)) transform + temperature divide + max-reduce -> ~20*T*V.
+  # bytes (hbm): read logits[T, V] fp32 (4 bytes); the local_argmax/local_max
+  # partials are O(T * ceil(V/1024)) << T*V -> dominated by the logits read.
+  flops: 20*T*V
   flops_class: vector
-  bytes: '1'
+  bytes: T*V * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
 param_constraints:
-  scaffold: true
-  dims: []
-  dtypes: {}
-  dists: {}
-  scalars: {}
-  tensor_invariants: []
+  scaffold: false
+  dims:
+  - T >= 1
+  - V >= 1
+  - R >= 1
+  dtypes:
+    logits: float32
+    expanded_idx_mapping: int64
+    temperature: float32
+    seed: int64
+    pos: int64
+  dists:
+    logits:
+      kind: randn
+    expanded_idx_mapping:
+      kind: gumbel_routing
+      args:
+        R: R
+    temperature:
+      kind: gumbel_temps
+    seed:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '2147483647'
+    pos:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '1024'
+  scalars:
+    # Pinned to 1 (True): the shapes drive apply_temperature=True, the richer
+    # path that exercises BOTH temperature scaling and gumbel noise. The
+    # apply_temperature=False branch only skips the scale (noise still applies),
+    # a strict subset of the True path.
+    apply_temperature: apply_temperature == 1
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: expanded_idx_mapping
+      value: R

@@ -137,10 +137,13 @@ inputs:
     - E
     dtype: int64
     dist: randint:0:T
+  # n / k vary per shape so the grader discriminates the scalar GEMM dims:
+  # a launcher that hard-codes them (instead of reading inputs) mismatches.
+  # Knobs keep 2*n, n, k pairwise distinct on every shape (2*H < N, H != N).
   n:
-    scalar: 16
+    derive: "H"
   k:
-    scalar: 16
+    derive: "N"
   num_experts:
     scalar_knob: E
   problem_sizes1:

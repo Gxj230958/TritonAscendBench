@@ -26,13 +26,14 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: vector_reduce
 cost_model:
   # Symbol audit (approach §3.4). Cutlass grouped-GEMM problem-size metadata:
-  # for each expert emit (m,n,k) and (m,k,n) triples where m = masked_m[e].
-  # Symbol map: E -> num_experts (masked_m length == kernel grid extent). n / k
-  # are scalar literals (the fixed GEMM N/K dims).
+  # for each expert emit (2n,m,k) and (k,m,n) triples where m = masked_m[e]
+  # (first GEMM fuses gate+up, so its N is doubled). Symbol map: E ->
+  # num_experts (masked_m length == kernel grid extent). n / k are scalar
+  # literals (the fixed GEMM N/K dims).
   # FLOPs (vector): pure integer bookkeeping (copying m and the n/k constants
   # into triples) — no arithmetic at all. Reported as the small constant E
   # (one write group per expert); the dominant cost is bytes.
