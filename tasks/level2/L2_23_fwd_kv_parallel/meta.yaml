@@ -115,3 +115,14 @@ param_constraints:
       kind: rand
   scalars: {}
   tensor_invariants: []
+
+# RECLASSIFIED (2026-06-01, GPU-verified A/B/C variants + codex-supervised):
+# This task is NOT an OOM hard-ceiling. The prior OOM was a D=256 SCAFFOLD
+# artifact (realistic lightning-attn head_dim is 128: this task's own default
+# is D=128, the sibling L2_24_fwd_kv_reduce caps D at 128, and vLLM/MiniMax
+# refs use head_dim=128 with no 256). D de-scaffolded 256->128 / E 32->16.
+# At realistic D<=128 the kernel RUNS and daemon-PASSes ONLY because
+# attention_flash tolerance absorbs the SAME vLLM cross-block decay off-by-one
+# as L2_24 (lightning_attn.py:444 array=arange+1; numerically proven in
+# docs/verification/). So this is an off-by-one FALSE POSITIVE, EXCLUDED from
+# the honest faithful-PASS count (like L2_24), NOT a counted PASS.

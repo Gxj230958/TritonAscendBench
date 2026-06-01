@@ -1,0 +1,141 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_23_fwd_kv_parallel
+level: L2
+idx: 23
+name: _fwd_kv_parallel
+repo: vLLM
+dtype_class: CV
+category: attention
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/lightning_attn.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 4aea4eab9ae5b17067b65b1bb45f521f6e9f3bc9a9f0dd66f8f71bb7ef84aea2
+  function_hash: 86126462aa7b37706d7aad8779423964bae54ee044aa0ffced6abcbcf4c51999
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_23_fwd_kv_parallel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::placeholder
+tolerance_class: attention_flash
+cost_model:
+  # Symbol audit (approach §3.4). Lightning-attention prefill (decay-weighted
+  # linear attention): o[t] = sum_{s<=t} decay^(t-s) (q_t.k_s) v_s. The
+  # graded operator is oracle_pytorch._lightning_kv's full prefill output
+  # [B,H,L,D]; this task's kernel-under-test _fwd_kv_parallel is the
+  # KV-parallel stage (kv += tl.dot(k_trans*k_decay, v) per chunk). The
+  # cost model states the full operator the task benchmarks. shapes.yaml
+  # binds: B -> batch (q/k/v dim 0), H -> n_heads (q/k/v dim 1, slope dim 0),
+  # L -> sequence length (q/k/v dim 2, oracle indices l & s), D -> head dim
+  # (q/k/v dim 3, the kernel d/e feature axes).
+  # Causal faithfulness: this operator is ALWAYS causal-prefix — there is
+  # no CAUSAL knob in shapes.yaml. The oracle accumulates only s <= t
+  # (mask = t[:,None] >= t[None,:]); the chunked kernel pipeline is
+  # likewise causal (KV-parallel + prefix-sum reduce produce the same
+  # s <= t result), so the score work is the inclusive causal lower
+  # triangle, NOT the dense [L,L] grid. The active score-entry count per
+  # (b,h) is therefore the triangular sum L*(L+1)/2 (t >= s), not L*L.
+  # Mixed compute -> map form. FLOPs(fp16_cube): sc = einsum("bhld,bhsd->
+  # bhls", q, k) contracts D and out = einsum("bhls,bhsd->bhld",
+  # sc*decay, v) contracts the score axis -> per active causal score
+  # entry 4*D fused mul-add FLOPs; over B*H -> 4*B*H*D*L*(L+1)/2.
+  # float32 operands run on the 910B Cube unit, peak_table exposes no
+  # fp32 cube class so cube matmul is keyed to fp16_cube.
+  # FLOPs(vector): decay = exp(-slope*dist) is ~3 ops over the causal
+  # score entries, sc*decay is 1 mul -> 4*B*H*L*(L+1)/2.
+  # bytes(hbm): read q/k/v [B,H,L,D] + slope [H], write output [B,H,L,D];
+  # all float32 primary family -> dtype_size.
+  flops:
+    fp16_cube: 4*B*H*D*L*(L+1)/2
+    vector: 4*B*H*L*(L+1)/2
+  bytes:
+    hbm: (4*B*H*L*D + H) * dtype_size
+  gpu_xcheck_tol: 0.05
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 3
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-23
+# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Lightning-attention KV parallel pass: q/k/v [B, H, L, D] with a per-head decay slope [H]. fp32.
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - L >= 1
+  - D >= 1
+  dtypes:
+    q: float32
+    k: float32
+    v: float32
+    slope: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    slope:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []
+
+# RECLASSIFIED (2026-06-01, GPU-verified A/B/C variants + codex-supervised):
+# This task is NOT an OOM hard-ceiling. The prior OOM was a D=256 SCAFFOLD
+# artifact (realistic lightning-attn head_dim is 128: this task's own default
+# is D=128, the sibling L2_24_fwd_kv_reduce caps D at 128, and vLLM/MiniMax
+# refs use head_dim=128 with no 256). D de-scaffolded 256->128 / E 32->16.
+# At realistic D<=128 the kernel RUNS and daemon-PASSes ONLY because
+# attention_flash tolerance absorbs the SAME vLLM cross-block decay off-by-one
+# as L2_24 (lightning_attn.py:444 array=arange+1; numerically proven in
+# docs/verification/). So this is an off-by-one FALSE POSITIVE, EXCLUDED from
+# the honest faithful-PASS count (like L2_24), NOT a counted PASS.
+
+# ── corrected-variant manifest (NON-SCORED proof artifact) ──────────────────
+corrected_variant:
+  variant_of: L2_23_fwd_kv_parallel
+  original_task_status: PASS-but-EXCLUDED (off-by-one false positive, de-scaffolded D<=128)
+  original_kernel_sha256: 86126462aa7b37706d7aad8779423964bae54ee044aa0ffced6abcbcf4c51999
+  corrected_kernel_sha256: 4aea4eab9ae5b17067b65b1bb45f521f6e9f3bc9a9f0dd66f8f71bb7ef84aea2
+  patch_summary: "lightning_attn.py:444  array = arange(0,BLOCK) + 1  ->  array = arange(0,BLOCK)  (same off-by-one fix as L2_24)"
+  upstream: vllm-project/vllm  vllm/model_executor/layers/lightning_attn.py
+  gpu_verify: "PASS (variant B: de-scaffolded D<=128 + fix). Variant A (D=256 + fix) OOMs; variant C (D<=128, unfixed) PASSes via tolerance -> confirms off-by-one false positive."
+  score_eligible: false
+  release_scope:
+    excluded: true
