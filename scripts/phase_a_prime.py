@@ -5036,13 +5036,33 @@ def rewrite_imports_to_standalone(
             stripped.startswith("from sglang.srt.utils import")
             and (" tl" in stripped or " triton" in stripped)
         ):
-            # B-rewrite-public: re-export of public triton.
+            # B-rewrite-public: tl/triton are public re-exports. Other symbols
+            # (e.g. HAS_TRITON) are capability flags, NOT re-exports -- parse the
+            # import and pin each non-{tl,triton} symbol to its faithful severed
+            # value (triton is always present in the severed runtime); a symbol
+            # with no pin fails closed (leave the import so S2's leak guard
+            # catches it as BLOCKED rather than silently dropping it).
             indent = ln[: len(ln) - len(ln.lstrip())]
+            _pins = {"HAS_TRITON": "True"}
+            _extra, _unpinnable = [], []
+            for _tok in stripped.split("import", 1)[1].split(","):
+                _name = _tok.strip().split(" as ")[0].strip().strip("()")
+                if not _name or _name in ("tl", "triton"):
+                    continue
+                (_extra if _name in _pins else _unpinnable).append(_name)
+            if _unpinnable:
+                out.append(ln)  # fail-closed: unknown non-inert symbol(s)
+                continue
             out.append(
                 f"{indent}import triton  # Phase A': was a "
                 f"vllm/sglang triton re-export (B-rewrite-public)\n"
             )
             out.append(f"{indent}import triton.language as tl\n")
+            for _name in _extra:
+                out.append(
+                    f"{indent}{_name} = {_pins[_name]}"
+                    f"  # Phase A': pinned severed-runtime capability flag\n"
+                )
             # Autotuned kernel: rebind ``triton`` to the interpreter-aware
             # clone (only ``.autotune`` differs; jit/Config/cdiv/etc. are the
             # real module by reference). On a real GPU the clone's autotune

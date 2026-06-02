@@ -368,7 +368,14 @@ def cmd_run(args: argparse.Namespace) -> int:
         return rc
     wait_rc = cmd_wait(args)
     if wait_rc == 0:
-        return cmd_collect(args)
+        rc = cmd_collect(args)
+        # P1.2 drift-kill: the verify (S2) action writes phase_a_prime.status +
+        # standalone_sha256 into the daemon-side (gpfs) meta. Auto pull-meta so
+        # the dev source of truth never goes stale (the 23-vs-101 bug). Run the
+        # C2 apply AFTER this (it writes provenance.golden on top of the fresh
+        # S2 status); pull-meta uses --update so a locally-newer meta is kept.
+        cmd_pull_meta(args)
+        return rc
     if wait_rc == 3:
         # Partial results may still be on gpfs; pull them so the operator
         # can diagnose, then propagate the DEAD signal.

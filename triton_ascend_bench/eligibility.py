@@ -497,6 +497,81 @@ def release_ready_with_provenance(meta: dict | None) -> bool:
     return release_status_pass(meta) and is_provenance_eligible(meta)
 
 
+def fresh_s2_pass(meta: dict | None, kernel_sha256: str | None = None) -> bool:
+    """True iff the S2 severance gate PASSes AND is FRESH for the current
+    kernel.py. Freshness = the recorded ``standalone_sha256`` matches the
+    on-disk kernel.py hash (caller passes it); a stale status from before a
+    kernel.py edit does NOT count. Without ``kernel_sha256`` the sha check is
+    skipped (status-only -- callers with file access should pass it).
+
+    A standalone that fails the S2 severed audit (e.g. leaks vllm) has
+    ``phase_a_prime.status`` != PASS, so it can never be fresh_s2_pass -- this
+    is the masking root fix consumed by :func:`compute_usability` and by the
+    C2 verdict writer (which must not promote VERIFIED when this is false).
+    """
+    m = meta or {}
+    pap = m.get("phase_a_prime") or {}
+    status = pap.get("status")
+    ok = status == "PASS" or (
+        status == "SKIPPED_BY_DESIGN"
+        and (m.get("phase_b_capture") or {}).get("status") == "DONE"
+    )
+    if not ok:
+        return False
+    if kernel_sha256 is not None:
+        recorded = pap.get("standalone_sha256")
+        if not recorded or recorded != kernel_sha256:
+            return False
+    return True
+
+
+def compute_usability(meta: dict | None, kernel_sha256: str | None = None) -> dict:
+    """Single DERIVED per-task verdict across both extraction gates.
+
+    ``fully_usable`` conjuncts the two independent gates plus the
+    extraction-shape diagnostics, REUSING the existing release predicates
+    (no second source of truth -- recomputed on read, never persisted as an
+    authority):
+
+      * C2 oracle-equivalence + S2 severance + cost_model + not-excluded
+        == :func:`release_ready_with_provenance` (which already requires
+        ``phase_a_prime.status`` PASS, so a standalone that fails the S2
+        severed audit can never be ``fully_usable`` even if C2 alone says
+        VERIFIED -- this is the masking root fix at the verdict layer).
+      * entrypoint resolved (``oracle.gpu_triton`` is not ``placeholder``).
+
+    Returns ``{"fully_usable": bool, "failing": [dim, ...]}`` where ``failing``
+    names the gate(s) that block usability (for the validate/audit surface).
+    SHA consistency is a file-level diagnostic added by ``validate_tasks``
+    (it has on-disk access); this meta-only predicate covers the rest.
+    """
+    m = meta or {}
+    failing: list[str] = []
+    if not is_provenance_eligible(m):
+        failing.append("C2_oracle_equivalence")
+    if not fresh_s2_pass(m, kernel_sha256):
+        failing.append("S2_severance")
+    if (m.get("cost_model") or {}).get("status") != "PASS":
+        failing.append("cost_model")
+    if (m.get("release_scope") or {}).get("excluded") is True:
+        failing.append("release_excluded")
+    ep = str((m.get("oracle") or {}).get("gpu_triton") or "")
+    if (not ep) or "placeholder" in ep:
+        failing.append("entrypoint_unresolved")
+    # extraction_verified = the "precision-aligned + compiles + clean entrypoint"
+    # gates (C2 + S2 + entrypoint), i.e. the extraction is trustworthy. This is
+    # SEPARATE from cost_model (an orthogonal roofline/release dimension), so the
+    # extraction track can be 100 even while the broader release gate is pending.
+    extraction_dims = {"C2_oracle_equivalence", "S2_severance", "entrypoint_unresolved"}
+    extraction_verified = not (set(failing) & extraction_dims)
+    fully = release_ready_with_provenance(m) and "entrypoint_unresolved" not in failing
+    return {
+        "fully_usable": bool(fully),
+        "extraction_verified": bool(extraction_verified),
+        "failing": sorted(set(failing)),
+    }
+
+
 def compute_release_ready_eligible(
     tasks: Iterable[_TaskLike],
 ) -> set[str]:

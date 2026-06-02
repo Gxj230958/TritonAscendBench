@@ -168,12 +168,31 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         golden.pop("golden_sha256", None)
 
     if overall == "VERIFIED":
-        # Promote oracle_pytorch.py to truth source
-        sha = _ref_sha256(td)
-        if sha:
-            golden["golden_sha256"] = sha
-        golden["golden_source"] = "oracle_pytorch_verified"
-        res.promoted_to_truth = True
+        # Masking root fix (plan P0.2-A): a C2 VERIFIED only PROMOTES to
+        # truth-source / fully-usable when the S2 severance gate is a FRESH PASS
+        # for the CURRENT kernel.py (status PASS + standalone_sha256 matches the
+        # on-disk file). A standalone that S2 rejects -- or whose S2 status is
+        # stale vs the current kernel.py -- is cross-inconsistent: record the raw
+        # C2 verdict but do NOT promote. (`compute_usability` enforces the same
+        # conjunction independently; this keeps the golden provenance honest.)
+        from triton_ascend_bench.eligibility import fresh_s2_pass
+
+        _kp = td / "kernel.py"
+        _ksha = (
+            hashlib.sha256(_kp.read_bytes()).hexdigest() if _kp.is_file() else None
+        )
+        if fresh_s2_pass(meta, _ksha):
+            golden["cross_check"] = "S2_FRESH"
+            sha = _ref_sha256(td)
+            if sha:
+                golden["golden_sha256"] = sha
+            golden["golden_source"] = "oracle_pytorch_verified"
+            res.promoted_to_truth = True
+        else:
+            golden["cross_check"] = "CROSS_INCONSISTENT"
+            golden["golden_source"] = "verified_s2_not_fresh"
+            golden.pop("golden_sha256", None)
+            res.promoted_to_truth = False
     elif overall == "FAILED" or overall == "MIXED":
         golden["golden_source"] = "fallback_to_gpu_capture_pending"
         # Caller-side note: this task needs M3 source-2 GPU capture
