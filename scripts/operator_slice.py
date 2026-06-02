@@ -133,51 +133,32 @@ def slice_source(src: str, td: Path) -> str | None:
     new_tree = ast.Module(body=kept, type_ignores=[])
     sliced = ast.unparse(ast.fix_missing_locations(new_tree))
 
-    # FAIL-CLOSED free-name audit: every Name load in the sliced module must be
-    # closure-defined, imported, a builtin, or an always-ok runtime name.
-    stree = ast.parse(sliced)
-    bound: set[str] = set(_ALWAYS_OK) | _BUILTINS
-    for s in stree.body:
-        bound |= _defined_names(s)
-    # collect module-level + function-local free names: a name LOADED that is
-    # neither module-bound, a builtin, nor locally bound inside the function is a
-    # genuine dangling reference. Local binding = every Store-context Name
-    # (assigns, for/with/comprehension/walrus targets) + args + nested def/class
-    # names + except handlers -- so loop/comprehension vars are not false leaks.
-    def _local_bound(fn: ast.AST) -> set[str]:
-        b: set[str] = set()
-        for n in ast.walk(fn):
-            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store):
-                b.add(n.id)
-            elif isinstance(n, ast.arg):
-                b.add(n.arg)
-            elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                b.add(n.name)
-            elif isinstance(n, ast.ExceptHandler) and n.name:
-                b.add(n.name)
-            elif isinstance(n, (ast.Import, ast.ImportFrom)):
-                for a in n.names:
-                    b.add((a.asname or a.name).split(".")[0])
-        return b
+    # FAIL-CLOSED free-name audit via symtable (proper scope analysis -- correctly
+    # handles comprehension / lambda / except / nested scopes, so loop vars are not
+    # false leaks). A name referenced as global-scoped but neither module-bound nor
+    # a builtin/runtime name is a genuine dangling reference -> decline.
+    import symtable
 
-    def _loads(node: ast.AST) -> set[str]:
-        return {
-            n.id
-            for n in ast.walk(node)
-            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
-        }
-
+    try:
+        top = symtable.symtable(sliced, "<sliced>", "exec")
+    except SyntaxError:
+        return None
+    module_bound = {
+        s.get_name()
+        for s in top.get_symbols()
+        if s.is_assigned() or s.is_imported() or s.is_namespace()
+    }
+    ok = module_bound | _BUILTINS | _ALWAYS_OK
     free: set[str] = set()
-    for s in stree.body:
-        if isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            local = _local_bound(s)
-            for r in _loads(s):
-                if r not in bound and r not in local:
-                    free.add(r)
-        else:
-            for r in _loads(s):
-                if r not in bound:
-                    free.add(r)
+
+    def _audit(table: "symtable.SymbolTable") -> None:
+        for s in table.get_symbols():
+            if s.is_global() and not s.is_assigned() and s.get_name() not in ok:
+                free.add(s.get_name())
+        for child in table.get_children():
+            _audit(child)
+
+    _audit(top)
     if free:
         return None  # undefined free name(s) -> decline (keep whole file)
     return sliced if sliced.endswith("\n") else sliced + "\n"
