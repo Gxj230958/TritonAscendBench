@@ -67,7 +67,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: VERIFIED
     gpu_kernel_capture_status: PENDING
-    verified_at: '2026-06-02T11:53:23Z'
+    verified_at: '2026-06-02T12:13:51Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       P1:
@@ -78,14 +78,13 @@ provenance:
         status: VERIFIED
         max_abs: 32.0
         max_rel: 0.10000000149011612
-    golden_source: oracle_pytorch_verified
+    golden_source: verified_s2_not_fresh
     notes: Fixture re-targeted from the bare scatter jit kernel to the GRADED host
       wrapper silu_and_mul_masked_post_quant_fwd (3D masked silu+mul + FP8 group-quant).
       Kernel body is byte-identical to L2_37 (same upstream commit 409d350); the launcher
       reproduces the wrapper invocation verbatim. GPU bit-exact re-verification pending
       on the daemon.
-    golden_sha256: 71fe1ccf3eae2f9940694c39f26387c763b3163b6952e3808837c7fcd978fe70
-    cross_check: S2_FRESH
+    cross_check: CROSS_INCONSISTENT
 param_constraints:
   scaffold: false
   dims:
@@ -113,9 +112,17 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe-20260602T194013
+  s2_gpu_run_id: s2-L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe-20260602T200935
   classified_at: '2026-06-02'
-  standalone_sha256: c57abd7e64782e0eb056b80db9a0b69f9d07e41f851ef1cc9f404009a6dfcf0e
+  standalone_sha256: 554ec6dc9d684d459649b746b1fc4a2795e4b1f77660e5267b6d591b726f6f0c
+  kernel_sha256: 554ec6dc9d684d459649b746b1fc4a2795e4b1f77660e5267b6d591b726f6f0c
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

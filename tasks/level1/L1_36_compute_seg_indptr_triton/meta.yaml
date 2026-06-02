@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-36
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T11:53:22Z'
+    verified_at: '2026-06-02T12:13:51Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -77,9 +77,8 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: e3aaeeedbbdf4d37c0fb0bdb07cdd37da5aebdbe92d490889d47cd6516c5519e
-    golden_source: oracle_pytorch_verified
-    cross_check: S2_FRESH
+    golden_source: verified_s2_not_fresh
+    cross_check: CROSS_INCONSISTENT
 param_constraints:
   scaffold: false
   dims:
@@ -99,9 +98,17 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_36_compute_seg_indptr_triton-20260602T193003
+  s2_gpu_run_id: s2-L1_36_compute_seg_indptr_triton-20260602T200842
   classified_at: '2026-06-02'
-  standalone_sha256: 52e811b283cca297877e80cc2fd2edc2bf8781c84ee91a38be6546d3fb358e56
+  standalone_sha256: 712a4a02244f9be95115d82951a336a7cf3c648a2daf9fc8cea565ffe9c24942
+  kernel_sha256: 712a4a02244f9be95115d82951a336a7cf3c648a2daf9fc8cea565ffe9c24942
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback
