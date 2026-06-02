@@ -148,14 +148,14 @@ inputs:
     dims:
     - E*C
     - 2*G
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   gate_up_lora_b:
     dims:
     - E
     - 2*N
     - G
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   seg_indptr:
     dims:
@@ -175,7 +175,7 @@ inputs:
   scalings:
     dims:
     - E
-    dtype: float32
+    dtype: bfloat16
     dist: rand
   output_dim:
     scalar_knob: N

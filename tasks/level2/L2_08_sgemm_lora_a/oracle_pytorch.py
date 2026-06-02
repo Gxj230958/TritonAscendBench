@@ -15,12 +15,6 @@ import torch
 import torch.nn.functional as F
 
 
-def _to_tf32(x: torch.Tensor) -> torch.Tensor:
-    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
-    unpinned tl.dot on TF32 cores."""
-    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
-
-
 def _segmented_lora_shrink(
     x: torch.Tensor, weights: torch.Tensor, seg_indptr: torch.Tensor,
     weight_indices: torch.Tensor, lora_ranks: torch.Tensor,
@@ -36,6 +30,9 @@ def _segmented_lora_shrink(
     max_rank = weights.shape[1]
     out = x.new_zeros((n_tokens, max_rank), dtype=torch.float32)
     seg = seg_indptr.to(torch.long).tolist()
+    # bf16 inputs upcast to fp32 exactly (8-bit mantissa product fits fp32), so
+    # an fp32 matmul matches the kernel's bf16 tl.dot (fp32 accumulate) -- no
+    # TF32 truncation needed at bf16 (that was the fp32-fixture path).
     xf = x.to(torch.float32)
     wf = weights.to(torch.float32)
     for i in range(len(seg) - 1):
@@ -44,7 +41,7 @@ def _segmented_lora_shrink(
             continue
         ad = int(weight_indices[i].item())
         r = int(lora_ranks[ad].item())
-        out[s:e, :r] = _to_tf32(xf[s:e]) @ _to_tf32(wf[ad, :r, :].T)
+        out[s:e, :r] = xf[s:e] @ wf[ad, :r, :].T
     return out.to(x.dtype)
 
 
