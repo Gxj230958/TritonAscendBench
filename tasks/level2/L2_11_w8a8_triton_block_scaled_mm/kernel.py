@@ -17,18 +17,18 @@ import os
 from collections.abc import Callable, Sequence
 from typing import Any
 import torch
-import tasks._frozen_shim.envs as envs  # Phase A': vllm.envs allowlist shim (B-inert-shim)
-from tasks._frozen_shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
-from tasks._frozen_shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
-from tasks._frozen_shim import get_fp8_min_max  # Phase A': quant symbols, symbol-aware (B-inert-shim)
-from tasks._frozen_shim import all_close_1d, per_tensor_dequantize  # Phase A': off-path w8a8 weight utils (B-inert-shim)
-from tasks._frozen_shim import BlockQuantScaleParameter, ChannelQuantScaleParameter, PerTensorScaleParameter  # Phase A': off-path weight-loader params (B-inert-shim)
-from tasks._frozen_shim import set_weight_attrs  # Phase A': off-path weight-attr setter (B-inert-shim)
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
-import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
+import tasks._frozen_shim.envs as envs
+from tasks._frozen_shim import ops as ops
+from tasks._frozen_shim import init_logger
+from tasks._frozen_shim import get_fp8_min_max
+from tasks._frozen_shim import all_close_1d, per_tensor_dequantize
+from tasks._frozen_shim import BlockQuantScaleParameter, ChannelQuantScaleParameter, PerTensorScaleParameter
+from tasks._frozen_shim import set_weight_attrs
+from tasks._frozen_shim import current_platform
+import triton
 import triton.language as tl
-from tasks._frozen_shim import get_tma_aligned_size, is_deep_gemm_e8m0_used, transform_sf_into_required_layout  # Phase A': off-path deep_gemm accel surface (B-inert-shim)
-from tasks._frozen_shim import direct_register_custom_op  # Phase A': pure predicate (B-inert-shim)
+from tasks._frozen_shim import get_tma_aligned_size, is_deep_gemm_e8m0_used, transform_sf_into_required_layout
+from tasks._frozen_shim import direct_register_custom_op
 
 def _triton_per_token_group_quant_fp8_impl(x: torch.Tensor, group_size: int) -> tuple[torch.Tensor, torch.Tensor]:
     return per_token_group_quant_fp8(x, group_size, column_major_scales=False, use_ue8m0=False)
@@ -194,6 +194,8 @@ def _w8a8_triton_block_scaled_mm(A, B, C, As, Bs, M, N, K, group_n, group_k, str
     c_ptrs = C + stride_cm * offs_cm[:, None] + stride_cn * offs_cn[None, :]
     c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
     tl.store(c_ptrs, c, mask=c_mask)
+import torch
+import triton
 
 import torch
 import triton
