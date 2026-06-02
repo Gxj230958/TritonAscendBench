@@ -66,7 +66,7 @@ provenance:
   source_md_id: L3-14
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:51Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -127,10 +127,19 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_14_fused_recurrent_gated_delta_rule_fwd-20260602T194521
+  s2_gpu_run_id: s2-L3_14_fused_recurrent_gated_delta_rule_fwd-20260602T203321
   classified_at: '2026-06-02'
-  standalone_sha256: c58ac7db8a1f39c1668f666eb4a33c9ea66515ababec6ab8ddd558efc1808b29
+  standalone_sha256: 60db712e1f0c25deac9f754587b8be020cdd5dcf878a1ef1d32d5836f62325f0
+  kernel_sha256: 60db712e1f0c25deac9f754587b8be020cdd5dcf878a1ef1d32d5836f62325f0
 frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
-classB_symbols: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
 reference_path: native

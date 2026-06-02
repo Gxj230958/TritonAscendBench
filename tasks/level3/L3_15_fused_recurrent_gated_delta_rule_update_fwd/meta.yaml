@@ -66,7 +66,7 @@ provenance:
   source_md_id: L3-15
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:51Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -114,11 +114,19 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_15_fused_recurrent_gated_delta_rule_update_fwd-20260602T194540
+  s2_gpu_run_id: s2-L3_15_fused_recurrent_gated_delta_rule_update_fwd-20260602T203325
   classified_at: '2026-06-02'
-  standalone_sha256: 5f5727f02353833ae6bc1e3610e2bf85f1871bec46a9d2b25ad93a400801b82a
+  standalone_sha256: 3f6548d29f8c66271450ec2c832f4c690be98a2a0d8545692c45ec8eebf9748f
+  kernel_sha256: 3f6548d29f8c66271450ec2c832f4c690be98a2a0d8545692c45ec8eebf9748f
 frozen_deps:
 - tasks._frozen_deps_pool.h_e36d74582749.sglang_fla_op_utils.op
 - tasks._frozen_deps_pool.h_e36d74582749.sglang_fla_op_utils.utils
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

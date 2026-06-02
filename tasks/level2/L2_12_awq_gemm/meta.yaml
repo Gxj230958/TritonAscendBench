@@ -67,7 +67,7 @@ provenance:
   source_md_id: L2-12
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:50Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       P1:
@@ -115,9 +115,18 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_12_awq_gemm-20260602T193602
+  s2_gpu_run_id: s2-L2_12_awq_gemm-20260602T202647
   classified_at: '2026-06-02'
-  standalone_sha256: 65d962a80cc253b7fa10f0b0f35e27292aca666345f8c767bda79adfcb7106fa
+  standalone_sha256: db1db220790c50d055b3bc389bd26e970f498ae770f07ff7b58881b5d6a3b8aa
+  kernel_sha256: db1db220790c50d055b3bc389bd26e970f498ae770f07ff7b58881b5d6a3b8aa
 frozen_deps: []
-classB_symbols: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
 reference_path: native

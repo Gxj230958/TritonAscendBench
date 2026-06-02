@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-05
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:49Z'
+    verified_at: '2026-06-02T12:47:19Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -109,9 +109,21 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_05_gather_block_tables-20260602T192604
+  s2_gpu_run_id: s2-L1_05_gather_block_tables-20260602T202353
   classified_at: '2026-06-02'
-  standalone_sha256: 59a7dfc6bae8c4a38158b05933a4465810e7848c2756bead99072870af804776
+  standalone_sha256: 8c452b9cd78ee19c5b62fe52c8d65e173786a1b50ecadc6b665d700070283ccb
+  kernel_sha256: 8c452b9cd78ee19c5b62fe52c8d65e173786a1b50ecadc6b665d700070283ccb
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

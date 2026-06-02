@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-29
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:50Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -103,9 +103,14 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_29_fused_moe_router_cudacore-20260602T193924
+  s2_gpu_run_id: s2-L2_29_fused_moe_router_cudacore-20260602T203116
   classified_at: '2026-06-02'
-  standalone_sha256: aa23df05c77a77bff11cb131a63b7c95217762753ac29be62c9f17b5a348ce92
+  standalone_sha256: 6b2cea2af53ba19cae143942f728b609da10803306c9c23efd31a6253c6729c0
+  kernel_sha256: 6b2cea2af53ba19cae143942f728b609da10803306c9c23efd31a6253c6729c0
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+reference_path: triton_fallback

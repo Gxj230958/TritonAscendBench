@@ -73,7 +73,7 @@ provenance:
   source_md_id: L2-17
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:50Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
@@ -116,9 +116,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_17_layer_norm_gated_fwd-20260602T193642
+  s2_gpu_run_id: s2-L2_17_layer_norm_gated_fwd-20260602T203018
   classified_at: '2026-06-02'
-  standalone_sha256: 461e4624c27f3f98c54cccb9ea8880145f0c9b75279491be857d8ce413f1c710
+  standalone_sha256: abbf3a85101cd592e5ac799dba261b185a142163d75563d2e1bd2534c6b205d4
+  kernel_sha256: abbf3a85101cd592e5ac799dba261b185a142163d75563d2e1bd2534c6b205d4
 frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum
@@ -128,5 +129,16 @@ frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.solve_tril
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

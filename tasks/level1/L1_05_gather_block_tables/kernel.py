@@ -11,289 +11,143 @@ Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): f7662f59feb24dcb8622092809f1fb8ece7790b6443f553f6779df3acf01f5ee
 Frozen by: scripts/phase_a_freeze.py
 """
-
-# SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 from collections.abc import Iterable
-
 import torch
+import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
+import triton.language as tl
+from tasks._frozen_shim import PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from tasks._frozen_shim import StagedWriteTensor, UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
 
-from vllm.triton_utils import tl, triton
-from vllm.v1.attention.backends.utils import PAD_SLOT_ID
-from vllm.v1.worker.gpu.buffer_utils import StagedWriteTensor, UvaBackedTensor
-
-
-class BlockTables:
-    def __init__(
-        self,
-        block_sizes: list[int],
-        max_num_reqs: int,
-        max_num_batched_tokens: int,
-        max_num_blocks_per_group: list[int],
-        device: torch.device,
-        cp_size: int = 1,
-        cp_rank: int = 0,
-        cp_interleave: int = 1,
-    ):
-        self.block_sizes = block_sizes
-        self.max_num_reqs = max_num_reqs
-        self.max_num_batched_tokens = max_num_batched_tokens
-        self.device = device
-
-        self.cp_size = cp_size
-        self.cp_rank = cp_rank
-        self.cp_interleave = cp_interleave
-
-        self.num_kv_cache_groups = len(self.block_sizes)
-        assert len(max_num_blocks_per_group) == self.num_kv_cache_groups
-        # num_kv_cache_groups x [max_num_reqs, max_num_blocks]
-        self.block_tables: list[StagedWriteTensor] = []
-        for i in range(self.num_kv_cache_groups):
-            max_num_blocks = max_num_blocks_per_group[i]
-            block_table = StagedWriteTensor(
-                (self.max_num_reqs, max_num_blocks),
-                dtype=torch.int32,
-                device=device,
-            )
-            self.block_tables.append(block_table)
-
-        self.num_blocks = UvaBackedTensor(
-            (self.num_kv_cache_groups, self.max_num_reqs),
-            dtype=torch.int32,
-        )
-
-        # Block tables used for model's forward pass.
-        # num_kv_cache_groups x [max_num_reqs, max_num_blocks]
-        self.input_block_tables: list[torch.Tensor] = [
-            torch.zeros_like(b.gpu) for b in self.block_tables
-        ]
-
-        self.slot_mappings = torch.zeros(
-            self.num_kv_cache_groups,
-            self.max_num_batched_tokens,
-            dtype=torch.int64,
-            device=self.device,
-        )
-
-        self.init_block_table_layout_tensors()
-
-    def _make_ptr_tensor(self, x: Iterable[torch.Tensor]) -> torch.Tensor:
-        # NOTE(woosuk): Use uint64 instead of int64 to cover all possible addresses.
-        return torch.tensor(
-            [t.data_ptr() for t in x], dtype=torch.uint64, device=self.device
-        )
-
-    def init_block_table_layout_tensors(self) -> None:
-        # Called at init and after a CuMem kv_cache wake-up. The ptr tensors
-        # cache raw data_ptr() values that go stale once the underlying tensors
-        # are reallocated on wake; block_sizes_tensor needs re-populating
-        # because its storage lives under the kv_cache pool tag and comes back
-        # with undefined contents.
-        self.block_table_ptrs = self._make_ptr_tensor(
-            [b.gpu for b in self.block_tables]
-        )
-        self.block_table_strides = torch.tensor(
-            [b.gpu.stride(0) for b in self.block_tables],
-            dtype=torch.int64,
-            device=self.device,
-        )
-        self.block_sizes_tensor = torch.tensor(
-            self.block_sizes, dtype=torch.int32, device=self.device
-        )
-        self.input_block_table_ptrs = self._make_ptr_tensor(self.input_block_tables)
-
-    def append_block_ids(
-        self,
-        req_index: int,
-        new_block_ids: tuple[list[int], ...],
-        overwrite: bool,
-    ) -> None:
-        for i in range(self.num_kv_cache_groups):
-            start = self.num_blocks.np[i, req_index] if not overwrite else 0
-            block_ids = new_block_ids[i]
-            self.block_tables[i].stage_write(req_index, start, block_ids)
-            self.num_blocks.np[i, req_index] = start + len(block_ids)
-
-    def apply_staged_writes(self) -> None:
-        # TODO(woosuk): This can be inefficient since it launches one kernel per
-        # block table. Implement a kernel to handle all block tables at once.
-        for block_table in self.block_tables:
-            block_table.apply_write()
-        self.num_blocks.copy_to_uva()
-
-    def gather_block_tables(
-        self,
-        idx_mapping: torch.Tensor,
-        num_reqs_padded: int,
-    ) -> tuple[torch.Tensor, ...]:
-        num_reqs = idx_mapping.shape[0]
-        # Launch kernel with num_reqs_padded to fuse zeroing of padded rows.
-        _gather_block_tables_kernel[(self.num_kv_cache_groups, num_reqs_padded)](
-            idx_mapping,
-            self.block_table_ptrs,
-            self.input_block_table_ptrs,
-            self.block_table_strides,
-            self.num_blocks.gpu,
-            self.num_blocks.gpu.stride(0),
-            num_reqs,
-            self.input_block_tables[0].shape[1],  # max_num_blocks
-            BLOCK_SIZE=1024,  # type: ignore
-        )
-        return tuple(bt[:num_reqs_padded] for bt in self.input_block_tables)
-
-    def get_dummy_block_tables(self, num_reqs: int) -> tuple[torch.Tensor, ...]:
-        # NOTE(woosuk): The output may be used for CUDA graph capture.
-        # Therefore, this method must return the persistent tensor
-        # with the same memory address as that used during the model's forward pass,
-        # rather than allocating a new tensor.
-        return tuple(block_table[:num_reqs] for block_table in self.input_block_tables)
-
-    def compute_slot_mappings(
-        self,
-        idx_mapping: torch.Tensor,
-        query_start_loc: torch.Tensor,
-        positions: torch.Tensor,
-        num_tokens_padded: int,
-    ) -> torch.Tensor:
-        num_reqs = idx_mapping.shape[0]
-        num_groups = self.num_kv_cache_groups
-        _compute_slot_mappings_kernel[(num_groups, num_reqs + 1)](
-            self.max_num_batched_tokens,
-            idx_mapping,
-            query_start_loc,
-            positions,
-            self.block_table_ptrs,
-            self.block_table_strides,
-            self.block_sizes_tensor,
-            self.slot_mappings,
-            self.slot_mappings.stride(0),
-            self.cp_rank,
-            CP_SIZE=self.cp_size,
-            CP_INTERLEAVE=self.cp_interleave,
-            PAD_ID=PAD_SLOT_ID,
-            TRITON_BLOCK_SIZE=1024,  # type: ignore
-        )
-        return self.slot_mappings[:, :num_tokens_padded]
-
-    def get_dummy_slot_mappings(self, num_tokens: int) -> torch.Tensor:
-        # Fill the entire slot_mappings tensor, not just the first `num_tokens` entries.
-        # This is because the padding logic is complex and kernels may access beyond
-        # the requested range.
-        self.slot_mappings.fill_(PAD_SLOT_ID)
-        # NOTE(woosuk): The output may be used for CUDA graph capture.
-        # Therefore, this method must return the persistent tensor
-        # with the same memory address as that used during the model's forward pass,
-        # rather than allocating a new tensor.
-        return self.slot_mappings[:, :num_tokens]
-
-
-@triton.jit(do_not_specialize=["num_reqs"])
-def _gather_block_tables_kernel(
-    batch_idx_to_req_idx,  # [batch_size]
-    src_block_table_ptrs,  # [num_kv_cache_groups]
-    dst_block_table_ptrs,  # [num_kv_cache_groups]
-    block_table_strides,  # [num_kv_cache_groups]
-    num_blocks_ptr,  # [num_kv_cache_groups, max_num_reqs]
-    num_blocks_stride,
-    num_reqs,  # actual number of requests (for padding)
-    max_num_blocks,  # stride for zeroing padded rows
-    BLOCK_SIZE: tl.constexpr,
-):
-    # kv cache group id
+@triton.jit(do_not_specialize=['num_reqs'])
+def _gather_block_tables_kernel(batch_idx_to_req_idx, src_block_table_ptrs, dst_block_table_ptrs, block_table_strides, num_blocks_ptr, num_blocks_stride, num_reqs, max_num_blocks, BLOCK_SIZE: tl.constexpr):
     group_id = tl.program_id(0)
     batch_idx = tl.program_id(1)
-
     stride = tl.load(block_table_strides + group_id)
     dst_block_table_ptr = _load_ptr(dst_block_table_ptrs + group_id, tl.int32)
     dst_row_ptr = dst_block_table_ptr + batch_idx * stride
-
     if batch_idx >= num_reqs:
-        # Zero out padded rows.
         for i in tl.range(0, max_num_blocks, BLOCK_SIZE):
             offset = i + tl.arange(0, BLOCK_SIZE)
             tl.store(dst_row_ptr + offset, 0, mask=offset < max_num_blocks)
         return
-
     req_idx = tl.load(batch_idx_to_req_idx + batch_idx)
     group_num_blocks_ptr = num_blocks_ptr + group_id * num_blocks_stride
     num_blocks = tl.load(group_num_blocks_ptr + req_idx)
-
     src_block_table_ptr = _load_ptr(src_block_table_ptrs + group_id, tl.int32)
     src_row_ptr = src_block_table_ptr + req_idx * stride
-
     for i in tl.range(0, num_blocks, BLOCK_SIZE):
         offset = i + tl.arange(0, BLOCK_SIZE)
         block_ids = tl.load(src_row_ptr + offset, mask=offset < num_blocks)
         tl.store(dst_row_ptr + offset, block_ids, mask=offset < num_blocks)
-
-
-@triton.jit
-def _compute_slot_mappings_kernel(
-    max_num_tokens,
-    idx_mapping,  # [num_reqs]
-    query_start_loc,  # [num_reqs + 1]
-    pos,  # [num_tokens]
-    block_table_ptrs,  # [num_kv_cache_groups]
-    block_table_strides,  # [num_kv_cache_groups]
-    block_sizes,  # [num_kv_cache_groups]
-    slot_mappings_ptr,  # [num_kv_cache_groups, max_num_tokens]
-    slot_mappings_stride,
-    cp_rank,
-    CP_SIZE: tl.constexpr,
-    CP_INTERLEAVE: tl.constexpr,
-    PAD_ID: tl.constexpr,
-    TRITON_BLOCK_SIZE: tl.constexpr,
-):
-    # kv cache group id
-    group_id = tl.program_id(0)
-    batch_idx = tl.program_id(1)
-    slot_mapping_ptr = slot_mappings_ptr + group_id * slot_mappings_stride
-
-    if batch_idx == tl.num_programs(1) - 1:
-        # Pad remaining slots to -1. This is needed for CUDA graphs.
-        # Start from actual token count (not padded) to cover the gap
-        # between actual tokens and padded tokens that can contain stale
-        # valid slot IDs from previous chunks during chunked prefill.
-        actual_num_tokens = tl.load(query_start_loc + batch_idx)
-        for i in range(actual_num_tokens, max_num_tokens, TRITON_BLOCK_SIZE):
-            offset = i + tl.arange(0, TRITON_BLOCK_SIZE)
-            tl.store(slot_mapping_ptr + offset, PAD_ID, mask=offset < max_num_tokens)
-        return
-
-    block_table_ptr = _load_ptr(block_table_ptrs + group_id, tl.int32)
-    block_table_stride = tl.load(block_table_strides + group_id)
-    block_size = tl.load(block_sizes + group_id)
-
-    req_state_idx = tl.load(idx_mapping + batch_idx)
-    start_idx = tl.load(query_start_loc + batch_idx)
-    end_idx = tl.load(query_start_loc + batch_idx + 1)
-    for i in range(start_idx, end_idx, TRITON_BLOCK_SIZE):
-        offset = i + tl.arange(0, TRITON_BLOCK_SIZE)
-        positions = tl.load(pos + offset, mask=offset < end_idx, other=0)
-
-        block_indices = positions // (block_size * CP_SIZE)
-        block_offsets = positions % (block_size * CP_SIZE)
-        block_numbers = tl.load(
-            block_table_ptr + req_state_idx * block_table_stride + block_indices
-        )
-
-        if CP_SIZE == 1:
-            # Common case: Context parallelism is not used.
-            slot_ids = block_numbers * block_size + block_offsets
-        else:
-            # Context parallelism is used.
-            is_local = block_offsets // CP_INTERLEAVE % CP_SIZE == cp_rank
-            rounds = block_offsets // (CP_INTERLEAVE * CP_SIZE)
-            remainder = block_offsets % CP_INTERLEAVE
-            local_offsets = rounds * CP_INTERLEAVE + remainder
-            slot_ids = block_numbers * block_size + local_offsets
-            slot_ids = tl.where(is_local, slot_ids, PAD_ID)
-
-        tl.store(slot_mapping_ptr + offset, slot_ids, mask=offset < end_idx)
-
 
 @triton.jit
 def _load_ptr(ptr_to_ptr, elem_dtype):
     ptr = tl.load(ptr_to_ptr)
     ptr = tl.cast(ptr, tl.pointer_type(elem_dtype))
     return tl.multiple_of(ptr, 16)
+
+import torch
+import triton
+
+
+# Authored launcher: drives the in-module @triton.jit
+# `_gather_block_tables_kernel` exactly as the upstream host method
+# `BlockTables.gather_block_tables` does (vLLM
+# vllm/v1/worker/gpu/block_table.py, commit
+# 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19).
+#
+# Why a launcher rather than the host method: the real entry
+# `BlockTables.gather_block_tables(idx_mapping, num_reqs_padded)` reads
+# kernel-launch state off a `BlockTables` instance whose __init__ builds
+# `StagedWriteTensor` / `UvaBackedTensor` UVA buffers and raw `data_ptr()`
+# pointer tensors. None of that bookkeeping is the unit under test: the
+# kernel is a pure per-row block-table gather. We reconstruct exactly the
+# flat tensors the host method forwards, straight from the dense oracle
+# inputs.
+#
+# Upstream invocation reproduced here (gather_block_tables, single kv-cache
+# group):
+#   _gather_block_tables_kernel[(num_kv_cache_groups, num_reqs_padded)](
+#       idx_mapping,                       # batch_idx_to_req_idx [B]
+#       block_table_ptrs,                  # src ptr tensor       [G]
+#       input_block_table_ptrs,            # dst ptr tensor       [G]
+#       block_table_strides,               # row stride (elems)   [G]
+#       num_blocks.gpu,                    # [G, max_num_reqs]
+#       num_blocks.gpu.stride(0),
+#       num_reqs,                          # actual req count
+#       max_num_blocks,                    # dst row width
+#       BLOCK_SIZE=1024)
+#
+# Layout reconciliation (dense fixtures -> upstream kernel contract):
+#   The oracle is the full per-row gather output = block_table[idx_mapping]
+#   (every one of the N columns copied). The kernel copies exactly
+#   num_blocks[req_idx] leading entries of each selected source row into the
+#   destination row, leaving the rest at the dst's pre-launch contents. The
+#   upstream block tables are torch.int32 with row stride = max_num_blocks
+#   (== N here) and the dst tables are zero-initialised. To reproduce the
+#   FULL-row gather the oracle defines we set num_blocks[req] = N for every
+#   request (the maximal, complete-copy case that exercises the entire
+#   per-row loop) and num_reqs_padded = num_reqs = B (no padded rows). With
+#   a zero-initialised dst, dst[b, :] = src[idx_mapping[b], :N] exactly, i.e.
+#   block_table[idx_mapping] -- the oracle op, byte for byte.
+#
+#   dtype: the kernel reads/writes the tables through int32 pointers
+#   (`_load_ptr(..., tl.int32)`), so source/dst are materialised as int32
+#   (upstream block tables are int32; block ids lie in [0, N) so int64->int32
+#   is lossless). The gathered output is cast back to int64 to match the
+#   oracle output dtype.
+def run(inputs: dict) -> dict:
+    block_table = inputs["block_table"]   # [E, N] int64
+    idx_mapping = inputs["idx_mapping"]   # [B]   int64, each in [0, E)
+
+    device = block_table.device
+    E, N = int(block_table.shape[0]), int(block_table.shape[1])
+    B = int(idx_mapping.shape[0])
+
+    # Single kv-cache group. Source table is the upstream-native int32 layout
+    # (contiguous, row stride == N). Block ids are in [0, N): int64->int32 is
+    # value-preserving.
+    src = block_table.to(torch.int32).contiguous()
+    # Destination is zero-initialised [B, N] int32, exactly like the upstream
+    # input_block_tables row span the kernel writes into.
+    dst = torch.zeros((B, N), dtype=torch.int32, device=device)
+
+    # idx_mapping = batch_idx_to_req_idx [B] (int32, the kernel loads it raw).
+    batch_idx_to_req_idx = idx_mapping.to(torch.int32).contiguous()
+
+    # num_blocks[group, req] = N for every request -> copy the whole row.
+    num_blocks = torch.full((1, E), N, dtype=torch.int32, device=device)
+
+    # Raw data_ptr() pointer tensors (uint64), one entry per group.
+    src_block_table_ptrs = torch.tensor(
+        [src.data_ptr()], dtype=torch.uint64, device=device
+    )
+    dst_block_table_ptrs = torch.tensor(
+        [dst.data_ptr()], dtype=torch.uint64, device=device
+    )
+    # Row stride in ELEMENTS (matches block_table.stride(0) of an [_, N] int32
+    # table).
+    block_table_strides = torch.tensor(
+        [src.stride(0)], dtype=torch.int64, device=device
+    )
+
+    num_kv_cache_groups = 1
+    num_reqs_padded = B            # no padded rows
+    num_reqs = B                   # all rows are real requests
+
+    # Import the in-module jit kernel (exec'd into this namespace by the
+    # loader). Reference it by name; both S2 sides share the same symbol.
+    _gather_block_tables_kernel[(num_kv_cache_groups, num_reqs_padded)](
+        batch_idx_to_req_idx,
+        src_block_table_ptrs,
+        dst_block_table_ptrs,
+        block_table_strides,
+        num_blocks,
+        num_blocks.stride(0),
+        num_reqs,
+        N,                         # max_num_blocks == dst row width
+        BLOCK_SIZE=1024,
+    )
+
+    # Cast back to the oracle's int64 output dtype (lossless; values in [0, N)).
+    return {"output": dst.to(torch.int64)}

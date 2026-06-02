@@ -11,158 +11,35 @@ Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 55bb278813d9a70aa0d420e5fc580dd1dcb301e052faf0146bf76517329dcc8e
 Frozen by: scripts/phase_a_freeze.py
 """
-
-# SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import numpy as np
 import torch
-
-from vllm.sampling_params import SamplingParams
-from vllm.triton_utils import tl, triton
-from vllm.utils.math_utils import cdiv
-from vllm.utils.torch_utils import async_tensor_h2d
-from vllm.v1.worker.gpu.buffer_utils import UvaBackedTensor
-from vllm.v1.worker.gpu.states import RequestState
-
-
-class PenaltiesState:
-    def __init__(self, req_states: RequestState):
-        self.req_states = req_states
-
-        max_num_reqs = req_states.max_num_reqs
-        self.vocab_size = req_states.vocab_size
-        self.device = req_states.device
-
-        self.repetition_penalty = UvaBackedTensor(max_num_reqs, dtype=torch.float32)
-        self.frequency_penalty = UvaBackedTensor(max_num_reqs, dtype=torch.float32)
-        self.presence_penalty = UvaBackedTensor(max_num_reqs, dtype=torch.float32)
-        self.use_penalty = np.zeros(max_num_reqs, dtype=bool)
-
-        # Initialize repetition penalty manually because 0 is an invalid value for it.
-        self.repetition_penalty.np.fill(1.0)
-        self.repetition_penalty.copy_to_uva()
-
-        # Statistics for penalties.
-        self.prompt_bin_mask = torch.zeros(
-            max_num_reqs,
-            cdiv(self.vocab_size, 32),
-            dtype=torch.int32,
-            device=self.device,
-        )
-        # TODO(woosuk): This tensor is rarely used but can be very large, taking up
-        # GBs of GPU memory. Optimize the memory usage.
-        self.output_bin_counts = torch.zeros(
-            max_num_reqs, self.vocab_size, dtype=torch.int32, device=self.device
-        )
-
-        self._new_penalties_reqs: list[int] = []
-
-    def add_request(self, req_idx: int, sampling_params: SamplingParams) -> None:
-        self.repetition_penalty.np[req_idx] = sampling_params.repetition_penalty
-        self.frequency_penalty.np[req_idx] = sampling_params.frequency_penalty
-        self.presence_penalty.np[req_idx] = sampling_params.presence_penalty
-
-        do_penalty = use_penalty(sampling_params)
-        self.use_penalty[req_idx] = do_penalty
-        if do_penalty:
-            self._new_penalties_reqs.append(req_idx)
-
-    def apply_staged_writes(self) -> None:
-        if self._new_penalties_reqs:
-            idx_mapping = async_tensor_h2d(
-                self._new_penalties_reqs,
-                dtype=torch.int32,
-                device=self.device,
-            )
-
-            prefill_lens = self.req_states.prefill_len.np[self._new_penalties_reqs]
-            max_prefill_len = int(prefill_lens.max())
-            bincount(
-                idx_mapping,
-                self.req_states.all_token_ids.gpu,
-                self.req_states.prompt_len.gpu,
-                self.req_states.prefill_len.gpu,
-                self.prompt_bin_mask,
-                self.output_bin_counts,
-                max_prefill_len,
-            )
-            self._new_penalties_reqs.clear()
-
-        self.repetition_penalty.copy_to_uva()
-        self.frequency_penalty.copy_to_uva()
-        self.presence_penalty.copy_to_uva()
-
-    def apply_penalties(
-        self,
-        logits: torch.Tensor,
-        expanded_idx_mapping: torch.Tensor,
-        idx_mapping_np: np.ndarray,
-        input_ids: torch.Tensor,
-        expanded_local_pos: torch.Tensor,
-    ) -> None:
-        if not np.any(self.use_penalty[idx_mapping_np]):
-            # No request uses penalties. Skip the kernel launch.
-            return
-
-        apply_penalties(
-            logits,
-            expanded_idx_mapping,
-            input_ids,
-            expanded_local_pos,
-            self.repetition_penalty.gpu,
-            self.frequency_penalty.gpu,
-            self.presence_penalty.gpu,
-            self.prompt_bin_mask,
-            self.output_bin_counts,
-        )
-
+from tasks._frozen_shim import SamplingParams  # Phase A': sibling-setup constants/types (B-inert-shim)
+import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
+import triton.language as tl
+from tasks._frozen_shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
+from tasks._frozen_shim import async_tensor_h2d  # Phase A': pure predicate (B-inert-shim)
+from tasks._frozen_shim import UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
+from tasks._frozen_shim import RequestState  # Phase A': sibling request-state stand-in (B-inert-shim)
 
 @triton.jit
-def _penalties_kernel(
-    logits_ptr,
-    logits_stride,
-    expanded_idx_mapping_ptr,
-    token_ids_ptr,
-    expanded_local_pos_ptr,
-    repetition_penalty_ptr,
-    frequency_penalty_ptr,
-    presence_penalty_ptr,
-    prompt_bin_mask_ptr,
-    prompt_bin_mask_stride,
-    output_bin_counts_ptr,
-    output_bin_counts_stride,
-    vocab_size,
-    BLOCK_SIZE: tl.constexpr,
-):
+def _penalties_kernel(logits_ptr, logits_stride, expanded_idx_mapping_ptr, token_ids_ptr, expanded_local_pos_ptr, repetition_penalty_ptr, frequency_penalty_ptr, presence_penalty_ptr, prompt_bin_mask_ptr, prompt_bin_mask_stride, output_bin_counts_ptr, output_bin_counts_stride, vocab_size, BLOCK_SIZE: tl.constexpr):
     token_idx = tl.program_id(0)
     req_state_idx = tl.load(expanded_idx_mapping_ptr + token_idx)
     rep_penalty = tl.load(repetition_penalty_ptr + req_state_idx)
     freq_penalty = tl.load(frequency_penalty_ptr + req_state_idx)
     pres_penalty = tl.load(presence_penalty_ptr + req_state_idx)
-
     use_rep_penalty = rep_penalty != 1.0
     use_freq_penalty = freq_penalty != 0.0
     use_pres_penalty = pres_penalty != 0.0
     use_penalty = use_rep_penalty or use_freq_penalty or use_pres_penalty
     if not use_penalty:
-        # Early return to avoid loading logits.
         return
-
     block_idx = tl.program_id(1)
     block = block_idx * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
     mask = block < vocab_size
     logits = tl.load(logits_ptr + token_idx * logits_stride + block, mask=mask)
     logits = logits.to(tl.float32)
-
-    base_output_counts = tl.load(
-        output_bin_counts_ptr + req_state_idx * output_bin_counts_stride + block,
-        mask=mask,
-        other=0,
-    )
-
-    # Accumulate draft token counts from previous positions directly into
-    # output_bin_counts (preserves its native tensor layout, avoiding an
-    # expensive shared-memory layout conversion after the loop).
+    base_output_counts = tl.load(output_bin_counts_ptr + req_state_idx * output_bin_counts_stride + block, mask=mask, other=0)
     pos = tl.load(expanded_local_pos_ptr + token_idx)
     start_idx = token_idx - pos
     output_bin_counts = base_output_counts
@@ -171,44 +48,102 @@ def _penalties_kernel(
         token_match = block == prev_token
         output_bin_counts = output_bin_counts + token_match.to(tl.int32)
     output_bin_mask = output_bin_counts > 0
-
-    # Apply repetition penalties.
     if use_rep_penalty:
         packed_block = block_idx * BLOCK_SIZE // 32 + tl.arange(0, BLOCK_SIZE // 32)
-        packed_mask = tl.load(
-            prompt_bin_mask_ptr + req_state_idx * prompt_bin_mask_stride + packed_block,
-            mask=packed_block < tl.cdiv(vocab_size, 32),
-            other=0,
-        )
-        prompt_bin_mask = (packed_mask[:, None] >> (tl.arange(0, 32)[None, :])) & 1
+        packed_mask = tl.load(prompt_bin_mask_ptr + req_state_idx * prompt_bin_mask_stride + packed_block, mask=packed_block < tl.cdiv(vocab_size, 32), other=0)
+        prompt_bin_mask = packed_mask[:, None] >> tl.arange(0, 32)[None, :] & 1
         prompt_bin_mask = prompt_bin_mask.to(tl.int1)
         prompt_bin_mask = prompt_bin_mask.reshape(BLOCK_SIZE)
-
-        # If token appears in prompt or output, apply, otherwise use 1.0 for no-op.
         scale = tl.where(prompt_bin_mask | output_bin_mask, rep_penalty, 1.0)
-        # If logits are positive, divide by penalty, otherwise multiply by penalty.
         logits *= tl.where(logits > 0, 1.0 / scale, scale)
-
-    # Apply frequency penalties.
     logits -= freq_penalty * output_bin_counts
-    # Apply presence penalties.
     logits -= pres_penalty * output_bin_mask
-    # Store back to logits.
     tl.store(logits_ptr + token_idx * logits_stride + block, logits, mask=mask)
 
+def use_penalty(sampling_params: SamplingParams) -> bool:
+    return sampling_params.repetition_penalty != 1.0 or sampling_params.frequency_penalty != 0.0 or sampling_params.presence_penalty != 0.0
 
-def apply_penalties(
-    logits: torch.Tensor,
-    expanded_idx_mapping: torch.Tensor,
-    token_ids: torch.Tensor,
-    expanded_local_pos: torch.Tensor,
-    repetition_penalty: torch.Tensor,
-    frequency_penalty: torch.Tensor,
-    presence_penalty: torch.Tensor,
-    prompt_bin_mask: torch.Tensor,
-    output_bin_counts: torch.Tensor,
-) -> None:
+import torch
+import triton
+
+# `_penalties_kernel` is a free name here: the runner execs this launcher into
+# the frozen kernel.py module namespace (scripts/_pa_oracle_check_runner._load /
+# _pa_subproc_runner), so the in-module @triton.jit kernel is already in scope —
+# the same convention as the passed sibling launchers (no `from .kernel import`).
+
+
+# Drives the in-module @triton.jit `_penalties_kernel` exactly as the upstream
+# host wrapper `apply_penalties` does (vLLM vllm/v1/worker/gpu/sample/penalties.py,
+# commit 18f6bf5a). meta.name is `_penalties_kernel`; this launcher IS that kernel,
+# never a substitute operator.
+#
+# Why a launcher rather than the host wrapper: `apply_penalties` is reached only
+# through `PenaltiesState`, whose construction pulls `vllm.v1.worker.gpu.states.
+# RequestState`, `UvaBackedTensor`, `SamplingParams`, `async_tensor_h2d` — the
+# full vLLM runtime (a deep severance closure, not invocable standalone here).
+# The kernel itself reads only plain dense tensors, so we reconstruct exactly the
+# argument layout the host wrapper forwards, from the dense oracle inputs. (Same
+# pattern as the passed siblings L2_05_chunked_lora_shrink / L3_20.)
+#
+# Layout reconciliation (dense oracle fixtures -> upstream kernel arg contract):
+#   - expanded_idx_mapping[B] routes each token row to its request (verbatim).
+#   - output_bin_counts: the kernel reads int32 generated-token counts at
+#     [req, vocab]. The oracle fixture supplies these as integer-valued float32
+#     (`output_token_counts[E,N]`, dist randint:0:4); cast to int32 is lossless
+#     and bit-exact (values < 2^24 are exactly float-representable). It is the
+#     load-bearing frequency/presence input.
+#   - expanded_local_pos[B] + token_ids[B]: forwarded VERBATIM to drive the
+#     kernel's draft-token scan (kernel.py: pos = expanded_local_pos[t],
+#     start = t - pos; for j in range(pos): out_counts[token_ids[start+j+1]]++).
+#     The window-structured fixture (expanded_local_pos = t % W, request ids
+#     window-constant) keeps the unclamped scan in-bounds (pos <= t) and makes
+#     the scan branch load-bearing -- the oracle folds the same accumulation in,
+#     so a kernel that omits the scan or ignores expanded_local_pos / token_ids
+#     diverges. token_ids must be int32 flat [B] (the kernel indexes it 1-D).
+#   - prompt_bin_mask: the kernel reads a BIT-PACKED int32 [req, cdiv(vocab,32)]
+#     and unpacks bit (v%32) of word (v//32), LSB-first. The oracle fixture is a
+#     full [E,N] 0/1 mask; we losslessly bit-pack it into that layout so the
+#     kernel unpacks back to the identical per-vocab prompt bits.
+#   - repetition/frequency/presence_penalty[E] forwarded verbatim.
+#
+# BLOCK_SIZE = 8192 and the grid `(num_tokens, cdiv(vocab, BLOCK_SIZE))` are the
+# upstream wrapper's exact values; the kernel masks the vocab tail, so tiling
+# never changes the result. The kernel writes logits in place, so we clone the
+# input (the oracle returns a fresh tensor) and return that buffer.
+def run(inputs: dict) -> dict:
+    logits = inputs["logits"].to(torch.float32).clone().contiguous()
+    expanded_idx_mapping = inputs["expanded_idx_mapping"].to(torch.int64).contiguous()
+    output_token_counts = inputs["output_token_counts"]
+    prompt_bin_mask = inputs["prompt_bin_mask"]
+    repetition_penalty = inputs["repetition_penalty"].to(torch.float32).contiguous()
+    frequency_penalty = inputs["frequency_penalty"].to(torch.float32).contiguous()
+    presence_penalty = inputs["presence_penalty"].to(torch.float32).contiguous()
+
     num_tokens, vocab_size = logits.shape
+    n_reqs = output_token_counts.shape[0]
+    device = logits.device
+
+    # Generated-token counts -> int32 (lossless: integer-valued float32).
+    output_bin_counts = output_token_counts.to(torch.int32).contiguous()
+
+    # Bit-pack the full [E, vocab] 0/1 prompt mask into [E, cdiv(vocab,32)] int32,
+    # LSB-first, matching the kernel's `(word >> (v % 32)) & 1` unpack.
+    num_words = triton.cdiv(vocab_size, 32)
+    mask_bits = (prompt_bin_mask.to(torch.int64) != 0).to(torch.int64)  # [E, vocab]
+    packed = torch.zeros((n_reqs, num_words), dtype=torch.int64, device=device)
+    vocab_idx = torch.arange(vocab_size, device=device)
+    word_idx = vocab_idx // 32
+    bit_pos = vocab_idx % 32
+    contrib = mask_bits << bit_pos.unsqueeze(0)                          # [E, vocab]
+    packed.index_add_(1, word_idx, contrib)
+    prompt_bin_mask_packed = packed.to(torch.int32).contiguous()
+
+    # Draft-token scan inputs forwarded verbatim (the window-structured fixture
+    # keeps pos = expanded_local_pos[t] <= t, so the kernel's unclamped reads of
+    # token_ids[t-pos+1 .. t] stay in-bounds).
+    expanded_local_pos = inputs["expanded_local_pos"].to(torch.int64).contiguous()
+    token_ids = inputs["token_ids"].to(torch.int32).contiguous()
+
     BLOCK_SIZE = 8192
     num_blocks = triton.cdiv(vocab_size, BLOCK_SIZE)
     _penalties_kernel[(num_tokens, num_blocks)](
@@ -220,100 +155,12 @@ def apply_penalties(
         repetition_penalty,
         frequency_penalty,
         presence_penalty,
-        prompt_bin_mask,
-        prompt_bin_mask.stride(0),
+        prompt_bin_mask_packed,
+        prompt_bin_mask_packed.stride(0),
         output_bin_counts,
         output_bin_counts.stride(0),
         vocab_size,
         BLOCK_SIZE=BLOCK_SIZE,
     )
 
-
-@triton.jit
-def _bincount_kernel(
-    expanded_idx_mapping_ptr,
-    all_token_ids_ptr,
-    all_token_ids_stride,
-    prompt_len_ptr,
-    prefill_len_ptr,
-    prompt_bin_mask_ptr,
-    prompt_bin_mask_stride,
-    output_bin_counts_ptr,
-    output_bin_counts_stride,
-    BLOCK_SIZE: tl.constexpr,
-):
-    token_idx = tl.program_id(0)
-    block_idx = tl.program_id(1)
-    req_state_idx = tl.load(expanded_idx_mapping_ptr + token_idx)
-
-    prefill_len = tl.load(prefill_len_ptr + req_state_idx)
-    if block_idx * BLOCK_SIZE >= prefill_len:
-        return
-
-    prompt_len = tl.load(prompt_len_ptr + req_state_idx)
-    block = block_idx * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    if block_idx * BLOCK_SIZE < prompt_len:
-        mask = block < prompt_len
-        prompt_tokens = tl.load(
-            all_token_ids_ptr + req_state_idx * all_token_ids_stride + block, mask=mask
-        )
-        idx = prompt_tokens // 32
-        bit_idx = prompt_tokens % 32
-        bit = tl.full((BLOCK_SIZE,), 1, tl.int32) << bit_idx
-        tl.atomic_or(
-            prompt_bin_mask_ptr + req_state_idx * prompt_bin_mask_stride + idx,
-            bit,
-            mask=mask,
-        )
-
-    if (block_idx + 1) * BLOCK_SIZE >= prompt_len:
-        mask = block < prefill_len
-        mask &= block >= prompt_len
-        output_tokens = tl.load(
-            all_token_ids_ptr + req_state_idx * all_token_ids_stride + block, mask=mask
-        )
-        tl.atomic_add(
-            output_bin_counts_ptr
-            + req_state_idx * output_bin_counts_stride
-            + output_tokens,
-            1,
-            mask=mask,
-        )
-
-
-def bincount(
-    expanded_idx_mapping: torch.Tensor,
-    all_token_ids: torch.Tensor,
-    prompt_len: torch.Tensor,
-    prefill_len: torch.Tensor,
-    prompt_bin_mask: torch.Tensor,
-    output_bin_counts: torch.Tensor,
-    max_prefill_len: int,
-) -> None:
-    # Use index_fill_ instead of `tensor[idx] = 0` to avoid sync.
-    idx_long = expanded_idx_mapping.long()
-    prompt_bin_mask.index_fill_(0, idx_long, 0)
-    output_bin_counts.index_fill_(0, idx_long, 0)
-    num_tokens = expanded_idx_mapping.shape[0]
-    BLOCK_SIZE = 1024
-    num_blocks = triton.cdiv(max_prefill_len, BLOCK_SIZE)
-    _bincount_kernel[(num_tokens, num_blocks)](
-        expanded_idx_mapping,
-        all_token_ids,
-        all_token_ids.stride(0),
-        prompt_len,
-        prefill_len,
-        prompt_bin_mask,
-        prompt_bin_mask.stride(0),
-        output_bin_counts,
-        output_bin_counts.stride(0),
-        BLOCK_SIZE=BLOCK_SIZE,
-    )
-
-
-def use_penalty(sampling_params: SamplingParams) -> bool:
-    return (
-        sampling_params.repetition_penalty != 1.0
-        or sampling_params.frequency_penalty != 0.0
-        or sampling_params.presence_penalty != 0.0
-    )
+    return {"logits": logits.to(inputs["logits"].dtype)}

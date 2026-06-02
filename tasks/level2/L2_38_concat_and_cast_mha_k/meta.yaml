@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-38
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:13:50Z'
+    verified_at: '2026-06-02T12:47:20Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       P1:
@@ -101,9 +101,17 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_38_concat_and_cast_mha_k-20260602T194146
+  s2_gpu_run_id: s2-L2_38_concat_and_cast_mha_k-20260602T203142
   classified_at: '2026-06-02'
-  standalone_sha256: 89d8349a02b84075e87e7e264db3d2d87a1b0bdc818f1a687edc4c4f6e2f7733
+  standalone_sha256: ae2ab388911357860ff413bdb960cf7f4dd3cc045a8bb10e97729410cdf419ad
+  kernel_sha256: ae2ab388911357860ff413bdb960cf7f4dd3cc045a8bb10e97729410cdf419ad
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback
