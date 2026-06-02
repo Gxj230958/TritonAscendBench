@@ -82,10 +82,11 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `k`: `randn`
+- `k`: `l2norm_rows`
 - `w`: `randn`
 - `u`: `randn`
-- `g`: `rand`
+- `g`: `logsigmoid`
+- `gk`: `logsigmoid`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

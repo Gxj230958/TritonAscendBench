@@ -66,21 +66,19 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-16
   golden:
-    oracle_kernel_equivalence: MIXED
-    verified_at: '2026-06-02T05:56:53Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T06:26:08Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
         status: VERIFIED
-        max_abs: 0.000270843505859375
-        max_rel: 0.0001988224103115499
+        max_abs: 0.0007848739624023438
+        max_rel: 0.0007662156131118536
       P2:
-        status: FAILED
-        max_abs: 0.010806083679199219
-        max_rel: 0.21576540172100067
-        blocker: 'output: atol/rtol: max_abs=0.0108, max_rel=0.216 (max_abs=0.010806083679199219,
-          max_rel=0.21576540172100067, tol=recurrent_chunk atol=0.005 rtol=0.005)'
-    golden_source: fallback_to_gpu_capture_pending
+        status: VERIFIED
+        max_abs: 0.005658149719238281
+        max_rel: 0.43811580538749695
+    golden_source: oracle_pytorch_verified
     notes: 'oracle_pytorch.py re-authored to the upstream headed chunk-output contract
       of the frozen wrapper `chunk_fwd_o` (q/k:[B,T,Hg,K], v:[B,T,H,V], h:[B,NT,H,V,K]
       per-chunk state snapshots, g:[B,T,H] -> o:[B,T,H,V], BT=FLA_CHUNK_SIZE=64).
@@ -95,6 +93,7 @@ provenance:
       float32 round-off). Numeric oracle-vs-kernel equivalence requires a GPU/NPU
       run to populate (the FLA chunk kernels do not execute under TRITON_INTERPRET
       on a driverless host).'
+    golden_sha256: de02ffc4ec129957ecc4316e6e2a0aeb529a9ca570cfd502c01c9c6f9ab25e89
 param_constraints:
   scaffold: false
   dims:
@@ -122,7 +121,7 @@ param_constraints:
     h:
       kind: randn
     g:
-      kind: rand
+      kind: logsigmoid
   scalars:
     scale:
       derive: 1/sqrt(K)

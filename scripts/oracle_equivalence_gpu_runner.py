@@ -23,6 +23,7 @@ import argparse
 import ast
 import json
 import logging
+import os
 import sys
 import time
 from dataclasses import dataclass, field, asdict
@@ -777,6 +778,20 @@ def _verify_one_task(
         }
         sv.output_keys_kernel = sorted(out_dict_cpu.keys())
         sv.output_keys_ref = sorted(ref_tensors.keys())
+
+        # Optional debug dump of the kernel's actual output (gated by env or a
+        # task-level `.dump_actual` sentinel; kept outside r10_pyref which R10.a
+        # wipes) so a contract divergence can be diffed against ref offline.
+        if os.environ.get("TAB_DUMP_ACTUAL") or (task_dir / ".dump_actual").exists():
+            from safetensors.torch import save_file as _save_actual
+
+            dump = {
+                k: v.contiguous()
+                for k, v in out_dict_cpu.items()
+                if isinstance(v, torch.Tensor)
+            }
+            if dump:
+                _save_actual(dump, str(ref_dir / f"actual_{sid}.safetensors"))
 
         # Compare each matched key
         all_pass = True

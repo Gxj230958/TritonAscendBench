@@ -70,23 +70,19 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-13
   golden:
-    oracle_kernel_equivalence: FAILED
-    verified_at: '2026-06-02T05:56:53Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T06:26:24Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
-        status: FAILED
-        max_abs: 1.2675895690917969
-        max_rel: 0.3512805700302124
-        blocker: 'output: atol/rtol: max_abs=1.27, max_rel=0.351 (max_abs=1.2675895690917969,
-          max_rel=0.3512805700302124, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+        status: VERIFIED
+        max_abs: 0.008128166198730469
+        max_rel: 0.09389115124940872
       P2:
-        status: FAILED
-        max_abs: 1.1748046875
-        max_rel: 0.44623473286628723
-        blocker: 'output: atol/rtol: max_abs=1.17, max_rel=0.446 (max_abs=1.1748046875,
-          max_rel=0.44623473286628723, tol=recurrent_chunk atol=0.005 rtol=0.005)'
-    golden_source: fallback_to_gpu_capture_pending
+        status: VERIFIED
+        max_abs: 0.009094715118408203
+        max_rel: 11.251852035522461
+    golden_source: oracle_pytorch_verified
     notes: oracle_pytorch.py re-authored to the upstream chunked headed contract (k/w:[B,T,H,K],
       u:[B,T,H,V], g:[B,T,H], gk:[B,T,H,K] -> h:[B,NT,H,V,K], BT=64). shapes.yaml
       + param_constraints aligned to that layout; output_projection selects wrapper
@@ -94,6 +90,7 @@ provenance:
       branch (exp(gk[:,last])); all shape rows pinned to NT>=3 (T>=129) so that decay
       reaches a graded h snapshot. Numeric oracle-vs-kernel equivalence requires a
       GPU/NPU run to populate.
+    golden_sha256: 29961fa50d8e38905db6d510807a50309a3d7d9c6fd16242c4eff22ccf34f89a
 param_constraints:
   scaffold: false
   dims:
@@ -113,14 +110,14 @@ param_constraints:
     gk: float32
   dists:
     k:
-      kind: randn
+      kind: l2norm_rows
     w:
       kind: randn
     u:
       kind: randn
     g:
-      kind: rand
+      kind: logsigmoid
     gk:
-      kind: rand
+      kind: logsigmoid
   scalars: {}
   tensor_invariants: []

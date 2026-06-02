@@ -95,7 +95,7 @@ the per-chunk h index and the GQA head grouping are load-bearing.
 - `k`: `randn`
 - `v`: `randn`
 - `h`: `randn`
-- `g`: `rand`
+- `g`: `logsigmoid`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
