@@ -154,7 +154,7 @@ inputs:
     dims:
     - B
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   recv_topk_ids:
     # Signed expert ids; values < 0 (i.e. -1) mark invalid/padded slots that
@@ -169,7 +169,7 @@ inputs:
     dims:
     - T
     - K
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   input_index:
     # Source-row indices into input_tensor rows ([0, B)); upstream inv_perm.

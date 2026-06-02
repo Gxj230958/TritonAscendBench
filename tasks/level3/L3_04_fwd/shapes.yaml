@@ -147,7 +147,7 @@ inputs:
     - B*L
     - H
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   k:
     dims:
@@ -157,14 +157,14 @@ inputs:
     # Pinning K/V to H q-heads made kv_group_num==1, leaving GQA untested.
     - H//2
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   v:
     dims:
     - B*L
     - H//2
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   b_start_loc:
     dims:
