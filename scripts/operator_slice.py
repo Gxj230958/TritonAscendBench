@@ -69,6 +69,22 @@ def slice_source(src: str, td: Path) -> str | None:
     if not roots:
         return None
 
+    # A launcher may reference kernel.py MODULE-LEVEL names beyond functions --
+    # e.g. constants used as launch kwargs (`num_warps=NUM_WARPS`). Seed the
+    # closure with EVERY top-level name the launcher's run() loads, so those
+    # constants are kept, not dropped (the L3_05 NUM_WARPS failure mode).
+    launcher = td / "_pa_launcher.py"
+    launcher_refs: set[str] = set()
+    if launcher.is_file() and "def run" in launcher.read_text():
+        try:
+            lrun = _func_defs(ast.parse(launcher.read_text())).get("run")
+            if lrun is not None:
+                launcher_refs = {
+                    n.id for n in ast.walk(lrun) if isinstance(n, ast.Name)
+                }
+        except SyntaxError:
+            pass
+
     body = _toplevel(tree)
     # Statement-level dependency graph: each top-level statement is a node that
     # DEFINES names and REFERENCES names. A statement is kept iff it is reachable
@@ -97,7 +113,7 @@ def slice_source(src: str, td: Path) -> str | None:
     }
     reached: set[int] = set()
     stack: list[int] = list(always_keep)
-    for r in roots:  # seed: statements defining a graded root + always-kept
+    for r in roots | launcher_refs:  # graded roots + launcher-referenced names
         stack += name2stmt.get(r, [])
     while stack:
         i = stack.pop()
