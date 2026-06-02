@@ -14,6 +14,12 @@ from __future__ import annotations
 import torch
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _fused_moe_router(
     x: torch.Tensor, router_weight: torch.Tensor, topk: int,
     moe_softcapping: float = 0.0, correction_bias: torch.Tensor | None = None,
@@ -29,7 +35,7 @@ def _fused_moe_router(
     renormalisation disagreed with the frozen kernel by up to ~0.06 abs /
     ~0.19 rel and was the recorded golden FAIL.
     """
-    logits = (x.to(torch.float32) @ router_weight.to(torch.float32).T)
+    logits = (_to_tf32(x.to(torch.float32)) @ _to_tf32(router_weight.to(torch.float32).T))
     if moe_softcapping and moe_softcapping > 0:
         c = float(moe_softcapping)
         logits = c * torch.tanh(logits / c)

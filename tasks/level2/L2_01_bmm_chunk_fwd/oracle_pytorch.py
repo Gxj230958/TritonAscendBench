@@ -15,6 +15,12 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _bmm_chunk_fwd(
     a: torch.Tensor, b: torch.Tensor, chunk_size: int,
     cu_chunk_seqlens: torch.Tensor, causal: bool,
@@ -51,7 +57,7 @@ def _bmm_chunk_fwd(
         ln = e - s
         ac = af[s:e].permute(1, 0, 2)                # [G, ln, K]
         bc = bf[s:e].permute(1, 0, 2)                # [G, ln, K]
-        prod = torch.bmm(ac, bc.transpose(1, 2))     # [G, ln, ln]
+        prod = torch.bmm(_to_tf32(ac), _to_tf32(bc.transpose(1, 2)))     # [G, ln, ln]
         out[c, :, :ln, :ln] = prod
     return out.to(a.dtype)
 

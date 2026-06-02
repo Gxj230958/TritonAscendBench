@@ -1,0 +1,114 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_41_selective_state_update
+level: L2
+idx: 41
+name: _selective_scan_update_kernel
+repo: vLLM
+dtype_class: VV
+category: ssm
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/mamba/ops/mamba_ssm.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  license: Apache-2.0
+  notes: freeze upstream before grading; Mamba2 selective-state single-step decode
+    update.
+  file_sha256: 9d9ab2f781faa7f5d6a4c24db93d6ab4243c9360dfd160f3704bf12130e75e07
+  function_hash: 9d9ab2f781faa7f5d6a4c24db93d6ab4243c9360dfd160f3704bf12130e75e07
+  vendored_snapshot: tasks/_vendored/L2_41_selective_state_update_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: 'state: inplace'
+  stride_layout: row_major
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: recurrent_chunk
+cost_model:
+  flops: 6*BS*H*HD*DS
+  flops_class: vector
+  bytes: (2*BS*H*HD*DS + 3*BS*H*HD + H*HD*DS) * 4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-06-01'
+  source_md_id: L2-41
+param_constraints:
+  scaffold: false
+  dims:
+  - BS >= 1
+  - H >= 1
+  - G >= 1
+  - HD >= 1
+  - DS >= 1
+  - H % G == 0
+  dtypes:
+    state: float32
+    x: bfloat16
+    dt: bfloat16
+    A: float32
+    B: bfloat16
+    C: bfloat16
+    D: float32
+    z: bfloat16
+    dt_bias: float32
+  dists:
+    state:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: randn
+    A:
+      kind: logsigmoid
+    B:
+      kind: randn
+    C:
+      kind: randn
+    D:
+      kind: randn
+    z:
+      kind: randn
+    dt_bias:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: scaffold
+  reason: authored; awaiting freeze + GPU grade
+frozen_deps:
+- tasks._frozen_deps_pool.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers
+classB_symbols: []
+reference_path: native

@@ -256,7 +256,21 @@ def _run_verify_one(
     the slot.
     """
     started = _utc_now()
-    if action == "resolve":
+    if action == "oracle-equiv":
+        # C2 precision alignment via a single in-process wrapper (NOT a
+        # bash R10.a && R10.b): one process the timeout actually kills, with
+        # an ALIGNED_READY gate before R10.b and same-host ref capture (H2).
+        # Writes <r10_dir>/<task>.json (TaskVerdict schema).
+        r10_dir = RESULTS / batch_id / "r10"
+        cmd = [
+            phase_python,
+            "scripts/loop/oracle_equiv_one.py",
+            "--task",
+            task_id,
+            "--output-dir",
+            str(r10_dir),
+        ]
+    elif action == "resolve":
         cmd = [
             phase_python,
             "scripts/phase_a_prime.py",
@@ -319,7 +333,19 @@ def _run_verify_one(
     # split leaves verdict_status empty for normal PASS / BLOCKED runs.
     verdict_status = ""
     verdict_line = ""
-    if action == "resolve":
+    if action == "oracle-equiv":
+        # R10.b writes a structured TaskVerdict JSON, not a stdout line.
+        vp = RESULTS / batch_id / "r10" / f"{task_id}.json"
+        if vp.is_file():
+            try:
+                tv = json.loads(vp.read_text())
+                verdict_status = tv.get("overall", "")
+                verdict_line = f"oracle-equiv {task_id}: {verdict_status}"
+            except (ValueError, OSError):
+                verdict_status = "VERDICT_PARSE_ERROR"
+        if not verdict_status:
+            verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
+    elif action == "resolve":
         # resolve_upstream_entrypoints prints
         #   "[<task_id>] RESOLVED <entrypoint> :: <status>"
         # for a successful resolution or
@@ -400,12 +426,16 @@ def _handle_batch(
     accept_stale = bool(spec.get("accept_stale_cache", True))
     require_smoke = bool(spec.get("require_smoke", False))
     action = spec.get("action", "verify")
-    if action not in ("verify", "resolve"):
-        print(
-            f"[{batch_id}] unknown action {action!r}; defaulting to verify",
-            flush=True,
+    if action not in ("verify", "resolve", "oracle-equiv"):
+        # Fail-closed: an unknown action is an operator error, never a silent
+        # downgrade to verify (that would emit a wrong verdict -- e.g. a
+        # bit-exact S2 check for an oracle-equiv request).
+        print(f"[{batch_id}] REFUSED: unknown action {action!r}", flush=True)
+        _atomic_write(
+            DEAD / f"{batch_id}.bad_action.err",
+            f"unknown action {action!r}: {spec_path}\n",
         )
-        action = "verify"
+        return
     results_dir = RESULTS / batch_id
     done_flag = DONE / f"{batch_id}.flag"
 

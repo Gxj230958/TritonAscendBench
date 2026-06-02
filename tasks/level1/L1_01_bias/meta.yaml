@@ -30,6 +30,8 @@ interface:
     num_stop_token_ids: ro
     stop_token_ids: ro
   mutability: in_place_logits
+  inplace_outputs:
+  - logits
   stride_layout: logits must be contiguous (num_tokens, vocab_size)
   workspace_policy: none
   stream_sync_policy: runner-managed

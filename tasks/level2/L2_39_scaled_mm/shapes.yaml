@@ -1,0 +1,58 @@
+# W8A8 scaled GEMM knob grid: A[M,K] @ B[K,N] with per-token (scale_a[M,1])
+# and per-channel (scale_b[N,1]) dequant scales, optional bias[N]. K is the
+# contracted dim; values are kept multiples of 16 so the int8 tl.dot tiles
+# stay aligned (the kernel masks the K tail regardless).
+size_knobs:
+  M: 128
+  N: 256
+  K: 512
+public_shapes:
+- id: P1
+  name: tiny
+  knobs: {M: 16, N: 32, K: 64}
+- id: P2
+  name: small
+  knobs: {M: 64, N: 128, K: 256}
+- id: P3
+  name: medium
+  knobs: {M: 128, N: 256, K: 512}
+- id: P4
+  name: large
+  knobs: {M: 256, N: 512, K: 1024}
+- id: P5
+  name: wide
+  knobs: {M: 32, N: 1024, K: 128}
+hidden_shapes:
+- id: H1
+  name: h_odd
+  knobs: {M: 48, N: 192, K: 320}
+- id: H2
+  name: h_tiny
+  knobs: {M: 8, N: 16, K: 32}
+- id: H3
+  name: h_deepk
+  knobs: {M: 512, N: 256, K: 2048}
+- id: H4
+  name: h_tall
+  knobs: {M: 1024, N: 64, K: 128}
+inputs:
+  A:
+    dims: [M, K]
+    dtype: int8
+    dist: randint:-127:127
+  B:
+    dims: [K, N]
+    dtype: int8
+    dist: randint:-127:127
+  scale_a:
+    dims: [M, 1]
+    dtype: float32
+    dist: rand
+  scale_b:
+    dims: [N, 1]
+    dtype: float32
+    dist: rand
+  bias:
+    dims: [N]
+    dtype: bfloat16
+    dist: randn

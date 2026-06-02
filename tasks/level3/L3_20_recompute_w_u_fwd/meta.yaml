@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::run
-tolerance_class: elementwise
+tolerance_class: cube_matmul_fp16
 cost_model:
   flops:
     fp16_cube: 4*B*L*L*D
@@ -68,7 +68,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: NEEDS_MANUAL
     verified_at: null
-    tolerance_class_used: elementwise
+    tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape: {}
     golden_source: oracle_reauthored_pending_gpu
     notes: 'shapes.yaml + oracle_pytorch.py re-authored to the frozen kernel''s

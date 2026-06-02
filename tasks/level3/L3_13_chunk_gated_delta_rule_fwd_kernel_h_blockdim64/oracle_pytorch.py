@@ -48,6 +48,12 @@ import torch
 _BT = 64
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _chunk_gated_delta_rule_fwd_h(
     k: torch.Tensor, w: torch.Tensor, u: torch.Tensor, g: torch.Tensor,
     gk: torch.Tensor | None,
@@ -93,7 +99,7 @@ def _chunk_gated_delta_rule_fwd_h(
 
         # 2. dv = u - w @ S^T  ->  [B, n, H, V]
         #    (w_c: [B,n,H,K]) x (S^T: [B,H,K,V]) per head.
-        wS = torch.einsum("bnhk,bhvk->bnhv", w_c, S)
+        wS = torch.einsum("bnhk,bhvk->bnhv", _to_tf32(w_c), _to_tf32(S))
         dv = u_c - wS
 
         # 4. gate the value rows by exp(g_last - g_row).
@@ -115,7 +121,7 @@ def _chunk_gated_delta_rule_fwd_h(
             S = S * torch.exp(gk_last)[:, :, None, :]
 
         # 7. S += dv^T @ k_chunk  ->  [B, H, V, K]
-        S = S + torch.einsum("bnhv,bnhk->bhvk", dv, k_c)
+        S = S + torch.einsum("bnhv,bnhk->bhvk", _to_tf32(dv), _to_tf32(k_c))
 
     return out.to(k.dtype)
 

@@ -15,10 +15,16 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _matmul(a: torch.Tensor, b: torch.Tensor, bias: torch.Tensor | None) -> torch.Tensor:
     """C = a @ b (+ bias). `persistent` is only a tile-scheduling strategy
-    on the kernel side — numerically a plain GEMM, fp32 accumulate."""
-    c = (a.to(torch.float32) @ b.to(torch.float32))
+    on the kernel side — numerically a plain GEMM, fp32 accumulate on TF32 cores."""
+    c = (_to_tf32(a.to(torch.float32)) @ _to_tf32(b.to(torch.float32)))
     if bias is not None:
         c = c + bias.to(torch.float32)
     return c.to(a.dtype)

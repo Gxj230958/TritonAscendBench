@@ -50,6 +50,12 @@ import torch
 _BT = 64
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _chunk_fwd_o(
     q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
     h: torch.Tensor, g: torch.Tensor | None, scale: float,
@@ -84,9 +90,9 @@ def _chunk_fwd_o(
         h_state = hf[:, i_t]                       # [B, H, V, K]
 
         # 1. inter = q_chunk @ h_state^T  -> [B, n, H, V]
-        inter = torch.einsum("bnhk,bhvk->bnhv", q_c, h_state)
+        inter = torch.einsum("bnhk,bhvk->bnhv", _to_tf32(q_c), _to_tf32(h_state))
         # 2. A = q_chunk @ k_chunk^T  -> [B, n, n, H]
-        A = torch.einsum("bnhk,bmhk->bnmh", q_c, k_c)
+        A = torch.einsum("bnhk,bmhk->bnmh", _to_tf32(q_c), _to_tf32(k_c))
 
         if gf is not None:
             g_c = gf[:, rows]                      # [B, n, H]
@@ -101,7 +107,7 @@ def _chunk_fwd_o(
         A = A * causal[None, :, :, None]
 
         # 4. o_chunk = scale * inter + scale * (A @ v_chunk)
-        intra = torch.einsum("bnmh,bmhv->bnhv", A, v_c)
+        intra = torch.einsum("bnmh,bmhv->bnhv", _to_tf32(A), _to_tf32(v_c))
         out[:, rows] = scale * inter + scale * intra
 
     return out.to(v.dtype)

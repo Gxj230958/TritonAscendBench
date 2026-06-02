@@ -1,0 +1,48 @@
+# Contract — L2_40_gemma_qkv_rmsnorm
+
+## Identity
+
+- Benchmark id: `L2_40_gemma_qkv_rmsnorm`
+- Upstream: `sgl-project/sglang` — `_gemma_qkv_rmsnorm_kernel`
+- Source path: ``sglang/srt/layers/gemma4_fused_ops.py``
+- Category: `normalization` · oracle tier: `formula_exact_manual` · tolerance: `vector_reduce`
+
+## Required semantics
+
+Gemma3 fused per-head QKV RMSNorm. Each attention head's vector is
+RMS-normalized independently over `head_dim`:
+
+```
+out = x * rsqrt(mean(x^2) + eps) * weight     # mean over head_dim, in fp32
+```
+
+- `q`: `[M, QH*head_dim]` fp32, scaled by `q_weight[head_dim]`.
+- `k`: `[M, KVH*head_dim]` fp32, scaled by `k_weight[head_dim]`.
+- `v`: `[M, KVH*head_dim]` fp32, **no scale** (Gemma's V-norm uses weight=1).
+- Heads pack contiguously in the last dim (`h * head_dim` offset).
+- `eps = 1e-6`.
+
+The kernel mutates `q`, `k`, `v` **in place**. The oracle returns the post-norm
+tensors under the same keys (`q`, `k`, `v`) so mutated-input comparison checks
+the normalized result.
+
+## I/O contract
+
+`oracle_pytorch.run(inputs: dict) -> dict` returns `{"q": ..., "k": ..., "v": ...}`.
+The graded GPU surface is `_pa_launcher.py::run`, which drives the frozen
+`_gemma_qkv_rmsnorm_kernel` directly (HAS_KV=True). Inputs are built by
+`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+
+## Tolerance class
+
+`vector_reduce` — see `triton_ascend_bench/tolerance_policy.yaml`.
+
+## Shape coverage
+
+Public: 5 (P1..P5). Hidden: 4 (H1..H4). Knob grid (M, QH, KVH, D) in `shapes.yaml`.
+
+## Constraints
+
+- Knobs: `M >= 1`, `QH >= 1`, `KVH >= 1`, `D >= 1`, `QH % KVH == 0`.
+- dtypes: `q`/`k`/`v`/`q_weight`/`k_weight` float32.
+- dists: all `randn`.

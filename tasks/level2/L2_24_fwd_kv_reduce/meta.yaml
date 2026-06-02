@@ -17,6 +17,7 @@ upstream:
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_24_fwd_kv_reduce_18f6bf5.py
+  known_kernel_bug: true  # cross-block decay off-by-one; never promote to VERIFIED
   # BLOCKED: upstream-kernel-bug. The frozen vLLM kernel has an off-by-one in
   # the cross-block decay. Host k_decay (kernel.py:444-445) is
   # array = arange(0,BLOCK)+1 ; exp(-s*(BLOCK-array)) = exp(-s*(BLOCK-r-1)),
@@ -40,7 +41,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). Lightning-attention prefill (decay-weighted

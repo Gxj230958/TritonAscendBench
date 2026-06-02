@@ -500,7 +500,7 @@ provenance:
     test_file_path: <relative to infer/{repo}>  # source ① only
     test_capture_sha: <40 hex>     # source ① only — author test git SHA
     golden_sha256: <64 hex>        # SHA of the captured ref artifact (R5)
-    oracle_kernel_equivalence: VERIFIED | FAILED | MIXED | SKIPPED | NEEDS_MANUAL | LAUNCH_BLOCKED
+    oracle_kernel_equivalence: VERIFIED | FAILED | MIXED | SKIPPED | NEEDS_MANUAL | LAUNCH_BLOCKED | WRAPPER_CONTRACT_MISMATCH | ORACLE_KERNEL_LAYOUT_MISMATCH | INPUT_DRIFT
     gpu_kernel_capture_status: PENDING | DONE | FAILED | BLOCKED_NON_DETERMINISTIC
     gpu_kernel_deterministic: true   # R20 N=3 bit-identity check
     upstream_closure_fingerprint: <64 hex>  # cache invalidation key
@@ -514,7 +514,7 @@ provenance:
 |-------|----------------|
 | `source` | `upstream_author_test`, `gpu_kernel_rerun` |
 | `tolerance_source` | `upstream_test_explicit`, `upstream_test_default`, `migration_drift_budget` |
-| `oracle_kernel_equivalence` | `VERIFIED`, `FAILED`, `MIXED`, `SKIPPED`, `NEEDS_MANUAL`, `LAUNCH_BLOCKED` |
+| `oracle_kernel_equivalence` | `VERIFIED`, `FAILED`, `MIXED`, `SKIPPED`, `NEEDS_MANUAL`, `LAUNCH_BLOCKED`, `WRAPPER_CONTRACT_MISMATCH`, `ORACLE_KERNEL_LAYOUT_MISMATCH`, `INPUT_DRIFT` |
 | `gpu_kernel_capture_status` | `PENDING`, `DONE`, `FAILED`, `BLOCKED_NON_DETERMINISTIC` |
 | `reconstructability_risk` | `low`, `medium`, `high` |
 

@@ -1,0 +1,62 @@
+# Contract — L2_41_selective_state_update
+
+## Identity
+
+- Benchmark id: `L2_41_selective_state_update`
+- Upstream: `vllm-project/vllm` — `_selective_scan_update_kernel`
+- Source path: ``vllm/model_executor/layers/mamba/ops/mamba_ssm.py``
+- Category: `ssm` · oracle tier: `formula_exact_manual` · tolerance: `recurrent_chunk`
+
+## Required semantics
+
+Mamba2 selective-state **single-step decode** update. Per batch `b`, head `h`
+(group `g = h // (H/G)`):
+
+```
+dt    = softplus(dt + dt_bias)              # [dim]
+dA    = exp(A * dt[:, None])                # [dim, dstate]
+dB    = B[g][None, :] * dt[:, None]         # [dim, dstate]
+state = state * dA + dB * x[:, None]        # [dim, dstate]  (in place)
+out   = sum(state * C[g][None, :], dstate)  # [dim]
+out  += x * D                               # D-skip
+out  *= z * sigmoid(z)                      # SiLU z-gate
+```
+
+- `state`: `[B, H, dim, dstate]` fp32, mutated **in place**.
+- `x`, `dt`, `z`: `[B, H, dim]` bf16 (activations).
+- `A`: `[H, dim, dstate]` fp32, `A < 0` (decay; `logsigmoid` dist).
+- `B`, `C`: `[B, G, dstate]` bf16 (shared across heads of a group).
+- `D`, `dt_bias`: `[H, dim]` fp32 (parameters).
+- `out`: `[B, H, dim]` fp32, candidate-allocated ssm output.
+
+dtypes mirror vLLM Mamba2: bf16 activations (`x`, `dt`, `z`, `B`, `C`) with fp32
+SSM parameters (`A`, `D`, `dt_bias`) and fp32 recurrent `state`. The kernel loads
+every input `.to(tl.float32)`, so bf16 inputs exercise the upcast-load path; the
+state writeback and ssm output stay fp32.
+
+Base decode path: `DT_SOFTPLUS`, `HAS_D`, `HAS_Z`, `HAS_DT_BIAS` all true; no
+`state_batch_indices` / speculative decoding / varlen / stochastic rounding.
+The recurrence runs in fp32.
+
+## I/O contract
+
+`oracle_pytorch.run(inputs: dict) -> dict` returns `{"out": ...}` and mutates
+`inputs["state"]` in place (compared via mutated-input tracking). The graded GPU
+surface is `_pa_launcher.py::run`, which drives the frozen
+`_selective_scan_update_kernel` directly (its `@triton.heuristics` derive the
+`HAS_*` / `IS_*` / `BLOCK_SIZE_DSTATE` flags). Inputs are built by
+`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+
+## Tolerance class
+
+`recurrent_chunk` — see `triton_ascend_bench/tolerance_policy.yaml`.
+
+## Shape coverage
+
+Public: 5 (P1..P5). Hidden: 4 (H1..H4). Knob grid (BS, H, G, HD, DS) in `shapes.yaml`.
+
+## Constraints
+
+- Knobs: `BS >= 1`, `H >= 1`, `G >= 1`, `HD >= 1`, `DS >= 1`, `H % G == 0`.
+- dtypes: `state`/`A`/`D`/`dt_bias` fp32; `x`/`dt`/`z`/`B`/`C` bf16.
+- dists: `A` `logsigmoid` (negative decay), all others `randn`.

@@ -2,8 +2,9 @@ import torch
 import triton
 
 
-# BLOCKED (upstream kernel bug) -- this launcher is a faithful repro driver, not a
-# passing entrypoint; meta.oracle.gpu_triton stays at the placeholder.
+# BLOCKED (upstream kernel bug) -- this launcher is a faithful repro driver: it
+# runs the kernel so the divergence is graded, but the task stays BLOCKED
+# (meta.upstream.known_kernel_bug), never promoted to VERIFIED.
 #   The frozen vLLM prefill pipeline realizes a cross-block decay of
 #   exp(-slope*(t-s-1)) instead of the documented exp(-slope*(t-s)): host
 #   k_decay=exp(-slope*(BLOCK-(arange+1))) composed with the reduce block_decay

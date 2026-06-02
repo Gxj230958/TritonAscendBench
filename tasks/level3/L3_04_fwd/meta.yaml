@@ -32,6 +32,8 @@ interface:
     is_causal: ro
     sm_scale: ro
   mutability: in_place_output_buffer
+  inplace_outputs:
+  - o
   stride_layout: q/k/v/o contiguous [total_tokens, head, head_dim]
   workspace_policy: none
   stream_sync_policy: runner-managed

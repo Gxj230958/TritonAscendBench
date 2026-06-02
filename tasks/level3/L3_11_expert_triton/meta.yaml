@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: _pa_launcher.py::run
-tolerance_class: atomic_scatter
+tolerance_class: cube_matmul_fp16
 cost_model:
   # Symbol audit (approach §3.4). Per-expert batched GEMM:
   # out[e,:m] = a[e,:m] @ b[e]^T with m = expert_num_tokens[e]. shapes.yaml

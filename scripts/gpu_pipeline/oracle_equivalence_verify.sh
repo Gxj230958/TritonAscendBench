@@ -116,7 +116,10 @@ _precompute_missing() {
       echo "[stage 0] WARN: task $tid not present in tasks/; skipping" >&2
       continue
     fi
-    if ! compgen -G "$td/r10_pyref/ref_*.safetensors" > /dev/null; then
+    # Refresh if ref tensors OR the H2 input sidecar is missing (legacy
+    # artifacts predate the sidecar; R10.b blocks them INPUT_DRIFT otherwise).
+    if ! compgen -G "$td/r10_pyref/ref_*.safetensors" > /dev/null \
+       || ! compgen -G "$td/r10_pyref/inputs_*.sidecar.json" > /dev/null; then
       missing+=("$tid")
     fi
   done
@@ -133,12 +136,21 @@ _precompute_missing() {
 
 if [[ -n "$_explicit_tasks" ]]; then
   _precompute_missing "$_explicit_tasks"
-elif [[ "$_saw_all" -eq 1 ]] && [[ -z $(find tasks/level1 tasks/level2 tasks/level3 \
-                                    -path '*/r10_pyref/ref_*.safetensors' -print -quit 2>/dev/null) ]]; then
-  echo "[stage 0] no r10_pyref artifacts found anywhere; running CPU pre-compute first..."
-  python3 scripts/oracle_pyref_precompute.py --all --workers 8 \
-    --json-out /tmp/oracle_pyref_audit.json \
-    --report docs/triage_backlog/2026-05-26-oracle-pyref-audit.md
+elif [[ "$_saw_all" -eq 1 ]]; then
+  if [[ -z $(find tasks/level1 tasks/level2 tasks/level3 \
+              -path '*/r10_pyref/ref_*.safetensors' -print -quit 2>/dev/null) ]]; then
+    echo "[stage 0] no r10_pyref artifacts found anywhere; running CPU pre-compute first..."
+    python3 scripts/oracle_pyref_precompute.py --all --workers 8 \
+      --json-out /tmp/oracle_pyref_audit.json \
+      --report docs/triage_backlog/2026-05-26-oracle-pyref-audit.md
+  else
+    # Legacy artifacts may have ref_* but no inputs_*.sidecar.json (H2);
+    # refresh per-task so R10.b doesn't block them as INPUT_DRIFT.
+    # Comma-separated to match _precompute_missing's IFS=',' split.
+    echo "[stage 0] artifacts present; refreshing tasks missing ref/sidecar..."
+    _all_ids=$(ls -d tasks/level*/L*/ 2>/dev/null | xargs -n1 basename | paste -sd,)
+    _precompute_missing "$_all_ids"
+  fi
 fi
 
 exec python3 scripts/oracle_equivalence_gpu_runner.py \

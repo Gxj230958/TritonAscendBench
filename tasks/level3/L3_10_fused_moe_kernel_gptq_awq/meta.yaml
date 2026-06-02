@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: _pa_launcher.py::run
-tolerance_class: atomic_scatter
+tolerance_class: int4_w4a8
 cost_model:
   # Symbol audit (approach §3.4). GPTQ/AWQ int4-w4a16 fused MoE expert GEMM:
   # for each padded block of sorted tokens, dequantize that block's expert

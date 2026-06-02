@@ -71,7 +71,7 @@ class ApplyResult:
     overall: str
     meta_updated: bool = False
     skipped_reason: str = ""
-    promoted_to_truth: bool = False  # oracle_pytorch.py 升 truth source
+    promoted_to_truth: bool = False  # oracle_pytorch.py promoted to truth source
     diff_summary: dict[str, dict[str, float]] = field(default_factory=dict)
 
 
@@ -122,6 +122,12 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
     golden: dict = dict(prov.get("golden") or {})
 
     overall = res.overall
+    # A known upstream-kernel-bug task can never be VERIFIED: a passing tolerance
+    # run would falsely validate a buggy kernel against a correct oracle. Force
+    # BLOCKED regardless of the equivalence verdict (kept in the denominator).
+    if (meta.get("upstream") or {}).get("known_kernel_bug") is True:
+        overall = "BLOCKED_UPSTREAM_BUG"
+        res.overall = overall
     golden["oracle_kernel_equivalence"] = overall
     golden["verified_at"] = _utc_iso()
     golden["tolerance_class_used"] = meta.get("tolerance_class") or ""
@@ -186,6 +192,9 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         golden["golden_source"] = "blocked_oracle_kernel_layout_mismatch"
     elif overall == "SKIPPED":
         golden["golden_source"] = "skipped_no_pyref_artifacts"
+    elif overall == "INPUT_DRIFT":
+        # Explicit source so a prior 'oracle_pytorch_verified' doesn't linger.
+        golden["golden_source"] = "blocked_input_drift"
 
     prov["golden"] = golden
     # Preserve other top-level provenance keys (added_in / authors / last_modified)
@@ -246,7 +255,7 @@ def _emit_report(
         for r in sub:
             lines.append(f"### `{r.task_id}`")
             if r.promoted_to_truth:
-                lines.append("- **oracle_pytorch.py 升 truth source**")
+                lines.append("- **oracle_pytorch.py promoted to truth source**")
             if r.diff_summary:
                 lines.append("- per-shape numeric diff:")
                 for sid, d in r.diff_summary.items():

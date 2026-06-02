@@ -49,7 +49,8 @@ def run(inputs: dict) -> dict:
     # round_scale is driven by scale_fmt exactly as the host wrapper does
     # (kernel.py:135): round_scale = scale_fmt is not None.
     round_scale = inputs.get("scale_fmt") is not None
+    # fp8_max is the E4M3 saturation constant the kernel hardcodes (448.0),
+    # pinned here so it is not read as a fixture key the kernel wrapper lacks.
     q, s = _act_quant(inputs["x"], int(inputs["block_size"]),
-                      float(inputs.get("fp8_max", 448.0)),
-                      round_scale=round_scale)
+                      448.0, round_scale=round_scale)
     return {"q": q, "scale": s}

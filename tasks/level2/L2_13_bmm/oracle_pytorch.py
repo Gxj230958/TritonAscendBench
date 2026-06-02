@@ -15,9 +15,15 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _bmm(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """Batched matmul C[bt] = a[bt] @ b[bt], fp32 accumulate."""
-    return torch.bmm(a.to(torch.float32), b.to(torch.float32)).to(a.dtype)
+    return torch.bmm(_to_tf32(a.to(torch.float32)), _to_tf32(b.to(torch.float32))).to(a.dtype)
 
 
 def run(inputs: dict) -> dict:

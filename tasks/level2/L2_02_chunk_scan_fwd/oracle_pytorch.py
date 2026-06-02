@@ -49,6 +49,12 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _partition(seqlen: int, chunk_size: int) -> tuple[list[int], list[int]]:
     """Deterministic NON-UNIFORM varlen chunk partition for a contiguous token
     stream, mirroring upstream vLLM ``compute_varlen_chunk_metadata``: a
@@ -142,16 +148,18 @@ def build_chunk_scan_inputs(inputs: dict) -> dict:
     cu, seq_idx_list = _partition(seqlen, chunk_size)
     nchunks = len(cu) - 1
 
-    gen = torch.Generator(device=x.device)
+    # CPU generator so the CPU oracle (R10.a) and GPU launcher (R10.b) draw the
+    # same derived inputs (a CUDA generator yields a different stream per seed).
+    gen = torch.Generator()
     gen.manual_seed(_per_chunk_seed(
         seqlen, nheads, ngroups, headdim, dstate, chunk_size))
 
     # cb = (C @ B^T) per chunk -> [nchunks, ngroups, chunk_size, chunk_size].
     cb = torch.randn(nchunks, ngroups, chunk_size, chunk_size,
-                     generator=gen, dtype=torch.float32, device=x.device)
+                     generator=gen, dtype=torch.float32).to(x.device)
     # dt (post softplus/clamp/tail-mask) >= 0 -> [nheads, nchunks, chunk_size].
     dt = torch.rand(nheads, nchunks, chunk_size,
-                    generator=gen, dtype=torch.float32, device=x.device)
+                    generator=gen, dtype=torch.float32).to(x.device)
     # dA_cumsum -> [nheads, nchunks, chunk_size]. Deliberately NON-MONOTONE: a
     # bounded mixed-sign random walk along the chunk axis, NOT a cumsum of a
     # single-sign dt*A. Rationale: the kernel's intra decay is
@@ -162,12 +170,12 @@ def build_chunk_scan_inputs(inputs: dict) -> dict:
     # so the clamp is load-bearing and discriminating. Bounded to keep
     # exp(dA_m) for the inter scale finite.
     steps = (torch.rand(nheads, nchunks, chunk_size,
-                        generator=gen, dtype=torch.float32, device=x.device)
+                        generator=gen, dtype=torch.float32).to(x.device)
              - 0.5)  # mixed-sign in [-0.5, 0.5)
     dA_cumsum = torch.cumsum(steps, dim=-1).clamp(-6.0, 6.0)
     # per-chunk ENTRY states -> [nchunks, nheads, headdim, dstate].
     states = torch.randn(nchunks, nheads, headdim, dstate,
-                         generator=gen, dtype=torch.float32, device=x.device)
+                         generator=gen, dtype=torch.float32).to(x.device)
 
     # Discrimination guard: at least one CAUSAL (m >= k) entry with
     # dA_m - dA_k > 0 must exist, else the min(.,0) clamp is a no-op on the
@@ -231,7 +239,7 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
                                     device=device)
             else:
                 # C: [len_c, N]; prev[h]: [P, N] -> [len_c, P]
-                inter = (C[s:e, g, :] @ prev[h].transpose(0, 1)) \
+                inter = (_to_tf32(C[s:e, g, :]) @ _to_tf32(prev[h].transpose(0, 1))) \
                     * scale_m[:, None]
             # INTRA: causal in-chunk SSM attention.
             # seg[m,k] = exp(min(dA[m] - dA[k], 0)) * (m >= k)
@@ -243,7 +251,7 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
             cb_c = cb[c, g, :len_c, :len_c]            # [len_c, len_c]
             dt_c = dt[h, c, :len_c]                     # [len_c]
             w = cb_c * seg * dt_c[None, :]             # [m, k]
-            intra = w @ x[s:e, h, :]                   # [len_c, P]
+            intra = _to_tf32(w) @ _to_tf32(x[s:e, h, :])                   # [len_c, P]
 
             acc = intra + inter
             if D is not None:

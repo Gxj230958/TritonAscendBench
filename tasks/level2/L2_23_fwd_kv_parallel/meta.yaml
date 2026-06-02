@@ -17,6 +17,7 @@ upstream:
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_23_fwd_kv_parallel_18f6bf5.py
+  known_kernel_bug: true  # lightning_attention cross-block decay off-by-one; never promote to VERIFIED
 interface:
   alias_map: {}
   mutability: unspecified
@@ -26,7 +27,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
   # Symbol audit (approach §3.4). Lightning-attention prefill (decay-weighted

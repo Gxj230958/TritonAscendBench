@@ -492,6 +492,34 @@ def install_vllm_capability_probe_stubs() -> list[str]:
     return newly
 
 
+def install_vllm_num_compute_units_stub() -> bool:
+    """Fall back vLLM ``num_compute_units`` to 128 when it raises on the daemon.
+
+    Un-severed kernels import it for grid sizing (scheduling-only, never the
+    numeric path), so a constant SM count is dispatch-neutral; matches
+    ``tasks/_frozen_shim``. Must run before the kernel's ``from ... import``.
+    Fail-safe: errors are swallowed.
+    """
+    try:
+        import vllm.utils.platform_utils as _pu
+
+        _orig = getattr(_pu, "num_compute_units", None)
+        if _orig is None or getattr(_orig, "_tab_ncu_wrapped", False):
+            return _orig is not None  # absent or already wrapped (idempotent)
+
+        def _safe_num_compute_units(device_id: int = 0, _orig=_orig):
+            try:
+                return _orig(device_id)
+            except NotImplementedError:
+                return 128
+
+        _safe_num_compute_units._tab_ncu_wrapped = True
+        _pu.num_compute_units = _safe_num_compute_units
+        return True
+    except Exception:
+        return False
+
+
 def install_idempotent_direct_register() -> bool:
     """Make ``vllm.utils.torch_utils.direct_register_custom_op`` idempotent.
 

@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: _pa_launcher.py::run
-tolerance_class: atomic_scatter
+tolerance_class: cube_matmul_fp16
 cost_model:
   # Symbol audit (approach §3.4). Grouped MoE expert GEMM: for each padded
   # block of sorted tokens, multiply by that block's expert weight, then

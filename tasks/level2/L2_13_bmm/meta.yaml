@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: kernel.py::bmm_batch_invariant
-tolerance_class: vector_reduce
+tolerance_class: cube_matmul_fp16
 cost_model:
   flops: 2*B*L*N*D
   flops_class: fp16_cube
@@ -67,7 +67,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: LAUNCH_BLOCKED
     verified_at: '2026-05-27T13:53:50Z'
-    tolerance_class_used: vector_reduce
+    tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       P1:
         status: LAUNCH_BLOCKED

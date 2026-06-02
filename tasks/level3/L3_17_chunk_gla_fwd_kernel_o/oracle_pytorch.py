@@ -46,6 +46,12 @@ from __future__ import annotations
 import torch
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _chunk_gla_fwd_o(
     q: torch.Tensor,
     v: torch.Tensor,
@@ -73,7 +79,7 @@ def _chunk_gla_fwd_o(
     qg = qf * scale * torch.exp(gf)                          # [B, T, H, K]
     qg_c = qg.reshape(B, NT, BT, H, K)                       # [B,NT,row,H,K]
     h_c = hf.reshape(B, NT, H, V, K)                         # [B,NT,H,V,K]
-    inter = torch.einsum("bnrhk,bnhvk->bnrhv", qg_c, h_c)    # [B,NT,row,H,V]
+    inter = torch.einsum("bnrhk,bnhvk->bnrhv", _to_tf32(qg_c), _to_tf32(h_c))    # [B,NT,row,H,V]
     inter = inter.reshape(B, T, H, V)
 
     # Intra-chunk: A only mixes WITHIN a chunk; its last axis is the LOCAL

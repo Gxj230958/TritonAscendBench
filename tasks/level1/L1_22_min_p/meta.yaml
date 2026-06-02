@@ -19,7 +19,9 @@ upstream:
   vendored_snapshot: tasks/_vendored/L1_22_min_p_kernel_18f6bf5.py
 interface:
   alias_map: {}
-  mutability: unspecified
+  mutability: in_place_logits
+  inplace_outputs:
+  - logits
   stride_layout: TODO(scaffold)
   workspace_policy: none
   stream_sync_policy: runner-managed

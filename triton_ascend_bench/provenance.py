@@ -47,6 +47,9 @@ VALID_ORACLE_KERNEL_EQUIVALENCE = frozenset({
     "LAUNCH_BLOCKED",  # GPU couldn't invoke the kernel at all
     "WRAPPER_CONTRACT_MISMATCH",  # shapes.yaml.inputs.dims disagree with wrapper unpack
     "ORACLE_KERNEL_LAYOUT_MISMATCH",  # oracle and wrapper disagree fundamentally
+    # R10.b rebuilt inputs diverged from R10.a's captured ref -- precision
+    # comparison untrustworthy, NOT a precision FAILED (H2 guard).
+    "INPUT_DRIFT",
 })
 VALID_GPU_KERNEL_CAPTURE_STATUS = frozenset({
     "PENDING", "DONE", "FAILED", "BLOCKED_NON_DETERMINISTIC",

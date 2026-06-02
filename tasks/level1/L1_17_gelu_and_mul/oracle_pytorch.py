@@ -32,6 +32,8 @@ def run(inputs: dict) -> dict:
     return {
         "output": _gelu_and_mul(
             inputs["hidden_states"],
-            approximate=inputs.get("approximate", "none"),
+            # config constant the kernel hardcodes (exact erf GELU, no tanh path);
+            # pinned here so it is not read as a fixture key the kernel lacks.
+            approximate="none",
         )
     }

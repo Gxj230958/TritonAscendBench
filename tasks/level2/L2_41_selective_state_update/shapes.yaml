@@ -1,0 +1,83 @@
+# Mamba2 selective-state single-step decode update knob grid.
+#   state [BS,H,HD,DS], x/dt/z [BS,H,HD], A [H,HD,DS], B/C [BS,G,DS],
+#   D/dt_bias [H,HD]. BS=decode batch, H=nheads, G=ngroups (H % G == 0),
+#   HD=head dim, DS=state dim. A uses the `logsigmoid` dist so A < 0 and the
+#   decay exp(A*dt) lies in (0, 1).
+#
+# dtypes mirror vLLM Mamba2: activations (x, dt, z, B, C) are bf16; the SSM
+# parameters (A, D, dt_bias) and the recurrent state are fp32; the ssm output is
+# fp32. Shapes cover power-of-two DS (P1..P5: 16/32/64/128) AND a non-power-of-two
+# DS=48 (H1) so the kernel's BLOCK_SIZE_DSTATE = next_power_of_2(DS) tail masking
+# is exercised; HD=48 (H1) likewise exercises the dim tail mask.
+size_knobs:
+  BS: 8
+  H: 8
+  G: 2
+  HD: 64
+  DS: 64
+public_shapes:
+- id: P1
+  name: tiny
+  knobs: {BS: 2, H: 2, G: 1, HD: 32, DS: 16}
+- id: P2
+  name: small
+  knobs: {BS: 4, H: 4, G: 2, HD: 64, DS: 32}
+- id: P3
+  name: medium
+  knobs: {BS: 8, H: 8, G: 2, HD: 64, DS: 64}
+- id: P4
+  name: large
+  knobs: {BS: 16, H: 16, G: 2, HD: 128, DS: 128}
+- id: P5
+  name: wide
+  knobs: {BS: 2, H: 32, G: 4, HD: 64, DS: 128}
+hidden_shapes:
+- id: H1
+  name: h_tail_nonpow2
+  knobs: {BS: 3, H: 6, G: 1, HD: 48, DS: 48}
+- id: H2
+  name: h_singleton
+  knobs: {BS: 2, H: 2, G: 1, HD: 16, DS: 16}
+- id: H3
+  name: h_deep
+  knobs: {BS: 2, H: 8, G: 1, HD: 128, DS: 128}
+- id: H4
+  name: h_wide_batch
+  knobs: {BS: 32, H: 4, G: 2, HD: 64, DS: 32}
+inputs:
+  state:
+    dims: [BS, H, HD, DS]
+    dtype: float32
+    dist: randn
+  x:
+    dims: [BS, H, HD]
+    dtype: bfloat16
+    dist: randn
+  dt:
+    dims: [BS, H, HD]
+    dtype: bfloat16
+    dist: randn
+  A:
+    dims: [H, HD, DS]
+    dtype: float32
+    dist: logsigmoid
+  B:
+    dims: [BS, G, DS]
+    dtype: bfloat16
+    dist: randn
+  C:
+    dims: [BS, G, DS]
+    dtype: bfloat16
+    dist: randn
+  D:
+    dims: [H, HD]
+    dtype: float32
+    dist: randn
+  z:
+    dims: [BS, H, HD]
+    dtype: bfloat16
+    dist: randn
+  dt_bias:
+    dims: [H, HD]
+    dtype: float32
+    dist: randn

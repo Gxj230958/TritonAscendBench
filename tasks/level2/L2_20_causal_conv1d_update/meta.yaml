@@ -38,7 +38,7 @@ interface:
     - conv_state
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::causal_conv1d_update
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: vector_reduce
 cost_model:
   # Symbol audit. Single-step decode causal conv1d state update (seqlen==1).

@@ -17,17 +17,21 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _chunk_state_varlen(
     B: torch.Tensor, x: torch.Tensor, dt: torch.Tensor,
     dA_cumsum: torch.Tensor, cu_seqlens: torch.Tensor,
     initial_states: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Mamba2 SSD var-length intra-chunk state (per-sequence reference).
-
-    Per sequence span [s,e) from cu_seqlens, accumulate the SSD state:
-      state = sum_t exp(dA_cumsum[-1] - dA_cumsum[t]) * dt[t] * B[t] ⊗ x[t]
-    optionally seeded with initial_states. B: [L,G,N]; x: [L,H,P];
-    dt,dA_cumsum: [L,H]. Returns [n_seq, H, P, N].
+    """Mamba2 SSD varlen end-of-sequence state, in the kernel's CHUNKED order:
+    per-chunk intra state (TF32 dot) + state-passing with per-chunk-local decay.
+    Algebraically equal to the dense weighted sum, but matching the accumulation
+    order closes the deeper-shape residual. B:[L,G,N] x:[L,H,P] dt,dA:[L,H].
     """
     cu = cu_seqlens.to(torch.long).tolist()
     L, H, P = x.shape
@@ -35,24 +39,52 @@ def _chunk_state_varlen(
     rep = H // G
     Bf, xf = B.to(torch.float32), x.to(torch.float32)
     dtf, dAc = dt.to(torch.float32), dA_cumsum.to(torch.float32)
+    head_grp = torch.arange(H, device=x.device) // rep
     out = x.new_zeros((len(cu) - 1, H, P, N), dtype=torch.float32)
-    for i in range(len(cu) - 1):
+
+    seglens = [cu[i + 1] - cu[i] for i in range(len(cu) - 1)]
+    pos = [s for s in seglens if s > 0]
+    if not pos:
+        return out.to(x.dtype)
+    # chunk_size: same rule as the launcher (>= 2 chunks per sequence, aligned
+    # to every positive sequence length so chunks never straddle a boundary).
+    chunk_size = max(min(pos) // 2, 1)
+    while chunk_size > 1 and any(s % chunk_size != 0 for s in pos):
+        chunk_size -= 1
+
+    # Per-token dA increments recovered from the per-sequence-global cumsum
+    # (reset at each sequence start); the per-chunk-local cumsum is taken below.
+    delta = dAc.clone()
+    for i in range(len(seglens)):
+        a, b = cu[i], cu[i + 1]
+        if b - a > 1:
+            delta[a + 1:b] = dAc[a + 1:b] - dAc[a:b - 1]
+
+    for i in range(len(seglens)):
         a, b = cu[i], cu[i + 1]
         if b <= a:
             continue
-        decay = torch.exp(dAc[b - 1] - dAc[a:b])              # [l,H]
-        w = (decay * dtf[a:b])                                # [l,H]
-        Bg = Bf[a:b][:, (torch.arange(H, device=x.device) // rep)]  # [l,H,N]
-        st = torch.einsum("lhp,lhn,lh->hpn", xf[a:b], Bg, w)
-        if initial_states is not None:
-            # Carried state decays through the chunk's cumulative decay
-            # before the in-chunk contributions accumulate (standard
-            # Mamba2 SSD form). The exact varlen dA_cumsum-reset
-            # boundary is upstream-convention-dependent → L3_03 is
-            # ORACLE-SCOPE-downgraded for the HAS_INITSTATES path.
-            chunk_decay = torch.exp(dAc[b - 1])               # [H]
-            st = st + chunk_decay[:, None, None] * initial_states.to(torch.float32)[i]
-        out[i] = st
+        nchunks = (b - a) // chunk_size
+        # Cumulative start-of-chunk state (state passing); optionally seeded.
+        carry = (
+            initial_states.to(torch.float32)[i]
+            if initial_states is not None
+            else torch.zeros(H, P, N, dtype=torch.float32, device=x.device)
+        )
+        for c in range(nchunks):
+            cs, ce = a + c * chunk_size, a + (c + 1) * chunk_size
+            d_loc = torch.cumsum(delta[cs:ce], dim=0)          # [cs, H] local
+            d_last = d_loc[-1]                                  # [H]
+            w = torch.exp(d_last[None, :] - d_loc) * dtf[cs:ce]  # [cs, H]
+            Bg = Bf[cs:ce][:, head_grp]                        # [cs, H, N]
+            # _chunk_state_fwd folds w into B then runs an unpinned tl.dot.
+            bw = _to_tf32(Bg * w[..., None])
+            intra = torch.einsum("lhp,lhn->hpn", _to_tf32(xf[cs:ce]), bw)
+            decayed = carry * torch.exp(d_last)[:, None, None]
+            if c == nchunks - 1:
+                out[i] = decayed + intra
+            else:
+                carry = decayed + intra
     return out.to(x.dtype)
 
 

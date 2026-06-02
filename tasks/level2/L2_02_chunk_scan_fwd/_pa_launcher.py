@@ -119,16 +119,18 @@ def build_chunk_scan_inputs(inputs: dict) -> dict:
     cu, seq_idx_list = _partition(seqlen, chunk_size)
     nchunks = len(cu) - 1
 
-    gen = torch.Generator(device=x.device)
+    # CPU generator so the CPU oracle (R10.a) and GPU launcher (R10.b) draw the
+    # same derived inputs (a CUDA generator yields a different stream per seed).
+    gen = torch.Generator()
     gen.manual_seed(_per_chunk_seed(
         seqlen, nheads, ngroups, headdim, dstate, chunk_size))
 
     # cb = (C @ B^T) per chunk -> [nchunks, ngroups, chunk_size, chunk_size].
     cb = torch.randn(nchunks, ngroups, chunk_size, chunk_size,
-                     generator=gen, dtype=torch.float32, device=x.device)
+                     generator=gen, dtype=torch.float32).to(x.device)
     # dt (post softplus/clamp/tail-mask) >= 0 -> [nheads, nchunks, chunk_size].
     dt = torch.rand(nheads, nchunks, chunk_size,
-                    generator=gen, dtype=torch.float32, device=x.device)
+                    generator=gen, dtype=torch.float32).to(x.device)
     # dA_cumsum -> [nheads, nchunks, chunk_size]. Deliberately NON-MONOTONE: a
     # bounded mixed-sign random walk along the chunk axis, NOT a cumsum of a
     # single-sign dt*A. Rationale: the kernel's intra decay is
@@ -139,12 +141,12 @@ def build_chunk_scan_inputs(inputs: dict) -> dict:
     # so the clamp is load-bearing and discriminating. Bounded to keep
     # exp(dA_m) for the inter scale finite.
     steps = (torch.rand(nheads, nchunks, chunk_size,
-                        generator=gen, dtype=torch.float32, device=x.device)
+                        generator=gen, dtype=torch.float32).to(x.device)
              - 0.5)  # mixed-sign in [-0.5, 0.5)
     dA_cumsum = torch.cumsum(steps, dim=-1).clamp(-6.0, 6.0)
     # per-chunk ENTRY states -> [nchunks, nheads, headdim, dstate].
     states = torch.randn(nchunks, nheads, headdim, dstate,
-                         generator=gen, dtype=torch.float32, device=x.device)
+                         generator=gen, dtype=torch.float32).to(x.device)
 
     # Discrimination guard: at least one CAUSAL (m >= k) entry with
     # dA_m - dA_k > 0 must exist, else the min(.,0) clamp is a no-op on the

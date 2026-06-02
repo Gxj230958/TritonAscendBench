@@ -268,10 +268,25 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         oracle_path
     )
 
-    fn_name = _resolve_kernel_entrypoint(
-        meta, kernel_path, task_id, oracle_input_keys=audit.oracle_input_keys
+    # Launcher tasks are graded via _pa_launcher.py::run(inputs); there is no
+    # host-wrapper param signature to match against shapes, so the
+    # kernel-signature cross-checks below are skipped for them.
+    gpu_triton = str((meta.get("oracle") or {}).get("gpu_triton", "") or "").strip()
+    launcher_file = task_dir / "_pa_launcher.py"
+    is_launcher = (
+        launcher_file.is_file()
+        and "def run" in launcher_file.read_text()
+        and gpu_triton.endswith("::run")
     )
-    if not fn_name:
+
+    fn_name = (
+        "run"
+        if is_launcher
+        else _resolve_kernel_entrypoint(
+            meta, kernel_path, task_id, oracle_input_keys=audit.oracle_input_keys
+        )
+    )
+    if not is_launcher and not fn_name:
         # Distinguish two cases (P5.2 jaccard fix surface):
         # 1. oracle declares input keys but no kernel non-jit wrapper has
         #    sufficient overlap with them -> NEEDS_BRIDGE (oracle and
@@ -292,15 +307,18 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             audit.runtime_error = "could not resolve kernel entrypoint from meta"
         return audit
 
-    sig = _kernel_entrypoint_signature(kernel_path, fn_name)
-    if sig is None:
-        audit.status = "KERNEL_PARSE_ERROR"
-        audit.runtime_error = (
-            f"kernel entrypoint `{fn_name}` not found in kernel.py "
-            "(may be a class method or placeholder)"
-        )
-        return audit
-    audit.kernel_required_params, audit.kernel_optional_params = sig
+    if is_launcher:
+        audit.kernel_required_params, audit.kernel_optional_params = [], []
+    else:
+        sig = _kernel_entrypoint_signature(kernel_path, fn_name)
+        if sig is None:
+            audit.status = "KERNEL_PARSE_ERROR"
+            audit.runtime_error = (
+                f"kernel entrypoint `{fn_name}` not found in kernel.py "
+                "(may be a class method or placeholder)"
+            )
+            return audit
+        audit.kernel_required_params, audit.kernel_optional_params = sig
 
     shapes_inputs, _ = _shapes_input_keys(shapes_path)
     audit.shapes_input_keys = shapes_inputs
@@ -332,7 +350,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
     # oracle reads must be subset of (kernel required + optional)
     # AND kernel required must all be readable (from shapes — already checked above)
     oracle_extra = oracle_inputs - kernel_all_params
-    if oracle_extra:
+    if oracle_extra and not is_launcher:
         # Oracle reads keys that kernel doesn't have AT ALL (not even optional).
         # Could be aliased shapes input or oracle reads truly different layout.
         audit.status = "NEEDS_BRIDGE"
@@ -469,6 +487,21 @@ def _audit_task(task_dir: Path) -> TaskAudit:
                     audit.runtime_error = f"oracle import: {e}"
                 return audit
 
+            # Snapshot inputs before run(): an in-place oracle mutates inputs_cpu,
+            # so the H2 input artifact must hold pre-mutation values (R10.b
+            # rebuilds fresh pre-mutation inputs). Cheap, so always clone.
+            from oracle_equivalence_gpu_runner import (  # noqa: PLC0415
+                _mutated_input_keys,
+            )
+
+            mutated_keys = _mutated_input_keys(
+                meta, oracle_path.read_text() if oracle_path.exists() else ""
+            )
+            pre_inputs = {
+                k: (v.clone() if isinstance(v, torch.Tensor) else v)
+                for k, v in inputs_cpu.items()
+            }
+
             try:
                 ref_out = mod.run(inputs_cpu)
             except Exception as e:
@@ -490,15 +523,15 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             # here is the right precaution for a *captured* artifact:
             # downstream consumers (R10.b GPU verify, manifest hashing)
             # all expect packed bytes anyway.
-            inputs_tensors = {
-                k: (
-                    v.detach().cpu().contiguous()
-                    if isinstance(v, torch.Tensor)
-                    else torch.tensor(v)
-                )
-                for k, v in inputs_cpu.items()
-                if isinstance(v, torch.Tensor) or isinstance(v, (int, float))
-            }
+            # H2: capture the full input payload (tensors + non-tensor
+            # sidecar) so R10.b can verify rebuilt inputs match. The old path
+            # dropped scalar_seq/str/None, leaving them undefended against
+            # shapes drift.
+            from triton_ascend_bench.inputs import split_inputs
+
+            # H2 artifact uses the pre-mutation snapshot (pre==post for
+            # non-inplace tasks).
+            inputs_tensors, inputs_sidecar = split_inputs(pre_inputs)
             ref_tensors = {
                 k: (
                     v.detach().cpu().contiguous()
@@ -508,6 +541,16 @@ def _audit_task(task_dir: Path) -> TaskAudit:
                 for k, v in ref_out.items()
                 if isinstance(v, torch.Tensor) or isinstance(v, (int, float))
             }
+            # In-place graded outputs: a declared mutated key the oracle did not
+            # return is captured from its post-mutation input value. Keys the
+            # oracle returns keep the returned ref (the authoritative reference);
+            # only the candidate side (R10.b) overrides from the live input.
+            for mk in sorted(mutated_keys):
+                if mk in ref_tensors:
+                    continue
+                mv = inputs_cpu.get(mk)
+                if isinstance(mv, torch.Tensor):
+                    ref_tensors[mk] = mv.detach().cpu().contiguous()
 
             inputs_path = ref_dir / f"inputs_{shape_id}.safetensors"
             ref_path = ref_dir / f"ref_{shape_id}.safetensors"
@@ -526,6 +569,12 @@ def _audit_task(task_dir: Path) -> TaskAudit:
                 "output_key_order": json.dumps(list(ref_tensors.keys()))
             }
             save_file(inputs_tensors, str(inputs_path))
+            # H2: non-tensor inputs beside the tensors (sorted keys for a
+            # stable on-disk form) so R10.b can verify the full payload.
+            sidecar_path = ref_dir / f"inputs_{shape_id}.sidecar.json"
+            sidecar_path.write_text(
+                json.dumps(inputs_sidecar, sort_keys=True)
+            )
             save_file(ref_tensors, str(ref_path), metadata=ref_meta)
 
             audit.ref_artifacts[shape_id] = hashlib.sha256(

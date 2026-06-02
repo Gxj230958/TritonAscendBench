@@ -70,7 +70,9 @@ def _dequantize_k_cache_paged(
     # the source tensors at that row; gathering the packed bytes first and
     # then unpacking is byte-identical (the slices are the same byte-lanes).
     pt = page_table_1_flattened.to(torch.long).reshape(-1)
-    gathered = quant_k_cache[pt]  # [B, 656] fp8
+    # fp8 has no CPU index_cpu kernel on some torch builds; gather the 1-byte
+    # lanes via a uint8 view (CPU-supported) and reinterpret back -- byte-identical.
+    gathered = quant_k_cache.view(torch.uint8)[pt].view(torch.float8_e4m3fn)  # [B, 656] fp8
 
     # Byte-reinterpret unpack -- identical to the frozen wrapper's slicing.
     input_nope_q = gathered[:, :_DIM_NOPE]

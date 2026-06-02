@@ -44,9 +44,7 @@ def _awq_dequantize(
 
 
 def run(inputs: dict) -> dict:
-    return {
-        "output": _awq_dequantize(
-            inputs["qweight"], inputs["scales"], inputs["zeros"],
-            int(inputs["group_size"]),
-        )
-    }
+    qweight, scales, zeros = inputs["qweight"], inputs["scales"], inputs["zeros"]
+    # group_size: the kernel derives it from shapes, not a param it takes.
+    group_size = qweight.shape[0] // scales.shape[0]
+    return {"output": _awq_dequantize(qweight, scales, zeros, group_size)}

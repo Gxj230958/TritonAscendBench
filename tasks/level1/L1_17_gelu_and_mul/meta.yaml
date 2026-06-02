@@ -20,6 +20,11 @@ upstream:
 interface:
   alias_map: {}
   mutability: unspecified
+  # Wrapper returns (out, out_scales); only the gelu output (index 0) is graded.
+  output_projection:
+    arity: 2
+    map:
+      output: 0
   stride_layout: TODO(scaffold)
   workspace_policy: none
   stream_sync_policy: runner-managed

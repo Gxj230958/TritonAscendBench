@@ -27,7 +27,7 @@ interface:
 oracle:
   pytorch: oracle_pytorch.py::run
   gpu_triton: _pa_launcher.py::run
-tolerance_class: sampling_rng
+tolerance_class: elementwise
 cost_model:
   # Symbol audit (approach §3.4). Repetition + frequency + presence penalties:
   # per (token, vocab) gather the request's counts/prompt-mask, apply the

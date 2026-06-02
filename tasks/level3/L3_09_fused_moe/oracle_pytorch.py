@@ -18,6 +18,12 @@ from __future__ import annotations
 import torch
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _fused_moe_gemm(
     a: torch.Tensor, b: torch.Tensor, topk_weights: torch.Tensor,
     sorted_token_ids: torch.Tensor, expert_ids: torch.Tensor,
@@ -59,7 +65,7 @@ def _fused_moe_gemm(
         if not bool(valid.any()):
             continue
         rows = toks[valid]                         # distinct token ids
-        y = af[rows] @ bf[e].T                     # [n_valid, N]
+        y = _to_tf32(af[rows]) @ _to_tf32(bf[e].T)                     # [n_valid, N]
         if apply_weight:
             y = y * wf[rows].unsqueeze(-1)
         out[rows] = y                              # scatter to token-id rows

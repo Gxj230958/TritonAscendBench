@@ -43,9 +43,11 @@ def _rejection_sample(
     Output is a [n_reqs, max_spec_len + 1] id matrix padded with -1.
     """
     n_reqs = cu_num_draft_tokens.shape[0]
+    # int32 to match the kernel's output_token_ids dtype (bit-exact compare
+    # rejects an int64-vs-int32 mismatch even when the values are identical).
     out = torch.full(
         (n_reqs, max_spec_len + 1), -1,
-        dtype=torch.long, device=draft_token_ids.device,
+        dtype=torch.int32, device=draft_token_ids.device,
     )
     starts = torch.cat([
         cu_num_draft_tokens.new_zeros(1), cu_num_draft_tokens[:-1]

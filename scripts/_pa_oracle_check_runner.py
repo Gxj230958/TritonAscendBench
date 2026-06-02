@@ -759,6 +759,7 @@ def main() -> int:
         from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
             install_vllm_c_stub,
             install_vllm_capability_probe_stubs,
+            install_vllm_num_compute_units_stub,
             install_vllm_source_version_shim,
         )
 
@@ -768,6 +769,9 @@ def main() -> int:
         # version-skewed daemon's missing cutlass probe does not crash the
         # candidate at load (dispatch-gate only; never the benched compute).
         install_vllm_capability_probe_stubs()
+        # Neutralize vllm num_compute_units (grid-sizing only) for un-severed
+        # kernels that import it raw; raises NotImplementedError on the daemon.
+        install_vllm_num_compute_units_stub()
     except ImportError:
         pass
 

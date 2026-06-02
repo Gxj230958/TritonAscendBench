@@ -450,6 +450,40 @@ def cmd_run_resolve(args: argparse.Namespace) -> int:
     return wait_rc
 
 
+def cmd_oracle(args: argparse.Namespace) -> int:
+    """submit a batch with spec.action='oracle-equiv' (C2 precision align).
+
+    The daemon runs R10.a precompute then R10.b GPU compare per task on the
+    same host (H2 input parity), writing TaskVerdict JSON to
+    results/<batch>/r10/<task>.json. No pull-meta: the R10.c writeback to
+    meta.yaml is a separate dev-side apply step, not a gpfs edit.
+    """
+    args.action = "oracle-equiv"
+    if not hasattr(args, "require_smoke"):
+        args.require_smoke = False
+    return cmd_submit(args)
+
+
+def cmd_run_oracle(args: argparse.Namespace) -> int:
+    """sync-code + oracle-equiv + wait + collect, one shot."""
+    rc = cmd_sync_code(args)
+    if rc != 0:
+        return rc
+    batch_id = args.batch_id or _new_batch_id()
+    args.batch_id = batch_id
+    rc = cmd_oracle(args)
+    if rc != 0:
+        return rc
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        return cmd_collect(args)
+    if wait_rc == 3:
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        return 3
+    return wait_rc
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     loop = shlex.quote(REMOTE_LOOP)
     # Single-quote the section markers: the remote login shell may be zsh,
@@ -558,6 +592,23 @@ def main() -> int:
     s.add_argument("--interval", type=int, default=10)
     s.add_argument("--stale-after", type=int, default=300)
     s.set_defaults(func=cmd_run_resolve)
+
+    s = sub.add_parser("oracle",
+                       help="submit a batch that runs R10 oracle-equiv (C2)")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.set_defaults(func=cmd_oracle)
+
+    s = sub.add_parser("run-oracle",
+                       help="sync-code + oracle-equiv + wait + collect (C2)")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.add_argument("--timeout", type=int, default=7200)
+    s.add_argument("--interval", type=int, default=10)
+    s.add_argument("--stale-after", type=int, default=300)
+    s.set_defaults(func=cmd_run_oracle)
 
     args = ap.parse_args()
     return args.func(args)

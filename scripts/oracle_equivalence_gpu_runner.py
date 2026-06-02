@@ -202,6 +202,20 @@ def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):
     if (infer_root / "sglang" / "python").is_dir():
         upstream_roots.append(infer_root / "sglang" / "python")
 
+    # Un-severed kernels import vllm num_compute_units (grid sizing), which raises
+    # on the daemon. Wrap it before _load execs the kernel so the `from ... import`
+    # binds the stub. The C1 path patches it elsewhere; R10.b loads via _load here.
+    for _r in upstream_roots:
+        if str(_r) not in sys.path:
+            sys.path.insert(0, str(_r))
+    try:
+        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            install_vllm_num_compute_units_stub,
+        )
+        install_vllm_num_compute_units_stub()
+    except Exception:
+        pass
+
     mod = _load_kernel(
         kernel_path,
         f"kernel_{kernel_path.parent.name}",
@@ -229,6 +243,30 @@ def _materialise_kernel_optional_params(
     return extras
 
 
+def _mutated_input_keys(meta: dict, oracle_src: str) -> set[str]:
+    """Input keys an in-place task mutates. These are graded outputs and must be
+    compared, not just the returned dict. Sources: interface.mutability
+    ('state: inplace'), inplace_outputs / return_plus_inplace, and the oracle's
+    inputs['X'].copy_() targets."""
+    import re as _re
+
+    iface = meta.get("interface") or {}
+    keys: set[str] = set()
+    mut = iface.get("mutability") or ""
+    if isinstance(mut, str) and ":" in mut and "inplace" in mut.split(":", 1)[1]:
+        keys |= {n.strip() for n in mut.split(":", 1)[0].split(",") if n.strip()}
+    for fld in ("inplace_outputs", "return_plus_inplace"):
+        v = iface.get(fld)
+        if isinstance(v, dict):  # return_plus_inplace: {return_name, inplace: [...]}
+            v = v.get("inplace")
+        if isinstance(v, str):
+            keys |= {n.strip() for n in v.split(",") if n.strip()}
+        elif isinstance(v, (list, tuple)):
+            keys |= {str(n).strip() for n in v}
+    keys |= set(_re.findall(r'inputs\[["\']([^"\']+)["\']\]\.copy_\(', oracle_src or ""))
+    return keys
+
+
 def _verify_one_task(
     task_dir: Path, infer_root: Path, gpu_device: str = "cuda"
 ) -> TaskVerdict:
@@ -249,17 +287,37 @@ def _verify_one_task(
     # Read oracle's `inputs[...]` keys for AST-based wrapper auto-detect
     oracle_input_keys: list[str] = []
     oracle_path = task_dir / "oracle_pytorch.py"
-    if oracle_path.exists():
+    oracle_src_full = oracle_path.read_text() if oracle_path.exists() else ""
+    if oracle_src_full:
         import re as _re
-        src = oracle_path.read_text()
         oracle_input_keys = sorted(
-            set(_re.findall(r'inputs\[["\']([^"\']+)["\']\]', src))
-            | set(_re.findall(r'inputs\.get\(["\']([^"\']+)["\']', src))
+            set(_re.findall(r'inputs\[["\']([^"\']+)["\']\]', oracle_src_full))
+            | set(_re.findall(r'inputs\.get\(["\']([^"\']+)["\']', oracle_src_full))
         )
+    # In-place mutated keys (graded outputs captured into the ref by R10.a);
+    # resolved here while `meta` is still the task meta (the loop shadows it).
+    mutated_keys_b = _mutated_input_keys(meta, oracle_src_full)
 
-    fn_name = _resolve_kernel_entrypoint(
-        meta, kernel_path, task_id, oracle_input_keys=oracle_input_keys
-    )
+    # output_projection: a kernel may return a SUPERSET tuple (e.g. layer_norm
+    # returns (out, mean, rstd)); grade only the mapped indices. Mirrors C1
+    # (_pa_oracle_check_runner) so both gates project the same surface.
+    oproj_b = (meta.get("interface") or {}).get("output_projection") or {}
+
+    # Launcher tasks: the graded entrypoint is _pa_launcher.py::run(inputs),
+    # which _load execs into the kernel module (so mod.run resolves) and which
+    # takes the whole input dict, not by-name kwargs. Some metas record
+    # kernel.py::run while the real run lives in the launcher (e.g. L1_27), so
+    # treat any ::run as a launcher when a _pa_launcher.py defines run.
+    gpu_triton = str((meta.get("oracle", {}) or {}).get("gpu_triton", "") or "").strip()
+    launcher_file = task_dir / "_pa_launcher.py"
+    has_launcher_run = launcher_file.is_file() and "def run" in launcher_file.read_text()
+    is_launcher = has_launcher_run and gpu_triton.endswith("::run")
+    if is_launcher:
+        fn_name = "run"
+    else:
+        fn_name = _resolve_kernel_entrypoint(
+            meta, kernel_path, task_id, oracle_input_keys=oracle_input_keys
+        )
     if not fn_name:
         verdict.overall = "LAUNCH_BLOCKED"
         log.info("  %s: cannot resolve kernel entrypoint", task_id)
@@ -406,6 +464,9 @@ def _verify_one_task(
     n_verified = 0
     n_failed = 0
     n_blocked = 0
+    n_input_drift = 0
+    # Ref output keys seen across shapes; the in-place backstop below uses them.
+    ref_keys_seen: set[str] = set()
     for ref_file in sorted(ref_dir.glob("ref_*.safetensors")):
         sid = ref_file.stem.replace("ref_", "")
 
@@ -429,6 +490,7 @@ def _verify_one_task(
             n_blocked += 1
             verdict.shapes.append(sv)
             continue
+        ref_keys_seen |= set(ref_tensors.keys())
 
         # V9 codex review 2026-05-27: safetensors load_file returns
         # alphabetical keys, so a multi-output oracle whose dict
@@ -466,6 +528,93 @@ def _verify_one_task(
                 )
                 continue
 
+        # H2 input-faithfulness guard. R10.b rebuilds inputs independently of
+        # R10.a's captured ref; any divergence (RNG/shapes/build_inputs drift)
+        # makes a correct kernel falsely FAIL. Fail-closed: artifacts must
+        # exist+load and the full payload (tensor bytes + non-tensor values)
+        # must match R10.a, else INPUT_DRIFT (never a silent precision FAILED).
+        from triton_ascend_bench.inputs import split_inputs  # noqa: PLC0415
+
+        inputs_file = ref_dir / f"inputs_{sid}.safetensors"
+        sidecar_file = ref_dir / f"inputs_{sid}.sidecar.json"
+        drift_reason: str | None = None
+        saved_tensors: dict | None = None
+        saved_sidecar: dict | None = None
+        rb_tensors: dict | None = None
+        rb_sidecar: dict | None = None
+        if not inputs_file.is_file():
+            drift_reason = f"R10.a inputs artifact missing ({inputs_file.name})"
+        elif not sidecar_file.is_file():
+            drift_reason = (
+                f"R10.a inputs sidecar missing ({sidecar_file.name}); "
+                f"re-run R10.a to capture the full input payload"
+            )
+        else:
+            try:
+                saved_tensors = load_file(str(inputs_file))
+            except Exception as e:
+                drift_reason = f"R10.a inputs load failed: {e}"
+            if drift_reason is None:
+                try:
+                    saved_sidecar = json.loads(sidecar_file.read_text())
+                except Exception as e:
+                    drift_reason = f"R10.a sidecar load failed: {e}"
+        if drift_reason is None:
+            try:
+                rb_tensors, rb_sidecar = split_inputs(inputs_full)
+            except Exception as e:
+                # A non-JSON-able input (e.g. a struct) R10.a could not
+                # capture faithfully -> cannot prove input parity -> block.
+                drift_reason = f"rebuilt inputs not splittable for compare: {e}"
+        if drift_reason is None:
+            # Type-strict: Python `==` treats 1 == 1.0 == True, so compare
+            # type and value recursively to catch scalar type drift.
+            def _strict_eq(a: object, b: object) -> bool:
+                if type(a) is not type(b):
+                    return False
+                if isinstance(a, list):
+                    return len(a) == len(b) and all(
+                        _strict_eq(x, y) for x, y in zip(a, b)
+                    )
+                if isinstance(a, dict):
+                    return a.keys() == b.keys() and all(
+                        _strict_eq(a[k], b[k]) for k in a
+                    )
+                return a == b
+
+            if set(rb_tensors.keys()) != set(saved_tensors.keys()):
+                drift_reason = (
+                    f"tensor key-set drift: rebuilt {sorted(rb_tensors)} "
+                    f"vs saved {sorted(saved_tensors)}"
+                )
+            elif not _strict_eq(rb_sidecar, saved_sidecar):
+                drift_reason = (
+                    f"non-tensor input drift (type-strict): rebuilt "
+                    f"{rb_sidecar} != saved {saved_sidecar}"
+                )
+        if drift_reason is None:
+            for k, saved_t in saved_tensors.items():
+                rb_t = rb_tensors[k]  # split_inputs already cpu + contiguous
+                if (
+                    tuple(rb_t.shape) != tuple(saved_t.shape)
+                    or rb_t.dtype != saved_t.dtype
+                    or not torch.equal(rb_t, saved_t)
+                ):
+                    drift_reason = f"tensor input '{k}' value/shape/dtype drift"
+                    break
+        if drift_reason is not None:
+            sv.status = "INPUT_DRIFT"
+            sv.blocker_reason = (
+                f"INPUT_DRIFT: {drift_reason} -- ref captured on different "
+                f"inputs; re-run R10.a on this host (not a precision FAILED)."
+            )
+            n_input_drift += 1
+            verdict.shapes.append(sv)
+            log.warning(
+                "  %s/%s: INPUT_DRIFT: %s", task_id, sid, drift_reason
+            )
+            continue
+
         try:
             # Move tensor inputs to GPU; keep non-tensor inputs (str, int,
             # float, etc.) as-is.
@@ -475,22 +624,26 @@ def _verify_one_task(
                     inputs_gpu[k] = v.to(gpu_device)
                 else:
                     inputs_gpu[k] = v
-            # Filter to only the keys the kernel signature actually accepts —
-            # shapes.yaml may include extras (e.g. BLOCK_SIZE_M, scalars meant
-            # for the underlying @triton.jit kernel, not the host wrapper)
-            # that the host wrapper rejects as unexpected kwargs.
-            inputs_for_kernel = {
-                k: v for k, v in inputs_gpu.items() if k in sig_param_names
-            }
-            # Provide kernel optional defaults for any sig param the rebuilt
-            # inputs do not cover.
-            extras = _materialise_kernel_optional_params(
-                kernel_fn, set(inputs_for_kernel.keys())
-            )
-            for k, v in extras.items():
-                inputs_for_kernel.setdefault(k, v)
+            if is_launcher:
+                # launcher: run(inputs) -> dict; pass the whole input dict.
+                kernel_out = kernel_fn(inputs_gpu)
+            else:
+                # Filter to only the keys the kernel signature actually accepts —
+                # shapes.yaml may include extras (e.g. BLOCK_SIZE_M, scalars meant
+                # for the underlying @triton.jit kernel, not the host wrapper)
+                # that the host wrapper rejects as unexpected kwargs.
+                inputs_for_kernel = {
+                    k: v for k, v in inputs_gpu.items() if k in sig_param_names
+                }
+                # Provide kernel optional defaults for any sig param the rebuilt
+                # inputs do not cover.
+                extras = _materialise_kernel_optional_params(
+                    kernel_fn, set(inputs_for_kernel.keys())
+                )
+                for k, v in extras.items():
+                    inputs_for_kernel.setdefault(k, v)
 
-            kernel_out = kernel_fn(**inputs_for_kernel)
+                kernel_out = kernel_fn(**inputs_for_kernel)
         except Exception as e:
             sv.status = "LAUNCH_BLOCKED"
             sv.blocker_reason = f"{type(e).__name__}: {e}"
@@ -498,6 +651,30 @@ def _verify_one_task(
             verdict.shapes.append(sv)
             log.warning("  %s/%s: kernel launch fail: %s", task_id, sid, e)
             continue
+
+        # Project a superset tuple return to the graded indices (fail-closed:
+        # tuple/list, pinned arity, in-range unique indices) before normalising.
+        if oproj_b and isinstance(kernel_out, (tuple, list)):
+            _arity = oproj_b.get("arity")
+            _omap = oproj_b.get("map") or {}
+            _idxs = list(_omap.values())
+            if (
+                isinstance(_arity, int)
+                and len(kernel_out) == _arity
+                and _omap
+                and len(set(_idxs)) == len(_idxs)
+                and all(isinstance(i, int) and 0 <= i < _arity for i in _idxs)
+            ):
+                kernel_out = {k: kernel_out[i] for k, i in _omap.items()}
+            else:
+                sv.status = "FAILED"
+                sv.blocker_reason = (
+                    f"output_projection invalid (declared={oproj_b}, "
+                    f"actual return len={len(kernel_out)})"
+                )
+                n_failed += 1
+                verdict.shapes.append(sv)
+                continue
 
         # Normalise kernel_out to dict
         if isinstance(kernel_out, dict):
@@ -509,6 +686,25 @@ def _verify_one_task(
                 out_dict = {key: kernel_out}
             else:
                 out_dict = {"output": kernel_out}
+        elif kernel_out is None:
+            # Fully in-place kernel (returns None, writes pre-allocated input
+            # buffers). Require a DECLARED in-place output present in the ref --
+            # else a no-op echoing read-only inputs would trivially pass.
+            declared_inplace = mutated_keys_b & set(ref_tensors.keys())
+            if not declared_inplace:
+                sv.status = "FAILED"
+                sv.blocker_reason = (
+                    "kernel returned None but no declared inplace_outputs cover "
+                    "the ref keys; cannot establish the graded in-place write"
+                )
+                n_failed += 1
+                verdict.shapes.append(sv)
+                continue
+            out_dict = {
+                k: inputs_gpu[k]
+                for k in ref_tensors.keys()
+                if isinstance(inputs_gpu.get(k), torch.Tensor)
+            }
         elif isinstance(kernel_out, (tuple, list)):
             # Multi-output kernels MUST carry the oracle's dict insertion
             # order in safetensors metadata. Silently falling back to
@@ -565,6 +761,14 @@ def _verify_one_task(
             n_failed += 1
             verdict.shapes.append(sv)
             continue
+
+        # In-place graded outputs: compare the kernel's post-launch mutated
+        # inputs, overriding any returned copy -- a candidate that returns a
+        # correct tensor without mutating the input must still fail.
+        for mk in mutated_keys_b:
+            mv = inputs_gpu.get(mk)
+            if isinstance(mv, torch.Tensor):
+                out_dict[mk] = mv
 
         # Move kernel outputs to CPU for compare
         out_dict_cpu = {
@@ -639,7 +843,11 @@ def _verify_one_task(
             max(sv.max_rel_diff.values()) if sv.max_rel_diff else 0.0,
         )
 
-    if n_blocked == len(verdict.shapes):
+    if n_input_drift > 0:
+        # Any drifted shape makes the task's precision verdict untrustworthy;
+        # never report VERIFIED/FAILED on partial drift.
+        verdict.overall = "INPUT_DRIFT"
+    elif n_blocked == len(verdict.shapes):
         # All shapes blocked. Distinguish wrapper-rank mismatches
         # from real GPU launch failures so the operator sees the
         # actionable verdict.
@@ -665,6 +873,35 @@ def _verify_one_task(
         verdict.overall = "FAILED"
     else:
         verdict.overall = "MIXED"
+
+    # Backstop: refuse VERIFIED if an in-place mutated key was never compared
+    # (e.g. a stale ref captured before mutated-output support). An honest
+    # block beats a false VERIFIED.
+    if verdict.overall == "VERIFIED":
+        try:
+            _task_meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+        except Exception:
+            _task_meta = {}
+        _op = task_dir / "oracle_pytorch.py"
+        _oracle_src = _op.read_text() if _op.exists() else ""
+        _uncompared = sorted(
+            _mutated_input_keys(_task_meta, _oracle_src) - ref_keys_seen
+        )
+        if _uncompared:
+            verdict.overall = "INPLACE_UNCOMPARED"
+            verdict.shapes.append(ShapeVerdict(
+                shape_id="*",
+                status="INPLACE_UNCOMPARED",
+                blocker_reason=(
+                    f"in-place task mutates {_uncompared} but the ref omits them "
+                    f"(ref keys={sorted(ref_keys_seen)}); re-run R10.a to capture "
+                    f"mutated outputs."
+                ),
+            ))
+            log.warning(
+                "  %s: VERIFIED -> INPLACE_UNCOMPARED (%s not in ref)",
+                task_id, _uncompared,
+            )
 
     verdict.elapsed_s = time.time() - t0
     return verdict

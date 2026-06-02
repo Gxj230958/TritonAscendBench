@@ -61,6 +61,6 @@ def _layer_norm_gated(
 
 def run(inputs: dict) -> dict:
     return {"output": _layer_norm_gated(
-        inputs["x"], inputs["g"], inputs["w"], inputs.get("b"),
+        inputs["x"], inputs["g"], inputs["weight"], inputs.get("bias"),
         inputs.get("residual"), float(inputs.get("eps", 1e-5)),
         bool(inputs.get("is_rms_norm", False)))}

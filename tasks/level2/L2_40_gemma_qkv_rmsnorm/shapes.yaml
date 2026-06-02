@@ -1,0 +1,62 @@
+# Gemma3 per-head QKV RMSNorm knob grid. q is [M, QH*D], k/v are [M, KVH*D]
+# (heads packed contiguously in the last dim); q_weight/k_weight are [D].
+# Each head is normalized independently: x * rsqrt(mean(x^2)+eps) * w.
+# D (head_dim) is kept a power of two so BLOCK == D (no masked lanes), and
+# QH is a multiple of KVH (grouped-query attention head ratio).
+size_knobs:
+  M: 256
+  QH: 8
+  KVH: 2
+  D: 128
+public_shapes:
+- id: P1
+  name: tiny
+  knobs: {M: 8, QH: 2, KVH: 1, D: 32}
+- id: P2
+  name: small
+  knobs: {M: 64, QH: 4, KVH: 2, D: 64}
+- id: P3
+  name: medium
+  knobs: {M: 256, QH: 8, KVH: 2, D: 128}
+- id: P4
+  name: large
+  knobs: {M: 1024, QH: 16, KVH: 4, D: 128}
+- id: P5
+  name: wide
+  knobs: {M: 32, QH: 32, KVH: 8, D: 256}
+hidden_shapes:
+- id: H1
+  name: h_tail_nonpow2_mqa
+  # D=96 is not a power of two, so BLOCK=next_pow2(96)=128 and the kernel's
+  # `cols < HEAD_DIM` mask must drop lanes 96..127 (tail-masking coverage).
+  knobs: {M: 128, QH: 8, KVH: 1, D: 96}
+- id: H2
+  name: h_singleton
+  knobs: {M: 2, QH: 1, KVH: 1, D: 64}
+- id: H3
+  name: h_deep
+  knobs: {M: 512, QH: 16, KVH: 2, D: 256}
+- id: H4
+  name: h_mha
+  knobs: {M: 64, QH: 16, KVH: 16, D: 128}
+inputs:
+  q:
+    dims: [M, "QH*D"]
+    dtype: float32
+    dist: randn
+  k:
+    dims: [M, "KVH*D"]
+    dtype: float32
+    dist: randn
+  v:
+    dims: [M, "KVH*D"]
+    dtype: float32
+    dist: randn
+  q_weight:
+    dims: [D]
+    dtype: float32
+    dist: randn
+  k_weight:
+    dims: [D]
+    dtype: float32
+    dist: randn

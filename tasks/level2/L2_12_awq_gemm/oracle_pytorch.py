@@ -15,6 +15,12 @@ import torch
 import torch.nn.functional as F
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 _AWQ_ORDER = [0, 4, 1, 5, 2, 6, 3, 7]
 
 
@@ -37,13 +43,16 @@ def _awq_gemm(
     Kdim = w.shape[0]
     grp = torch.arange(Kdim, device=w.device) // group_size
     b = (w - z[grp]) * scales.to(torch.float32)[grp]         # [K, N]
-    return (a.to(torch.float32) @ b).to(a.dtype)
+    return (_to_tf32(a.to(torch.float32)) @ _to_tf32(b)).to(a.dtype)
 
 
 def run(inputs: dict) -> dict:
+    qweight, qzeros = inputs["qweight"], inputs["qzeros"]
+    # group_size: the kernel derives it from shapes, not a param it takes.
+    group_size = qweight.shape[0] // qzeros.shape[0]
     return {
         "C": _awq_gemm(
-            inputs["input"], inputs["qweight"], inputs["scales"],
-            inputs["qzeros"], int(inputs["group_size"]),
+            inputs["input"], qweight, inputs["scales"],
+            qzeros, group_size,
         )
     }

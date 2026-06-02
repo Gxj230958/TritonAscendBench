@@ -37,6 +37,12 @@ from __future__ import annotations
 import torch
 
 
+def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
+    unpinned tl.dot on TF32 cores."""
+    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+
+
 def _segmented_gate_up_lora_b(
     x: torch.Tensor,
     weights: torch.Tensor,
@@ -86,7 +92,7 @@ def _segmented_gate_up_lora_b(
         for g in range(2):
             x_half = xf[rows, g * K: g * K + K]                       # [seg_len, K]
             w_half = wf[w, g * output_dim:(g + 1) * output_dim, :K]   # [output_dim, K]
-            contrib = sc * (x_half @ w_half.T)                        # [seg_len, output_dim]
+            contrib = sc * (_to_tf32(x_half) @ _to_tf32(w_half.T))                        # [seg_len, output_dim]
             out[rows, g * output_dim:(g + 1) * output_dim] += contrib
     return out.to(x.dtype)
 
