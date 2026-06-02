@@ -29,19 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Pure integer index computation: per token the
-  # oracle does slot = block_table[req, pos//bs]*bs + pos%bs. The kernel grid
-  # iterates over the batch (one program per request, inner loop over its
-  # tokens). Symbol map: B -> num_tokens (idx_mapping/positions length, kernel
-  # grid extent), E -> num request states (block_table rows), N -> blocks per
-  # request (block_table dim 1). block_size is a scalar literal, not a knob.
-  # FLOPs (vector): the operator is integer index arithmetic (floor-div, mod,
-  # mul, add) — no floating-point work. Reported as a tiny constant 4*B
-  # (4 int ops per token); flops_class vector since it routes to the vector
-  # unit, but the dominant cost is bytes.
-  # bytes (hbm): read idx_mapping[B] + positions[B], gather B entries from
-  # block_table, write slot_mapping[B] -> 4*B elements; all int64 -> dtype_size
-  # (primary family is int64, the first declared input).
   flops: 4*B
   flops_class: vector
   bytes: 4*B*dtype_size
@@ -77,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-02
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Computes per-token KV-cache slot indices from idx_mapping [B] (token->request id in [0, E)), positions [B], and a paged block_table [E, N]. block_size is the KV page size.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 0bb1ae9284c668bf0ce82188eb1543a67ef21e9f9ad08fd075dd8164bc959006
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

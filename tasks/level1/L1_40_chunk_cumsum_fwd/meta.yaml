@@ -10,12 +10,12 @@ category: ssm
 npu_difficulty: medium
 upstream:
   repo: vllm-project/vllm
-  path: 'vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py'
+  path: vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py
   commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
   file_sha256: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
   function_hash: f9d53e4c7d5044c339880bd46f264365aad99fe901feec9bf15730561bd2f219
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L1_40_chunk_cumsum_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,22 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). Mamba2 chunk cumsum (kernel.py
-  # _chunk_cumsum_fwd_kernel): per head and per logical chunk, dt' =
-  # softplus(dt) (gated) then clamp, and dA_cumsum = cumsum(A * dt') along the
-  # within-chunk axis. Symbol map: T -> dt dim 0 (seqlen, the cumsum extent),
-  # H -> dt dim 1 (nheads == A length == kernel grid head extent), DTSP -> the
-  # `dt_softplus` scalar_knob in [0,1]; dt_bias / dt_limit are absent at the
-  # bound shapes (dt_limit defaults to (0, inf)).
-  # FLOPs (vector): the A*dt' multiply (~1) + the per-chunk cumsum accumulate
-  # (~1) are always done over the T*H tokens -> 2*T*H. The softplus
-  # pre-transform (~5 ops/element: exp, add, log, plus the overflow-safe
-  # branch) runs ONLY when dt_softplus is set -> +5*DTSP*T*H. The per-chunk
-  # padding (chunk_size axis vs the ragged chunk length) is a small constant
-  # overhead folded into the leading factor. Total 2*T*H + 5*DTSP*T*H.
-  # bytes (hbm): read dt[T,H] + A[H], write dt_out + dA_cumsum (each ~T*H live
-  # elements across [H,nchunks,chunk_size]) -> (3*T*H + H) elements; all
-  # float32 primary family -> dtype_size.
   flops: 2*T*H + 5*DTSP*T*H
   flops_class: vector
   bytes: (3*T*H + H) * dtype_size
@@ -80,13 +64,24 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-40
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.1915155084807338e-07
+      P2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.7134813390384807e-07
+    golden_sha256: 2b0a6004646f0f75962472624ddcb7e8bb8f03869ac332fa0ad52ea15526b858
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
-  # dt is [T, H] (T = seqlen, H = nheads); A is [H]. T must exceed
-  # chunk_size (=16) so the derived non-uniform chunk count differs from a
-  # uniform ceil(T/16) split (the cu_chunk_seqlens segmentation is the
-  # load-bearing input); H >= 2 keeps the per-head axis non-degenerate.
   - T > 16
   - H >= 2
   dtypes:

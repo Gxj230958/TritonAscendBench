@@ -58,15 +58,22 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-21
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: sampling_rng
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 6a68920474681a53013554259270a1a5db69074b2d020b98b1b8111529b9d087
+    golden_source: oracle_pytorch_verified
 cost_model:
-  # Symbol audit. Gumbel-max sampler: per (token, vocab) element on the noisy
-  # path the kernel runs a Philox draw (10 rounds of integer mix) + a fp64
-  # double-log gumbel transform + add, then a block argmax. Symbol map:
-  # T -> num_tokens (grid dim 0), V -> vocab_size (the reduced inner axis).
-  # FLOPs (vector): ~20 ops per element for the Philox 4x32-10 round mix and the
-  # -log(-log(u)) transform + temperature divide + max-reduce -> ~20*T*V.
-  # bytes (hbm): read logits[T, V] fp32 (4 bytes); the local_argmax/local_max
-  # partials are O(T * ceil(V/1024)) << T*V -> dominated by the logits read.
   flops: 20*T*V
   flops_class: vector
   bytes: T*V * dtype_size
@@ -104,10 +111,6 @@ param_constraints:
         lo: '0'
         hi: '1024'
   scalars:
-    # Pinned to 1 (True): the shapes drive apply_temperature=True, the richer
-    # path that exercises BOTH temperature scaling and gumbel noise. The
-    # apply_temperature=False branch only skips the scale (noise still applies),
-    # a strict subset of the True path.
     apply_temperature: apply_temperature == 1
   tensor_invariants:
   - type: index_in_range

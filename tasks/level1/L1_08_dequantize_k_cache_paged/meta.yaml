@@ -29,19 +29,6 @@ oracle:
   gpu_triton: kernel.py::dequantize_k_cache_paged
 tolerance_class: elementwise_exact_or_inf_safe
 cost_model:
-  # Paged MLA K-cache dequant (packed). Input quant_k_cache reshapes to
-  # [C, 656] fp8 (C physical cache rows); page_table_1_flattened[B] int64
-  # gathers one physical row per output token. Each gathered 656-byte row
-  # unpacks to nope_q fp8 [.,512] + nope_s fp32-view [.,4] + rope bf16-view
-  # [.,64]; output[B, 1, 576] bf16 = concat(dequant_nope, rope). Only B (the
-  # gathered token count) and C (the physical cache-row count) are free
-  # (656/512/64/128 are structural kernel asserts).
-  # FLOPs (vector): one multiply per nope element over the B gathered rows ->
-  # B*512; rope half is a pure copy (0). The per-row gather index math is O(1).
-  # bytes (hbm): gather B rows of 656 fp8 bytes/token, write 576 bf16 (2B)
-  # per token -> B*656 + B*576*2 K-cache primary-family bytes.
-  # page_table_1_flattened[B] is an int64 index tensor (non-primary, approach
-  # §3.2): B int64 elements -> literal *8, billed separately.
   flops: B*512
   flops_class: vector
   bytes: B*656 + B*576*2 + B*8
@@ -77,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-08
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged K-cache dequant from a single packed fp8 tensor quant_k_cache reshaped to [C, 656] (float8_e4m3fn, C physical cache rows). page_table_1_flattened [B] (int64, indices in [0, C)) gathers one physical row per output token. Each gathered row unpacks by byte reinterpret: nope_q fp8 [.,512], nope_s fp32-view [.,4] (per-128-group scales), rope bf16-view [.,64]. The nope half is per-group dequantised (out[:, j] = nope_q[:, j] * nope_s[:, j // 128]); the rope half is passed through. dim_quant == 656 and group_size == 128 are structural invariants asserted by the kernel.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise_exact_or_inf_safe
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 06ef6720550640889d9990442f260b09f24c5dafff9051f793651c2673f4b092
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

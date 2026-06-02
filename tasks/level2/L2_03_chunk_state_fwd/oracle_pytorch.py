@@ -37,7 +37,8 @@ def _chunk_state_fwd(
     dAc = dA_cumsum.to(torch.float32)
     decay = torch.exp(torch.clamp(dAc[:, -1:] - dAc, max=0.0))   # [C,L]
     w = (decay * dtf).unsqueeze(-1)                          # [C,L,1]
-    return torch.einsum("cln,clp->cnp", Bf * w, xf).to(x.dtype)
+    # states buffer is fp32 (states_in_fp32=True upstream), so keep fp32.
+    return torch.einsum("cln,clp->cnp", Bf * w, xf).to(torch.float32)
 
 
 def run(inputs: dict) -> dict:

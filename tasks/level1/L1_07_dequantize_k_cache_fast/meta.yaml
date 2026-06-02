@@ -29,14 +29,8 @@ oracle:
   gpu_triton: kernel.py::_dequantize_k_cache_fast
 tolerance_class: elementwise_exact_or_inf_safe
 cost_model:
-  # MLA K-cache dequant (packed). Input quant_k_cache[B, 656] fp8 unpacks to
-  # nope_q fp8 [B,512] + nope_s fp32-view [B,4] + rope bf16-view [B,64]; output
-  # [B, 576] bf16 = concat(dequant_nope, rope). Only B is free (656/512/64/128
-  # are structural kernel asserts).
-  # FLOPs (vector): one multiply per nope element -> B*512; rope is a copy (0).
   flops: B*512
   flops_class: vector
-  # bytes (hbm): read 656 fp8 bytes/token, write 576 bf16 (2B) per token.
   bytes: B*656 + B*576*2
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
@@ -70,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-07
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Dequantises the MLA K cache from a single packed fp8 row quant_k_cache [B, 656] (float8_e4m3fn). Internally unpacked by byte reinterpret: nope_q fp8 [B, 512], nope_s fp32-view [B, 4] (per-128-group scales), rope bf16-view [B, 64]. The nope half is per-group dequantised (out[:, j] = nope_q[:, j] * nope_s[:, j // 128]); the rope half is passed through. dim_quant == 656 and group_size == 128 are structural invariants asserted by the kernel.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise_exact_or_inf_safe
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: d17e6ba2a3f26fd602872e587c9e4438027e88d43151dd5896e9052f81c9d5b6
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

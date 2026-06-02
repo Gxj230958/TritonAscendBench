@@ -29,16 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). `_fwd_kernel_ep_scatter_1` builds the
-  # DeepGEMM contiguous-group layout: from num_recv_tokens_per_expert[E] it
-  # writes expert_start_loc[E] (padded exclusive prefix sum) and fills
-  # m_indices[M_sum] with expert ids (-1 padding). Symbol map: E -> number of
-  # experts (grid extent, num_recv_tokens_per_expert dim 0), M_sum ->
-  # sum_e round_up_128(counts[e]) (the m_indices length the kernel fills).
-  # FLOPs (vector): only the per-expert cumsum + round-up — O(E) integer ops,
-  # reported as the small constant E. Dominant cost is the m_indices writes.
-  # bytes (hbm): read counts[E] (int32 -> 4*E) + write expert_start_loc[E]
-  # (int32 -> 4*E) + write m_indices[M_sum] (int32 -> 4*M_sum).
   flops: E
   flops_class: vector
   bytes: 8*E + 4*M_sum
@@ -74,12 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-26
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2).
-# `_fwd_kernel_ep_scatter_1` consumes num_recv_tokens_per_expert[E] (per-expert
-# token counts, non-negative ints) and produces the DeepGEMM contiguous-group
-# layout: expert_start_loc[E] = exclusive prefix sum of round_up_128(counts),
-# and m_indices[M_sum] filled with expert ids (-1 on padding rows). The launcher
-# allocates both outputs (candidate_inplace); M_sum = sum_e round_up_128(counts[e]).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: e50d03bad968f017d2172c574b22856370f30355ee521bb11195d014c30ebea0
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

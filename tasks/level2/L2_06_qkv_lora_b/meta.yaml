@@ -29,29 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Fused QKV LoRA-B expand (oracle
-  # _qkv_lora_b, kernel _qkv_lora_b_kernel): packs 3 sgemms (Q/K/V) into
-  # one launch — for each segment and each slice j in {0,1,2},
-  # out[seg, n_offs[j]:n_offs[j+1]] += scaling[adapter] *
-  # (x[seg, j*K:j*K+K] @ qkv_lora_b[adapter, n_offs[j]:n_offs[j+1], :K]^T),
-  # K = min(r, rank[adapter]). shapes.yaml: x is [B, 3*G] (B token rows,
-  # 3 LoRA-A slices each G=max-rank columns), qkv_lora_b (LoRA B) is
-  # [E, 3*N, G] (E adapters, output_dim = 3*N with per-slice dim N, G
-  # rank), output is [B, 3*N]. Each slice's per-segment matmul is
-  # [seg_len, r] @ [r, N]. Analytic GEMM dims summed over all segments
-  # AND 3 slices: M = B (total tokens), K = G (rank, contracted dim =
-  # x slice width = weights dim 2), N per slice = N, slices = 3. Symbol
-  # map: B -> token rows (GEMM M), G -> LoRA rank (GEMM K), N -> per-slice
-  # output_dim (GEMM N), E -> adapter count (weights dim 0, index-vector
-  # length).
-  # FLOPs (cube): 3 slices * 2*B*G*N = 6*B*G*N (2 = multiply + accumulate).
-  # The per-output scaling multiply is negligible vs the GEMM, folded in.
-  # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
-  # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [B,3*G] + weights [E,3*N,G], write output [B,3*N];
-  # all float32 primary family -> dtype_size. Auxiliary tensors at
-  # literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
-  # int64 *8, lora_ranks [E] int64 *8, scalings [E] float32 *4.
   flops: 6*B*G*N
   flops_class: fp16_cube
   bytes: (B*3*G + E*3*N*G + B*3*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4
@@ -87,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-06
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). QKV LoRA-B GEMM: per-segment LoRA-B projection of the fused QKV slice. seg_indptr [E+1] is the monotonic per-expert segment offsets vector; weight_indices [E] selects the LoRA weight slab (index in [0, E)); lora_ranks [E] is the per-expert rank.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: cea137c8cd6505fab91a5b52efdc56414f3e4e50d7dd8c963f821aabc02b1613
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

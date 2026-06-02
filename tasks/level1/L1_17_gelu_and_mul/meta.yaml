@@ -20,7 +20,6 @@ upstream:
 interface:
   alias_map: {}
   mutability: unspecified
-  # Wrapper returns (out, out_scales); only the gelu output (index 0) is graded.
   output_projection:
     arity: 2
     map:
@@ -69,6 +68,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-17
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 7c6598e145a0fd9100b4184b914abbae7b4bea273523031abc1e830f661557f2
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

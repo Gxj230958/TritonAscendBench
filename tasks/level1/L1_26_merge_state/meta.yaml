@@ -65,16 +65,20 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L1-26
   golden:
-    # Re-authored oracle (kernel-exact +inf->-inf drop / both-inf->NaN)
-    # plus randn_inf LSE inputs. The prior VERIFIED was captured against
-    # the old nan_to_num oracle on plain-randn inputs (no +inf ever
-    # generated), so it never exercised the empty-split branch -- it is
-    # tautological for the inf semantics. Demoted pending a real GPU
-    # equivalence recapture via apply_oracle_equivalence_verdict.py.
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: '2026-05-31T00:00:00Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: elementwise
-    golden_source: fallback_to_gpu_capture_pending
+    golden_source: oracle_pytorch_verified
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.1920928955078125e-07
+        max_rel: 3.345404593346757e-06
+      P2:
+        status: VERIFIED
+        max_abs: 0.000244140625
+        max_rel: 0.007692307699471712
+    golden_sha256: 0db3a4a17d131a47e06f154e36a11f5fd217e623f9d5d6f1f5aa461eac234777
 param_constraints:
   scaffold: false
   dims:

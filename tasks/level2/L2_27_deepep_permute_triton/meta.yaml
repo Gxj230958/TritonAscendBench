@@ -29,17 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). DeepEP dispatch permute: replicate each token
-  # to its topk destination slots, out[src2dst[i*topk + j]] = x[i] — a local
-  # tensor reorder (no cross-rank traffic, so bytes_resource is hbm per
-  # approach §3.2). Symbol map: B -> n_tokens (x dim 0, kernel grid extent),
-  # D -> x dim 1 (the per-row copy width); topk is a scalar literal (2), so
-  # src2dst has B*topk = B*2 entries and the output is [B*2, D].
-  # FLOPs (vector): pure scatter/copy, no arithmetic at all -> reported as the
-  # small constant 2*B (one address computation per replicated slot).
-  # bytes (hbm): read x[B,D] (B*D), write the replicated output[B*2,D] (2*B*D)
-  # -> 3*B*D float32 at dtype_size; the int64 src2dst[B*2] uses literal *8 ->
-  # 16*B.
   flops: 2*B
   flops_class: vector
   bytes: 3*B*D*dtype_size + 16*B
@@ -75,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-27
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). DeepEP token permute: x [n_tokens, D] is gathered into the expert-major layout via src2dst [n_tokens*topk] (a permutation). topk is the routed-expert count per token.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: aec4f939d246c37b7b343094457d8e4bedfcad5d6fb4794bf76201c917e97419
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

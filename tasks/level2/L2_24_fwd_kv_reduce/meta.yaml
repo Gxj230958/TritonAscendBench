@@ -17,21 +17,7 @@ upstream:
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_24_fwd_kv_reduce_18f6bf5.py
-  known_kernel_bug: true  # cross-block decay off-by-one; never promote to VERIFIED
-  # BLOCKED: upstream-kernel-bug. The frozen vLLM kernel has an off-by-one in
-  # the cross-block decay. Host k_decay (kernel.py:444-445) is
-  # array = arange(0,BLOCK)+1 ; exp(-s*(BLOCK-array)) = exp(-s*(BLOCK-r-1)),
-  # so a query at global pos t attending a cross-block key at pos s gets total
-  # decay exp(-s*((t-s)-1)) -- one step short. The canonical OpenNLPLab
-  # lightning-attn2 _fwd_kernel uses k_trans_decay = exp(-s*(BLOCK-off_block))
-  # with off_block = arange(0,BLOCK) (no +1), giving exp(-s*(t-s)); the kernel's
-  # OWN diagonal stage (kernel.py:118-122) also uses exp(-s*(t-s)) within block.
-  # The oracle (oracle_pytorch.py:35, exp(-slope*(t-s))) is the correct, self-
-  # consistent convention matching canonical upstream + the diagonal stage; it
-  # is NOT corrupted to mirror the kernel. Cross-block error is localized at
-  # block boundaries (probe: ~1.1 abs at first cross-block query, ~1e-7 within
-  # block) and is absorbed only by attention_flash tolerance -> false pass.
-  # Ref: OpenNLPLab/lightning-attention lightning_attn/ops/triton/lightning_attn2.py.
+  known_kernel_bug: true
 interface:
   alias_map: {}
   mutability: unspecified
@@ -44,32 +30,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Lightning-attention prefill (decay-weighted
-  # linear attention): o[t] = sum_{s<=t} decay^(t-s) (q_t.k_s) v_s. The
-  # graded operator is oracle_pytorch._lightning_kv's full prefill output
-  # [B,H,L,D]; this task's kernel-under-test _fwd_kv_reduce is the
-  # cross-block prefix-sum reduce stage (block_decay*kv_pre + kv_cur). The
-  # cost model states the full operator the task benchmarks. shapes.yaml
-  # binds: B -> batch (q/k/v dim 0), H -> n_heads (q/k/v dim 1, slope dim 0),
-  # L -> sequence length (q/k/v dim 2, oracle indices l & s), D -> head dim
-  # (q/k/v dim 3, the kernel d/e feature axes).
-  # Causal faithfulness: this operator is ALWAYS causal-prefix — there is
-  # no CAUSAL knob in shapes.yaml. The oracle accumulates only s <= t
-  # (mask = t[:,None] >= t[None,:]) and the kernel's diagonal stage loops
-  # `for j in range(i+1)` (causal-prefix sub-blocks only), so the score
-  # work is the inclusive causal lower triangle, NOT the dense [L,L]
-  # grid. The active score-entry count per (b,h) is therefore the
-  # triangular sum L*(L+1)/2 (t >= s), not L*L.
-  # Mixed compute -> map form. FLOPs(fp16_cube): sc = einsum("bhld,bhsd->
-  # bhls", q, k) contracts D and out = einsum("bhls,bhsd->bhld",
-  # sc*decay, v) contracts the score axis -> per active causal score
-  # entry 4*D fused mul-add FLOPs; over B*H -> 4*B*H*D*L*(L+1)/2.
-  # float32 operands run on the 910B Cube unit, peak_table exposes no
-  # fp32 cube class so cube matmul is keyed to fp16_cube.
-  # FLOPs(vector): decay = exp(-slope*dist) is ~3 ops over the causal
-  # score entries, sc*decay is 1 mul -> 4*B*H*L*(L+1)/2.
-  # bytes(hbm): read q/k/v [B,H,L,D] + slope [H], write output [B,H,L,D];
-  # all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 4*B*H*D*L*(L+1)/2
     vector: 4*B*H*L*(L+1)/2
@@ -106,7 +66,23 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-24
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Lightning-attention KV reduce pass: q/k/v [B, H, L, D] with a per-head decay slope [H]. fp32.
+  golden:
+    oracle_kernel_equivalence: BLOCKED_UPSTREAM_BUG
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        max_abs: 19.416406631469727
+        max_rel: 1187.3551025390625
+        blocker: 'output: atol/rtol: max_abs=19.4, max_rel=1.19e+03 (max_abs=19.416406631469727,
+          max_rel=1187.3551025390625, tol=attention_flash atol=0.005 rtol=0.001)'
+      P2:
+        status: FAILED
+        max_abs: 0.15634918212890625
+        max_rel: 109.09911346435547
+        blocker: 'output: atol/rtol: max_abs=0.156, max_rel=109 (max_abs=0.15634918212890625,
+          max_rel=109.09911346435547, tol=attention_flash atol=0.005 rtol=0.001)'
 param_constraints:
   scaffold: false
   dims:

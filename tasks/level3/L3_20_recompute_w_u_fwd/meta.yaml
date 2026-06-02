@@ -66,16 +66,25 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-20
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: null
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:54Z'
     tolerance_class_used: cube_matmul_fp16
-    equivalence_per_shape: {}
-    golden_source: oracle_reauthored_pending_gpu
-    notes: 'shapes.yaml + oracle_pytorch.py re-authored to the frozen kernel''s
-      head-structured, block-diagonal (per-BT-chunk) contract: k[B,L,H//2,D],
-      v[B,L,H,Dv], beta/g_cumsum[B,L,H], A[B,L,H,C] (local within-chunk column).
-      Oracle cross-checked against a literal make_block_ptr transcription of the
-      kernel (rel err ~1e-7, elementwise). Final GPU equivalence pending.'
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 8.314847946166992e-06
+        max_rel: 0.0006845564348623157
+      P2:
+        status: VERIFIED
+        max_abs: 0.004530906677246094
+        max_rel: 0.1014396920800209
+    golden_source: oracle_pytorch_verified
+    notes: 'shapes.yaml + oracle_pytorch.py re-authored to the frozen kernel''s head-structured,
+      block-diagonal (per-BT-chunk) contract: k[B,L,H//2,D], v[B,L,H,Dv], beta/g_cumsum[B,L,H],
+      A[B,L,H,C] (local within-chunk column). Oracle cross-checked against a literal
+      make_block_ptr transcription of the kernel (rel err ~1e-7, elementwise). Final
+      GPU equivalence pending.'
+    golden_sha256: cef7734493dc629a8b8148da59be820ef83126f7a25ca4e3bc96fa40b9c72505
 param_constraints:
   scaffold: false
   dims:
@@ -87,10 +96,6 @@ param_constraints:
   - C in {16, 32, 64}
   - L % C == 0
   - H % 2 == 0
-  # C (= chunk size BT) is the kernel's tl.dot contraction/tiling constant;
-  # Triton requires it to be a power of two and >= 16 (tensor-core MMA tile
-  # minimum), and upstream pins FLA_CHUNK_SIZE = 64. A non-pow2 / < 16 chunk
-  # size is an invalid kernel call (real-GPU CompilationError "K >= 16").
   dtypes:
     k: float32
     v: float32
@@ -109,7 +114,4 @@ param_constraints:
     A:
       kind: randn
   scalars: {}
-  # Layouts (k[B,L,H//2,D], v[B,L,H,Dv], beta/g_cumsum[B,L,H], A[B,L,H,C])
-  # are enforced structurally by shapes.yaml.inputs.dims; tensor_invariants
-  # carries only value-domain predicates, of which this op has none.
   tensor_invariants: []

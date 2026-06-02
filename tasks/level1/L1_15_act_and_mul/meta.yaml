@@ -29,16 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Fused activation-and-multiply gate: split the
-  # last dim into gate/up halves, output = act(gate) * up. One program per row.
-  # Symbol map: B -> x rows (x dim 0, kernel grid extent), D -> x dim 1 (full
-  # inner axis); the output is [B, D//2] since the gate splits D in half. act
-  # is a scalar literal selecting silu (default).
-  # FLOPs (vector): per output element silu(gate) = gate/(1+exp(-gate)) ~ neg +
-  # exp + add + recip + mul ~= 5, then the gate `* up` is 1 mul -> ~6 ops; over
-  # B*(D//2) output elements -> 6*B*(D//2) = 3*B*D.
-  # bytes (hbm): read x[B,D], write output[B,D//2] -> (B*D + B*D/2) =
-  # 3*B*D/2 elements; float32 primary family -> dtype_size.
   flops: 3*B*D
   flops_class: vector
   bytes: 3*B*D/2 * dtype_size
@@ -74,12 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-15
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SGLang
-# act_and_mul_kernel (MoE down-proj gate), unsorted routing path: gateup_output
-# [B, D] is split on the last axis into gate/up halves (output [B, D//2] =
-# act(gate)*up); topk_ids [B] is the per-token expert assignment, with -1 = a
-# dropped token whose output row the kernel leaves untouched (zeroed). act names
-# the activation; the oracle covers silu/gelu/relu.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 6d5ab2d55fc946a93b2d93800e9612367e998f9a731451d8617e81d8954f0c64
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

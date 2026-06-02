@@ -29,21 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Repetition + frequency + presence penalties:
-  # per (token, vocab) gather the request's counts/prompt-mask, apply the
-  # repetition scale (logit/rp or logit*rp), then subtract additive frequency
-  # and presence terms. One program per token row. Symbol map: B -> n_tokens
-  # (logits dim 0, kernel grid extent), N -> vocab size (logits dim 1, the
-  # per-row elementwise extent), E -> n_reqs (counts/mask/penalty rows).
-  # FLOPs (vector): per element ~ seen test (~1), repetition where(div, mul)
-  # (~3), frequency `- fp*counts` (~2), presence `- pp*(counts>0)` (~2) ->
-  # ~8*B*N.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 logits -> dtype_size; read+write logits[B,N] -> 2*B*N, gather
-  # output_token_counts to [B,N] -> +B*N float32 at dtype_size -> 3*B*N. The
-  # int64 prompt_bin_mask gathered to [B,N] uses literal *8 -> 8*B*N; the int64
-  # expanded_idx_mapping[B] -> 8*B; the three float32 penalty vectors[E] ->
-  # literal *4 -> 12*E.
   flops: 8*B*N
   flops_class: vector
   bytes: 3*B*N*dtype_size + 8*B*N + 8*B + 12*E
@@ -79,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-23
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies repetition/frequency/presence penalties to logits [B, N] (this frozen _penalties_kernel has no temperature term despite the task name). Routed per-request via expanded_idx_mapping [B] (request id in [0, E)), window-constant per length-4 draft window. Per-row draft tokens (token_ids [B], expanded_local_pos [B]) are scanned into the generated counts. Penalties / counts / prompt-mask are per-request [E] / [E, N].
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 2.384185791015625e-07
+        max_rel: 5.812128620164003e-06
+      P2:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 5.727376992581412e-05
+    golden_sha256: 049b325f04bf6a33aa8d5a3137c377d4ad36d41c84df52c3567320d9c3161e1a
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

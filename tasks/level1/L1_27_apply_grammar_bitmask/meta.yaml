@@ -29,14 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: sampling_rng
 cost_model:
-  # Constrained decoding: bitmask row i masks logits[logits_indices[i]],
-  # zeroing (-> -inf) vocab positions whose bit is 0. One program per bitmask
-  # row. B -> n_tokens (logits dim 0), N -> vocab (logits dim 1), E ->
-  # num_masks (bitmask dim 0, == len(logits_indices), each -> a logits row).
-  # FLOPs: pure bit extraction + -inf masking, no float arithmetic; reported as
-  # the small constant 2*E. Dominant cost is bytes (hbm), primary family float32
-  # logits: read+write logits[B,N] -> 2*B*N; int32 logits_indices[E] -> 4*E;
-  # int32 bitmask[E,N/32+1] -> 4*E*(N/32+1).
   flops: 2*E
   flops_class: vector
   bytes: 2*B*N*dtype_size + 4*E + 4*E*(N/32+1)
@@ -72,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-27
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Applies a structured-decoding grammar bitmask to logits [B, N]. bitmask [E, N//32+1] packs 32 vocab bits per int word; logits_indices [E] maps each bitmask row to its logits row (values in [0, B), E <= B).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: sampling_rng
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: .nan
+        max_rel: .nan
+      P2:
+        status: VERIFIED
+        max_abs: .nan
+        max_rel: .nan
+    golden_sha256: 89a9be3f20c6cf6d6957150713452fd376a962cdc8ddf26ec095b0305d860c6f
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

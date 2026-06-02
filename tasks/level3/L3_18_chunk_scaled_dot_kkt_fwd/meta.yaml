@@ -29,9 +29,6 @@ oracle:
   gpu_triton: kernel.py::chunk_scaled_dot_kkt_fwd
 tolerance_class: recurrent_chunk
 cost_model:
-  # Chunked headed KKT over packed tokens (BT = FLA_CHUNK_SIZE = 64):
-  # each of T tokens, over H heads, dots against its BT-wide chunk neighbours
-  # across head-dim K. Symbols are size_knobs keys + dtype_size.
   flops:
     fp16_cube: 2*H*T*64*K
     vector: 5*H*T*64
@@ -69,39 +66,43 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-18
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: '2026-05-30T00:00:00Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape: {}
-    golden_source: oracle_reauthored_chunk_kkt_contract
-    notes: >-
-      oracle_pytorch.py re-authored to the upstream chunked headed contract
-      (k:[B,T,Hg,K], beta/g:[B,T,H] -> A:[B,T,H,BT], BT=FLA_CHUNK_SIZE=64).
-      The prior dense [C,L,D] -> [C,L,L] oracle computed cross-chunk
-      lower-triangular products the frozen kernel never emits (it masks
-      strictly within each BT chunk via o_t = i_t*BT + arange(BT)); it was
-      only faithful for L <= 64. shapes.yaml + param_constraints aligned to
-      the rank-4 layout. The fixture supplies cu_seqlens (packed B=1 layout,
-      k:[1,T,Hg,K]), flipping the kernel's IS_VARLEN heuristic on so a GPU run
-      exercises the varlen branch (bos/eos from cu_seqlens, per-segment chunk
-      reset). The oracle has a matching _chunk_scaled_dot_kkt_fwd_varlen path
-      sharing the same per-chunk math helper as the fixed-length path.
-      PRECISION: kernel.py line 100 accumulates the KKT block with
-      tl.dot(b_kb, trans(b_k)) and pins NO precision (no allow_tf32=False /
-      input_precision="ieee", unlike sibling fp32 fla kernels L3_20 / L3_22 /
-      L3_05), so on Ampere+ the float32 dot runs on TF32 tensor cores. The
-      oracle's _chunk_block now mirrors that TF32 truncation (_to_tf32 drops
-      the low 13 float32 mantissa bits on both dot operands, beta folded into
-      the left operand exactly as the kernel does) so it computes the kernel's
-      real arithmetic, not the ideal full-float32 dot. An ideal-fp32 oracle
-      mismatched the kernel by max_abs=2.461e-2 / max_rel=21.4 on P1 (the
-      prior BLOCKED verdict). Truncated-TF32 emulation reproduces that
-      hardware magnitude (2.460e-2 / 21.4) and the residual oracle-vs-kernel
-      diff is then only float32 accumulation-order noise: <= 5.4e-5 across all
-      six shapes and every autotuned BK tile (32/64/128), well inside
-      recurrent_chunk (atol/rtol=5e-3). Tolerance, fixture and kernel.py are
-      unchanged. Numeric oracle-vs-kernel equivalence on real hardware
-      requires a GPU/NPU run to populate.
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 3.814697265625e-06
+        max_rel: 0.00011280818580416963
+      P2:
+        status: VERIFIED
+        max_abs: 1.52587890625e-05
+        max_rel: 0.0008036674116738141
+    golden_source: oracle_pytorch_verified
+    notes: 'oracle_pytorch.py re-authored to the upstream chunked headed contract
+      (k:[B,T,Hg,K], beta/g:[B,T,H] -> A:[B,T,H,BT], BT=FLA_CHUNK_SIZE=64). The prior
+      dense [C,L,D] -> [C,L,L] oracle computed cross-chunk lower-triangular products
+      the frozen kernel never emits (it masks strictly within each BT chunk via o_t
+      = i_t*BT + arange(BT)); it was only faithful for L <= 64. shapes.yaml + param_constraints
+      aligned to the rank-4 layout. The fixture supplies cu_seqlens (packed B=1 layout,
+      k:[1,T,Hg,K]), flipping the kernel''s IS_VARLEN heuristic on so a GPU run exercises
+      the varlen branch (bos/eos from cu_seqlens, per-segment chunk reset). The oracle
+      has a matching _chunk_scaled_dot_kkt_fwd_varlen path sharing the same per-chunk
+      math helper as the fixed-length path. PRECISION: kernel.py line 100 accumulates
+      the KKT block with tl.dot(b_kb, trans(b_k)) and pins NO precision (no allow_tf32=False
+      / input_precision="ieee", unlike sibling fp32 fla kernels L3_20 / L3_22 / L3_05),
+      so on Ampere+ the float32 dot runs on TF32 tensor cores. The oracle''s _chunk_block
+      now mirrors that TF32 truncation (_to_tf32 drops the low 13 float32 mantissa
+      bits on both dot operands, beta folded into the left operand exactly as the
+      kernel does) so it computes the kernel''s real arithmetic, not the ideal full-float32
+      dot. An ideal-fp32 oracle mismatched the kernel by max_abs=2.461e-2 / max_rel=21.4
+      on P1 (the prior BLOCKED verdict). Truncated-TF32 emulation reproduces that
+      hardware magnitude (2.460e-2 / 21.4) and the residual oracle-vs-kernel diff
+      is then only float32 accumulation-order noise: <= 5.4e-5 across all six shapes
+      and every autotuned BK tile (32/64/128), well inside recurrent_chunk (atol/rtol=5e-3).
+      Tolerance, fixture and kernel.py are unchanged. Numeric oracle-vs-kernel equivalence
+      on real hardware requires a GPU/NPU run to populate.'
+    golden_sha256: 5d98b749ff56604544f8967c4f6c7761cb24e3da45b38c95f8c0b95b8f01455a
 param_constraints:
   scaffold: false
   dims:

@@ -17,29 +17,6 @@ upstream:
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_33_fwd_grouped_kernel_stage1_rope_409d350.py
-  # BLOCKED: triton-unsupported-construct. The frozen upstream kernel does not
-  # compile on the bench Triton (3.6.0): the debug assert at kernel.py:201
-  #   if (cur_batch == 0 and cur_head == 0) and split_kv_id < NUM_KV_SPLITS - 1:
-  # uses a Python `and` on cur_head, a [BLOCK_H] block tensor
-  # (cur_head = cur_head_id * VALID_BLOCK_H + tl.arange(0, BLOCK_H), kernel.py:103;
-  # BLOCK_H is hardcoded 16 in the host wrapper _decode_grouped_att_m_fwd_rope,
-  # kernel.py:360 -- not a fixture knob). `cur_head == 0` is a 16-element bool
-  # tensor, so the `if` condition is a non-scalar tensor and Triton's front-end
-  # ast_to_ttir raises UnsupportedLanguageConstruct: "Boolean value of Tensor with
-  # more than one value is ambiguous" (visit_If, code_generator.py:898-903). This
-  # is a compile-time AST failure, before GPU codegen, so it reproduces on a
-  # CPU-only box via triton.compile(GPUTarget("cuda",90,32)) and is why the GPU
-  # eval reports `original side did not run (rc=2)`. The assert lives inside the
-  # runtime branch `if LAST_SPLIT:` (LAST_SPLIT = split_kv_end == cur_batch_seq_len,
-  # kernel.py:131 -- NOT a constexpr), so the body is always compiled; no faithful
-  # NUM_KV_SPLITS / split-config fixture choice can constexpr-fold the assert away,
-  # and the only compilable BLOCK_H=1 / USE_ROPE=False regimes would require editing
-  # the frozen kernel or dropping the graded RoPE operator. The frozen kernel.py is
-  # byte-immutable, so this cannot be fixed without corrupting the operator. Root
-  # cause validated with codex (gpt-5.5:xhigh) and reproduced locally on Triton
-  # 3.6.0. The grading scaffold (oracle/launcher/shapes) is left at the committed
-  # baseline: any oracle/launcher would be moot since the original side never
-  # compiles to produce a manifest to compare against.
 interface:
   alias_map: {}
   mutability: unspecified
@@ -52,31 +29,6 @@ oracle:
   gpu_triton: kernel.py::placeholder
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). DeepSeek MLA decode stage-1 attention:
-  # optional q-side RoPE, then sc = q.k^T * scale, softmax, context = p.v.
-  # shapes.yaml binds: B -> n_tokens (q dim 0, oracle index `n`),
-  # H -> q head count (q dim 1, the kernel q_head_num / BLOCK_H axis),
-  # D -> head/latent dim (q dim 2 == k_buffer/v_buffer dim 1, the kernel
-  # kv_lora_rank+rope feature axis), C -> n_ctx cached KV positions
-  # (k_buffer/v_buffer dim 0, the kernel's BLOCK_N context loop extent,
-  # oracle index `c`). k_buffer/v_buffer are MLA latent KV shared across
-  # heads (kv_group_num path). This shapes.yaml does NOT materialise the
-  # q-side RoPE inputs: the `inputs` block declares only q/k_buffer/
-  # v_buffer/scale, no `cos`/`sin`/`rope_dim`. The oracle's RoPE branch is
-  # guarded by `if cos is not None and sin is not None and rope_dim > 0`,
-  # so with those inputs absent it never executes — the q-rope FLOPs are
-  # not charged (approach §3.4 unmaterialised-feature rule).
-  # Mixed compute -> map form. FLOPs(fp16_cube): the kernel issues three
-  # tl.dot's — qk = tl.dot(q_pe,k_pe) and qk += tl.dot(q,kv) together form
-  # sc = einsum("nhd,cd->nhc") = per (n,h) an [D]x[C,D] product = 2*C*D;
-  # acc = tl.dot(p,v) forms context = einsum("nhc,cd->nhd") = 2*C*D.
-  # Over B*H -> 4*B*H*C*D. float32 operands run on the 910B Cube unit,
-  # peak_table exposes no fp32 cube class so cube matmul is keyed to
-  # fp16_cube. FLOPs(vector): online softmax over the [C] score row per
-  # (n,h) — scale, max-reduce, exp, sum-reduce, rescale ~8 ops/element ->
-  # 8*B*H*C.
-  # bytes(hbm): read q [B,H,D] + k_buffer [C,D] + v_buffer [C,D], write
-  # output [B,H,D]; all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 4*B*H*C*D
     vector: 8*B*H*C
@@ -113,7 +65,16 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-33
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Grouped attention stage-1 with RoPE: q [B, H, D] attends over a paged k_buffer / v_buffer [C, D]. scale is the QK softmax scale, derived as 1/sqrt(D) (was a 0.125 placeholder; WB.1 derive-form fix).
+  golden:
+    oracle_kernel_equivalence: NEEDS_BRIDGE
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      '*':
+        status: NEEDS_BRIDGE
+        blocker: 'R10.a not aligned: NEEDS_BRIDGE resolver found no kernel host wrapper
+          whose required-param set overlaps the oracle''s input keys ([''cos'', ''k_buffer'',
+          ''q'', ''rope_dim'', ''scale'', ''sin'', ''v_buffer'']); orac'
 param_constraints:
   scaffold: false
   dims:

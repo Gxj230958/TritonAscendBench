@@ -29,25 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
-  # Symbol audit (approach §3.4). Per-expert batched GEMM (the moe_mmk
-  # matmul-K inner kernel): out[e,:m] = a[e,:m] @ b[e]^T with
-  # m = expert_num_tokens[e]. shapes.yaml binds: E -> n_experts (a/b
-  # dim 0, expert_num_tokens length, the oracle's `for e in range(E)`
-  # loop), T -> max_tok (a dim 1, the GEMM M rows; expert_num_tokens is
-  # randint:0:T so the valid token count m<=T, T is the dense bound),
-  # D -> hidden_dim K (a dim 2 == b dim 2, the kernel's K / GEMM
-  # contraction axis), N -> expert output width (b dim 1, the kernel
-  # BLOCK_N axis).
-  # Single compute class -> scalar form. The kernel accumulates the GEMM
-  # with accumulator = tl.dot(a, b) over the K loop; this is a plain
-  # per-expert matmul with no epilogue, so flops is single-class cube.
-  # FLOPs(fp16_cube): per expert a[e,:T]@b[e].T = [T,D]@[D,N] = 2*T*N*D
-  # (2 = multiply + accumulate, T dense bound); over E experts ->
-  # 2*E*T*N*D. float32 operands run on the 910B Cube unit, peak_table
-  # exposes no fp32 cube class so cube matmul is keyed to fp16_cube.
-  # bytes(hbm): read a [E,T,D] + b [E,N,D], write output [E,T,N];
-  # float32 primary family -> dtype_size. expert_num_tokens [E] is an
-  # int64 index tensor (non-primary, approach §3.2) -> literal *8.
   flops: 2*E*T*N*D
   flops_class: fp16_cube
   bytes: (E*T*D + E*N*D + E*T*N) * dtype_size + E*8
@@ -83,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-12
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). MoE matmul-K inner kernel: per-expert a [E, T, D] @ b^T [E, N, D] over each expert's expert_num_tokens [E] (token count in [0, T]). fp32.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.1444091796875e-05
+        max_rel: 0.00017945957370102406
+      P2:
+        status: VERIFIED
+        max_abs: 7.62939453125e-05
+        max_rel: 0.0038194647058844566
+    golden_sha256: d6e6b17435080d5de5798284ef3abf6ffd8aaaa08410000eb4e88573767bac33
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

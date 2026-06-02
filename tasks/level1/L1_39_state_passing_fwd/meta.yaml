@@ -64,6 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-39
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 2.227179493274889e-06
+      P2:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 2.0656929336837493e-05
+    golden_sha256: 2d0913fd80bb3892732be72f7f4b0a1606c58cd02c85855f913103d100e46832
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

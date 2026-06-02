@@ -15,7 +15,7 @@ upstream:
   file_sha256: b953102d1e6f5ad56bc3e1ef41f3ffeeb7e548a44859c6e667648e0492eaf349
   function_hash: b953102d1e6f5ad56bc3e1ef41f3ffeeb7e548a44859c6e667648e0492eaf349
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L3_01_kernel_unified_attention_3d_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,36 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). vLLM unified varlen flash attention:
-  # per-sequence SDPA with GQA. shapes.yaml binds: E -> sequence count
-  # (cu_seqlens_q has E+1 entries, seqused_k has E, the oracle's outer
-  # `for i in range(len(cu)-1)` loop), L -> per-sequence length
-  # (cu_seqlens_q is offsets:to=E*L so q/k/v dim 0 = E*L packs E sequences
-  # of length L; seqused_k is full:L so KV length == L, the in-domain
-  # full-causal-prefill regime context_len == 0), H -> head
-  # count (q/k/v dim 1; here Hq == Hk so GQA group g=1, no FLOPs change),
-  # D -> head_dim (q/k/v dim 2, the kernel BLOCK_DMODEL / dot contraction
-  # axis), CAUSAL -> the `causal` scalar_knob in [0,1].
-  # The formula is rebased to the benchmark-active path: shapes.yaml
-  # materialises only q/k/v/cu_seqlens_q/seqused_k plus the scale and
-  # causal scalars — alibi_slopes and softcap are NOT bound, so their
-  # additive-bias / tanh work is not exercised and is not billed here.
-  # Mixed compute -> map form. The score matrix per (sequence,head) is
-  # [L,L] non-causal but the causal lower-triangle keeps only
-  # L*(L+1)/2 entries; the active score-entry count is therefore
-  # (L*L - CAUSAL*L*(L-1)/2) and the work scales with it.
-  # FLOPs(fp16_cube): per (sequence,head) S = tl.dot(Q,K) [QK^T contracts
-  # D] and acc = tl.dot(P,V) [P@V contracts the score axis] -> per active
-  # score entry 4*D fused mul-add FLOPs; over E*H ->
-  # 4*E*H*D*(L*L - CAUSAL*L*(L-1)/2). float32 operands run on the 910B
-  # Cube unit; peak_table exposes no fp32 cube class so cube matmul is
-  # keyed to fp16_cube. FLOPs(vector): online softmax over the active
-  # score entries (scale, max-reduce, exp, sum-reduce, rescale ~8
-  # ops/entry) -> 8*E*H*(L*L - CAUSAL*L*(L-1)/2).
-  # bytes(hbm): read q/k/v [E*L,H,D] + write output [E*L,H,D] ->
-  # 4*E*L*H*D, all float32 primary family -> dtype_size. cu_seqlens_q
-  # [E+1] and seqused_k [E] are int64 index tensors (non-primary,
-  # approach §3.2) -> literal *8.
   flops:
     fp16_cube: 4*E*H*D*(L*L - CAUSAL*L*(L-1)/2)
     vector: 8*E*H*(L*L - CAUSAL*L*(L-1)/2)
@@ -95,8 +65,23 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-01
-  errata_note: "v3.2: upstream renamed/merged kernel_unified_attention_3d \u2192 kernel_unified_attention\
-    \ (single kernel handles 3D and 2D)."
+  errata_note: 'v3.2: upstream renamed/merged kernel_unified_attention_3d → kernel_unified_attention
+    (single kernel handles 3D and 2D).'
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.002302110195159912
+        max_rel: 238.5926055908203
+      P2:
+        status: VERIFIED
+        max_abs: 0.0036935806274414062
+        max_rel: 2133.46826171875
+    golden_sha256: c1f5f52562955488b3d54aa45a73c78022261549dd477a549a019a45912995b1
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
@@ -122,10 +107,6 @@ param_constraints:
       args:
         to: E*L
     seqused_k:
-      # KV length == context_len + query_len (vLLM domain invariant
-      # seqused_k >= query_len). Query span is L and the packed q/k/v carry
-      # exactly L KV positions per sequence, so the only in-domain length is
-      # L (full causal prefill, context_len == 0). See shapes.yaml seqused_k.
       kind: full
       args:
         value: L

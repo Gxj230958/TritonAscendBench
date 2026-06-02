@@ -45,6 +45,9 @@ def _causal_conv1d_update(
     kernel only launches programs for idx_seq < batch and only writes the
     indexed target line). Returns (output [batch, dim], updated full cache).
     """
+    # both outputs (y, rolled conv_state) follow the input dtype; the kernel
+    # rounds its fp32 acc to the bf16 buffers.
+    orig_dtype = x.dtype
     x = x.to(torch.float32)
     conv_state = conv_state.to(torch.float32)
     w = weight.to(torch.float32)                              # [dim, KW]
@@ -53,7 +56,10 @@ def _causal_conv1d_update(
 
     old = conv_state[idx]                                    # [batch, dim, KW-1]
     window = torch.cat([old, x.unsqueeze(-1)], dim=-1)       # [batch, dim, KW]
-    y = (window * w.unsqueeze(0)).sum(dim=-1)                # [batch, dim]
+    # Kernel accumulates `acc += matrix_x * matrix_w` with bf16 operands, so
+    # each tap product is rounded to the input dtype before the fp32 add.
+    prod = (window * w.unsqueeze(0)).to(orig_dtype).to(torch.float32)
+    y = prod.sum(dim=-1)                                     # [batch, dim]
     if bias is not None:
         y = y + bias.to(torch.float32)
     if activation in ("silu", "swish"):
@@ -69,7 +75,7 @@ def _causal_conv1d_update(
         rolled = window[..., 1:]                             # [batch, dim, KW-1]
         new_cache.index_copy_(0, idx, rolled)
 
-    return y.to(torch.float32), new_cache.to(torch.float32)
+    return y.to(orig_dtype), new_cache.to(orig_dtype)
 
 
 def run(inputs: dict) -> dict:

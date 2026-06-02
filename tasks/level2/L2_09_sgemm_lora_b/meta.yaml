@@ -29,25 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
-  # Symbol audit (approach §3.4). Segmented SGMV LoRA-B expand (oracle
-  # _segmented_lora_expand, kernel _sgemm_lora_b_kernel):
-  # out[seg] += scaling[adapter] * (x[seg, :r] @ B[adapter, :, :r]^T).
-  # shapes.yaml: x is [B, G] (B token rows, G = max LoRA rank columns),
-  # weights (LoRA B) is [E, N, G] (E adapters, N output_dim, G rank),
-  # output is [B, N]. Each segment's matmul is [seg_len, r] @ [r, N].
-  # Analytic GEMM dims summed over all segments: M = B (total tokens),
-  # K = G (rank, contracted dim = x dim 1 = weights dim 2), N = N
-  # (output_dim = weights dim 1). Symbol map: B -> token rows (GEMM M),
-  # G -> LoRA rank (GEMM K), N -> output_dim (GEMM N), E -> adapter
-  # count (weights dim 0, index-vector length).
-  # FLOPs (cube): 2*B*G*N (2 = multiply + accumulate). The per-output
-  # scaling multiply is negligible vs the GEMM and folded into it.
-  # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
-  # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [B,G] + weights [E,N,G], write output [B,N];
-  # all float32 primary family -> dtype_size. Auxiliary tensors at
-  # literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
-  # int64 *8, lora_ranks [E] int64 *8, scalings [E] float32 *4.
   flops: 2*B*G*N
   flops_class: fp16_cube
   bytes: (B*G + E*N*G + B*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4
@@ -83,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-09
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Segmented LoRA-B GEMM: per-segment LoRA-B up-projection. seg_indptr [E+1] is the monotonic per-expert segment offsets vector; weight_indices [E] selects the LoRA weight slab (index in [0, E)); lora_ranks [E] is the per-expert rank.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 55cec00a5608ce3097f9b026afc4916266628d81509e6cf87fcbafcfdb76928e
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

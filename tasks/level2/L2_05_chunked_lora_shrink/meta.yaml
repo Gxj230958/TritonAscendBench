@@ -29,24 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
-  # Symbol audit (approach §3.4). Segmented SGMV LoRA-A shrink (oracle
-  # _segmented_lora_shrink, kernel _chunked_lora_shrink_kernel):
-  # out[seg, :r] = x[seg] @ A[adapter, :r, :]^T.
-  # shapes.yaml: x is [B, D] (B token rows, D = input_dim columns),
-  # weights (LoRA A) is [E, G, D] (E adapters, G = max rank, D
-  # input_dim), output is [B, G]. Each segment's matmul is
-  # [seg_len, D] @ [D, r]. Analytic GEMM dims summed over all segments:
-  # M = B (total tokens), K = D (input_dim, contracted dim = x dim 1 =
-  # weights dim 2), N = G (LoRA rank = weights dim 1). Symbol map:
-  # B -> token rows (GEMM M), D -> input_dim (GEMM K), G -> LoRA rank
-  # (GEMM N), E -> adapter count (weights dim 0, index-vector length).
-  # FLOPs (cube): 2*B*D*G (2 = multiply + accumulate).
-  # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
-  # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [B,D] + weights [E,G,D], write output [B,G];
-  # all float32 primary family -> dtype_size. Auxiliary tensors at
-  # literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
-  # int64 *8, lora_ranks [E] int64 *8.
   flops: 2*B*D*G
   flops_class: fp16_cube
   bytes: (B*D + E*G*D + B*G) * dtype_size + (E+1)*8 + E*8 + E*8
@@ -82,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-05
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Chunked LoRA shrink: per-segment x is matmul'd by the selected LoRA-A weight. seg_indptr [E+1] is the monotonic per-expert segment offsets vector; weight_indices [E] selects the LoRA weight slab (index in [0, E)); lora_ranks [E] is the per-expert rank.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: cd265d14ee316d5dcb1eba130459b0b1d846f188026bb1b1725429514a399047
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

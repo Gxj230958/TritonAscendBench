@@ -76,7 +76,8 @@ def _unified_attention(
                 sc = sc.masked_fill(ki > qi, float("-inf"))
             p = _softmax(sc, dim=-1)
             out[s:e, h] = p @ vf[s:s + Lk, hk]
-    return out.to(q.dtype)
+    # kernel writes a fp32 output buffer; bf16 q/k/v do not downcast the result.
+    return out.to(torch.float32)
 
 
 def run(inputs: dict) -> dict:

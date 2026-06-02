@@ -24,12 +24,6 @@ interface:
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
-  # The host wrapper merge_attn_states(...) returns None and writes its
-  # results in place into `output` and `output_lse`; prefix_*/suffix_* are
-  # read-only inputs. The oracle-consistency anchor harvests ONLY these
-  # declared in-place buffers as candidate outputs (without it, the harvest
-  # echoes every bound tensor input and the untouched read-only inputs trip
-  # the strict extra-output structure check).
   inplace_outputs:
   - output
   - output_lse
@@ -74,15 +68,24 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L1-25
   golden:
-    oracle_kernel_equivalence: PENDING
+    oracle_kernel_equivalence: VERIFIED
     tolerance_class_used: attention_flash
-    note: >-
-      Oracle re-authored to the upstream [NUM_HEADS, NUM_TOKENS] LSE layout
-      and [NUM_TOKENS, NUM_HEADS, HEAD_SIZE] output contract; shapes.yaml
-      LSE tensors transposed to match. Awaiting GPU re-capture of
-      oracle/kernel equivalence (prior FAILED verdict was against the
-      transposed-LSE oracle and is no longer valid).
-    golden_source: fallback_to_gpu_capture_pending
+    note: Oracle re-authored to the upstream [NUM_HEADS, NUM_TOKENS] LSE layout and
+      [NUM_TOKENS, NUM_HEADS, HEAD_SIZE] output contract; shapes.yaml LSE tensors
+      transposed to match. Awaiting GPU re-capture of oracle/kernel equivalence (prior
+      FAILED verdict was against the transposed-LSE oracle and is no longer valid).
+    golden_source: oracle_pytorch_verified
+    verified_at: '2026-06-02T05:56:53Z'
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 2.384185791015625e-07
+        max_rel: 8.94666470685479e-07
+    golden_sha256: 9b88d958e11f429929e1dc6583c48921f3bfebc5d26739d5cedc148a11275f05
 param_constraints:
   scaffold: false
   dims:

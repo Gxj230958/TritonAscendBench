@@ -29,27 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: recurrent_chunk
 cost_model:
-  # Symbol audit (approach §3.4). Gated DeltaNet recurrent update fwd
-  # (token-by-token): S_t = exp(g_t)*S_{t-1} + beta_t*k_t^T(v_t -
-  # k_t*S_{t-1}); o_t = scale*q_t*S_t. shapes.yaml binds: B -> batch
-  # (q/k/v/g/beta dim 0), T -> sequence length (q/k/v dim 1, g/beta
-  # dim 1, the kernel's `for _ in range(0,T)` loop), H -> head count
-  # (q/k/v dim 2, g/beta dim 2), D -> head dim (q/k/v dim 3; the oracle's
-  # state S is [B,H,D,Dv] with Dv = v.shape[-1] = D, so both state axes
-  # are the D knob).
-  # Single compute class -> scalar form. The kernel does the [D]x[D,D]
-  # state matvecs with tl.sum over an elementwise product
-  # (b_v -= tl.sum(b_h*b_k[None,:],1); b_o = tl.sum(b_h*b_q[None,:],1)) —
-  # NOT tl.dot — so the contractions run on the 910B Vector unit;
-  # flops_class is vector.
-  # FLOPs(vector) per (b,t,h): kS = k_t*S contraction = mul+sum over D*D
-  # (~2*D*D); state update = outer k_t(x)delta + decay*S mul + add over
-  # D*D (~3*D*D); o = q_t*S contraction = mul+sum over D*D (~2*D*D) ->
-  # ~7*D*D; plus decay = exp(g_t) (~1 op) and delta = (v_t-kS)*beta_t
-  # (~2 ops over D). Over B*T*H -> B*T*H*(7*D*D + 2*D + 1).
-  # bytes(hbm): read q/k/v [B,T,H,D] + g/beta [B,T,H], write output
-  # [B,T,H,D] + final_state [B,H,D,D]; all float32 primary family ->
-  # dtype_size.
   flops: B*T*H*(7*D*D + 2*D + 1)
   flops_class: vector
   bytes: (4*B*T*H*D + 2*B*T*H + B*H*D*D) * dtype_size
@@ -85,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-15
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Fused recurrent gated delta-rule update forward: q / k / v [B, T, H, D], per-step gate g and beta [B, T, H]. initial_state [B, HV, V, K] is the per-sequence state pool slot the kernel carries and overwrites. scale is the QK scale, derived as 2/sqrt(D) -- deliberately distinct from the kernel's built-in 1/sqrt(D) default so the supplied scalar is load-bearing.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 3.0517578125e-05
+        max_rel: 0.0039840638637542725
+      P2:
+        status: VERIFIED
+        max_abs: 0.00048828125
+        max_rel: 0.028458332642912865
+    golden_sha256: f15178a3da1779668cff180ea90fbc8c08d48d100506d64864c017b1f23669c4
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

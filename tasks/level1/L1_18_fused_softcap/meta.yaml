@@ -29,14 +29,6 @@ oracle:
   gpu_triton: kernel.py::fused_softcap
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Logit softcap: output = cap * tanh(x / cap),
-  # a pure elementwise map. One program per row. Symbol map: B -> x rows (x
-  # dim 0, kernel grid extent), D -> x dim 1 (per-row elementwise extent). cap
-  # is a scalar literal.
-  # FLOPs (vector): per element divide + tanh (~6 ops) + multiply -> ~8 ops ->
-  # 8*B*D.
-  # bytes (hbm): read x[B,D], write output[B,D] -> 2*B*D elements; float32
-  # primary family -> dtype_size.
   flops: 8*B*D
   flops_class: vector
   bytes: 2*B*D*dtype_size
@@ -72,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-18
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). fused_softcap applies cap*tanh(x/cap) elementwise over [B, D]. cap is the softcap ceiling — strictly positive (vLLM/SGLang use ~30-50); cap<=0 would bypass the cap.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 2.4130662268362357e-07
+      P2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 2.53995665389084e-07
+    golden_sha256: cccd48523b23346b2e5170474ee8dec9715e09d9305b31e0209a54090dcf54e1
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

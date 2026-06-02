@@ -29,19 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: fp8_software_emulated
 cost_model:
-  # Symbol audit (approach §3.4). Inverse of L1_07: per-tile symmetric FP8
-  # quant of the nope part — s = amax(|tile|)/fp8_max; q = clamp(tile/s) cast
-  # to fp8; rope passthrough. Symbol map: B -> token rows (num_tokens, k_nope
-  # dim 0, kernel grid dim 0), D -> DIM_NOPE == 512 (k_nope last dim). The rope
-  # width DIM_ROPE == 64 and group_size == 128 are upstream-fixed literals;
-  # output nope_s has D//128 = 4 columns per token.
-  # FLOPs (vector): per nope element ~ abs + tile-amax reduction + divide +
-  # clamp ~= 4 ops -> ~4*B*D; the rope half is a pure copy.
-  # bytes (hbm): bfloat16 primary family (k_nope declared first) -> dtype_size=2.
-  # bf16-width terms: read k_nope[B,D] + read k_rope[B,64] + write rope[B,64]
-  # bf16 passthrough -> (B*D + 2*B*64)*dtype_size. nope_s[B,D/128] fp32 scale ->
-  # + 4*B*(D/128) bytes. nope_q[B,D] float8_e4m3fn quant output (non-primary
-  # dtype, approach §3.2) -> literal byte width *1 -> + B*D.
   flops: 4*B*D
   flops_class: vector
   bytes: (B*D + 2*B*64)*dtype_size + 4*B*(D/128) + B*D
@@ -77,13 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-09
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Quantises the
-# MLA K cache exactly as the frozen SGLang kernel (commit 409d350): k_nope
-# [B, 512] bfloat16 is group-quantised in tiles of group_size=128 (4 tiles) to
-# float8_e4m3fn with per-tile scales s = amax(|tile|)/fp8_max; k_rope [B, 64]
-# bfloat16 is passed through unchanged. The kernel hard-asserts dim_nope==512,
-# dim_rope==64, group_size==128, bfloat16 inputs; B (num_tokens) is the only
-# free axis. fp8_max is the fp8_e4m3fn saturation bound (448.0).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: fp8_software_emulated
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.10000000149011612
+      P2:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.10000000149011612
+    golden_sha256: 75f590f5bc60e04d79279b127b7871de96c12568c6baeaf905fe80ba7306607d
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

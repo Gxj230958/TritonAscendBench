@@ -29,27 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
-  # Symbol audit (approach §3.4). Segmented gate/up LoRA-B expand
-  # (oracle _segmented_gate_up_lora_b, kernel _gate_up_lora_b_kernel):
-  # for each segment and each gate/up half g,
-  # out[rows, g*N:(g+1)*N] += scaling[w] * (x[rows, g*K:g*K+K] @
-  # B[w, g*N:(g+1)*N, :K]^T), K = min(G, lora_ranks[w]).
-  # shapes.yaml: x is [E*C, 2*G] (S = E*C total token rows, 2*G = gate||up
-  # rank columns), gate_up_lora_b (LoRA B) is [E, 2*N, G] (E adapters,
-  # 2*N = gate||up output_dim, G max rank), output is [E*C, 2*N]. Both
-  # gate and up halves are computed, so the analytic GEMM contracts twice:
-  # M = E*C (total tokens), K = G (rank), N-tile = N (output_dim per half),
-  # times 2 halves. Symbol map: E -> adapter/segment count, C -> per-segment
-  # length (S = E*C = GEMM M), G -> LoRA rank (GEMM K), N -> output_dim per
-  # half (GEMM N).
-  # FLOPs (cube): 2 (multiply+accumulate) * 2 (gate+up) * (E*C)*G*N.
-  # The per-output scaling multiply is negligible vs the GEMM and folded in.
-  # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
-  # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [E*C, 2*G] + weights [E, 2*N, G], write output
-  # [E*C, 2*N]; all float32 primary family -> dtype_size. Auxiliary tensors
-  # at literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
-  # int64 *8, lora_ranks [E] int64 *8, scalings [E] float32 *4.
   flops: 2*2*(E*C)*G*N
   flops_class: fp16_cube
   bytes: (E*C*2*G + E*2*N*G + E*C*2*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4
@@ -85,14 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-07
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Gate/up LoRA-B
-# segmented GEMM (sglang gate_up_lora_b_fwd): x [E*C, 2*G] is the LoRA-A result
-# (gate||up rank halves), gate_up_lora_b [E, 2*N, G] is the per-adapter LoRA-B
-# weights (gate||up output halves), output [E*C, 2*N]. seg_indptr [E+1] is the
-# monotonic per-segment offsets vector (= [0, C, ..., E*C], fixed-length C
-# segments); weight_indices [E] selects the LoRA adapter slab (index in [0, E));
-# lora_ranks [E] is the per-adapter rank in [1, G]; K = min(G, lora_ranks[w]).
-# permutation is None (SORTED_BY_ADAPTER False): rows are contiguous.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 5a92b5c732720b353ffa64babe377b5e659ca509fa966e10b86c7cdbfb17bac8
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

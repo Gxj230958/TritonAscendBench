@@ -29,32 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: elementwise
 cost_model:
-  # Symbol audit (approach §3.4). Causal SDPA with ALiBi positional bias,
-  # single sequence. shapes.yaml binds: H -> head count (q/k/v dim 0,
-  # alibi_slopes dim 0, the oracle's `for h in range(H)` loop),
-  # L -> sequence length (q/k/v dim 1, the kernel's BLOCK_M / BLOCK_N
-  # tile axes), D -> head_dim (q/k/v dim 2, BLOCK_DMODEL / dot
-  # contraction axis).
-  # Causal faithfulness: this operator is ALWAYS causal — there is no
-  # CAUSAL knob in shapes.yaml. The oracle masks j>i
-  # (masked_fill(i[None,:] > i[:,None], -inf)) and the benchmark-active
-  # _fwd_kernel_alibi loops only `for start_n in range(0, block_mask*
-  # (start_m+1)*BLOCK_M, BLOCK_N)` then masks offs_m >= start_n+offs_n,
-  # so the score work is the inclusive causal lower triangle, NOT the
-  # dense [L,L] grid. The active score-entry count per head is therefore
-  # the triangular sum L*(L+1)/2 (i >= j), not L*L.
-  # Mixed compute -> map form. FLOPs(fp16_cube): per head the kernel
-  # issues qk = tl.dot(q,k) [QK^T contracts D] and acc = tl.dot(p,v)
-  # [P@V contracts the score axis] -> per active causal score entry 4*D
-  # fused mul-add FLOPs; over H heads -> 4*H*D*L*(L+1)/2.
-  # float32 operands run on the 910B Cube unit, peak_table exposes no
-  # fp32 cube class so cube matmul is keyed to fp16_cube.
-  # FLOPs(vector): per head online softmax over the causal score
-  # entries (scale, max-reduce, exp, sum-reduce, rescale ~8 ops/element)
-  # plus the ALiBi additive bias (sub of slope*rel ~2 ops) ->
-  # 10*H*L*(L+1)/2.
-  # bytes(hbm): read q/k/v [H,L,D] + alibi_slopes [H], write output
-  # [H,L,D]; all float32 primary family -> dtype_size.
   flops:
     fp16_cube: 4*H*D*L*(L+1)/2
     vector: 10*H*L*(L+1)/2
@@ -91,7 +65,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-05
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). ALiBi attention forward: q/k/v [H, L, D] with per-head ALiBi slopes [H]. scale is the QK softmax scale, derived as 1/sqrt(D).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: elementwise
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.47954174876213074
+      P2:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 6.65573787689209
+    golden_sha256: ad54f17d51a141a8974f5a4cf6874f9cb1ed1139bc1ccf4c4eef0837f9057a05
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

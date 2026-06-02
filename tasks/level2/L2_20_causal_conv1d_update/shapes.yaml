@@ -71,7 +71,7 @@ inputs:
     dims:
     - B
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   # conv_state: [num_cache_lines, dim, state_len] with num_cache_lines == B and
   # state_len == KW-1 (the rolling history window). Mutated in place: the kernel
@@ -81,20 +81,20 @@ inputs:
     - B
     - D
     - KW-1
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   # weight: [dim, KW] depthwise conv taps.
   weight:
     dims:
     - D
     - KW
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   # bias: [dim] -- the kernel loads `bias_ptr + idx_feats` (no batch stride).
   bias:
     dims:
     - D
-    dtype: float32
+    dtype: bfloat16
     dist: randn
   # conv_state_indices: [batch] int32 -- LOAD-BEARING. Selects which cache line
   # each batch element reads its prior state from and writes the rolled state

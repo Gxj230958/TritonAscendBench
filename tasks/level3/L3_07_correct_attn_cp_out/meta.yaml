@@ -15,7 +15,7 @@ upstream:
   file_sha256: 6bc0152d8dbcdf3b25ddab15fa5b5054723fec4ba98d89b612b6d04fe6364702
   function_hash: 6bc0152d8dbcdf3b25ddab15fa5b5054723fec4ba98d89b612b6d04fe6364702
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L3_07_correct_attn_cp_out_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -29,26 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Context-parallel attention output
-  # correction: reweight this rank's partial attention output by its share
-  # of the global softmax denominator (an all-gathered log-sum-exp combine).
-  # shapes.yaml binds: B -> batch (out dim 0, lses dim 1, the kernel
-  # program axis), H -> head count (out dim 1, lses dim 2),
-  # D -> head_dim (out dim 2, the per-element correction axis),
-  # E -> cp world size / rank count (lses dim 0, the kernel's reduce-over-
-  # ranks axis — lses is the all-gathered [N_ranks,B,H] log-sum-exp),
-  # LSEB -> the `is_lse_base_on_e` scalar_knob in [0,1].
-  # Single compute class -> scalar form. The kernel only does max/exp/sum
-  # reductions and an elementwise multiply (no tl.dot), so it runs
-  # entirely on the 910B Vector unit; flops_class is vector.
-  # FLOPs(vector) per (b,h): logsumexp over the E ranks — max-reduce,
-  # exp, sum-reduce, log ~3 ops/element over E (~3*E); the rank weight
-  # w = exp(lse[rank] - denom) ~2 ops; the output reweight out*w is 1 mul
-  # over D. Over B*H -> B*H*(3*E + D + 2). The base-2 -> base-e rescale
-  # L *= log(2) runs ONLY when is_lse_base_on_e is False (LSEB == 0): 1
-  # mul per lses element over E ranks -> +(1-LSEB)*E*B*H.
-  # bytes(hbm): read out [B,H,D] + lses [E,B,H], write output [B,H,D];
-  # all float32 primary family -> dtype_size.
   flops: B*H*(3*E + D + 2) + (1-LSEB)*E*B*H
   flops_class: vector
   bytes: (2*B*H*D + E*B*H) * dtype_size
@@ -87,6 +67,21 @@ provenance:
   errata_note: 'v3.2 errata: original slot (L3_07_sdpa (attention+mask)) had no freezable
     upstream (non-existent/merged/no-public-source); re-tasked to CSV operator _correct_attn_cp_out_kernel.
     docs/npu/benchmark_select.md (root-owned) pending sync.'
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 55a8477404931e03f8b28f0c5698fc54fc049a268ed2f401ba8bf974ba9268d6
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
@@ -94,9 +89,6 @@ param_constraints:
   - H >= 1
   - D >= 1
   - E >= 1
-  # E (cp rank count, the kernel's tl.arange(0, N_ROUNDED=E) reduce axis)
-  # must be a power of 2 -- triton.arange requires a power-of-2 extent and
-  # the upstream cp world size is always a power of 2.
   - E is a power of 2
   dtypes:
     out: float32

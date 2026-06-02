@@ -15,7 +15,7 @@ upstream:
   file_sha256: aae0166945daf3b77f5f616ba8b437ce7e6e4b7ae3e4bb35a45495407ad8f9a0
   function_hash: aae0166945daf3b77f5f616ba8b437ce7e6e4b7ae3e4bb35a45495407ad8f9a0
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_16_fused_rmsnorm_kernel_409d350.py
 interface:
   alias_map: {}
@@ -29,15 +29,6 @@ oracle:
   gpu_triton: kernel.py::fused_rmsnorm
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Plain per-row RMSNorm scaled by a weight
-  # (fused_rmsnorm_kernel): out = x / sqrt(mean(x^2)+eps) * weight. No residual
-  # add, single output. One program per row. Symbol map: B -> x rows (x dim 0,
-  # the kernel grid extent), D -> hidden size (x dim 1 == weight length, the
-  # per-row reduction extent). eps is a scalar literal.
-  # FLOPs (vector): per element centred-square + mean for the RMS (~2), rsqrt
-  # amortised (~1), normalise mul (~1), weight mul (~1) -> ~5*B*D.
-  # bytes (hbm): read x[B,D] (B*D) + weight[D], write output[B,D] (B*D) ->
-  # (2*B*D + D) elements; all float32 primary family -> dtype_size.
   flops: 5*B*D
   flops_class: vector
   bytes: (2*B*D + D) * dtype_size
@@ -73,6 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-16
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: ad6adafff6839917b7836e0a3f8ac5ac9ae912da8079495d6d292f17abb0d571
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

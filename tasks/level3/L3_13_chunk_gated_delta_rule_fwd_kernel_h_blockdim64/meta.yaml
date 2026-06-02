@@ -24,9 +24,6 @@ interface:
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
-  # Host wrapper returns (h, v_new, final_state); the oracle contract is
-  # the per-chunk state snapshot h (index 0). v_new and final_state are
-  # auxiliary upstream outputs, not part of this task's reference.
   output_projection:
     arity: 3
     map:
@@ -36,16 +33,10 @@ oracle:
   gpu_triton: kernel.py::chunk_gated_delta_rule_fwd_h
 tolerance_class: recurrent_chunk
 cost_model:
-  # Chunked state recurrence over NT = ceil(T/64) chunks per (B, H) program.
-  # Cube: dv = w @ S^T ([BT,K]x[K,V]) and S += k^T @ dv ([K,BT]x[BT,V]),
-  # each 2*BT*K*V per chunk, summing to 4*B*H*T*K*V across all rows.
-  # Vector: per-row value gating (B*H*T*V) plus the scalar g gate (B*T*H).
   flops:
     fp16_cube: 4*B*H*T*K*V
     vector: 2*B*H*T*V + B*T*H
   bytes:
-    # Reads k/w/gk ([B,T,H,K] each, Hg==H), u ([B,T,H,V]), g ([B,T,H]);
-    # writes the per-chunk state snapshot h ([B,NT,H,V,K], NT=T/64).
     hbm: (3*B*T*H*K + B*T*H*V + B*T*H + B*(T/64)*H*V*K) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -79,26 +70,34 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-13
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: '2026-05-30T00:00:00Z'
+    oracle_kernel_equivalence: FAILED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape: {}
-    golden_source: oracle_reauthored_chunk_state_contract
-    notes: >-
-      oracle_pytorch.py re-authored to the upstream chunked headed contract
-      (k/w:[B,T,H,K], u:[B,T,H,V], g:[B,T,H], gk:[B,T,H,K] -> h:[B,NT,H,V,K],
-      BT=64). shapes.yaml + param_constraints aligned to that layout;
-      output_projection selects wrapper return index 0 (h). gk added to drive
-      the kernel's USE_GK per-K-channel state-decay branch (exp(gk[:,last]));
-      all shape rows pinned to NT>=3 (T>=129) so that decay reaches a graded h
-      snapshot. Numeric oracle-vs-kernel equivalence requires a GPU/NPU run to
-      populate.
+    equivalence_per_shape:
+      P1:
+        status: FAILED
+        max_abs: 1.2675895690917969
+        max_rel: 0.3512805700302124
+        blocker: 'output: atol/rtol: max_abs=1.27, max_rel=0.351 (max_abs=1.2675895690917969,
+          max_rel=0.3512805700302124, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P2:
+        status: FAILED
+        max_abs: 1.1748046875
+        max_rel: 0.44623473286628723
+        blocker: 'output: atol/rtol: max_abs=1.17, max_rel=0.446 (max_abs=1.1748046875,
+          max_rel=0.44623473286628723, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+    golden_source: fallback_to_gpu_capture_pending
+    notes: oracle_pytorch.py re-authored to the upstream chunked headed contract (k/w:[B,T,H,K],
+      u:[B,T,H,V], g:[B,T,H], gk:[B,T,H,K] -> h:[B,NT,H,V,K], BT=64). shapes.yaml
+      + param_constraints aligned to that layout; output_projection selects wrapper
+      return index 0 (h). gk added to drive the kernel's USE_GK per-K-channel state-decay
+      branch (exp(gk[:,last])); all shape rows pinned to NT>=3 (T>=129) so that decay
+      reaches a graded h snapshot. Numeric oracle-vs-kernel equivalence requires a
+      GPU/NPU run to populate.
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
-  # T >= 129 (= 2*BT + 1, BT=64) guarantees NT >= 3 so the USE_GK
-  # per-channel state decay reaches a graded h snapshot (chunk-2 onward).
   - T >= 129
   - H >= 1
   - K >= 1
@@ -124,7 +123,4 @@ param_constraints:
     gk:
       kind: rand
   scalars: {}
-  # No value-domain invariants: all inputs are dense randn/rand tensors.
-  # Rank/shape contracts are enforced by shapes.yaml dims (k/w/gk [B,T,H,K],
-  # u [B,T,H,V], g [B,T,H] -> h [B,ceil(T/64),H,V,K]).
   tensor_invariants: []

@@ -29,32 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
-  # Symbol audit (approach §3.4). Chunked SGMV LoRA-B expand (oracle
-  # _segmented_lora_expand, kernel _chunked_lora_expand_kernel). x packs
-  # num_slices rank-r projections side by side; each slice writes a distinct
-  # output band. Per segment and per slice i:
-  # out[seg, slice_offsets[i]:slice_offsets[i+1]] += scaling[adapter] *
-  #   (x[seg, i*r:(i+1)*r] @ B[adapter, band_i, :r]^T).
-  # shapes.yaml: x is [B, E*G] (B token rows, E*G = num_slices * max LoRA
-  # rank columns), weights (LoRA B) is [E, N, G] (E adapters, N output_dim,
-  # G max rank), output is [B, N]. num_slices = E = num_segs here. Each
-  # (segment, slice) matmul is [seg_len, r] @ [r, slice_width]; summed over
-  # the E slices a segment covers the full N output dim.
-  # Analytic GEMM dims summed over all segments and slices: M = B (total
-  # tokens), K = G (max rank, contracted dim = weights dim 2), N = N
-  # (output_dim = weights dim 1). Symbol map: B -> token rows (GEMM M),
-  # G -> LoRA max rank (GEMM K), N -> output_dim (GEMM N), E -> adapter
-  # count / num_slices (weights dim 0, index-vector length).
-  # FLOPs (cube): 2*B*G*N (2 = multiply + accumulate; upper bound, r<=G).
-  # The scaling multiply is one extra vector op per output element,
-  # negligible vs the GEMM and folded into the cube cost.
-  # flops_class: float32 operands; the 910B Cube unit has no fp32 cube
-  # class, so cube matmul keys to fp16_cube (Unit 1 paradigm).
-  # bytes (hbm): read x [B,E*G] + weights [E,N,G], write output [B,N];
-  # all float32 primary family -> dtype_size. Auxiliary tensors at
-  # literal widths: seg_indptr [E+1] int64 *8, weight_indices [E]
-  # int64 *8, lora_ranks [E] int64 *8, scalings [E] float32 *4,
-  # slice_offsets [E+1] int32 *4.
   flops: 2*B*G*N
   flops_class: fp16_cube
   bytes: (B*E*G + E*N*G + B*N) * dtype_size + (E+1)*8 + E*8 + E*8 + E*4 + (E+1)*4
@@ -90,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-04
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Chunked LoRA expand: per-segment x is matmul'd by the selected LoRA-B weight. seg_indptr [E+1] is the monotonic per-expert segment offsets vector; weight_indices [E] selects the LoRA weight slab (index in [0, E)); lora_ranks [E] is the per-expert rank.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 0694c7de954cea82cf7ed89dc760e69e956e7d2a18857a8ec54cae3b0ae425f1
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

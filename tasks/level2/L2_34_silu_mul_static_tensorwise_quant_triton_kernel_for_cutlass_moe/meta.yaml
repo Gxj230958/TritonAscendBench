@@ -65,18 +65,26 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-34
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
+    oracle_kernel_equivalence: VERIFIED
     gpu_kernel_capture_status: PENDING
-    verified_at: null
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: fp8_software_emulated
-    equivalence_per_shape: {}
-    golden_source: reauthored_masked_contract
-    notes: >-
-      Fixture re-targeted from the bare scatter jit kernel to the GRADED host
-      wrapper silu_and_mul_masked_post_quant_fwd (3D masked silu+mul + FP8
-      group-quant). Kernel body is byte-identical to L2_37 (same upstream
-      commit 409d350); the launcher reproduces the wrapper invocation
-      verbatim. GPU bit-exact re-verification pending on the daemon.
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.862645149230957e-09
+        max_rel: 2.7958904524894024e-07
+      P2:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.10000000149011612
+    golden_source: oracle_pytorch_verified
+    notes: Fixture re-targeted from the bare scatter jit kernel to the GRADED host
+      wrapper silu_and_mul_masked_post_quant_fwd (3D masked silu+mul + FP8 group-quant).
+      Kernel body is byte-identical to L2_37 (same upstream commit 409d350); the launcher
+      reproduces the wrapper invocation verbatim. GPU bit-exact re-verification pending
+      on the daemon.
+    golden_sha256: 71fe1ccf3eae2f9940694c39f26387c763b3163b6952e3808837c7fcd978fe70
 param_constraints:
   scaffold: false
   dims:

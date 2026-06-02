@@ -65,19 +65,20 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-13
   golden:
-    oracle_kernel_equivalence: LAUNCH_BLOCKED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T06:00:18Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       P1:
-        status: LAUNCH_BLOCKED
-        blocker: 'NotImplementedError: num_compute_units is not implemented for the
-          current platform.'
+        status: VERIFIED
+        max_abs: 9.5367431640625e-06
+        max_rel: 0.0003289080341346562
       P2:
-        status: LAUNCH_BLOCKED
-        blocker: 'NotImplementedError: num_compute_units is not implemented for the
-          current platform.'
-    golden_source: blocked_kernel_launch
+        status: VERIFIED
+        max_abs: 4.1961669921875e-05
+        max_rel: 0.1627907007932663
+    golden_source: oracle_pytorch_verified
+    golden_sha256: 1e5fbf8f49480aa90a0ecd3acd1dd3a867b7551c14ba2f058bdfa10be6e5ec1d
 param_constraints:
   scaffold: false
   dims:

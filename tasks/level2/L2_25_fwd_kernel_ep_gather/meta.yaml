@@ -29,20 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Expert-parallel unpermute-and-weighted-
-  # reduce (upstream `_fwd_kernel_ep_gather`, expert_map=None):
-  #   out[t, :] = sum_k mask[t,k] * recv_topk_weight[t,k]
-  #                     * input_tensor[input_index[t,k], :]
-  # Local gather + scaled accumulate (no cross-rank traffic, so
-  # bytes_resource is hbm per approach §3.2). Symbol map: T -> output token
-  # rows (grid dim 1), K -> topk_num (constexpr inner loop), D -> hidden
-  # width (input_tensor dim 1), B -> input_tensor row count (gather source).
-  # FLOPs (vector): per (t, k, d) a multiply-add into a fp32 accumulator
-  # -> 2*T*K*D.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): primary family is the
-  # float32 input_tensor -> dtype_size; gather reads T*K source rows of D
-  # plus write output T*D -> (T*K + T)*D*dtype_size. The int32 index /
-  # id / weight side tensors [T,K] use literal *4 -> 3*4*T*K.
   flops: 2*T*K*D
   flops_class: vector
   bytes: (T*K + T)*D*dtype_size + 12*T*K
@@ -78,15 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-25
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Upstream
-# `_fwd_kernel_ep_gather` (vLLM deep_gemm_utils.py, commit 18f6bf5),
-# expert_map=None path: an unpermute-and-weighted-reduce, NOT a plain gather.
-#   out[t, :] = sum_k 1[recv_topk_ids[t,k] >= 0]
-#                     * recv_topk_weight[t, k]
-#                     * input_tensor[input_index[t, k], :]
-# B = input_tensor rows (M, permuted grouped-gemm buffer); T = output token
-# rows; K = topk_num; D = hidden. recv_topk_ids < 0 (-1) marks skipped slots;
-# input_index entries are valid rows in [0, B).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 23ce967dc2af440dee7a0a2b5d30d5f51f40940dbf11d1cffb0eeb85446842db
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

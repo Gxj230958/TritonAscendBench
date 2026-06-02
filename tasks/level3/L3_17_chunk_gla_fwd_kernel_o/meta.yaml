@@ -30,12 +30,9 @@ oracle:
 tolerance_class: recurrent_chunk
 cost_model:
   flops:
-    # H heads. Intra: per-chunk masked A[BT,BT] @ v[BT,Dv] -> 2*B*L*C*Dv*H.
-    # Inter: gated q[L,D] @ per-chunk state h[D,Dv] -> 2*B*L*D*Dv*H.
     fp16_cube: 2*B*L*C*Dv*H + 2*B*L*D*Dv*H
     vector: 2*B*L*D*H + B*L*Dv*H
   bytes:
-    # q,g: B*L*H*D each; v,o: B*L*H*Dv each; A: B*L*H*C; h: B*(L//C)*H*Dv*D.
     hbm: (2*B*L*H*D + 2*B*L*H*Dv + B*L*H*C + B*(L//C)*H*Dv*D) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
@@ -69,22 +66,30 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-17
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: null
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape: {}
-    golden_source: oracle_reauthored_pending_gpu
-    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the
-      frozen kernel''s head-structured, block-diagonal (per-BT-chunk) contract:
-      q[B,L,H,D], g[B,L,H,D], v[B,L,H,Dv], A[B,L,H,C] (local within-chunk column),
-      h[B,L//C,H,Dv,D] per-chunk state. Output o = (q*scale*exp(g)) @ h_state
-      (inter-chunk) + tril-masked A @ v (intra-chunk). Oracle cross-checked against
-      a literal make_block_ptr transcription of the kernel (rel err ~6e-6,
-      recurrent_chunk). Launcher drives chunk_gla_fwd_o_gk non-varlen path. The
-      CPU/TRITON_INTERPRET pass raises a triton InterpreterError on this kernel''s
-      make_block_ptr/dot constructs (interpret_error=True), so the runner''s GPU
-      rescue re-runs this anchor on the real device with the unchanged tolerance.
-      Final GPU equivalence pending.'
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 8.344650268554688e-06
+        max_rel: 0.002331068040803075
+      P2:
+        status: VERIFIED
+        max_abs: 0.0006501674652099609
+        max_rel: 0.021129483357071877
+    golden_source: oracle_pytorch_verified
+    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the frozen
+      kernel''s head-structured, block-diagonal (per-BT-chunk) contract: q[B,L,H,D],
+      g[B,L,H,D], v[B,L,H,Dv], A[B,L,H,C] (local within-chunk column), h[B,L//C,H,Dv,D]
+      per-chunk state. Output o = (q*scale*exp(g)) @ h_state (inter-chunk) + tril-masked
+      A @ v (intra-chunk). Oracle cross-checked against a literal make_block_ptr transcription
+      of the kernel (rel err ~6e-6, recurrent_chunk). Launcher drives chunk_gla_fwd_o_gk
+      non-varlen path. The CPU/TRITON_INTERPRET pass raises a triton InterpreterError
+      on this kernel''s make_block_ptr/dot constructs (interpret_error=True), so the
+      runner''s GPU rescue re-runs this anchor on the real device with the unchanged
+      tolerance. Final GPU equivalence pending.'
+    golden_sha256: c02d05ef965959e4c8bb0039686892a18ac2cbb2f7ecd147fdb7ae5dc289adb9
 param_constraints:
   scaffold: false
   dims:

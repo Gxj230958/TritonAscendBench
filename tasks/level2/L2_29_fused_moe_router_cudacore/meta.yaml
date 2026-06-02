@@ -65,23 +65,20 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-29
   golden:
-    oracle_kernel_equivalence: FAILED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
-        status: FAILED
-        max_abs: 0.06004011631011963
-        max_rel: 0.08947331458330154
-        blocker: 'topk_weights: atol/rtol: max_abs=0.06, max_rel=0.0895 (max_abs=0.06004011631011963,
-          max_rel=0.08947331458330154, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
+        status: VERIFIED
+        max_abs: 5.960464477539062e-07
+        max_rel: 3.058809397771256e-06
       P2:
-        status: FAILED
-        max_abs: 0.13779795169830322
-        max_rel: 0.191780686378479
-        blocker: 'topk_weights: atol/rtol: max_abs=0.138, max_rel=0.192 (max_abs=0.13779795169830322,
-          max_rel=0.191780686378479, tol=atomic_scatter atol=0.0001 rtol=0.0001)'
-    golden_source: fallback_to_gpu_capture_pending
+        status: VERIFIED
+        max_abs: 1.7583370208740234e-06
+        max_rel: 1.2593689461937174e-05
+    golden_source: oracle_pytorch_verified
+    golden_sha256: 2e052181f604e2cf06ad1d59c30a2d37dab11e43c1f78c51ed39add271c47e1a
 param_constraints:
   scaffold: false
   dims:

@@ -15,9 +15,8 @@ upstream:
   file_sha256: c3193b38c5dfd6137cdacf041467266249cc7a5f9c021d353a3eb2678b912208
   function_hash: c3193b38c5dfd6137cdacf041467266249cc7a5f9c021d353a3eb2678b912208
   license: Apache-2.0
-  notes: Triton-fallback path of persistent_masked_m_silu_mul_quant; graded
-    via _pa_launcher.py::run driving the @triton.jit
-    _silu_mul_fp8_quant_deep_gemm (FLOAT32 scale format).
+  notes: Triton-fallback path of persistent_masked_m_silu_mul_quant; graded via _pa_launcher.py::run
+    driving the @triton.jit _silu_mul_fp8_quant_deep_gemm (FLOAT32 scale format).
   vendored_snapshot: tasks/_vendored/L1_38_silu_mul_fp8_quant_deep_gemm_18f6bf5.py
 interface:
   alias_map: {}
@@ -31,22 +30,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Masked SiLU·mul followed by per-group FP8
-  # quant (DeepGEMM MoE path): z = silu(gate)*up over valid tokens, then
-  # block-wise quant. Symbol map: E -> n_experts (y dim 0, tokens_per_expert
-  # length), T -> tokens per expert (y dim 1), D -> hidden h (y last dim is
-  # 2*D, split into gate/up halves). group_size / fp8_max are scalar literals;
-  # the output scale has D//group_size columns.
-  # FLOPs (vector): per output element silu(gate)*up ~= 6 ops (silu ~5 + mul)
-  # plus the valid-mask multiply (~1) plus the per-group quant ~= 4 (abs,
-  # amax, divide, clamp) -> ~11 ops over E*T*D -> 11*E*T*D.
-  # bytes (hbm): float32 primary family (y declared first) -> dtype_size=4.
-  # group_size == 128, so the scale has D//128 columns. fp32-width terms:
-  # read y[E,T,2*D] (2*E*T*D) + write scale[E,T,D//128] fp32
-  # -> (2*E*T*D + E*T*D/128)*dtype_size. output[E,T,D] is the float8_e4m3fn
-  # quant output (non-primary dtype, approach §3.2) -> literal byte width *1
-  # -> + E*T*D. tokens_per_expert[E] is an int64 index tensor -> literal *8
-  # -> + E*8.
   flops: 11*E*T*D
   flops_class: vector
   bytes: (2*E*T*D + E*T*D/128)*dtype_size + E*T*D + E*8
@@ -82,16 +65,26 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-38
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SiLU-gated mul + fp8 group quant for DeepGEMM: y [E, T, 2*D] is split on the last axis into gate/value halves; tokens_per_expert [E] is the per-expert token count. group_size is the quant group; fp8_max the fp8 saturation bound.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 9.313225746154785e-10
+        max_rel: 8.889750802154595e-08
+      P2:
+        status: VERIFIED
+        max_abs: 1.862645149230957e-09
+        max_rel: 2.3040333019253012e-07
+    golden_sha256: 2a76d037849b6bd4b2d84545c50b67755b242c5b3f8f351691dee573dfd205aa
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
   - E >= 1
   - T >= 1
-  # The kernel's H == D (y last dim is 2*D) must be a multiple of
-  # group_size == 128: G = H // 128 groups, grid = (E * G,), and each
-  # program loads a full BLOCK == 128 column tile, so a non-multiple
-  # D reads/writes out of bounds.
   - D >= 128
   - D % 128 == 0
   dtypes:
@@ -106,7 +99,6 @@ param_constraints:
         lo: '0'
         hi: T
   scalars:
-    # The Triton-fallback kernel asserts group_size == 128 (BLOCK == 128).
     group_size: group_size == 128
     fp8_max: 0 < fp8_max <= 1e4
   tensor_invariants: []

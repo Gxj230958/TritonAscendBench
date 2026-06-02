@@ -33,10 +33,14 @@ def _causal_conv1d_fwd(
     """
     dim, seqlen = x.shape
     kw = weight.shape[-1]
-    xf = x.to(torch.float32).unsqueeze(0)                   # [1, dim, L]
-    wf = weight.to(torch.float32).unsqueeze(1)              # [dim, 1, kw]
-    xp = F.pad(xf, (kw - 1, 0))
-    y = F.conv1d(xp, wf, groups=dim).squeeze(0)             # [dim, L]
+    xf = x.to(torch.float32)                                # [dim, L]
+    wf = weight.to(torch.float32)                           # [dim, kw]
+    xp = F.pad(xf, (kw - 1, 0))                             # [dim, L+kw-1]
+    win = xp.unfold(-1, kw, 1)                              # [dim, L, kw]
+    # Kernel accumulates `acc += matrix_x * matrix_w` with bf16 operands, so
+    # each tap product is rounded to the input dtype before the fp32 add.
+    prod = (win * wf.unsqueeze(1)).to(x.dtype).to(torch.float32)
+    y = prod.sum(dim=-1)                                    # [dim, L]
     if bias is not None:
         y = y + bias.to(torch.float32).unsqueeze(-1)        # [dim, 1] broadcast
     if activation in ("silu", "swish"):

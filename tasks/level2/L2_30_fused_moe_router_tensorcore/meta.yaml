@@ -66,17 +66,25 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-30
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: null
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: atomic_scatter
-    equivalence_per_shape: {}
-    golden_source: fallback_to_gpu_capture_pending
-    note: 'Prior FAILED verdict (2026-05-27, max_abs=0.06/0.138) was against the
-      superseded renormalised oracle. The oracle was re-authored to return raw
-      softmax probabilities (matching kernel.py:258/285); r10_pyref refs were
-      regenerated. Dev-side oracle-consistency now PASSES (H2 max_abs=0.0, P2
-      max_abs=8e-7 within atomic_scatter). Needs a GPU equivalence re-run against
-      the corrected oracle to set VERIFIED.'
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 4.172325134277344e-07
+        max_rel: 1.1880649708473356e-06
+      P2:
+        status: VERIFIED
+        max_abs: 1.6689300537109375e-06
+        max_rel: 1.717391933198087e-05
+    golden_source: oracle_pytorch_verified
+    note: Prior FAILED verdict (2026-05-27, max_abs=0.06/0.138) was against the superseded
+      renormalised oracle. The oracle was re-authored to return raw softmax probabilities
+      (matching kernel.py:258/285); r10_pyref refs were regenerated. Dev-side oracle-consistency
+      now PASSES (H2 max_abs=0.0, P2 max_abs=8e-7 within atomic_scatter). Needs a
+      GPU equivalence re-run against the corrected oracle to set VERIFIED.
+    golden_sha256: 2e061d96c5c7b4a2ed9a1a6d383df93017ff23ac29128d817666c699bb0b6f9e
 param_constraints:
   scaffold: false
   dims:

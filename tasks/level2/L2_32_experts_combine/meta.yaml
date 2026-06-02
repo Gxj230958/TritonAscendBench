@@ -65,21 +65,20 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-32
   golden:
-    oracle_kernel_equivalence: LAUNCH_BLOCKED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
-        status: LAUNCH_BLOCKED
-        blocker: 'RuntimeError: sglang::experts_combine_triton() is missing value
-          for argument ''moe_hidden_states''. Declaration: sglang::experts_combine_triton(Tensor
-          moe_hidden_states, Tensor mlp_hidden_states, Tensor'
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 1.191771374919881e-07
       P2:
-        status: LAUNCH_BLOCKED
-        blocker: 'RuntimeError: sglang::experts_combine_triton() is missing value
-          for argument ''moe_hidden_states''. Declaration: sglang::experts_combine_triton(Tensor
-          moe_hidden_states, Tensor mlp_hidden_states, Tensor'
-    golden_source: blocked_kernel_launch
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 0.001258627511560917
+    golden_source: oracle_pytorch_verified
+    golden_sha256: cf5ca9c75fea6a292f0c1ed7787c645c19d4b7bb7631df399569e65880aae070
 param_constraints:
   scaffold: false
   dims:

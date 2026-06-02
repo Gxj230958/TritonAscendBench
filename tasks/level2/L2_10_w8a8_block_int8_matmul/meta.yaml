@@ -81,21 +81,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
   golden:
-    oracle_kernel_equivalence: LAUNCH_BLOCKED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: int8_w8a8
     equivalence_per_shape:
       P1:
-        status: LAUNCH_BLOCKED
-        blocker: "CompilationError: at 57:23:\n\n    accumulator = tl.zeros((BLOCK_SIZE_M,\
-          \ BLOCK_SIZE_N), dtype=tl.float32)\n    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):\n\
-          \        a = tl.load(a_ptrs, mask=offs_k[None, :"
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P2:
-        status: LAUNCH_BLOCKED
-        blocker: "CompilationError: at 57:23:\n\n    accumulator = tl.zeros((BLOCK_SIZE_M,\
-          \ BLOCK_SIZE_N), dtype=tl.float32)\n    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):\n\
-          \        a = tl.load(a_ptrs, mask=offs_k[None, :"
-    golden_source: blocked_kernel_launch
+        status: VERIFIED
+        max_abs: 1.0
+        max_rel: 0.0008396305493079126
+    golden_source: oracle_pytorch_verified
+    golden_sha256: 295a142fec0a1ed2b2109108cd67f3690faa455ffb9cdd94c2a81bbb305f0b77
 param_constraints:
   scaffold: false
   dims:

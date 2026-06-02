@@ -29,39 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). Paged decode SDPA: one query token per
-  # sequence, KV gathered from a paged block_table. shapes.yaml binds:
-  # B -> n_tokens / n_seqs (query dim 0, block_table/seq_lens dim 0, the
-  # oracle's `for i in range(n_tokens)` loop), H -> head count (query
-  # dim 1, key_cache/value_cache dim 2; here n_qh == n_kvh so GQA group
-  # g=1, no FLOPs change), D -> head_size (query dim 2, key/value_cache
-  # dim 3, the dot contraction axis), T -> block_size (key/value_cache
-  # dim 1; seq_lens is randint:1:T so the per-sequence KV length L <= T,
-  # the kernel's BLOCK_N context loop bound). C -> n_blocks and
-  # N -> max_blocks_per_seq index the paged cache but are not arithmetic
-  # extents of the attention math.
-  # Mixed compute -> map form. FLOPs(fp16_cube): per (token,head) the
-  # kernel issues qk = tl.dot(Q,K) [QK = [1,D]@[D,L] over the L<=T KV
-  # positions = 2*T*D dense bound] and acc += tl.dot(p,V) [P@V = 2*T*D].
-  # Over B*H -> 4*B*H*T*D. float32 operands run on the 910B Cube unit,
-  # peak_table exposes no fp32 cube class so cube matmul is keyed to
-  # fp16_cube. FLOPs(vector): per (token,head) online softmax over the
-  # [T] score row (max, exp, sum, rescale ~8 ops/element) -> ~8*B*H*T. The
-  # oracle also supports an ALiBi additive bias, but this shapes.yaml does
-  # NOT materialise an `alibi_slopes` input (the `inputs` block declares
-  # only query/key_cache/value_cache/block_table/seq_lens/scale), so the
-  # oracle runs with `alibi_slopes=None` and the ALiBi branch never
-  # executes — its FLOPs are not charged (approach §3.4 unmaterialised-
-  # feature rule).
-  # bytes(hbm): float32 primary family (query declared first) -> dtype_size=4.
-  # The kernel/oracle gather K/V from the paged cache through block_table:
-  # per sequence per head only the first seq_lens[i] (<= T) KV positions are
-  # touched, so the dense KV-touch bound is per-seq T positions over B
-  # sequences and H heads, NOT the whole resident cache 2*C*T*H*D. fp32-width
-  # terms: read query[B,H,D] + write output[B,H,D] (2*B*H*D) + gather K/V the
-  # kernel touches (2*B*T*H*D) -> (2*B*H*D + 2*B*T*H*D)*dtype_size.
-  # block_table[B,N] and seq_lens[B] are int64 index tensors (non-primary,
-  # approach §3.2) -> literal *8 -> (B*N + B)*8.
   flops:
     fp16_cube: 4*B*H*T*D
     vector: 8*B*H*T
@@ -98,7 +65,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L3-02
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Paged 2D attention decode: query [B, H, D] attends over the paged key_cache / value_cache [C, T, H, D] via block_table [B, N] (cache-block ids in [0, C)) and per-request seq_lens [B]. scale is the QK scale, derived as 1/sqrt(D).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0009444952011108398
+        max_rel: 0.014822457917034626
+      P2:
+        status: VERIFIED
+        max_abs: 0.001589655876159668
+        max_rel: 0.1567263901233673
+    golden_sha256: 6872b5d61dbbc02169d117c685156c91333cc296983cddba012b94d9796f6091
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
@@ -106,11 +87,6 @@ param_constraints:
   - H >= 1
   - D >= 1
   - C >= 1
-  # T is the paged-cache block_size (kernel PHYSICAL_BLOCK_SIZE). The kernel
-  # tiles the per-tile P@V matmul over BLOCK_SIZE = min(T, 64) (pow2 T) and
-  # Triton's tl.dot requires the contraction dim K >= 16; real vLLM paged KV
-  # block_size is always a pow2 >= 16, so T < 16 is outside the op's valid
-  # regime (it makes tl.dot(p, V) fail to compile).
   - T >= 16
   - N >= 1
   dtypes:

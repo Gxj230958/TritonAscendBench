@@ -29,20 +29,6 @@ oracle:
   gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
-  # Symbol audit (approach §3.4). FlashInfer paged-KV index gather: per request
-  # r, copy req_to_token[req_pool_indices[r], :seq_lens[r]] into kv_indices at
-  # offset kv_indptr[r]; kv_indptr = [0, cumsum(seq_lens)]. Symbol map: E ->
-  # batch size (req_pool_indices / seq_lens len, req_to_token rows, kernel grid
-  # extent), N -> req_to_token dim 1 (max_context_len, per-request copy ceiling
-  # since seq_lens < N).
-  # FLOPs (vector): per request the cumsum accumulate (~1) plus the masked
-  # block loop bookkeeping (~2) -> ~3*E integer ops; no floating-point work.
-  # Dominant cost is bytes.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (req_pool_indices / seq_lens declared int64) -> dtype_size=8 for the int64
-  # reads req_pool_indices[E] + seq_lens[E] -> 2*E*dtype_size. The int32 table
-  # source read (up to E*N) and the int32 writes (indices up to E*N + indptr
-  # E+1) use literal byte width *4 -> + (2*E*N + E + 1)*4.
   flops: 3*E
   flops_class: vector
   bytes: 2*E*dtype_size + (2*E*N + E + 1)*4
@@ -78,14 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-32
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). Frozen
-# create_flashinfer_kv_indices_triton is a flat gather: per request r it copies
-# req_to_token[req_pool_indices[r], :seq_lens[r]] into kv_indices at offset
-# kv_indptr[r], with kv_indptr[0]=0 and kv_indptr[1:]=cumsum(seq_lens) (the
-# normal kv_start_idx=None host path, kv_start=0). E = batch size (bs) and
-# req_to_token rows (max_batch); N = req_to_token cols (max_context_len).
-# seq_lens in [1, N-1] keeps every gather inside its row. There is no page_size
-# / ceil-div / block_table here (that is the sibling flashmla kernel, L1_33).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: f8b76ff6671f4ccfdc1a7ac9e6e1f75b42f46d36bb127d34401410cbd565b58e
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

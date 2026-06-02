@@ -15,7 +15,7 @@ upstream:
   file_sha256: ae94c3e7a03a3e9009be0438987f4502cdfb2056c978c1fcafc6ab8eb6cd5095
   function_hash: ae94c3e7a03a3e9009be0438987f4502cdfb2056c978c1fcafc6ab8eb6cd5095
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L2_15_fused_dual_residual_rmsnorm_kernel_409d350.py
 interface:
   alias_map: {}
@@ -24,9 +24,6 @@ interface:
   workspace_policy: none
   stream_sync_policy: runner-managed
   rng_state_policy: deterministic
-  # The frozen upstream host wrapper returns (output, mid) where
-  # output = RMSNorm2(RMSNorm1(x) + residual) and mid = RMSNorm1(x) +
-  # residual. Project the tuple onto the oracle's named contract.
   output_projection:
     arity: 2
     map:
@@ -37,18 +34,6 @@ oracle:
   gpu_triton: kernel.py::fused_dual_residual_rmsnorm
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Fused dual-RMSNorm with one residual:
-  # y = RMSNorm2(RMSNorm1(x) + residual); mid = RMSNorm1(x) + residual.
-  # One program per row. Symbol map: B -> x rows (x/residual dim 0, the
-  # kernel grid extent), D -> hidden size (x dim 1 == weight1/weight2
-  # length, the per-row reduction extent). eps is a scalar literal.
-  # FLOPs (vector): per element RMSNorm1 (square+mean ~2, rsqrt amortised
-  # ~1, normalise mul ~1, weight1 mul ~1), residual add (~1), RMSNorm2
-  # (square+mean ~2, rsqrt ~1, normalise mul ~1, weight2 mul ~1)
-  # -> ~11*B*D.
-  # bytes (hbm): read x + residual [B,D] (2*B*D) + weight1[D] + weight2[D],
-  # write output[B,D] + mid[B,D] (2*B*D) -> (4*B*D + 2*D) elements; all
-  # float32 primary family -> dtype_size.
   flops: 11*B*D
   flops_class: vector
   bytes: (4*B*D + 2*D) * dtype_size
@@ -84,6 +69,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-15
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: e3ae502b8ee92f3f74e6ed80571b0412be9b0ce66274079a0337d9496ad6ecc9
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

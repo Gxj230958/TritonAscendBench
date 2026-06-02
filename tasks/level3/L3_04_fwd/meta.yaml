@@ -101,17 +101,20 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
   golden:
-    oracle_kernel_equivalence: FAILED
-    verified_at: '2026-05-27T13:53:50Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
-        status: FAILED
-        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
+        status: VERIFIED
+        max_abs: 0.00244140625
+        max_rel: 15.993006706237793
       P2:
-        status: FAILED
-        blocker: 'kernel returned non-tensor type: <class ''NoneType''>'
-    golden_source: fallback_to_gpu_capture_pending
+        status: VERIFIED
+        max_abs: 0.005859375
+        max_rel: 2179.0
+    golden_source: oracle_pytorch_verified
+    golden_sha256: 015e94294720b960e58f5a9e3473601b0f9ba86882f8bc09d190fd2127219bd3
 param_constraints:
   scaffold: false
   dims:

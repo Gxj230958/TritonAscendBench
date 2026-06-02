@@ -29,21 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: fp8_software_emulated
 cost_model:
-  # Symbol audit (approach §3.4). Masked SiLU+mul followed by per-group FP8
-  # quant: y = silu(gate)*up over valid tokens, then block-wise symmetric FP8
-  # quant. Symbol map: E -> n_experts (input dim 0, masked_m length), T ->
-  # tokens per expert (input dim 1), D -> hidden d (input last dim is 2*D,
-  # split into gate/up halves). quant_group_size / fp8_max are scalar
-  # literals; the output scale has D//quant_group_size columns.
-  # FLOPs (vector): per output element silu(gate)*up ~= 6 ops (silu ~5 + mul)
-  # plus the valid-mask multiply (~1) plus the per-group quant ~= 4 (abs,
-  # amax, divide, clamp) -> ~11 ops over E*T*D -> 11*E*T*D.
-  # bytes (hbm): float32 primary family (input declared first) -> dtype_size=4.
-  # fp32-width terms: read input[E,T,2*D] (2*E*T*D) + write output_scale
-  # [E,T,D//8] fp32 -> (2*E*T*D + E*T*D/8)*dtype_size. output[E,T,D] is the
-  # float8_e4m3fn quant output (non-primary dtype, approach §3.2) -> literal
-  # byte width *1 -> + E*T*D. masked_m[E] is an int64 index tensor -> literal
-  # *8 -> + E*8.
   flops: 11*E*T*D
   flops_class: vector
   bytes: (2*E*T*D + E*T*D/8)*dtype_size + E*T*D + E*8
@@ -79,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L2-37
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). SiLU-gated mul + fp8 post-quant: input [E, T, 2*D] split on the last axis into gate/value halves; masked_m [E] is the per-expert token count. quant_group_size is the quant group; fp8_max the fp8 bound.
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: fp8_software_emulated
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 1.862645149230957e-09
+        max_rel: 2.7958904524894024e-07
+      P2:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.10000000149011612
+    golden_sha256: 71fe1ccf3eae2f9940694c39f26387c763b3163b6952e3808837c7fcd978fe70
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

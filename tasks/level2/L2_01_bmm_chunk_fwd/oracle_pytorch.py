@@ -59,6 +59,8 @@ def _bmm_chunk_fwd(
         bc = bf[s:e].permute(1, 0, 2)                # [G, ln, K]
         prod = torch.bmm(_to_tf32(ac), _to_tf32(bc.transpose(1, 2)))     # [G, ln, ln]
         out[c, :, :ln, :ln] = prod
+    # Harness calls the wrapper without output_dtype, so the kernel's out
+    # buffer follows a.dtype (bf16); match it.
     return out.to(a.dtype)
 
 

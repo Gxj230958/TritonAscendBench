@@ -15,7 +15,7 @@ upstream:
   file_sha256: 3b51886b58a5a901c5b8b3a02f57da8270bbd294a85acca3d56dc30066926752
   function_hash: 3b51886b58a5a901c5b8b3a02f57da8270bbd294a85acca3d56dc30066926752
   license: Apache-2.0
-  notes: "scaffold \u2014 kernel.py is a placeholder; freeze upstream before grading."
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
   vendored_snapshot: tasks/_vendored/L1_14_layer_norm_fwd_1pass_kernel_18f6bf5.py
 interface:
   alias_map: {}
@@ -33,16 +33,6 @@ oracle:
   gpu_triton: kernel.py::_layer_norm_fwd
 tolerance_class: vector_reduce
 cost_model:
-  # Symbol audit (approach §3.4). Single-pass LayerNorm with affine:
-  # mean/var normalise along the hidden dim then scale + shift. One
-  # program per row. Symbol map: B -> x rows (x dim 0, kernel grid
-  # extent), D -> hidden size (x dim 1 == weight/bias length, per-row
-  # reduction extent). eps is a scalar literal. The upstream kernel has
-  # no residual add; its optional second branch is the gating tensor z
-  # (Z=None here).
-  # FLOPs (vector): ~8-op LayerNorm body -> ~8*B*D.
-  # bytes (hbm): read x[B,D] + weight[D] + bias[D], write output[B,D]
-  # -> (2*B*D + 2*D) elements; all float32 primary family -> dtype_size.
   flops: 8*B*D
   flops_class: vector
   bytes: (2*B*D + 2*D) * dtype_size
@@ -78,6 +68,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-14
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:52Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: d36b7d92d8bc0ede07c827c4af6d91efb4de6d0ea3b9861dfebd4061ac584831
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:

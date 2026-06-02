@@ -70,20 +70,29 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-19
   golden:
-    oracle_kernel_equivalence: NEEDS_MANUAL
-    verified_at: null
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:54Z'
     tolerance_class_used: recurrent_chunk
-    equivalence_per_shape: {}
-    golden_source: oracle_reauthored_pending_gpu
-    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the
-      frozen INTER kernel chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter:
-      dense [B,T,H,K] q/k/gk, [B,T,H] beta, two outputs A (beta*k*k*decay) and
-      Aqk (scale*q*k*decay) over strictly off-diagonal sub-chunk blocks only.
-      Oracle cross-checked on CPU against a literal make_block_ptr transcription
-      of the kernel body (TF32-truncated dot, max abs diff ~2e-5 across shapes,
-      well inside recurrent_chunk 5e-3) and fault-injection on every load-bearing
-      input (g/k/q/beta/scale/sub-chunk-mask) diverges beyond tolerance. Final
-      GPU oracle-kernel equivalence pending the eval daemon.'
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-06
+        max_rel: 0.003364476840943098
+      P2:
+        status: VERIFIED
+        max_abs: 0.00179290771484375
+        max_rel: 0.043478287756443024
+    golden_source: oracle_pytorch_verified
+    notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the frozen
+      INTER kernel chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter: dense [B,T,H,K]
+      q/k/gk, [B,T,H] beta, two outputs A (beta*k*k*decay) and Aqk (scale*q*k*decay)
+      over strictly off-diagonal sub-chunk blocks only. Oracle cross-checked on CPU
+      against a literal make_block_ptr transcription of the kernel body (TF32-truncated
+      dot, max abs diff ~2e-5 across shapes, well inside recurrent_chunk 5e-3) and
+      fault-injection on every load-bearing input (g/k/q/beta/scale/sub-chunk-mask)
+      diverges beyond tolerance. Final GPU oracle-kernel equivalence pending the eval
+      daemon.'
+    golden_sha256: 719176832e542fd33200c77de665802b3a468a14d38d851c3a61e3e29819863a
 param_constraints:
   scaffold: false
   dims:
@@ -92,10 +101,6 @@ param_constraints:
   - H >= 1
   - K >= 1
   - K <= 256
-  # The named INTER kernel fills only strictly off-diagonal sub-chunk blocks
-  # (sub-chunk width BC = min(16, BT) with BT = FLA_CHUNK_SIZE = 64), so it
-  # writes nothing unless T > BC = 16. T is kept a multiple of BC so sub-chunk
-  # boundaries are clean. K <= 256 is the kernel's own assert (kernel.py:763).
   - T > 16
   dtypes:
     q: float32

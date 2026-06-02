@@ -29,15 +29,6 @@ oracle:
   gpu_triton: kernel.py::run
 tolerance_class: atomic_scatter
 cost_model:
-  # Symbol audit (approach §3.4). Inverse permutation for MoE token reorder:
-  # src2dst[reorder_ids[i]] = i — a pure scatter. Symbol map: B -> n_tokens
-  # (reorder_ids length == num_toks scalar_knob == kernel grid extent).
-  # FLOPs (vector): pure scatter, no arithmetic at all -> reported as the small
-  # constant B (one address computation per token). Dominant cost is bytes.
-  # bytes (hbm), mixed-dtype rule (approach §3.2): int64 primary family
-  # (reorder_ids) -> dtype_size=8 for the read reorder_ids[B] -> B*dtype_size.
-  # src2dst[B] is int32 (oracle allocs torch.int32, non-primary dtype) ->
-  # literal byte width *4 -> + B*4.
   flops: B
   flops_class: vector
   bytes: B*dtype_size + B*4
@@ -73,7 +64,21 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-15'
   source_md_id: L1-35
-# Operator input contract (WA.1, specs/task_api_contract.md §5.2). compute_src2dst builds the inverse MoE token permutation: src2dst[reorder_ids[i]] = i. reorder_ids must be a valid permutation of [0, num_toks); the `arange` dist materialises exactly 0..B-1. num_toks is the token count (= B).
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T05:56:53Z'
+    tolerance_class_used: atomic_scatter
+    equivalence_per_shape:
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 91a4389eae39b221b6f1a7520153101ef4364136e75642c7272d1264f9240179
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
