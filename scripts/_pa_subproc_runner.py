@@ -587,7 +587,13 @@ def _load_kernel_with_optional_bridge(
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = leaf_pkg
     sys.modules[leaf_name] = mod
-    spec.loader.exec_module(mod)
+    # Triton-compat: load a device_assert-stripped variant if the frozen kernel's
+    # debug-assert won't compile on this Triton (kernel.py on disk is untouched;
+    # a no-op for tasks without one). Otherwise the normal exec_module path.
+    from triton_ascend_bench.triton_compat import load_with_compat_strip
+
+    if not load_with_compat_strip(mod, kernel_src, str(kp)):
+        spec.loader.exec_module(mod)
     # jit-only: exec the authored run(inputs) into the original kernel.py
     # module (the staged candidate already inlines it).
     _lp = kp.parent / "_pa_launcher.py"

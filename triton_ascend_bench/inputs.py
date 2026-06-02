@@ -84,14 +84,14 @@ DIST_KINDS = frozenset({
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "offsets",
     "cumcount", "arange", "randperm", "cyclic_perm", "full", "routing_ids",
     "window_pos", "window_req", "gumbel_temps", "gumbel_routing",
-    "moe_sorted_ids",
+    "moe_sorted_ids", "rope_cos_sin",
 })
 
 #: Dist kinds that carry no `args` (the bare-name DSL forms).
 _NULLARY_DIST_KINDS = frozenset({
     "randn", "randn_inf", "rand", "ones", "zeros", "eye", "tril",
     "tril_chunk", "softmax_rows", "l2norm_rows", "logsigmoid", "arange",
-    "randperm", "cyclic_perm", "gumbel_temps",
+    "randperm", "cyclic_perm", "gumbel_temps", "rope_cos_sin",
 })
 
 #: Fraction of `randn_inf` entries replaced with +inf. Models a
@@ -633,6 +633,28 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
     elif kind == "arange":
         n = shape[-1] if shape else 1
         return torch.arange(n, dtype=torch.int64).reshape(shape)
+    elif kind == "rope_cos_sin":
+        # Real RoPE cos/sin cache, shape [max_pos, rotary_dim]: row p is
+        # [cos(p*inv_freq), sin(p*inv_freq)] with inv_freq = base^(-arange(0,
+        # rotary_dim, 2)/rotary_dim) (length rotary_dim/2), base = 10000. The
+        # MLA-decode kernel reads cos at columns [0, rotary_dim/2) and sin at
+        # [rotary_dim/2, rotary_dim) -- so cos and sin each occupy half the row.
+        # Deterministic (no RNG); the faithful rotation table (cos^2+sin^2==1),
+        # not a random twin.
+        if len(shape) != 2:
+            raise DistSpecError(
+                f"dist 'rope_cos_sin' needs shape [max_pos, rotary_dim], got {shape}"
+            )
+        max_pos, rotary_dim = shape
+        if rotary_dim % 2 != 0:
+            raise DistSpecError(
+                f"dist 'rope_cos_sin' needs an even rotary_dim, got {rotary_dim}"
+            )
+        inv_freq = 1.0 / (
+            10000.0 ** (torch.arange(0, rotary_dim, 2, dtype=torch.float32) / rotary_dim)
+        )
+        ang = torch.outer(torch.arange(max_pos, dtype=torch.float32), inv_freq)
+        return torch.cat([torch.cos(ang), torch.sin(ang)], dim=-1).to(dtype)
     elif kind == "randperm":
         # Random permutation of [0, n) -- a non-trivial bijection. MoE token
         # reordering (argsort of expert ids) IS such a permutation; a bare

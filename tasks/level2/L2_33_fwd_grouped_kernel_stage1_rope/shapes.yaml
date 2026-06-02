@@ -1,162 +1,51 @@
-# Operator-family knob grid (WB.1 R2-3): values reflect
-# the attention family's real axes — not the legacy
-# uniform template. See docs/plans/2026-05-21-operator-param-validity-impl.md.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
+# MLA decode stage1 (SGLang rocm_mla_decode_rope `_fwd_grouped_kernel_stage1_rope`).
+# Knobs: B batch, H query heads, S kv tokens per batch (<= BLOCK_N=32 so the
+# kernel's online softmax is a single tile == plain softmax), C kv_lora_rank
+# (nope/latent dim), R qk_rope_head_dim == rotary_dim (full rotary), P max
+# rope position. total_kv = B*S; one contiguous page of S tokens per batch.
+# The real MLA caller passes V as an alias of k_buffer[..., :C], so the launcher
+# and oracle derive that view instead of materialising an independent input.
+size_knobs: {B: 4, H: 16, S: 16, C: 512, R: 64, P: 64}
 public_shapes:
-- id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
-- id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-- id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
-- id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
-- id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+- {id: P1, name: tiny,   knobs: {B: 2, H: 4,  S: 8,  C: 64,  R: 16, P: 32}}
+- {id: P2, name: small,  knobs: {B: 3, H: 8,  S: 16, C: 128, R: 32, P: 48}}
+- {id: P3, name: medium, knobs: {B: 4, H: 16, S: 24, C: 256, R: 64, P: 64}}
+- {id: P4, name: deepseek, knobs: {B: 4, H: 16, S: 32, C: 512, R: 64, P: 64}}
+- {id: P5, name: wide,   knobs: {B: 2, H: 32, S: 16, C: 512, R: 64, P: 32}}
 hidden_shapes:
-- id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
-- id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
-- id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
-- id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+- {id: H1, name: h_odd_heads, knobs: {B: 3, H: 12, S: 20, C: 192, R: 64, P: 48}}
+- {id: H2, name: h_singleton, knobs: {B: 2, H: 2,  S: 4,  C: 64,  R: 16, P: 16}}
+- {id: H3, name: h_deep_latent, knobs: {B: 2, H: 8, S: 32, C: 512, R: 64, P: 64}}
+- {id: H4, name: h_many_batch, knobs: {B: 8, H: 16, S: 8,  C: 128, R: 32, P: 16}}
 inputs:
   q:
-    dims:
-    - B
-    - H
-    - D
-    dtype: float32
+    dims: [B, H, C+R]
+    dtype: bf16
     dist: randn
   k_buffer:
-    dims:
-    - C
-    - D
-    dtype: float32
+    dims: [B*S, 1, C+R]
+    dtype: bf16
     dist: randn
-  v_buffer:
-    dims:
-    - C
-    - D
-    dtype: float32
-    dist: randn
-  scale:
-    derive: 1/sqrt(D)
-  att_out:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
+  kv_indptr:
+    dims: [B+1]
+    dtype: int32
+    dist: offsets:to=B*S
+  kv_indices:
+    dims: [B*S]
+    dtype: int64
+    dist: arange
+  cos_sin_cache:
+    dims: [P, R]
+    dtype: bf16
+    dist: rope_cos_sin
+  positions:
+    dims: [B]
+    dtype: int64
+    dist: randint:0:P
+  kv_lora_rank: {scalar_knob: "C"}
+  rotary_dim: {scalar_knob: "R"}
+  num_kv_splits: {scalar: 1}
+  sm_scale: {derive: "1/sqrt(C+R)"}
+  logit_cap: {scalar: 0.0}
+  use_rope: {scalar: true}
+  is_neox_style: {scalar: true}

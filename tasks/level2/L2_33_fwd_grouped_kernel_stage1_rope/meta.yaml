@@ -26,14 +26,14 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::placeholder
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: attention_flash
 cost_model:
   flops:
-    fp16_cube: 4*B*H*C*D
-    vector: 8*B*H*C
+    fp16_cube: 2*B*H*S*(2*C+R)
+    vector: 8*B*H*S
   bytes:
-    hbm: (2*B*H*D + 2*C*D) * dtype_size
+    hbm: (B*H*(C+R) + B*S*(C+R) + B*S*C + B*H*(C+1)) * dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -66,34 +66,64 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-33
   golden:
-    oracle_kernel_equivalence: NEEDS_BRIDGE
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-02T15:00:05Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
-      '*':
-        status: NEEDS_BRIDGE
-        blocker: 'R10.a not aligned: NEEDS_BRIDGE resolver found no kernel host wrapper
-          whose required-param set overlaps the oracle''s input keys ([''cos'', ''k_buffer'',
-          ''q'', ''rope_dim'', ''scale'', ''sin'', ''v_buffer'']); orac'
+      P1:
+        status: VERIFIED
+        max_abs: 0.003469914197921753
+        max_rel: 0.03236158937215805
+      P2:
+        status: VERIFIED
+        max_abs: 0.0028848648071289062
+        max_rel: 1.1044706106185913
+    cross_check: S2_FRESH
+    golden_source: oracle_pytorch_verified
 param_constraints:
   scaffold: false
   dims:
   - B >= 1
   - H >= 1
-  - D >= 1
   - C >= 1
+  - R >= 1
+  - S >= 1
   dtypes:
-    q: float32
-    k_buffer: float32
-    v_buffer: float32
+    q: bf16
+    k_buffer: bf16
+    cos_sin_cache: bf16
+    kv_indptr: int32
+    kv_indices: int64
+    positions: int64
   dists:
     q:
       kind: randn
     k_buffer:
       kind: randn
-    v_buffer:
-      kind: randn
+    cos_sin_cache:
+      kind: rope_cos_sin
+    kv_indptr:
+      kind: offsets
+      args:
+        to: B*S
+    kv_indices:
+      kind: arange
+    positions:
+      kind: randint
+      args:
+        lo: '0'
+        hi: P
   scalars:
-    scale:
-      derive: 1/sqrt(D)
+    sm_scale:
+      derive: 1/sqrt(C+R)
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_33_fwd_grouped_kernel_stage1_rope-20260602T225911
+  classified_at: '2026-06-02'
+  standalone_sha256: ba46b779d3cf3fe468a8c280f3777399a14d1e2997f5c1a0a100a4dd2f9cfdfa
+  kernel_sha256: ba46b779d3cf3fe468a8c280f3777399a14d1e2997f5c1a0a100a4dd2f9cfdfa
+frozen_deps: []
+classB_symbols: []
+reference_path: native

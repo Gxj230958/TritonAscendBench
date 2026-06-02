@@ -321,7 +321,13 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = leaf_pkg
     sys.modules[leaf_name] = mod
-    spec.loader.exec_module(mod)
+    # Triton-compat: load a device_assert-stripped variant if the frozen kernel's
+    # debug-assert won't compile on this Triton (kernel.py on disk is untouched;
+    # a no-op for tasks without one). Otherwise the normal exec_module path.
+    from triton_ascend_bench.triton_compat import load_with_compat_strip
+
+    if not load_with_compat_strip(mod, kernel_src, str(path)):
+        spec.loader.exec_module(mod)
     # jit-only: exec the authored run(inputs) into the kernel module so the
     # oracle anchor can invoke it (kernel.py only, never oracle_pytorch.py).
     if path.name == "kernel.py":
