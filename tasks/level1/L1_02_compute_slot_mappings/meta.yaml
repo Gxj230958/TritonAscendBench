@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-02
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:52Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 0bb1ae9284c668bf0ce82188eb1543a67ef21e9f9ad08fd075dd8164bc959006
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -112,3 +113,12 @@ param_constraints:
     args:
       input: idx_mapping
       value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_02_compute_slot_mappings-20260602T192544
+  classified_at: '2026-06-02'
+  standalone_sha256: 175e8e6bddc5591a02dddc8e94cc89a11feaf729b41e3b9de15f7fdec9fbf4a2
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-08
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:52Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: elementwise_exact_or_inf_safe
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 06ef6720550640889d9990442f260b09f24c5dafff9051f793651c2673f4b092
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -101,3 +102,12 @@ param_constraints:
     args:
       input: page_table_1_flattened
       value: C
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_08_dequantize_k_cache_paged-20260602T192607
+  classified_at: '2026-06-02'
+  standalone_sha256: 91d3496c7f028e7d1f9c9c0cd7c244d3206bb7c964089f95f96fc4e1b008753a
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-05
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: cd265d14ee316d5dcb1eba130459b0b1d846f188026bb1b1725429514a399047
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -120,3 +121,12 @@ param_constraints:
     args:
       input: weight_indices
       value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_05_chunked_lora_shrink-20260602T193444
+  classified_at: '2026-06-02'
+  standalone_sha256: f01945e0200d7b720d46eaae8d633bd159c623132832949b2d63c088c0bc66ef
+frozen_deps: []
+classB_symbols: []
+reference_path: native

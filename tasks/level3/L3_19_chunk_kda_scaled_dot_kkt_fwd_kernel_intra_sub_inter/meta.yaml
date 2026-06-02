@@ -71,7 +71,7 @@ provenance:
   source_md_id: L3-19
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:54Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -93,6 +93,7 @@ provenance:
       diverges beyond tolerance. Final GPU oracle-kernel equivalence pending the eval
       daemon.'
     golden_sha256: 719176832e542fd33200c77de665802b3a468a14d38d851c3a61e3e29819863a
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -120,3 +121,20 @@ param_constraints:
     scale:
       derive: 1/sqrt(K)
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_19_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter-20260602T194611
+  classified_at: '2026-06-02'
+  standalone_sha256: 2247e555e9cf70268bfc72712eb082a3ae84a85bb734833352360a72c13245f7
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.fused_recurrent
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.l2norm
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.solve_tril
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

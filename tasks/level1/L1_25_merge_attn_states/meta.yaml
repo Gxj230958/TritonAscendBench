@@ -75,7 +75,7 @@ provenance:
       transposed to match. Awaiting GPU re-capture of oracle/kernel equivalence (prior
       FAILED verdict was against the transposed-LSE oracle and is no longer valid).
     golden_source: oracle_pytorch_verified
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     equivalence_per_shape:
       P1:
         status: VERIFIED
@@ -86,6 +86,7 @@ provenance:
         max_abs: 2.384185791015625e-07
         max_rel: 8.94666470685479e-07
     golden_sha256: 9b88d958e11f429929e1dc6583c48921f3bfebc5d26739d5cedc148a11275f05
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -110,3 +111,12 @@ param_constraints:
       kind: randn
   scalars: {}
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_25_merge_attn_states-20260602T192751
+  classified_at: '2026-06-02'
+  standalone_sha256: 48c1058eddd395b510f1ea1d96b86c9814f3a567ee320a6831fea78c69595cb7
+frozen_deps: []
+classB_symbols: []
+reference_path: native

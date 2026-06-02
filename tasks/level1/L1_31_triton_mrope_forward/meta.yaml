@@ -71,7 +71,7 @@ provenance:
   source_md_id: L1-31
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
@@ -84,6 +84,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: dfc7545a122bf7ea8e255033bb4449a79fe2f131c25ce26061d2f379c5b646cc
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -109,3 +110,12 @@ param_constraints:
     rotary_dim: 0 < rotary_dim <= 16 and rotary_dim % 2 == 0
     mrope_interleaved: mrope_interleaved == False
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_31_triton_mrope_forward-20260602T192910
+  classified_at: '2026-06-02'
+  standalone_sha256: c462c21ae3f511bf1ff3816275815d82abf018757ae3ef28dd42e7329934e92d
+frozen_deps: []
+classB_symbols: []
+reference_path: native

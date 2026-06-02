@@ -71,7 +71,7 @@ provenance:
   source_md_id: L3-13
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T06:26:24Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -90,7 +90,8 @@ provenance:
       branch (exp(gk[:,last])); all shape rows pinned to NT>=3 (T>=129) so that decay
       reaches a graded h snapshot. Numeric oracle-vs-kernel equivalence requires a
       GPU/NPU run to populate.
-    golden_sha256: 29961fa50d8e38905db6d510807a50309a3d7d9c6fd16242c4eff22ccf34f89a
+    golden_sha256: 0eef9a8272d9ee4597d42505655e246f4db87d56b967369bd9d83cdbfb52e2f9
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -121,3 +122,15 @@ param_constraints:
       kind: logsigmoid
   scalars: {}
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64-20260602T194500
+  classified_at: '2026-06-02'
+  standalone_sha256: ff0ede745f62b91b4af5717a045b784bb82a4532c07706be6dec45648376067f
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

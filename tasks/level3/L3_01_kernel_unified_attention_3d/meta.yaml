@@ -69,7 +69,7 @@ provenance:
     (single kernel handles 3D and 2D).'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
@@ -82,6 +82,7 @@ provenance:
         max_rel: 2133.46826171875
     golden_sha256: c1f5f52562955488b3d54aa45a73c78022261549dd477a549a019a45912995b1
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -130,3 +131,14 @@ param_constraints:
     args:
       input: seqused_k
       value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_01_kernel_unified_attention_3d-20260602T194244
+  classified_at: '2026-06-02'
+  standalone_sha256: 17b70706b94bcc21078a1092b4832c8b53dfc48a3125f67b6eae6b19d4973db2
+frozen_deps:
+- tasks._frozen_deps_pool.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode
+- tasks._frozen_deps_pool.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers
+classB_symbols: []
+reference_path: native

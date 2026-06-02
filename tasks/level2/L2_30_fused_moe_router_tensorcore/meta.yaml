@@ -67,7 +67,7 @@ provenance:
   source_md_id: L2-30
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -85,6 +85,7 @@ provenance:
       now PASSES (H2 max_abs=0.0, P2 max_abs=8e-7 within atomic_scatter). Needs a
       GPU equivalence re-run against the corrected oracle to set VERIFIED.
     golden_sha256: 2e061d96c5c7b4a2ed9a1a6d383df93017ff23ac29128d817666c699bb0b6f9e
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -105,3 +106,12 @@ param_constraints:
     topk: 1 <= topk <= 2
     moe_softcapping: moe_softcapping >= 0
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_30_fused_moe_router_tensorcore-20260602T193933
+  classified_at: '2026-06-02'
+  standalone_sha256: 3174a8edf77f3a13deae236c4cb488a6f563b146cdc2e5a874f6c5cbee781a2b
+frozen_deps: []
+classB_symbols: []
+reference_path: native

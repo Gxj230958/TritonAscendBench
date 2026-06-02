@@ -70,7 +70,7 @@ provenance:
   source_md_id: L3-10
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: int4_w4a8
     equivalence_per_shape:
       P1:
@@ -83,6 +83,7 @@ provenance:
         max_rel: 1.0636937618255615
     golden_sha256: c3bf2fced4e5df4c6487b6126d57029a1e969e11c70ed6926230d6b1e3206768
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -138,3 +139,12 @@ param_constraints:
     args:
       input: expert_ids
       value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_10_fused_moe_kernel_gptq_awq-20260602T194439
+  classified_at: '2026-06-02'
+  standalone_sha256: ed1a29ac280452dd0556d27ad045c9b0b03f89c09d08338b352da64caf4ba23f
+frozen_deps: []
+classB_symbols: []
+reference_path: native

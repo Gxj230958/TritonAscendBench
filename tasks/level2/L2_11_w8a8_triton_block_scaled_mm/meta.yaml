@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-11
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0007027406827546656
     golden_sha256: 567ee32f7aacaab6af76aaa9b2ccf0413b486fa2b4edb0950b48634ecef4ef61
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -110,3 +111,15 @@ param_constraints:
   scalars:
     block_size: len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 32
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_11_w8a8_triton_block_scaled_mm-20260602T193550
+  classified_at: '2026-06-02'
+  standalone_sha256: 0363b39c516d8c7371d80716fa1425c6d11d3598b044755b86816f47b80f06df
+frozen_deps: []
+classB_symbols:
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

@@ -67,7 +67,7 @@ provenance:
   source_md_id: L1-29
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: sampling_rng
     equivalence_per_shape:
       P1:
@@ -80,6 +80,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: caaa38417a4b0384d62313ce39757e26e7d5972669510d10710bd9ed736aac7d
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -146,3 +147,12 @@ param_constraints:
     args:
       input: idx_mapping
       value: B
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_29_prepare_eagle_inputs-20260602T192851
+  classified_at: '2026-06-02'
+  standalone_sha256: 9e8c85a38aeea07883e561d11f9ed7843babf32eb0383be37ab938c1e4c80bf0
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-09
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:52Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.10000000149011612
     golden_sha256: 75f590f5bc60e04d79279b127b7871de96c12568c6baeaf905fe80ba7306607d
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -96,3 +97,12 @@ param_constraints:
     group_size: group_size == 128
     fp8_max: 0 < fp8_max <= 1e4
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_09_quantize_k_cache_fast-20260602T192625
+  classified_at: '2026-06-02'
+  standalone_sha256: f6e83f9e3c16bc6df93a499fb244ecfa8e7974a10f1ae1dee619514d174fce24
+frozen_deps: []
+classB_symbols: []
+reference_path: native

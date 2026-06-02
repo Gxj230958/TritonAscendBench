@@ -68,7 +68,7 @@ provenance:
   source_md_id: L2-02
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -81,6 +81,7 @@ provenance:
         max_rel: 0.001158438972197473
     golden_sha256: b0fdcf6b2c867b40dbed0d51f965ee7d82a2b005d70c267a3ea0515596d3b11b
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -109,3 +110,13 @@ param_constraints:
   scalars:
     chunk_size: chunk_size in [16, 32, 64]
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_02_chunk_scan_fwd-20260602T193305
+  classified_at: '2026-06-02'
+  standalone_sha256: 55ee76ba89186fb2456305532c3ba7f98ac3ef83af7984499f40d8cfe0fb4a02
+frozen_deps:
+- tasks._frozen_deps_pool.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers
+classB_symbols: []
+reference_path: native

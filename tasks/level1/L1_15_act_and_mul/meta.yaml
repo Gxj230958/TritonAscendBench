@@ -66,7 +66,7 @@ provenance:
   source_md_id: L1-15
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:52Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 6d5ab2d55fc946a93b2d93800e9612367e998f9a731451d8617e81d8954f0c64
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -99,3 +100,12 @@ param_constraints:
   scalars:
     act: act in ['silu', 'gelu', 'relu']
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_15_act_and_mul-20260602T192649
+  classified_at: '2026-06-02'
+  standalone_sha256: 0927af3de91e873dd167820b4c209718181b608a4f6a0082eab5774c7fa82549
+frozen_deps: []
+classB_symbols: []
+reference_path: native

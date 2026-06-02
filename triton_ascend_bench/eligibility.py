@@ -499,15 +499,23 @@ def release_ready_with_provenance(meta: dict | None) -> bool:
 
 def fresh_s2_pass(meta: dict | None, kernel_sha256: str | None = None) -> bool:
     """True iff the S2 severance gate PASSes AND is FRESH for the current
-    kernel.py. Freshness = the recorded ``standalone_sha256`` matches the
-    on-disk kernel.py hash (caller passes it); a stale status from before a
-    kernel.py edit does NOT count. Without ``kernel_sha256`` the sha check is
-    skipped (status-only -- callers with file access should pass it).
+    kernel.py.
+
+    Freshness = the S2 run that recorded the PASS verified the CURRENT
+    kernel.py. The signal is ``phase_a_prime.kernel_sha256`` -- the sha256 of
+    the kernel.py the S2 run actually verified (written by the verify pass).
+    When the caller passes the on-disk ``kernel_sha256`` AND the meta records
+    one, they must match; a stale PASS from before a kernel.py edit does not
+    count. Legacy metas with no recorded ``kernel_sha256`` fall back to
+    status-only (forward-compatible -- new verify runs populate the field).
+
+    NOTE: ``standalone_sha256`` is the SEVERED-CANDIDATE hash, not sha(kernel.py),
+    so it is NOT a kernel-freshness signal and is deliberately not used here.
 
     A standalone that fails the S2 severed audit (e.g. leaks vllm) has
     ``phase_a_prime.status`` != PASS, so it can never be fresh_s2_pass -- this
-    is the masking root fix consumed by :func:`compute_usability` and by the
-    C2 verdict writer (which must not promote VERIFIED when this is false).
+    is the masking root fix consumed by :func:`compute_usability` and the C2
+    verdict writer (which must not promote VERIFIED when this is false).
     """
     m = meta or {}
     pap = m.get("phase_a_prime") or {}
@@ -518,10 +526,9 @@ def fresh_s2_pass(meta: dict | None, kernel_sha256: str | None = None) -> bool:
     )
     if not ok:
         return False
-    if kernel_sha256 is not None:
-        recorded = pap.get("standalone_sha256")
-        if not recorded or recorded != kernel_sha256:
-            return False
+    recorded = pap.get("kernel_sha256")
+    if kernel_sha256 is not None and recorded:
+        return recorded == kernel_sha256
     return True
 
 

@@ -67,7 +67,7 @@ provenance:
   source_md_id: L3-16
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T06:26:08Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -93,7 +93,8 @@ provenance:
       float32 round-off). Numeric oracle-vs-kernel equivalence requires a GPU/NPU
       run to populate (the FLA chunk kernels do not execute under TRITON_INTERPRET
       on a driverless host).'
-    golden_sha256: de02ffc4ec129957ecc4316e6e2a0aeb529a9ca570cfd502c01c9c6f9ab25e89
+    golden_sha256: 130bdf610968c13e09550fb40e5fe24bc3d9b2e1c5145f15d74924a08187dcf5
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -126,3 +127,15 @@ param_constraints:
     scale:
       derive: 1/sqrt(K)
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_16_chunk_fwd_kernel_o-20260602T194556
+  classified_at: '2026-06-02'
+  standalone_sha256: f106b4b81fcb01901a924db1d8bc6e460991c61803e588fa24b7429075d5bbc9
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

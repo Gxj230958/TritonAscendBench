@@ -69,7 +69,7 @@ provenance:
     docs/npu/benchmark_select.md (root-owned) pending sync.'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
@@ -82,6 +82,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 55a8477404931e03f8b28f0c5698fc54fc049a268ed2f401ba8bf974ba9268d6
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -102,3 +103,12 @@ param_constraints:
     cp_rank: cp_rank >= 0
     is_lse_base_on_e: is_lse_base_on_e in [0, 1]
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_07_correct_attn_cp_out-20260602T194435
+  classified_at: '2026-06-02'
+  standalone_sha256: 4ed3cec59a6656680ce6445cc83471b5ec344b757e36d80b16afa0584b91142e
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -70,7 +70,7 @@ provenance:
   source_md_id: L1-13
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:52Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
@@ -83,6 +83,7 @@ provenance:
         max_rel: 0.005376344081014395
     golden_source: oracle_pytorch_verified
     golden_sha256: d36b7d92d8bc0ede07c827c4af6d91efb4de6d0ea3b9861dfebd4061ac584831
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -102,3 +103,13 @@ param_constraints:
   scalars:
     eps: 0 < eps <= 1e-2
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_13_layer_norm_fwd-20260602T192647
+  classified_at: '2026-06-02'
+  standalone_sha256: c3a806990f7ae0653773964e0eb485d0e221ee965a3a7f4ed1fadbfed709ac7f
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

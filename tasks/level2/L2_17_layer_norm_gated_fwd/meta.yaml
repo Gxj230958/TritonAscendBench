@@ -73,7 +73,7 @@ provenance:
   source_md_id: L2-17
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
@@ -86,6 +86,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 101742460f26b6385b933d2b50a6a1867bddcb76e56f4da45456c2ee119f000f
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -113,8 +114,11 @@ param_constraints:
     is_rms_norm: is_rms_norm == True
   tensor_invariants: []
 phase_a_prime:
-  status: UNRUN
-  reason: fixture changed to drive IS_RMS_NORM=True branch; needs GPU re-verify
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_17_layer_norm_gated_fwd-20260602T193642
+  classified_at: '2026-06-02'
+  standalone_sha256: 461e4624c27f3f98c54cccb9ea8880145f0c9b75279491be857d8ce413f1c710
 frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum

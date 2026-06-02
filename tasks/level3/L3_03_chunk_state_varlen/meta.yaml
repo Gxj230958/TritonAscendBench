@@ -71,7 +71,7 @@ provenance:
     pending sync.'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       P1:
@@ -84,6 +84,7 @@ provenance:
         max_rel: 0.06703164428472519
     golden_sha256: a4e677c2853f6d093dbabd4d33328bdda76c39eb77ad03f67123c9d76c0001b3
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -124,3 +125,12 @@ param_constraints:
     args:
       input: cu_seqlens
       value: B*L
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_03_chunk_state_varlen-20260602T194348
+  classified_at: '2026-06-02'
+  standalone_sha256: fa83675f918f6801e9409ba91eae3aa96c037cb8c9e6ea0e390f7c78a93bfad3
+frozen_deps: []
+classB_symbols: []
+reference_path: native

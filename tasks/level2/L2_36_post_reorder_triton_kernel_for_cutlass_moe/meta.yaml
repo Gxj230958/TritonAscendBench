@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-36
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: 9c3658022ba15deb174d2dbb5fa4ffc49c56c2285ff8e839e717817dd95bae23
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -98,3 +99,12 @@ param_constraints:
   scalars:
     topk: topk >= 1
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_36_post_reorder_triton_kernel_for_cutlass_moe-20260602T194101
+  classified_at: '2026-06-02'
+  standalone_sha256: f944112ff5fbf0fa25695a9008199aa31d6caa67341c3ffd402a3a5ced97ea29
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -1824,8 +1824,15 @@ def update_meta_phase_a_prime(
     rewritten hash that `validate_tasks.py` compares in phase-aware
     mode."""
     import datetime
+    import hashlib
 
     mp = task_dir / "meta.yaml"
+    # kernel_sha256 = sha of the on-disk kernel.py this verify run validated.
+    # It is the FRESHNESS signal consumed by eligibility.fresh_s2_pass (a later
+    # kernel.py edit changes this hash, so the recorded S2 PASS no longer counts).
+    # Distinct from standalone_sha256 (the severed-candidate hash).
+    kp = task_dir / "kernel.py"
+    kernel_sha256 = hashlib.sha256(kp.read_bytes()).hexdigest() if kp.is_file() else ""
     meta = yaml.safe_load(mp.read_text())
     meta["phase_a_prime"] = {
         "status": status,
@@ -1833,6 +1840,7 @@ def update_meta_phase_a_prime(
         "s2_gpu_run_id": s2_gpu_run_id,
         "classified_at": datetime.date.today().isoformat(),
         "standalone_sha256": standalone_sha256,
+        "kernel_sha256": kernel_sha256,
     }
     meta["frozen_deps"] = frozen_deps
     meta["classB_symbols"] = class_b_symbols

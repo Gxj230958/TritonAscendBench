@@ -67,7 +67,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: VERIFIED
     gpu_kernel_capture_status: PENDING
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       P1:
@@ -85,6 +85,7 @@ provenance:
       reproduces the wrapper invocation verbatim. GPU bit-exact re-verification pending
       on the daemon.
     golden_sha256: 71fe1ccf3eae2f9940694c39f26387c763b3163b6952e3808837c7fcd978fe70
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -109,3 +110,12 @@ param_constraints:
     quant_group_size: quant_group_size >= 1
     fp8_max: 0 < fp8_max <= 1e4
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe-20260602T194013
+  classified_at: '2026-06-02'
+  standalone_sha256: c57abd7e64782e0eb056b80db9a0b69f9d07e41f851ef1cc9f404009a6dfcf0e
+frozen_deps: []
+classB_symbols: []
+reference_path: native

@@ -87,8 +87,9 @@ provenance:
       [B,D,KW-1], bias [D], load-bearing conv_state_indices (cyclic_perm), null_block_id
       null. Oracle gathers/rolls/scatters per index. Needs GPU golden re-capture before
       baseline eligibility.'
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     golden_sha256: cf476a622e0c31763c63e5d50c43d3c9b50ea0fcd436aa4707c14ac69ac30a05
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -116,3 +117,12 @@ param_constraints:
   scalars:
     activation: activation in ['silu', 'swish', 'none']
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_20_causal_conv1d_update-20260602T193714
+  classified_at: '2026-06-02'
+  standalone_sha256: c8146e1d653fd8ab4a35ec894225187e8fb91df801109cc1197f127208a26d29
+frozen_deps: []
+classB_symbols: []
+reference_path: native

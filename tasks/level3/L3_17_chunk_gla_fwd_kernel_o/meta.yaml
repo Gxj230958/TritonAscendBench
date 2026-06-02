@@ -67,7 +67,7 @@ provenance:
   source_md_id: L3-17
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:23Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       P1:
@@ -90,6 +90,7 @@ provenance:
       runner''s GPU rescue re-runs this anchor on the real device with the unchanged
       tolerance. Final GPU equivalence pending.'
     golden_sha256: c02d05ef965959e4c8bb0039686892a18ac2cbb2f7ecd147fdb7ae5dc289adb9
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -120,3 +121,20 @@ param_constraints:
     scale:
       derive: 1/sqrt(D)
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_17_chunk_gla_fwd_kernel_o-20260602T194559
+  classified_at: '2026-06-02'
+  standalone_sha256: 367a1406a408d22ece6c873c1693ff36527b53525c616af4785fc32074eb5fc1
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.fused_recurrent
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.l2norm
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.solve_tril
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

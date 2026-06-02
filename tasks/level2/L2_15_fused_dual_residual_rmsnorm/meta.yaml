@@ -71,7 +71,7 @@ provenance:
   source_md_id: L2-15
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       P1:
@@ -84,6 +84,7 @@ provenance:
         max_rel: 0.0
     golden_sha256: e3ae502b8ee92f3f74e6ed80571b0412be9b0ce66274079a0337d9496ad6ecc9
     golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -108,3 +109,12 @@ param_constraints:
   tensor_invariants:
   - x.shape == residual.shape
   - x.dtype == residual.dtype
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_15_fused_dual_residual_rmsnorm-20260602T193623
+  classified_at: '2026-06-02'
+  standalone_sha256: 8af5b23ce4c77659ab9f14e16b76f1a731d9ce9aae590bf792c187b9018c2390
+frozen_deps: []
+classB_symbols: []
+reference_path: native

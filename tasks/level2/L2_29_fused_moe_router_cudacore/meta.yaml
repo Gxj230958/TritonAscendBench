@@ -66,7 +66,7 @@ provenance:
   source_md_id: L2-29
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T05:56:53Z'
+    verified_at: '2026-06-02T11:53:22Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       P1:
@@ -79,6 +79,7 @@ provenance:
         max_rel: 1.2593689461937174e-05
     golden_source: oracle_pytorch_verified
     golden_sha256: 2e052181f604e2cf06ad1d59c30a2d37dab11e43c1f78c51ed39add271c47e1a
+    cross_check: S2_FRESH
 param_constraints:
   scaffold: false
   dims:
@@ -99,3 +100,12 @@ param_constraints:
     topk: 1 <= topk <= 8
     moe_softcapping: moe_softcapping >= 0
   tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_29_fused_moe_router_cudacore-20260602T193924
+  classified_at: '2026-06-02'
+  standalone_sha256: aa23df05c77a77bff11cb131a63b7c95217762753ac29be62c9f17b5a348ce92
+frozen_deps: []
+classB_symbols: []
+reference_path: native
