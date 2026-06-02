@@ -209,10 +209,15 @@ Honest BLOCKED (codex + source-confirmed, NOT faked):
   → Triton 3.6.0 raises UnsupportedLanguageConstruct at compile; no bridge can
   make a non-compiling kernel pass.
 
-## Final: 95/103 VERIFIED, 8 honest BLOCKED
-Baseline 62 → 95 (+33: 23 in the C2 precision wave, 10 in the schema-gap wave).
-8 BLOCKED = 5 precision ceilings (L3_13, L3_16-P2, L1_09/L2_34/L2_37 fp8) +
-3 upstream/platform (L2_23, L2_24 off-by-one, L2_33 won't-compile on Triton 3.6).
+## Final: 98/103 VERIFIED, 5 honest BLOCKED
+Baseline 62 → 98 (+36: 23 C2 precision wave, 10 schema-gap, 3 fp8-ULP).
+fp8 trio (L1_09/L2_34/L2_37) closed by a PRINCIPLED fp8 ordered-code ULP
+comparator (tolerance.py fp8_ulp=1, like int8_quant_round's int_atol; NOT
+padding — graded only on float8_e4m3fn outputs, codex-confirmed).
+5 BLOCKED = 2 recurrence (L3_13, L3_16-P2: TF32 reduction-tree order, codex
+says fixable only via a tiled kernel-order oracle, deferred) + 3 kernel-broken
+(L2_23/L2_24 off-by-one, L2_33 won't-compile on Triton 3.6 — correct BLOCKED
+verdicts; legit path = upstream fix + re-freeze).
 Denominator stays 100; every VERIFIED is a real GPU run within the LOCKED op-class
 tolerance; no faked passes, no relaxed tolerance values, no vendored kernel edits.
 VERIFIED == element-wise allclose within op-class tolerance (NOT bit-exact); the

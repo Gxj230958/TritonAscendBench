@@ -38,6 +38,10 @@ class ToleranceClass:
     # actually needs (fp32 -> int8 banker's-rounding vs Triton native
     # rounding routinely differs by 1 step in ties).
     int_atol: int | None = None
+    # fp8 quant outputs: max ordered representable-code distance. A value near an
+    # e4m3 bucket midpoint may round to either neighbor (1 ULP), same as
+    # int8_quant_round's int_atol. None -> fp8 goes through the float allclose.
+    fp8_ulp: int | None = None
 
 
 def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
@@ -53,6 +57,15 @@ def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
                     f"tolerance class {name!r}: int_atol must be >= 0 "
                     f"(got {int_atol})"
                 )
+        raw_fp8_ulp = cfg.get("fp8_ulp")
+        fp8_ulp: int | None = None
+        if raw_fp8_ulp is not None:
+            fp8_ulp = int(raw_fp8_ulp)
+            if fp8_ulp < 0:
+                raise ValueError(
+                    f"tolerance class {name!r}: fp8_ulp must be >= 0 "
+                    f"(got {fp8_ulp})"
+                )
         out[name] = ToleranceClass(
             name=name,
             atol=float(cfg["atol"]),
@@ -62,6 +75,7 @@ def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
             sample_fraction=float(cfg.get("sample_fraction", 1.0)),
             bit_exact=bool(cfg.get("bit_exact", False)),
             int_atol=int_atol,
+            fp8_ulp=fp8_ulp,
         )
     return out
 
@@ -158,6 +172,7 @@ def for_task(
                     # fall back to bit-exact even when the policy class
                     # declares int_atol.
                     int_atol=base_cls.int_atol,
+                    fp8_ulp=base_cls.fp8_ulp,
                 ),
                 source="upstream_test_explicit",
                 atol=float(atol_pinned),
@@ -305,6 +320,69 @@ def _bit_exact_compare(
     )
 
 
+_FP8_DTYPES = {torch.float8_e4m3fn}
+
+
+def _fp8_ulp_compare(
+    a: torch.Tensor, e: torch.Tensor, ulp: int, max_frac: float = 0.01,
+) -> ComparisonResult:
+    """fp8 (e4m3) quant-output compare on the ordered representable-code.
+
+    A value near an fp8 bucket midpoint may round to either neighbor when a tiny
+    upstream precision differs (libdevice vs torch silu/exp), so the two fp8
+    codes differ by 1 step -- the same 1-step quant ambiguity as
+    int8_quant_round. Compares the ordered sign-magnitude e4m3 code (adjacent
+    representable values are distance 1), canonicalising +/-0 and requiring NaN
+    positions to match.
+    """
+    if a.dtype != e.dtype:
+        return ComparisonResult(
+            passed=False,
+            reason=f"dtype mismatch under fp8_ulp: {a.dtype} vs {e.dtype}",
+            max_abs_diff=float("inf"), max_rel_diff=float("inf"),
+            inf_mismatch_count=-1, nan_mismatch_count=-1,
+        )
+    ba = a.detach().cpu().view(torch.uint8).to(torch.int16)
+    be = e.detach().cpu().view(torch.uint8).to(torch.int16)
+    nan_a, nan_e = (ba & 0x7F) == 0x7F, (be & 0x7F) == 0x7F
+    nan_mismatch = int((nan_a != nan_e).sum().item())
+    if nan_mismatch > 0:
+        return ComparisonResult(
+            passed=False, reason="fp8 nan positions differ",
+            max_abs_diff=float("inf"), max_rel_diff=float("inf"),
+            inf_mismatch_count=0, nan_mismatch_count=nan_mismatch,
+        )
+
+    def _code(b: torch.Tensor) -> torch.Tensor:
+        mag = b & 0x7F
+        c = torch.where(((b >> 7) & 1).bool(), -mag, mag)
+        return torch.where(mag == 0, torch.zeros_like(c), c)  # canon +/-0
+
+    fin = ~nan_a
+    dist = (_code(ba)[fin] - _code(be)[fin]).abs()
+    n = dist.numel()
+    max_dist = int(dist.max().item()) if n else 0
+    # Off-by-1 should be a rare boundary flip (a value within the silu/exp epsilon
+    # of an fp8 midpoint); a LARGE off-by-1 fraction is a systematic rounding-mode
+    # bias (a real bug), not quant ambiguity -- cap it.
+    off_frac = float((dist > 0).float().mean().item()) if n else 0.0
+    passed = (max_dist <= ulp) and (off_frac <= max_frac)
+    if max_dist > ulp:
+        reason = f"fp8_ulp fail: max ordered-code dist={max_dist} > {ulp}"
+    elif off_frac > max_frac:
+        reason = (f"fp8_ulp fail: {off_frac:.2%} of elements off by 1 "
+                  f"> {max_frac:.2%} (systematic rounding-mode bias, not boundary)")
+    else:
+        reason = None
+    return ComparisonResult(
+        passed=passed,
+        reason=reason,
+        max_abs_diff=float(max_dist),
+        max_rel_diff=0.0 if passed else float("inf"),
+        inf_mismatch_count=0, nan_mismatch_count=0,
+    )
+
+
 def compare(
     actual: torch.Tensor,
     expected: torch.Tensor,
@@ -342,6 +420,23 @@ def compare(
         if cls.bit_exact or cls.int_atol is None:
             return _bit_exact_compare(actual, expected)
         return _int_atol_compare(actual, expected, cls.int_atol)
+    # fp8 quant outputs: ordered-code ULP (boundary rounding ambiguity). Only
+    # when BOTH are fp8 and the class opts in; scales/aux stay on float allclose.
+    if cls.fp8_ulp is not None:
+        a_fp8 = actual.dtype in _FP8_DTYPES
+        e_fp8 = expected.dtype in _FP8_DTYPES
+        if a_fp8 and e_fp8:
+            return _fp8_ulp_compare(actual, expected, cls.fp8_ulp)
+        if a_fp8 != e_fp8:
+            # One side fp8, the other not: an fp8 graded output must be compared
+            # as fp8, never silently fp32-cast to a pass.
+            return ComparisonResult(
+                passed=False,
+                reason=(f"fp8 dtype mismatch under fp8_ulp: "
+                        f"{actual.dtype} vs {expected.dtype}"),
+                max_abs_diff=float("inf"), max_rel_diff=float("inf"),
+                inf_mismatch_count=-1, nan_mismatch_count=-1,
+            )
     if cls.bit_exact:
         return _bit_exact_compare(actual, expected)
 
