@@ -17,10 +17,10 @@ import torch
 import torch.nn.functional as F
 
 
-def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+def _bf16(x: torch.Tensor) -> torch.Tensor:
     """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
     unpinned tl.dot on TF32 cores."""
-    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+    return x.to(torch.bfloat16).to(torch.float32)
 
 
 def _chunk_state_varlen(
@@ -45,7 +45,7 @@ def _chunk_state_varlen(
     seglens = [cu[i + 1] - cu[i] for i in range(len(cu) - 1)]
     pos = [s for s in seglens if s > 0]
     if not pos:
-        return out.to(x.dtype)
+        return out  # fp32 state output, matching the kernel
     # chunk_size: same rule as the launcher (>= 2 chunks per sequence, aligned
     # to every positive sequence length so chunks never straddle a boundary).
     chunk_size = max(min(pos) // 2, 1)
@@ -78,14 +78,14 @@ def _chunk_state_varlen(
             w = torch.exp(d_last[None, :] - d_loc) * dtf[cs:ce]  # [cs, H]
             Bg = Bf[cs:ce][:, head_grp]                        # [cs, H, N]
             # _chunk_state_fwd folds w into B then runs an unpinned tl.dot.
-            bw = _to_tf32(Bg * w[..., None])
-            intra = torch.einsum("lhp,lhn->hpn", _to_tf32(xf[cs:ce]), bw)
+            bw = _bf16(Bg * w[..., None])
+            intra = torch.einsum("lhp,lhn->hpn", _bf16(xf[cs:ce]), bw)
             decayed = carry * torch.exp(d_last)[:, None, None]
             if c == nchunks - 1:
                 out[i] = decayed + intra
             else:
                 carry = decayed + intra
-    return out.to(x.dtype)
+    return out  # fp32 state output, matching the kernel
 
 
 def run(inputs: dict) -> dict:

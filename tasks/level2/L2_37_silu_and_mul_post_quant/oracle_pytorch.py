@@ -41,7 +41,10 @@ def _silu_and_mul_post_quant(
     E, T, two_d = x.shape
     d = two_d // 2
     gate, up = x[..., :d], x[..., d:]
-    y = (_silu(gate.to(torch.float32)) * up.to(torch.float32))     # [E,T,D]
+    # kernel computes silu in fp32 then narrows it back to the input dtype
+    # (gate.to(input_ptr.dtype.element_ty)) BEFORE multiplying by up.
+    gate_silu = _silu(gate.to(torch.float32)).to(x.dtype).to(torch.float32)
+    y = (gate_silu * up.to(torch.float32))                         # [E,T,D]
     tok = torch.arange(T, device=x.device).view(1, T)
     valid = tok < masked_m.to(torch.long).view(E, 1)
     y = y * valid.unsqueeze(-1)

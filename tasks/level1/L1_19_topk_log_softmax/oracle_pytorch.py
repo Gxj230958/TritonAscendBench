@@ -22,7 +22,10 @@ def _token_logprobs(logits: torch.Tensor, token_ids: torch.Tensor) -> torch.Tens
     Returns [n_tokens, k] log-probabilities.
     """
     lp = F.log_softmax(logits.to(torch.float32), dim=-1)
-    return torch.gather(lp, dim=-1, index=token_ids.to(torch.long)).to(logits.dtype)
+    # The kernel allocates its output fp32 and stores fp32 unconditionally; the
+    # bf16/fp16 input only rounds the loaded logits (logits.to(float32) models
+    # that). Do NOT narrow the output back to the input dtype.
+    return torch.gather(lp, dim=-1, index=token_ids.to(torch.long))
 
 
 def run(inputs: dict) -> dict:

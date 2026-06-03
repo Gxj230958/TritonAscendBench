@@ -60,7 +60,7 @@ def _dequant_weight(
     g_idx = k_idx // group_size                            # [K]
     scale_full = b_scale[:, :, g_idx]                      # [E, N, K]
     zp_full = zp[:, :, g_idx]                              # [E, N, K]
-    return (q - zp_full) * scale_full                      # [E, N, K]
+    return ((q - zp_full) * scale_full).to(torch.bfloat16).to(torch.float32)                      # [E, N, K]
 
 
 def _fused_moe_gptq_awq(

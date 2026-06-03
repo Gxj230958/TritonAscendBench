@@ -34,7 +34,7 @@ def _batched_expert_gemm(
         m = int(expert_num_tokens[e].item())
         if m > 0:
             out[e, :m] = _to_tf32(af[e, :m]) @ _to_tf32(bf[e].T)
-    return out.to(a.dtype)
+    return out  # fp32 output, kernel pins compute_type=fp32
 
 
 def run(inputs: dict) -> dict:

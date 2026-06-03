@@ -130,7 +130,7 @@ def run(inputs: dict) -> dict:
         SPLIT_K=1,
         MUL_ROUTED_WEIGHT=apply_weight,
         top_k=top_k,
-        compute_type=tl.float32,
+        compute_type=tl.bfloat16,
         has_zp=True,
         use_int4_w4a16=True,
         use_int8_w8a16=False,

@@ -49,10 +49,10 @@ import torch
 import torch.nn.functional as F
 
 
-def _to_tf32(x: torch.Tensor) -> torch.Tensor:
+def _bf16(x: torch.Tensor) -> torch.Tensor:
     """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
     unpinned tl.dot on TF32 cores."""
-    return (x.contiguous().view(torch.int32) & ~((1 << 13) - 1)).view(torch.float32)
+    return x.to(torch.bfloat16).to(torch.float32)
 
 
 def _partition(seqlen: int, chunk_size: int) -> tuple[list[int], list[int]]:
@@ -239,7 +239,7 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
                                     device=device)
             else:
                 # C: [len_c, N]; prev[h]: [P, N] -> [len_c, P]
-                inter = (_to_tf32(C[s:e, g, :]) @ _to_tf32(prev[h].transpose(0, 1))) \
+                inter = (_bf16(C[s:e, g, :]) @ _bf16(prev[h].transpose(0, 1))) \
                     * scale_m[:, None]
             # INTRA: causal in-chunk SSM attention.
             # seg[m,k] = exp(min(dA[m] - dA[k], 0)) * (m >= k)
@@ -251,7 +251,7 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
             cb_c = cb[c, g, :len_c, :len_c]            # [len_c, len_c]
             dt_c = dt[h, c, :len_c]                     # [len_c]
             w = cb_c * seg * dt_c[None, :]             # [m, k]
-            intra = _to_tf32(w) @ _to_tf32(x[s:e, h, :])                   # [len_c, P]
+            intra = _bf16(w) @ _bf16(x[s:e, h, :])                   # [len_c, P]
 
             acc = intra + inter
             if D is not None:
