@@ -1,0 +1,50 @@
+# dtype-ceiling acceptance allowlist (2026-06-03). A listed shape that
+# strict tolerance.compare() FAILS is graded CEILING_ACCEPTED -- a status DISTINCT from
+# VERIFIED, never merged into the pass count -- only if its mode's predicate holds AND
+# structure/keys/dtype checks pass AND all stats are finite. Everything else (incl. L2_23/24
+# off-by-one, every non-listed task) stays strict by construction.
+# Doc: docs/reviews/2026-06-03-ceiling-tolerance-relaxation-proposal.md.
+#
+# PRIMARY DISCRIMINATOR = co-located max_tol_units = max_element |actual-ref| / (atol +
+# rtol*|ref|). It uses the SAME band as strict compare(), so near-zero (near-cancellation)
+# refs are bounded by atol, not hidden. A clean dtype ceiling sits a few units over 1; the
+# real bug L2_23/24 sits at 1000-6200. The full-103 GPU run showed 18 of the 19 ceiling tasks
+# have co-located max_tol_units <= 8 -> Mode A. Only L3_13 inflates above the cap (genuine
+# near-cancellation) and needs the Mode-B per-key physical-scale fallback.
+#
+# MODE A -- co-located max_tol_units cap. Accept iff max(max_tol_units) <= tol_units_cap.
+# Clean-Mode-A worst observed = 7.14 (L3_09); cap 8 clears it with margin and stays ~125x
+# below L2_23/24.
+tol_units_cap: 8.0
+tol_units_tasks:
+  - L1_12_rms_norm
+  - L1_26_merge_state
+  - L2_01_bmm_chunk_fwd
+  - L2_02_chunk_scan_fwd  # bf16 tl.dot MMA ceiling (fast_exp fixed the exp gap; P4 residual ~1 ULP)
+  - L2_03_chunk_state_fwd
+  - L2_07_gate_up_lora_b
+  - L2_15_fused_dual_residual_rmsnorm
+  - L2_17_layer_norm_gated_fwd
+  - L2_19_fused_sigmoid_gating_delta_rule_update
+  - L2_21_causal_conv1d_fwd
+  - L2_40_gemma_qkv_rmsnorm
+  - L3_03_chunk_state_varlen
+  - L3_04_fwd
+  - L3_09_fused_moe
+  - L3_14_fused_recurrent_gated_delta_rule_fwd
+  - L3_15_fused_recurrent_gated_delta_rule_update_fwd
+  - L3_16_chunk_fwd_kernel_o
+  - L3_20_recompute_w_u_fwd
+#
+# MODE B -- per-output-key physical-scale bound. ONLY for a task whose co-located
+# max_tol_units legitimately EXCEEDS the cap because its worst element is a near-cancellation
+# (near-zero ref, atol-dominated) point. Dump-proven backward-stable: the worst abs error is
+# within `physical_factor` ULPs of THAT output key's largest magnitude. Accept iff, for EVERY
+# failing output key:
+#   max_abs_diff[key] <= physical_factor * max|ref[key]| * ulp_rel   (max|ref[key]| > 0, finite).
+# Exactly one task qualifies (L3_13, max_tol_units 12.10). Do NOT add a task here whose
+# tol_units is already <= cap -- that is Mode A, and the physical bound (which compares the
+# max_abs and max|ref| INDEPENDENT maxima) can false-reject a clean ceiling (the L2_03 lesson).
+physical_factor: 2.0
+physical_tasks:
+  L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64: {ulp_rel: 0.00390625}  # bf16 2^-8

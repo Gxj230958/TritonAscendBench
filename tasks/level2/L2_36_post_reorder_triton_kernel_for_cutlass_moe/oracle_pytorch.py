@@ -38,7 +38,14 @@ def _post_reorder_cutlass_moe(
         for j in range(topk):
             slot = i * topk + j
             if int(tids[slot]) != num_local_experts:
-                acc = acc + do[int(s2d[slot])] * float(tw[slot])
+                # Single-rounding multiply-add: the kernel's `sum_vec += in * scale`
+                # (kernel.py:48) is contracted by the GPU backend (fmad=true) into one
+                # fma.rn.f32, NOT two roundings. `torch.addcmul` emulates that single
+                # rounding here. NB: this is implementation-dependent FMA emulation
+                # (PyTorch does not portably guarantee a fused op across all CPU
+                # builds), not a mathematical guarantee -- the GPU all-shape VERIFIED
+                # run is the authoritative evidence it matches the kernel.
+                acc = torch.addcmul(acc, do[int(s2d[slot])], do.new_tensor(float(tw[slot])))
         out[i] = acc * routed_scaling_factor
     return out.to(down_output.dtype)
 

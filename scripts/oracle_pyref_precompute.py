@@ -42,6 +42,7 @@ import argparse
 import ast
 import json
 import logging
+import os
 import re
 import sys
 import traceback
@@ -60,6 +61,26 @@ from triton_ascend_bench.inputs import build_inputs  # noqa: E402
 
 GOLDEN_SEED = 0
 DEFAULT_SHAPES = ["P1", "P2"]
+
+# Full-shape C2 verification toggle (env: TAB_C2_ALL_SHAPES, default "1" = on). Grades EVERY
+# public+hidden shape, not just the 2 anchors, so a large-shape-only divergence the 2-anchor
+# grade structurally cannot see is surfaced (this is what found the L2_03 launcher fp32->bf16
+# downcast and the dtype-ceiling shapes -- see docs/reviews/2026-06-03-full-shape-c2-
+# verification.md). Set TAB_C2_ALL_SHAPES=0 for the fast 2-anchor grade. A sweep-only shape
+# that fails to build/run is skipped (honest ungraded gap), never an ALIGNED_READY-killing
+# RUNTIME_ERROR -- the runner's expected-vs-graded shape diff reports the gap.
+_C2_ALL_SHAPES = os.environ.get("TAB_C2_ALL_SHAPES", "1") == "1"
+
+
+def _sweep_shape_ids(shapes_doc: dict) -> list[str]:
+    """Anchors first, then every remaining public+hidden shape id (ordered, dedup)."""
+    ids = list(DEFAULT_SHAPES)
+    for grp in ("public_shapes", "hidden_shapes"):
+        for s in shapes_doc.get(grp) or []:
+            sid = s.get("id")
+            if sid and sid not in ids:
+                ids.append(sid)
+    return ids
 
 
 logging.basicConfig(
@@ -447,10 +468,16 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         # build_inputs takes shapes_doc dict directly
         shapes_doc = yaml.safe_load(shapes_path.read_text())
 
-        for shape_id in DEFAULT_SHAPES:
+        _shape_list = (
+            _sweep_shape_ids(shapes_doc) if _C2_ALL_SHAPES else DEFAULT_SHAPES
+        )
+        for shape_id in _shape_list:
+            _extra = _C2_ALL_SHAPES and shape_id not in DEFAULT_SHAPES
             try:
                 inputs = build_inputs(shapes_doc, shape_id, seed=GOLDEN_SEED)
             except Exception as e:
+                if _extra:
+                    continue  # sweep-only shape that won't build -- skip, keep aligned
                 audit.status = "RUNTIME_ERROR"
                 audit.runtime_error = f"build_inputs({shape_id}): {e}"
                 return audit
@@ -505,6 +532,8 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             try:
                 ref_out = mod.run(inputs_cpu)
             except Exception as e:
+                if _extra:
+                    continue  # sweep-only shape that OOMs/errors -- skip, keep aligned
                 audit.status = "RUNTIME_ERROR"
                 audit.runtime_error = (
                     f"oracle.run({shape_id}): {type(e).__name__}: {e}"

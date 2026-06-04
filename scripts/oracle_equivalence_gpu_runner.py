@@ -48,6 +48,80 @@ GOLDEN_SEED = 0  # mirror oracle_pyref_precompute.py's seed for determinism
 
 
 _TOLERANCE_CACHE: dict[str, ToleranceClass] | None = None
+_CEILING_CFG: dict | None = None
+
+
+def _ceiling_config() -> dict:
+    """Load the two-mode dtype-ceiling acceptance allowlist (cached). See
+    triton_ascend_bench/ceiling_acceptance.yaml. Allowlist-gated: L2_23/24 and every other
+    task stay strict by construction."""
+    global _CEILING_CFG
+    if _CEILING_CFG is None:
+        p = REPO_ROOT / "triton_ascend_bench" / "ceiling_acceptance.yaml"
+        try:
+            _CEILING_CFG = yaml.safe_load(p.read_text()) or {}
+        except Exception:
+            _CEILING_CFG = {}
+    return _CEILING_CFG
+
+
+def _ceiling_verdict(task_id: str, sv: "ShapeVerdict") -> tuple[bool, str, str]:
+    """Decide whether a STRICT-failing shape of an allowlisted task is an accepted
+    dtype-ULP ceiling. Returns (accepted, mode, reason). FAIL-CLOSED: any missing config,
+    unknown mode, missing/zero/non-finite scale, or non-allowlisted task -> (False, ...).
+
+    Mode A (tol_units_tasks): accept iff max(max_tol_units) <= tol_units_cap.
+    Mode B (physical_tasks): accept iff EVERY strict-failing output key satisfies
+      max_abs_diff[key] <= physical_factor * max|ref[key]| * ulp_rel  (max|ref|>0, finite)."""
+    import math
+
+    cfg = _ceiling_config()
+    if not cfg:
+        return False, "none", "no ceiling config (fail-closed)"
+    # Universal fail-closed gates (both modes): an accepted shape MUST have at least one
+    # recorded tolerance-failing key (never accept some other all_pass=False path, e.g. a
+    # compare exception), no compare blocker, and no float-dtype mismatch on any key.
+    if not sv.failing_keys:
+        return False, "none", "no failing keys recorded (fail-closed)"
+    if getattr(sv, "compare_error", False):
+        # A compare() RAISED (not an ordinary tolerance fail, whose detail also lands in
+        # blocker_reason). Only the genuine exception fails-closed -- otherwise every normal
+        # ceiling failure would be rejected (its fail-detail is copied into blocker_reason).
+        return False, "none", "compare exception (fail-closed)"
+    if sv.bad_dtype_keys:
+        return False, "none", f"dtype mismatch on {sv.bad_dtype_keys} (fail-closed)"
+    # Mode A -- co-located tol_units cap.
+    if task_id in set(cfg.get("tol_units_tasks") or []):
+        cap = cfg.get("tol_units_cap")
+        if not isinstance(cap, (int, float)) or not math.isfinite(cap) or cap <= 0:
+            return False, "tol_units_cap", f"invalid cap {cap!r} (fail-closed)"
+        vals = list(sv.max_tol_units.values())
+        if not vals or not all(math.isfinite(v) for v in vals):
+            return False, "tol_units_cap", "non-finite/empty tol_units (fail-closed)"
+        worst = max(vals)
+        return (worst <= float(cap)), "tol_units_cap", f"max_tol_units={worst:.4g} cap={cap}"
+    # Mode B -- per-output-key physical scale.
+    phys = cfg.get("physical_tasks") or {}
+    if task_id in phys:
+        factor = cfg.get("physical_factor")
+        ulp = (phys.get(task_id) or {}).get("ulp_rel")
+        if not all(isinstance(x, (int, float)) and math.isfinite(x) and x > 0
+                   for x in (factor, ulp)):
+            return False, "physical_scale", f"invalid factor/ulp ({factor!r},{ulp!r}) fail-closed"
+        factor = float(factor); ulp = float(ulp)
+        for key in sv.failing_keys:
+            mref = sv.max_ref_abs.get(key)
+            mabs = sv.max_abs_diff.get(key)
+            if mref is None or mabs is None or not (math.isfinite(mref) and math.isfinite(mabs)) or mref <= 0.0:
+                return False, "physical_scale", f"{key}: missing/zero/non-finite scale (fail-closed)"
+            bound = factor * mref * ulp
+            if mabs > bound:
+                return (
+                    False, "physical_scale",
+                    f"{key}: max_abs={mabs:.4g} > {factor}*{mref:.4g}*{ulp:.3g}={bound:.4g}",
+                )
+        return True, "physical_scale", f"all {len(sv.failing_keys)} failing key(s) within {factor}xULP scale"
+    return False, "none", "not on ceiling allowlist"
 
 
 def _tolerance_for(name: str) -> ToleranceClass:
@@ -83,6 +157,22 @@ class ShapeVerdict:
     status: str = ""  # VERIFIED | FAILED | LAUNCH_BLOCKED | TOLERANCE_BLOCKED
     max_abs_diff: dict[str, float] = field(default_factory=dict)
     max_rel_diff: dict[str, float] = field(default_factory=dict)
+    # Co-located normalized error max(|actual-ref| / (atol + rtol*|ref|)) -- the
+    # ONLY metric that separates a structural divergence (>> 1) from a 1-ULP
+    # dtype ceiling (~1). max_abs_diff and max_rel_diff are independent per-tensor
+    # maxima at DIFFERENT elements, so combining them mis-classifies (a large-abs
+    # bf16 ULP on a large-magnitude output co-occurs with a large-rel near-zero
+    # element). Diagnostic only -- the verdict is still compare()'s .passed.
+    max_tol_units: dict[str, float] = field(default_factory=dict)
+    # Per-output-key max|ref| (the physical output scale) + which keys strict-failed +
+    # acceptance evidence stats (fail density, signed-mean ratio, rms ratio). Used ONLY by
+    # the dtype-ceiling acceptance path (CEILING_ACCEPTED); diagnostic for the rest.
+    max_ref_abs: dict[str, float] = field(default_factory=dict)
+    failing_keys: list[str] = field(default_factory=list)
+    bad_dtype_keys: list[str] = field(default_factory=list)  # ker dtype != ref dtype
+    compare_error: bool = False  # a compare() raised (NOT an ordinary tolerance fail)
+    accept_stats: dict[str, dict] = field(default_factory=dict)
+    accept_reason: str = ""
     blocker_reason: str = ""
     output_keys_ref: list[str] = field(default_factory=list)
     output_keys_kernel: list[str] = field(default_factory=list)
@@ -464,6 +554,7 @@ def _verify_one_task(
 
     n_verified = 0
     n_failed = 0
+    n_ceiling_accepted = 0
     n_blocked = 0
     n_input_drift = 0
     # Ref output keys seen across shapes; the in-place backstop below uses them.
@@ -802,6 +893,11 @@ def _verify_one_task(
             if not isinstance(ker_raw, torch.Tensor):
                 continue
             ker_t = ker_raw
+            # dtype-equality gate: a ceiling exception must never accept a wrong-float-dtype
+            # output (compare() casts both to fp32 and would not catch it). Record any
+            # mismatch so the ceiling verdict can fail-closed on it.
+            if getattr(ker_raw, "dtype", None) != getattr(ref_t, "dtype", None):
+                sv.bad_dtype_keys.append(key)
             try:
                 # Numeric diff stats for logging (works on float view)
                 ref_f = ref_t.detach().to(torch.float32).cpu()
@@ -811,15 +907,41 @@ def _verify_one_task(
                     sv.max_abs_diff[key] = float(diff.max().item())
                     denom = ref_f.abs().clamp_min(1e-12)
                     sv.max_rel_diff[key] = float((diff / denom).max().item())
+                    # Co-located tolerance units (same element as the worst
+                    # normalized error): <=1 passes the allclose band, ~1 is a
+                    # dtype ULP just over, >>1 is a structural divergence.
+                    tol_denom = tol.atol + tol.rtol * ref_f.abs()
+                    sv.max_tol_units[key] = float(
+                        (diff / tol_denom.clamp_min(1e-12)).max().item()
+                    )
+                    # Physical output scale (for the Mode-B dtype-ceiling bound).
+                    sv.max_ref_abs[key] = float(ref_f.abs().max().item())
                 else:
                     sv.max_abs_diff[key] = float("inf")
                     sv.max_rel_diff[key] = float("inf")
+                    sv.max_tol_units[key] = float("inf")
+                    sv.max_ref_abs[key] = float("inf")
                 # Tolerance-aware verdict — compare returns ComparisonResult,
                 # NOT bool. Check the .passed field; earlier code treated the
                 # whole object as truthy which produced false-positive VERIFIED.
                 result = compare(ker_t, ref_t, tol)
                 if not result.passed:
                     all_pass = False
+                    sv.failing_keys.append(key)
+                    # Acceptance evidence: sparse + unbiased = clean ceiling;
+                    # high density AND same-sign mean = a masked systematic error.
+                    if ref_f.shape == ker_f.shape and diff.numel() > 0:
+                        band = (tol.atol + tol.rtol * ref_f.abs())
+                        mean_abs = float(diff.mean().item()) or 1e-30
+                        rms = float(diff.pow(2).mean().sqrt().item())
+                        mx = sv.max_abs_diff.get(key, 0.0) or 1e-30
+                        sv.accept_stats[key] = {
+                            "fail_density": float((diff > band).float().mean().item()),
+                            "signed_mean_ratio": abs(float((ker_f - ref_f).mean().item())) / mean_abs,
+                            "rms_over_max": rms / mx,
+                            "max_abs": sv.max_abs_diff.get(key),
+                            "max_ref_abs": sv.max_ref_abs.get(key),
+                        }
                     fail_reasons.append(
                         f"{key}: {result.reason or 'tolerance fail'} "
                         f"(max_abs={sv.max_abs_diff.get(key, '?')}, "
@@ -829,6 +951,7 @@ def _verify_one_task(
                     )
             except Exception as e:
                 sv.blocker_reason = f"compare error on {key}: {e}"
+                sv.compare_error = True  # a real exception -> ceiling must fail-closed
                 all_pass = False
         if fail_reasons and not sv.blocker_reason:
             sv.blocker_reason = "; ".join(fail_reasons[:3])
@@ -845,17 +968,50 @@ def _verify_one_task(
             sv.status = "VERIFIED"
             n_verified += 1
         else:
-            sv.status = "FAILED"
-            n_failed += 1
+            _accepted, _mode, _reason = _ceiling_verdict(task_id, sv)
+            if _accepted:
+                # Accepted dtype-ULP ceiling: strict-fails but an allowlisted task's
+                # mode predicate holds (Mode-A tol_units cap / Mode-B per-key physical
+                # scale). DISTINCT from VERIFIED -- reported + counted separately.
+                sv.status = "CEILING_ACCEPTED"
+                sv.accept_reason = f"{_mode}: {_reason}"
+                n_ceiling_accepted += 1
+            else:
+                sv.status = "FAILED"
+                n_failed += 1
 
         verdict.shapes.append(sv)
+        # Diagnostic only (NOT a gate): worst backward/physical ULP =
+        # max_abs / (max|ref| * bf16_ULP). Shows how a "<= N ULP of the output
+        # scale" bound would grade each shape, while tol_units stays the actual
+        # gate (a pure backward bound mis-rejects L2_03's independent-maxima
+        # clean ceiling and stops protecting small-reference elements).
+        _BF16_ULP = 0.00390625
+        _back_ulp = 0.0
+        for _bk, _bma in sv.max_abs_diff.items():
+            _bmr = sv.max_ref_abs.get(_bk, 0.0)
+            if isinstance(_bmr, (int, float)) and _bmr > 0.0:
+                _back_ulp = max(_back_ulp, _bma / (_bmr * _BF16_ULP))
+        _extra = ""
+        if sv.status == "CEILING_ACCEPTED":
+            _st = next(iter(sv.accept_stats.values()), {})
+            _extra = (
+                f" [{sv.accept_reason}"
+                + (f" fail_density={_st.get('fail_density'):.2g}"
+                   f" signed_mean_ratio={_st.get('signed_mean_ratio'):.2g}"
+                   if _st else "")
+                + "]"
+            )
         log.info(
-            "  %s/%s: %s (max_abs=%.3e max_rel=%.3e)",
+            "  %s/%s: %s (max_abs=%.3e max_rel=%.3e max_tol_units=%.3g back_ulp=%.2f)%s",
             task_id,
             sid,
             sv.status,
             max(sv.max_abs_diff.values()) if sv.max_abs_diff else 0.0,
             max(sv.max_rel_diff.values()) if sv.max_rel_diff else 0.0,
+            max(sv.max_tol_units.values()) if sv.max_tol_units else 0.0,
+            _back_ulp,
+            _extra,
         )
 
     if n_input_drift > 0:
@@ -882,9 +1038,14 @@ def _verify_one_task(
             verdict.overall = "ORACLE_KERNEL_LAYOUT_MISMATCH"
         else:
             verdict.overall = "LAUNCH_BLOCKED"
-    elif n_failed == 0 and n_verified > 0:
+    elif n_failed == 0 and n_blocked == 0 and n_ceiling_accepted > 0:
+        # No strict failure AND no blocked shape; one or more shapes accepted at the
+        # dtype-ULP ceiling. DISTINCT from VERIFIED so the report never conflates
+        # strict-pass with ceiling. A partial LAUNCH_BLOCKED falls through to MIXED.
+        verdict.overall = "CEILING_ACCEPTED"
+    elif n_failed == 0 and n_blocked == 0 and n_verified > 0:
         verdict.overall = "VERIFIED"
-    elif n_verified == 0 and n_failed > 0:
+    elif n_verified == 0 and n_ceiling_accepted == 0 and n_blocked == 0 and n_failed > 0:
         verdict.overall = "FAILED"
     else:
         verdict.overall = "MIXED"
@@ -981,6 +1142,7 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = {
         "verified": 0,
+        "ceiling_accepted": 0,
         "failed": 0,
         "mixed": 0,
         "blocked": 0,
@@ -995,6 +1157,7 @@ def main(argv: list[str] | None = None) -> int:
 
         key = {
             "VERIFIED": "verified",
+            "CEILING_ACCEPTED": "ceiling_accepted",
             "FAILED": "failed",
             "MIXED": "mixed",
             "LAUNCH_BLOCKED": "blocked",

@@ -106,11 +106,13 @@ param_constraints:
   - V >= 1
   - H % Hg == 0
   - Hg < H
+  # bf16 activations (the production / GPU-verified dtype; the bf16 oracle matches the
+  # kernel at the anchors -- fp32+TF32 was GPU-refuted). g stays fp32 (decay/cumsum).
   dtypes:
-    q: float32
-    k: float32
-    v: float32
-    h: float32
+    q: bfloat16
+    k: bfloat16
+    v: bfloat16
+    h: bfloat16
     g: float32
   dists:
     q:

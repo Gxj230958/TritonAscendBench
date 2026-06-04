@@ -83,11 +83,14 @@ the per-chunk h index and the GQA head grouping are load-bearing.
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
-- `h`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
+- `h`: `bfloat16`
 - `g`: `float32`
+
+(Activations are bf16, the production / GPU-verified dtype — the bf16 oracle matches the
+kernel at the anchors; fp32+TF32 was GPU-refuted. `g` decay/cumsum stays fp32.)
 
 ### Input distributions (`dists`)
 

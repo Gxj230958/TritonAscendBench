@@ -182,8 +182,8 @@ def run(inputs: dict) -> dict:
     )
     # states: [nchunks=C, nheads=1, headdim=D, dstate=N]. The oracle contract
     # is [C, N, D] (einsum cln,clp->cnp): drop the head axis, swap the trailing
-    # (headdim, dstate) -> (dstate, headdim). Cast to the fixture dtype so the
-    # anchor's dtype-equality check matches the oracle output.
+    # (headdim, dstate) -> (dstate, headdim). states stay fp32 (upstream
+    # states_in_fp32=True; the oracle returns and saves fp32) -- a bf16 downcast
+    # here would lose precision and mismatch the fp32 oracle ref dtype.
     states = states[:, 0].transpose(1, 2).contiguous()  # [C, N, D]
-    states = states.to(inputs["x"].dtype)
     return {"states": states}

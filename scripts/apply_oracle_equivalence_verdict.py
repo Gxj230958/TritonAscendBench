@@ -193,6 +193,19 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
             golden["golden_source"] = "verified_s2_not_fresh"
             golden.pop("golden_sha256", None)
             res.promoted_to_truth = False
+    elif overall == "CEILING_ACCEPTED":
+        # Strict tolerance.compare() fails only at large shapes, by a PROVEN dtype-ULP
+        # ceiling on an allowlisted task (CPU-fp32-oracle cannot certify GPU tensor-core
+        # reduction order at scale). Accepted as a status DISTINCT from VERIFIED -- no
+        # golden_sha256 promotion -- but recorded with its own source so a stale
+        # 'oracle_pytorch_verified' never lingers and downstream never conflates it with a
+        # strict pass. See triton_ascend_bench/ceiling_acceptance.yaml.
+        golden["golden_source"] = "dtype_ceiling_accepted"
+        # NOT a strict pass -> never carry a golden_sha256 (a task that was VERIFIED before a
+        # new shape pushed it to CEILING_ACCEPTED would otherwise leave a stale one that
+        # downstream reads as verified-truth).
+        golden.pop("golden_sha256", None)
+        res.promoted_to_truth = False
     elif overall == "FAILED" or overall == "MIXED":
         golden["golden_source"] = "fallback_to_gpu_capture_pending"
         # Caller-side note: this task needs M3 source-2 GPU capture
@@ -260,6 +273,7 @@ def _emit_report(
 
     for status in (
         "VERIFIED",
+        "CEILING_ACCEPTED",
         "FAILED",
         "MIXED",
         "LAUNCH_BLOCKED",

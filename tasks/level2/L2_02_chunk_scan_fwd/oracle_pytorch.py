@@ -34,10 +34,10 @@ Contract (matches kernel.py::_chunk_scan_fwd, vLLM commit 18f6bf5):
 
 Per chunk c (token rows [s, e), len_c = e - s), head h, group
 g = h // (nheads // ngroups), within-chunk row m in [0, len_c), headdim col n:
-  scale_m   = exp(dA_cumsum[h, c, m])
+  scale_m   = exp2(LOG2E * dA_cumsum[h, c, m])    # kernel fast_exp, not exp
   prev      = zeros if seq_idx[c] != seq_idx[c-1] (or c == 0), else states[c-1, h]
   inter[m]  = (C[s+m, g, :] @ prev[:, n]) * scale_m              # over dstate
-  seg[m,k]  = exp(min(dA_cumsum[h,c,m] - dA_cumsum[h,c,k], 0)) * (m >= k)
+  seg[m,k]  = exp2(LOG2E * min(dA_cumsum[h,c,m] - dA_cumsum[h,c,k], 0)) * (m >= k)
   intra[m]  = sum_k cb[c,g,m,k] * seg[m,k] * dt[h,c,k] * x[s+k, h, n]
   out[s+m,h,n] = intra + inter
   if HAS_D: out += x[s+m,h,n] * D[h,n]
@@ -50,8 +50,9 @@ import torch.nn.functional as F
 
 
 def _bf16(x: torch.Tensor) -> torch.Tensor:
-    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
-    unpinned tl.dot on TF32 cores."""
+    """Round fp32 operands to bf16 (the activation dtype), matching the kernel's
+    bf16-operand tl.dot. (Named _bf16; an earlier docstring wrongly said TF32 — the
+    body has always been a bf16 roundtrip, GPU-verified correct at the anchors.)"""
     return x.to(torch.bfloat16).to(torch.float32)
 
 
@@ -232,7 +233,9 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
         for h in range(nheads):
             g = h // ratio
             dA = dAc[h, c, :len_c]              # [len_c]
-            scale_m = torch.exp(dA)             # [len_c]
+            # Kernel uses fast_exp = exp2(LOG2E*x) (single ex2.approx.f32),
+            # NOT torch.exp; model both decay/scale exp sites the same way.
+            scale_m = torch.exp2(1.4426950408889634 * dA)  # [len_c]
             # INTER: (C[s:e, g] @ prev[h].T) * scale_m  -> [len_c, P]
             if prev is None:
                 inter = torch.zeros(len_c, headdim, dtype=torch.float32,
@@ -244,7 +247,7 @@ def _chunk_scan_fwd(built: dict) -> torch.Tensor:
             # INTRA: causal in-chunk SSM attention.
             # seg[m,k] = exp(min(dA[m] - dA[k], 0)) * (m >= k)
             diff = dA[:, None] - dA[None, :]            # [len_c, len_c]
-            seg = torch.exp(torch.clamp(diff, max=0.0))
+            seg = torch.exp2(1.4426950408889634 * torch.clamp(diff, max=0.0))
             causal = torch.tril(torch.ones(len_c, len_c, dtype=torch.bool,
                                            device=device))
             seg = torch.where(causal, seg, torch.zeros_like(seg))

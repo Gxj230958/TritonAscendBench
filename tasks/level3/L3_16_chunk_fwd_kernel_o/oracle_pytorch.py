@@ -51,8 +51,9 @@ _BT = 64
 
 
 def _bf16(x: torch.Tensor) -> torch.Tensor:
-    """Round fp32 to TF32 (drop low 13 mantissa bits), matching the kernel's
-    unpinned tl.dot on TF32 cores."""
+    """Round fp32 operands to bf16 (the activation dtype), matching the kernel's
+    bf16-operand tl.dot. (Named _bf16; an earlier docstring wrongly said TF32 — the
+    body has always been a bf16 roundtrip, GPU-verified correct at the anchors.)"""
     return x.to(torch.bfloat16).to(torch.float32)
 
 

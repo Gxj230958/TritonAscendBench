@@ -15,9 +15,14 @@ upstream:
   file_sha256: d04fe41dbfb5e583f6ea9e2657ae792fd24d5a30e1a8828c79fcfb428f1b96b8
   function_hash: d04fe41dbfb5e583f6ea9e2657ae792fd24d5a30e1a8828c79fcfb428f1b96b8
   license: Apache-2.0
-  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  notes: frozen verbatim from upstream vLLM lightning_attn.py (see kernel.py header for SHA).
   vendored_snapshot: tasks/_vendored/L2_24_fwd_kv_reduce_18f6bf5.py
   known_kernel_bug: true
+  deprecated: true
+  deprecated_reason: >-
+    Frozen upstream _fwd_kv_reduce (vLLM lightning_attn.py) carries a real off-by-one; a
+    correct oracle necessarily diverges (~80 dtype-ULP, far above any precision ceiling).
+    Unverifiable by construction -- excluded from the alignment denominator, not a bench defect.
 interface:
   alias_map: {}
   mutability: unspecified
