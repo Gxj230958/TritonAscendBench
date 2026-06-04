@@ -447,9 +447,11 @@ def is_provenance_eligible(meta: dict | None) -> bool:
 
     Definition (V9 plan, v1 scope):
 
-    * ``provenance.golden.oracle_kernel_equivalence == VERIFIED`` (the
-      corpus oracle_pytorch.py has been GPU-equivalence-verified, R10
-      stage 3), OR
+    * ``provenance.golden.oracle_kernel_equivalence in {VERIFIED,
+      CEILING_ACCEPTED}`` -- VERIFIED is a strict pass; CEILING_ACCEPTED is an
+      allowlisted large-shape dtype-ULP ceiling (a correctly-aligned task,
+      distinct from a strict pass for the pass-count headline but a valid,
+      release-eligible corpus task), R10 stage 3, OR
     * ``provenance.golden.gpu_kernel_capture_status == DONE`` (the
       provider GPU rerun has been captured + manifest-signed, R5/R20)
 
@@ -482,7 +484,7 @@ def is_provenance_eligible(meta: dict | None) -> bool:
 
     oke = golden.get("oracle_kernel_equivalence")
     gkcs = golden.get("gpu_kernel_capture_status")
-    return oke == "VERIFIED" or gkcs == "DONE"
+    return oke in ("VERIFIED", "CEILING_ACCEPTED") or gkcs == "DONE"
 
 
 def release_ready_with_provenance(meta: dict | None) -> bool:
@@ -645,12 +647,12 @@ def projected_eligible(
 
         oke = golden.get("oracle_kernel_equivalence")
         gkcs = golden.get("gpu_kernel_capture_status")
-        # Projected: VERIFIED OR PENDING (R10 might still be running) /
-        # DONE captures count too. STOP states (FAILED / SKIPPED /
-        # NEEDS_MANUAL / LAUNCH_BLOCKED / BLOCKED_NON_DETERMINISTIC)
-        # are excluded -- they will NOT become release-ready without
-        # human triage.
-        if oke in {"VERIFIED"} or gkcs in {"DONE", "PENDING"}:
+        # Projected: VERIFIED / CEILING_ACCEPTED OR PENDING (R10 might still be
+        # running) / DONE captures count too. STOP states (FAILED / SKIPPED /
+        # NEEDS_MANUAL / LAUNCH_BLOCKED / BLOCKED_NON_DETERMINISTIC /
+        # BLOCKED_UPSTREAM_BUG) are excluded -- they will NOT become release-ready
+        # without human triage.
+        if oke in {"VERIFIED", "CEILING_ACCEPTED"} or gkcs in {"DONE", "PENDING"}:
             out.add(t.task_id)
     return out
 

@@ -50,6 +50,14 @@ VALID_ORACLE_KERNEL_EQUIVALENCE = frozenset({
     # R10.b rebuilt inputs diverged from R10.a's captured ref -- precision
     # comparison untrustworthy, NOT a precision FAILED (H2 guard).
     "INPUT_DRIFT",
+    # A large-shape divergence accepted as a dtype-ULP ceiling on an allowlisted
+    # task -- DISTINCT from VERIFIED, never counted as a strict pass, but a valid
+    # (correctly-aligned) corpus task. See triton_ascend_bench/ceiling_acceptance.yaml.
+    "CEILING_ACCEPTED",
+    # Frozen upstream kernel carries a genuine off-by-one/bug; a correct oracle
+    # necessarily diverges -> unverifiable by construction (set when
+    # upstream.known_kernel_bug is true). Excluded from the alignment denominator.
+    "BLOCKED_UPSTREAM_BUG",
 })
 VALID_GPU_KERNEL_CAPTURE_STATUS = frozenset({
     "PENDING", "DONE", "FAILED", "BLOCKED_NON_DETERMINISTIC",
