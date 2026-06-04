@@ -106,9 +106,21 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_18_fused_gdn_gating-20260602T193655
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L2_18_fused_gdn_gating-20260604T181245
+  classified_at: '2026-06-04'
   standalone_sha256: 83e4e9a541a4f80732a6aa90f139917c71c22c711cfc9deb33d1bd50d61e936b
+  kernel_sha256: 83e4e9a541a4f80732a6aa90f139917c71c22c711cfc9deb33d1bd50d61e936b
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: triton_fallback

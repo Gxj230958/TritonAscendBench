@@ -15,14 +15,15 @@ upstream:
   file_sha256: 86126462aa7b37706d7aad8779423964bae54ee044aa0ffced6abcbcf4c51999
   function_hash: 86126462aa7b37706d7aad8779423964bae54ee044aa0ffced6abcbcf4c51999
   license: Apache-2.0
-  notes: frozen verbatim from upstream vLLM lightning_attn.py (see kernel.py header for SHA).
+  notes: frozen verbatim from upstream vLLM lightning_attn.py (see kernel.py header
+    for SHA).
   vendored_snapshot: tasks/_vendored/L2_23_fwd_kv_parallel_18f6bf5.py
   known_kernel_bug: true
   deprecated: true
-  deprecated_reason: >-
-    Frozen upstream _fwd_kv_parallel (vLLM lightning_attn.py) carries a real off-by-one; a
-    correct oracle necessarily diverges (~80 dtype-ULP, far above any precision ceiling).
-    Unverifiable by construction -- excluded from the alignment denominator, not a bench defect.
+  deprecated_reason: Frozen upstream _fwd_kv_parallel (vLLM lightning_attn.py) carries
+    a real off-by-one; a correct oracle necessarily diverges (~80 dtype-ULP, far above
+    any precision ceiling). Unverifiable by construction -- excluded from the alignment
+    denominator, not a bench defect.
 interface:
   alias_map: {}
   mutability: unspecified
@@ -114,9 +115,21 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_23_fwd_kv_parallel-20260602T193748
-  classified_at: '2026-06-02'
-  standalone_sha256: 6d366bc330133b6f752f710c3754370f40085f649e96a1df347d68225bd5be28
+  s2_gpu_run_id: s2-L2_23_fwd_kv_parallel-20260604T181257
+  classified_at: '2026-06-04'
+  standalone_sha256: 8232acce29cbe3f6665638e36b690e526a26b7597526a9b8c0a7327ca44176f0
+  kernel_sha256: 8232acce29cbe3f6665638e36b690e526a26b7597526a9b8c0a7327ca44176f0
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

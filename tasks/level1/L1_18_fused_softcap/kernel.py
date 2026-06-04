@@ -37,40 +37,14 @@ import triton.language as tl
 from torch import nn
 from triton.language.extra import libdevice
 
-from sglang.srt.distributed import (
-    get_tensor_model_parallel_world_size,
-    tensor_model_parallel_all_gather,
-)
-from sglang.srt.environ import envs
-from sglang.srt.layers.dp_attention import (
-    DpPaddingMode,
-    attn_tp_all_gather,
-    attn_tp_all_gather_into_tensor,
-    dp_gather_replicate,
-    dp_scatter,
-    get_attention_dp_rank,
-    get_attention_dp_size,
-    get_attention_tp_size,
-    get_dp_device,
-    get_dp_dtype,
-    get_dp_hidden_size,
-)
-from sglang.srt.layers.utils.logprob import (
-    InputLogprobsResult,
-    compute_temp_top_p_normalized_logprobs,
-    get_token_ids_logprobs_chunk,
-    get_token_ids_logprobs_prefill,
-    get_top_logprobs_chunk,
-    get_top_logprobs_prefill,
-)
-from sglang.srt.layers.vocab_parallel_embedding import VocabParallelEmbedding
-from sglang.srt.model_executor.forward_batch_info import (
-    CaptureHiddenMode,
-    ForwardBatch,
-    ForwardMode,
-)
-from sglang.srt.server_args import get_global_server_args
-from sglang.srt.utils.common import is_npu, use_intel_amx_backend
+from tasks._frozen_shim import get_tensor_model_parallel_world_size, tensor_model_parallel_all_gather  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import envs  # Phase A': sglang env namespace (B-inert-shim)
+from tasks._frozen_shim import DpPaddingMode, attn_tp_all_gather, attn_tp_all_gather_into_tensor, dp_gather_replicate, dp_scatter, get_attention_dp_rank, get_attention_dp_size, get_attention_tp_size, get_dp_device, get_dp_dtype, get_dp_hidden_size  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import InputLogprobsResult, compute_temp_top_p_normalized_logprobs, get_token_ids_logprobs_chunk, get_token_ids_logprobs_prefill, get_top_logprobs_chunk, get_top_logprobs_prefill  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import VocabParallelEmbedding  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import CaptureHiddenMode, ForwardBatch, ForwardMode  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import get_global_server_args  # Phase A': sglang sibling surface (B-inert-shim)
+from tasks._frozen_shim import is_npu, use_intel_amx_backend  # Phase A': sglang sibling surface (B-inert-shim)
 
 logger = logging.getLogger(__name__)
 
@@ -1174,3 +1148,82 @@ def fused_softcap(full_logits, final_logit_softcapping):
         BLOCK_SIZE=BLOCK_SIZE,
     )
     return full_logits
+
+
+# ── Phase A' synthesised standalone entrypoint (HOLE B) ─────────────
+# The staged candidate MUST expose run(inputs)->dict so S2 can compare
+# it against the UNMODIFIED upstream (which exposes the positional
+# entrypoint 'fused_softcap', NOT run). This wrapper is a PURE dict->positional
+# argument shuffle of the EXISTING upstream entrypoint -- it never
+# reimplements numeric logic (changing values = an A' failure). The
+# original side runs the same upstream callable via the identical
+# signature adapter in _pa_subproc_runner._signature_adapter, so the
+# two manifests are structurally comparable. Promotion of this file is
+# gated on a genuine S2-gpu-authoritative PASS (never fabricated).
+def run(inputs: dict) -> dict:  # noqa: D401
+    """Standalone S2 entrypoint -- maps `inputs` onto the upstream
+    `fused_softcap` signature STRICTLY BY NAME (codex r5 ISSUE 1: never a silent
+    skip+positional-shift; a required no-default param with no value is
+    a hard BLOCKED(shapes-incomplete), NOT a mis-call), returns a dict
+    (mutated args surfaced when the upstream entrypoint mutates in
+    place and returns None). This mirrors
+    _pa_subproc_runner._signature_adapter EXACTLY so the original and
+    severed sides bind identically."""
+    import inspect
+
+    import torch as _torch
+
+    _MARK = "BLOCKED(shapes-incomplete"
+    _fn = fused_softcap
+    _PNM = {}  # meta.interface.param_name_map (wrapper param -> task key)
+    try:
+        _sig = inspect.signature(_fn)
+    except (TypeError, ValueError):
+        _sig = None
+    if _sig is None:
+        _ret = _fn(inputs)
+        _bound = []
+    else:
+        _kw = {}
+        _bound = []
+        for _n, _p in _sig.parameters.items():
+            if _p.kind in (
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            ):
+                continue
+            if _n in inputs:
+                _kw[_n] = inputs[_n]
+                _bound.append(_n)
+            elif _n in _PNM and _PNM[_n] in inputs:
+                # meta.interface.param_name_map (baked): same task tensor
+                # under a different key. _bound records the TASK KEY so the
+                # in-place output reconstruction indexes inputs correctly.
+                _src = _PNM[_n]
+                _kw[_n] = inputs[_src]
+                _bound.append(_src)
+            elif _p.default is not inspect.Parameter.empty:
+                continue
+            else:
+                raise RuntimeError(
+                    _MARK + ": missing param " + repr(_n)
+                    + " for entrypoint " + repr('fused_softcap')
+                    + " -- shapes.yaml / build_inputs provides no value "
+                    "and the parameter has no default. Refusing to "
+                    "silently skip+shift positional args. Fix: add the "
+                    "param to the task's shapes.yaml inputs (or "
+                    "meta.interface.param_name_map)."
+                )
+        _ret = _fn(**_kw)
+    if _ret is None:
+        _out = {
+            p: inputs[p]
+            for p in _bound
+            if _torch.is_tensor(inputs.get(p))
+        }
+        return _out or {"_inplace": None}
+    if isinstance(_ret, dict):
+        return _ret
+    if isinstance(_ret, (list, tuple)):
+        return {f"_out{i}": v for i, v in enumerate(_ret)}
+    return {"_out0": _ret}

@@ -96,9 +96,14 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_18_fused_softcap-20260602T192708
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L1_18_fused_softcap-20260604T180947
+  classified_at: '2026-06-04'
   standalone_sha256: 8149ab50136553f8457cf62f58cf4b93e4400a45c38d0999ac3afbfc207ec529
+  kernel_sha256: 8149ab50136553f8457cf62f58cf4b93e4400a45c38d0999ac3afbfc207ec529
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+reference_path: triton_fallback

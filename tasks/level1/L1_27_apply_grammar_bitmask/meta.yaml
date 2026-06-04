@@ -110,9 +110,21 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_27_apply_grammar_bitmask-20260602T192810
-  classified_at: '2026-06-02'
-  standalone_sha256: 58be7cdeeeb1fe241076b27a50a62261d0a834314d7015ca6979b75e453b6d89
+  s2_gpu_run_id: s2-L1_27_apply_grammar_bitmask-20260604T181008
+  classified_at: '2026-06-04'
+  standalone_sha256: ea92fa4683d528026e0bd2efffb95c13a8ee1a2b28d39f4387d728013bc65360
+  kernel_sha256: ea92fa4683d528026e0bd2efffb95c13a8ee1a2b28d39f4387d728013bc65360
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

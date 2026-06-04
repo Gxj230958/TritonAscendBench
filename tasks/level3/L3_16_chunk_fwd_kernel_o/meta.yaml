@@ -106,8 +106,6 @@ param_constraints:
   - V >= 1
   - H % Hg == 0
   - Hg < H
-  # bf16 activations (the production / GPU-verified dtype; the bf16 oracle matches the
-  # kernel at the anchors -- fp32+TF32 was GPU-refuted). g stays fp32 (decay/cumsum).
   dtypes:
     q: bfloat16
     k: bfloat16
@@ -132,9 +130,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_16_chunk_fwd_kernel_o-20260602T194556
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L3_16_chunk_fwd_kernel_o-20260604T181514
+  classified_at: '2026-06-04'
   standalone_sha256: f106b4b81fcb01901a924db1d8bc6e460991c61803e588fa24b7429075d5bbc9
+  kernel_sha256: f106b4b81fcb01901a924db1d8bc6e460991c61803e588fa24b7429075d5bbc9
 frozen_deps:
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
 - tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op

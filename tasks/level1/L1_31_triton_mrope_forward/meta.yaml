@@ -113,9 +113,18 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_31_triton_mrope_forward-20260602T192910
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L1_31_triton_mrope_forward-20260604T181008
+  classified_at: '2026-06-04'
   standalone_sha256: c462c21ae3f511bf1ff3816275815d82abf018757ae3ef28dd42e7329934e92d
+  kernel_sha256: c462c21ae3f511bf1ff3816275815d82abf018757ae3ef28dd42e7329934e92d
 frozen_deps: []
-classB_symbols: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
 reference_path: native

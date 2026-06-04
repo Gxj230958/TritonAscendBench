@@ -116,9 +116,21 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_02_compute_slot_mappings-20260602T192544
-  classified_at: '2026-06-02'
-  standalone_sha256: 175e8e6bddc5591a02dddc8e94cc89a11feaf729b41e3b9de15f7fdec9fbf4a2
+  s2_gpu_run_id: s2-L1_02_compute_slot_mappings-20260604T180907
+  classified_at: '2026-06-04'
+  standalone_sha256: 0788105a1e62954dce7c533aa9c38ece3c97355793d3d54b9e84ba537cdfb513
+  kernel_sha256: 0788105a1e62954dce7c533aa9c38ece3c97355793d3d54b9e84ba537cdfb513
 frozen_deps: []
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

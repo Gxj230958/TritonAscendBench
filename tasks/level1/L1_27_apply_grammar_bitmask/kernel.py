@@ -17,10 +17,11 @@ Frozen by: scripts/phase_a_freeze.py
 import numpy as np
 import torch
 
-from vllm.triton_utils import tl, triton
-from vllm.utils.math_utils import cdiv
-from vllm.v1.worker.gpu.buffer_utils import async_copy_to_gpu
-from vllm.v1.worker.gpu.input_batch import InputBatch
+import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
+import triton.language as tl
+from tasks._frozen_shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
+from tasks._frozen_shim import async_copy_to_gpu  # Phase A': setup-only buffer helpers (B-inert-shim)
+from tasks._frozen_shim import InputBatch  # Phase A': sibling batch-state stand-in (B-inert-shim)
 
 
 class StructuredOutputsWorker:
@@ -127,3 +128,25 @@ def _apply_grammar_bitmask_kernel(
         -float("inf"),
         mask=bitmask & (block_offset < vocab_size),
     )
+
+# Authored jit-only launcher (U5): drives _apply_grammar_bitmask_kernel from the
+# upstream call site (StructuredOutputsWorker.apply_grammar_bitmask). The kernel
+# masks logits in place; the oracle's output key is "logits".
+def run(inputs: dict) -> dict:
+    logits = inputs["logits"]
+    logits_indices = inputs["logits_indices"]
+    bitmask = inputs["bitmask"]
+    num_masks = bitmask.shape[0]
+    vocab_size = logits.shape[-1]
+    BLOCK_SIZE = 8192
+    grid = (num_masks, triton.cdiv(vocab_size, BLOCK_SIZE))
+    _apply_grammar_bitmask_kernel[grid](
+        logits,
+        logits.stride(0),
+        logits_indices,
+        bitmask,
+        bitmask.stride(0),
+        vocab_size,
+        BLOCK_SIZE=BLOCK_SIZE,
+    )
+    return {"logits": logits}

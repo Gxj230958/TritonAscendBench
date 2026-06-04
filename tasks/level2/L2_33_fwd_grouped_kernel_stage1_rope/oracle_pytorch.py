@@ -103,7 +103,11 @@ def run(inputs: dict) -> dict:
         nope_score = q_nope @ kv_latent.t()               # [H, seq]
         score = sm_scale * (rope_score + nope_score)      # [H, seq]
         if logit_cap > 0:
-            score = logit_cap * torch.tanh(score / logit_cap)
+            # tanh(u) expanded to low-level primitives (spec L195) via the
+            # exp-stable form 2/(1+exp(-2u))-1 (no nan at large |u|, unlike
+            # (exp(2u)-1)/(exp(2u)+1)).
+            u = score / logit_cap
+            score = logit_cap * (2.0 / (1.0 + torch.exp(-2.0 * u)) - 1.0)
 
         # Online softmax with a single split == plain softmax (S <= BLOCK_N).
         m = score.max(dim=-1).values                      # [H]

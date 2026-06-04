@@ -42,7 +42,9 @@ def _layer_norm(
         out = out + bias.to(torch.float32)
     if z is not None:
         z_f = z.to(torch.float32)
-        out = out * (z_f * torch.sigmoid(z_f))
+        # SiLU gate z*sigmoid(z) expanded to low-level primitives (spec L195):
+        # z/(1+exp(-z)) -- exp-stable, no overflow at the SiLU limits.
+        out = out * (z_f / (1.0 + torch.exp(-z_f)))
     return out.to(x.dtype)
 
 

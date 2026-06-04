@@ -124,10 +124,15 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_08_sgemm_lora_a-20260602T193531
-  classified_at: '2026-06-02'
-  standalone_sha256: b4daa477bae2962ad91dcfa331265640fde74b6546a12f18c3852a06dd3ab7e1
+  s2_gpu_run_id: s2-L2_08_sgemm_lora_a-20260604T181214
+  classified_at: '2026-06-04'
+  standalone_sha256: aea47f4304ac842b4d6634cb1b12977b171cb590826d6d54e6fca3bd00299f2f
+  kernel_sha256: aea47f4304ac842b4d6634cb1b12977b171cb590826d6d54e6fca3bd00299f2f
 frozen_deps:
 - tasks._frozen_deps_pool.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils
-classB_symbols: []
-reference_path: native
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+reference_path: triton_fallback
