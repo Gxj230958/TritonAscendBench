@@ -66,10 +66,16 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-16
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-03T01:08:52Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:17:49Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 0.056179776787757874
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=0.0562 (max_abs=0.125,
+          max_rel=0.056179776787757874, tol=recurrent_chunk atol=0.005 rtol=0.005)'
       P1:
         status: VERIFIED
         max_abs: 3.814697265625e-06
@@ -78,7 +84,23 @@ provenance:
         status: VERIFIED
         max_abs: 0.03125
         max_rel: 0.03658536449074745
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 3.6666667461395264
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=3.67 (max_abs=0.125, max_rel=3.6666667461395264,
+          tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0625
+        max_rel: 0.942626953125
+        blocker: 'output: atol/rtol: max_abs=0.0625, max_rel=0.943 (max_abs=0.0625,
+          max_rel=0.942626953125, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.0078125
+        max_rel: 0.009345794096589088
+    golden_source: dtype_ceiling_accepted
     notes: 'oracle_pytorch.py re-authored to the upstream headed chunk-output contract
       of the frozen wrapper `chunk_fwd_o` (q/k:[B,T,Hg,K], v:[B,T,H,V], h:[B,NT,H,V,K]
       per-chunk state snapshots, g:[B,T,H] -> o:[B,T,H,V], BT=FLA_CHUNK_SIZE=64).
@@ -93,7 +115,6 @@ provenance:
       float32 round-off). Numeric oracle-vs-kernel equivalence requires a GPU/NPU
       run to populate (the FLA chunk kernels do not execute under TRITON_INTERPRET
       on a driverless host).'
-    golden_sha256: 130bdf610968c13e09550fb40e5fe24bc3d9b2e1c5145f15d74924a08187dcf5
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

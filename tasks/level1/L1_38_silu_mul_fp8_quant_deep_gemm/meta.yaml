@@ -67,9 +67,25 @@ provenance:
   source_md_id: L1-38
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:19Z'
-    tolerance_class_used: vector_reduce
+    verified_at: '2026-06-04T11:14:19Z'
+    tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 2.7939677238464355e-09
+        max_rel: 2.7349639708518225e-07
+      H2:
+        status: VERIFIED
+        max_abs: 9.313225746154785e-10
+        max_rel: 8.227281256267815e-08
+      H3:
+        status: VERIFIED
+        max_abs: 8.0
+        max_rel: 0.10000000149011612
+      H4:
+        status: VERIFIED
+        max_abs: 2.7939677238464355e-09
+        max_rel: 2.7907330490961613e-07
       P1:
         status: VERIFIED
         max_abs: 9.313225746154785e-10
@@ -78,7 +94,19 @@ provenance:
         status: VERIFIED
         max_abs: 1.862645149230957e-09
         max_rel: 2.3040333019253012e-07
-    golden_sha256: 2a76d037849b6bd4b2d84545c50b67755b242c5b3f8f351691dee573dfd205aa
+      P3:
+        status: VERIFIED
+        max_abs: 2.0
+        max_rel: 0.0833333358168602
+      P4:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.125
+      P5:
+        status: VERIFIED
+        max_abs: 16.0
+        max_rel: 0.10000000149011612
+    golden_sha256: 98c8b032b811f876381506fc08a2b66fa235e0f8c5806a3f6fe80a64a8a362dd
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
 param_constraints:

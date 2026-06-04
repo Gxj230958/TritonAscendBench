@@ -101,10 +101,28 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:17:10Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.005859375
+        max_rel: 666.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.00244140625
+        max_rel: 1.2306835651397705
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 124692920.0
+        blocker: 'o: atol/rtol: max_abs=0.00781, max_rel=1.25e+08 (max_abs=0.0078125,
+          max_rel=124692920.0, tol=attention_flash atol=0.005 rtol=0.001)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.00390625
+        max_rel: 760.5
       P1:
         status: VERIFIED
         max_abs: 0.00244140625
@@ -113,8 +131,21 @@ provenance:
         status: VERIFIED
         max_abs: 0.005859375
         max_rel: 2179.0
-    golden_source: oracle_pytorch_verified
-    golden_sha256: 015e94294720b960e58f5a9e3473601b0f9ba86882f8bc09d190fd2127219bd3
+      P3:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 103294848.0
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 412464128.0
+        blocker: 'o: atol/rtol: max_abs=0.00781, max_rel=4.12e+08 (max_abs=0.0078125,
+          max_rel=412464128.0, tol=attention_flash atol=0.005 rtol=0.001)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.0048828125
+        max_rel: 3231.0
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

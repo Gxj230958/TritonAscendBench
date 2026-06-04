@@ -65,10 +65,36 @@ provenance:
   last_modified: '2026-05-31'
   source_md_id: L3-14
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:17:42Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0625
+        max_rel: 0.009661835618317127
+        blocker: 'final_state: atol/rtol: max_abs=0.0625, max_rel=0.00966 (max_abs=0.0625,
+          max_rel=0.009661835618317127, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 128.0
+        max_rel: 0.00699300691485405
+        blocker: 'final_state: atol/rtol: max_abs=128, max_rel=0.00699 (max_abs=128.0,
+          max_rel=0.00699300691485405, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.0078125
+        max_rel: 0.00671140942722559
+      H5:
+        status: CEILING_ACCEPTED
+        max_abs: 2.0
+        max_rel: 0.013452914543449879
+        blocker: 'final_state: atol/rtol: max_abs=2, max_rel=0.0135 (max_abs=2.0,
+          max_rel=0.013452914543449879, tol=recurrent_chunk atol=0.005 rtol=0.005)'
       P1:
         status: VERIFIED
         max_abs: 9.5367431640625e-07
@@ -77,7 +103,25 @@ provenance:
         status: VERIFIED
         max_abs: 0.25
         max_rel: 0.0044247787445783615
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 16.0
+        max_rel: 0.006493506487458944
+        blocker: 'final_state: atol/rtol: max_abs=16, max_rel=0.00649 (max_abs=16.0,
+          max_rel=0.006493506487458944, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 128.0
+        max_rel: 0.00699300691485405
+        blocker: 'final_state: atol/rtol: max_abs=128, max_rel=0.00699 (max_abs=128.0,
+          max_rel=0.00699300691485405, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: CEILING_ACCEPTED
+        max_abs: 16.0
+        max_rel: 0.008163264952600002
+        blocker: 'final_state: atol/rtol: max_abs=16, max_rel=0.00816 (max_abs=16.0,
+          max_rel=0.008163264952600002, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+    golden_source: dtype_ceiling_accepted
     notes: oracle_pytorch.py re-authored to the frozen kernel's exact token-by-token
       recurrence (decay applied to the carried state BEFORE the kS contraction; kS
       uses the decayed state), state carried in the kernel's V-major [B,H,V,K] layout
@@ -91,7 +135,6 @@ provenance:
       Numeric oracle-vs-kernel equivalence requires a GPU run to populate (the dev-host
       interpret anchor hits the Triton 3.6 tl.exp _semantic skew, same GPU-rescue
       path as the L3_13 sibling).
-    golden_sha256: 936a65cbfb31c2d17cb9a86b3260f1e068ce9b4e89af11b2a2eb1742e0db05e1
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

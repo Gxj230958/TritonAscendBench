@@ -67,9 +67,25 @@ provenance:
   source_md_id: L2-14
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    verified_at: '2026-06-04T11:15:00Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-05
+        max_rel: 0.0035022569354623556
+      H2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.7171291233353259e-07
+      H3:
+        status: VERIFIED
+        max_abs: 0.0030517578125
+        max_rel: 0.5384876728057861
+      H4:
+        status: VERIFIED
+        max_abs: 4.57763671875e-05
+        max_rel: 0.015943313017487526
       P1:
         status: VERIFIED
         max_abs: 5.7220458984375e-06
@@ -78,8 +94,20 @@ provenance:
         status: VERIFIED
         max_abs: 3.0517578125e-05
         max_rel: 0.0014303564094007015
+      P3:
+        status: VERIFIED
+        max_abs: 0.00018310546875
+        max_rel: 0.24023275077342987
+      P4:
+        status: VERIFIED
+        max_abs: 0.000518798828125
+        max_rel: 0.8822054862976074
+      P5:
+        status: VERIFIED
+        max_abs: 0.0009002685546875
+        max_rel: 0.003600901924073696
     golden_source: oracle_pytorch_verified
-    golden_sha256: 71f4a170d259d53be7c539ee8f22b93267d75e3d98c7090037dbe20513be81d6
+    golden_sha256: fe386f62e42bea8a299fadd71568643f1250df5314592f36c433cd74297f9fe9
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

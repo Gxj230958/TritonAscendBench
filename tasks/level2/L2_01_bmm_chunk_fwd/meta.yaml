@@ -66,10 +66,28 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-01
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:14:30Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.5
+        max_rel: 0.007692307699471712
+        blocker: 'output: atol/rtol: max_abs=0.5, max_rel=0.00769 (max_abs=0.5, max_rel=0.007692307699471712,
+          tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
         status: VERIFIED
         max_abs: 0.0
@@ -78,8 +96,25 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_source: oracle_pytorch_verified
-    golden_sha256: 59062d4da24540a76dfd4f7065dee5c638200c2abe8891a744c6f25d2d025f13
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.03125
+        max_rel: 0.006369426846504211
+        blocker: 'output: atol/rtol: max_abs=0.0312, max_rel=0.00637 (max_abs=0.03125,
+          max_rel=0.006369426846504211, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.25
+        max_rel: 0.007246376946568489
+        blocker: 'output: atol/rtol: max_abs=0.25, max_rel=0.00725 (max_abs=0.25,
+          max_rel=0.007246376946568489, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P5:
+        status: CEILING_ACCEPTED
+        max_abs: 0.5
+        max_rel: 0.004385964944958687
+        blocker: 'output: atol/rtol: max_abs=0.5, max_rel=0.00439 (max_abs=0.5, max_rel=0.004385964944958687,
+          tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

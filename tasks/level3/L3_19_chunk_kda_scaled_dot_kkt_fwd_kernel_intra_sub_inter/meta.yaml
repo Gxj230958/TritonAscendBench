@@ -30,14 +30,13 @@ oracle:
 tolerance_class: recurrent_chunk
 cost_model:
   flops:
-    fp16_cube: 4 * D * C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L
-      / min(16, L)) - 1) / 2)
-    vector: 10 * D * min(16, L) * C * (ceil(L / min(16, L)) * (ceil(L / min(16, L))
-      - 1) / 2) + C * min(16, L) * min(16, L) * (ceil(L / min(16, L)) * (ceil(L /
-      min(16, L)) - 1) / 2)
+    fp16_cube: 4*K*B*H*16*16*(6*floor(T / 64) + (ceil((T % 64) / 16) * (ceil((T %
+      64) / 16) - 1) / 2))
+    vector: (10*K*16*B*H + B*H*16*16)*(6*floor(T / 64) + (ceil((T % 64) / 16) * (ceil((T
+      % 64) / 16) - 1) / 2))
   bytes:
-    hbm: (3 * D * min(16, L) + min(16, L) + 2 * min(16, L) * min(16, L)) * C * (ceil(L
-      / min(16, L)) * (ceil(L / min(16, L)) - 1) / 2) * dtype_size
+    hbm: (3*K*16 + 16 + 2*16*16)*B*H*(6*floor(T / 64) + (ceil((T % 64) / 16) * (ceil((T
+      % 64) / 16) - 1) / 2))*dtype_size
   gpu_xcheck_tol: 0.05
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -71,9 +70,25 @@ provenance:
   source_md_id: L3-19
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    verified_at: '2026-06-04T11:18:00Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0035829544067382812
+        max_rel: 0.009423598647117615
+      H2:
+        status: VERIFIED
+        max_abs: 9.979307651519775e-05
+        max_rel: 0.0018470411887392402
+      H3:
+        status: VERIFIED
+        max_abs: 0.002919912338256836
+        max_rel: 0.03736494481563568
+      H4:
+        status: VERIFIED
+        max_abs: 0.002219080924987793
+        max_rel: 0.14417318999767303
       P1:
         status: VERIFIED
         max_abs: 5.7220458984375e-06
@@ -82,6 +97,18 @@ provenance:
         status: VERIFIED
         max_abs: 0.00179290771484375
         max_rel: 0.043478287756443024
+      P3:
+        status: VERIFIED
+        max_abs: 0.002917051315307617
+        max_rel: 0.32348257303237915
+      P4:
+        status: VERIFIED
+        max_abs: 0.004092693328857422
+        max_rel: 0.40309539437294006
+      P5:
+        status: VERIFIED
+        max_abs: 0.0061321258544921875
+        max_rel: 0.022002533078193665
     golden_source: oracle_pytorch_verified
     notes: 'shapes.yaml + oracle_pytorch.py + _pa_launcher.py re-authored to the frozen
       INTER kernel chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter: dense [B,T,H,K]
@@ -92,7 +119,7 @@ provenance:
       fault-injection on every load-bearing input (g/k/q/beta/scale/sub-chunk-mask)
       diverges beyond tolerance. Final GPU oracle-kernel equivalence pending the eval
       daemon.'
-    golden_sha256: 719176832e542fd33200c77de665802b3a468a14d38d851c3a61e3e29819863a
+    golden_sha256: d34d4907f5b384712b7ec8e2ab4418efc91ae03894dff2c29158e308fefa1c7e
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

@@ -70,10 +70,14 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-13
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:17:40Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.010636329650878906
+        max_rel: 33.92133331298828
       P1:
         status: VERIFIED
         max_abs: 0.008128166198730469
@@ -82,7 +86,23 @@ provenance:
         status: VERIFIED
         max_abs: 0.009094715118408203
         max_rel: 11.251852035522461
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.010447025299072266
+        max_rel: 96.96691131591797
+        blocker: 'output: atol/rtol: max_abs=0.0104, max_rel=97 (max_abs=0.010447025299072266,
+          max_rel=96.96691131591797, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.11364364624023438
+        max_rel: 116.95831298828125
+        blocker: 'output: atol/rtol: max_abs=0.114, max_rel=117 (max_abs=0.11364364624023438,
+          max_rel=116.95831298828125, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.005957603454589844
+        max_rel: 0.3866545855998993
+    golden_source: dtype_ceiling_accepted
     notes: oracle_pytorch.py re-authored to the upstream chunked headed contract (k/w:[B,T,H,K],
       u:[B,T,H,V], g:[B,T,H], gk:[B,T,H,K] -> h:[B,NT,H,V,K], BT=64). shapes.yaml
       + param_constraints aligned to that layout; output_projection selects wrapper
@@ -90,7 +110,6 @@ provenance:
       branch (exp(gk[:,last])); all shape rows pinned to NT>=3 (T>=129) so that decay
       reaches a graded h snapshot. Numeric oracle-vs-kernel equivalence requires a
       GPU/NPU run to populate.
-    golden_sha256: 0eef9a8272d9ee4597d42505655e246f4db87d56b967369bd9d83cdbfb52e2f9
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

@@ -67,9 +67,25 @@ provenance:
   source_md_id: L2-30
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    verified_at: '2026-06-04T11:15:27Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 6.198883056640625e-06
+        max_rel: 4.243519651936367e-05
+      H2:
+        status: VERIFIED
+        max_abs: 5.960464477539063e-08
+        max_rel: 1.0189869499299675e-06
+      H3:
+        status: VERIFIED
+        max_abs: 2.2649765014648438e-06
+        max_rel: 0.0004960686783306301
+      H4:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 1.9200480892322958e-05
       P1:
         status: VERIFIED
         max_abs: 4.172325134277344e-07
@@ -78,13 +94,25 @@ provenance:
         status: VERIFIED
         max_abs: 1.6689300537109375e-06
         max_rel: 1.717391933198087e-05
+      P3:
+        status: VERIFIED
+        max_abs: 2.580881118774414e-05
+        max_rel: 0.00014263030607253313
+      P4:
+        status: VERIFIED
+        max_abs: 1.7404556274414062e-05
+        max_rel: 0.00019609795708674937
+      P5:
+        status: VERIFIED
+        max_abs: 2.384185791015625e-06
+        max_rel: 4.139768498134799e-05
     golden_source: oracle_pytorch_verified
     note: Prior FAILED verdict (2026-05-27, max_abs=0.06/0.138) was against the superseded
       renormalised oracle. The oracle was re-authored to return raw softmax probabilities
       (matching kernel.py:258/285); r10_pyref refs were regenerated. Dev-side oracle-consistency
       now PASSES (H2 max_abs=0.0, P2 max_abs=8e-7 within atomic_scatter). Needs a
       GPU equivalence re-run against the corrected oracle to set VERIFIED.
-    golden_sha256: 2e061d96c5c7b4a2ed9a1a6d383df93017ff23ac29128d817666c699bb0b6f9e
+    golden_sha256: 1cd7c5fcf17c8ef27c7201d705a26dcfffb6dada118c28cf3ca046e2e3c7cdee
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

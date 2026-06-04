@@ -65,10 +65,30 @@ provenance:
   last_modified: '2026-06-01'
   source_md_id: L2-40
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-03T01:08:52Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:16:26Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.007751937955617905
+        blocker: 'q: atol/rtol: max_abs=0.0156, max_rel=0.00775 (max_abs=0.015625,
+          max_rel=0.007751937955617905, tol=vector_reduce atol=0.001 rtol=0.001)'
+      H4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.006896551698446274
+        blocker: 'k: atol/rtol: max_abs=0.00781, max_rel=0.00602 (max_abs=0.0078125,
+          max_rel=0.0060240961611270905, tol=vector_reduce atol=0.001 rtol=0.001)'
       P1:
         status: VERIFIED
         max_abs: 0.0
@@ -77,8 +97,27 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: f8281ace2302f539cbbdfb9b4b9a310b26aa1ed5b3a9faa4e37ac3175f7ddbff
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007246376946568489
+        blocker: 'q: atol/rtol: max_abs=0.00781, max_rel=0.00725 (max_abs=0.0078125,
+          max_rel=0.007246376946568489, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.007751937955617905
+        blocker: 'k: atol/rtol: max_abs=0.00391, max_rel=0.00775 (max_abs=0.00390625,
+          max_rel=0.007751937955617905, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.0156, max_rel=0.00775 (max_abs=0.015'
+      P5:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007194244768470526
+        blocker: 'k: atol/rtol: max_abs=0.00391, max_rel=0.00481 (max_abs=0.00390625,
+          max_rel=0.004807692486792803, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.00781, max_rel=0.00719 (max_abs=0.00'
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

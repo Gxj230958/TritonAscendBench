@@ -86,10 +86,42 @@ def main(argv: list[str] | None = None) -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     v = run_one(task_dir, args.gpu, args.infer_root)
-    (args.output_dir / f"{args.task}.json").write_text(
-        json.dumps(asdict(v), indent=2, default=str)
-    )
+    verdict_path = args.output_dir / f"{args.task}.json"
+    verdict_path.write_text(json.dumps(asdict(v), indent=2, default=str))
     print(f"oracle-equiv {args.task}: {v.overall}")
+
+    # Daemon-side auto-apply: persist the verdict into meta.provenance.golden HERE,
+    # where the just-wiped+regenerated r10_pyref refs live, so apply can hash them
+    # for golden_sha256 without a multi-GB pull to the authoring host. Fail-closed:
+    # only with full shape coverage; _apply_one carries the per-status guards
+    # (S2-fresh + kernel_sha256, golden_sha256-only-for-VERIFIED, known-bug -> BLOCKED).
+    try:
+        import yaml  # noqa: PLC0415
+
+        sd = yaml.safe_load((task_dir / "shapes.yaml").read_text()) or {}
+        want = {
+            s.get("id")
+            for grp in ("public_shapes", "hidden_shapes")
+            for s in (sd.get(grp) or [])
+            if s.get("id")
+        }
+        got = {s.shape_id for s in v.shapes if s.shape_id not in ("*", None)}
+        if want and not want.issubset(got):
+            print(
+                f"  auto-apply {args.task} SKIPPED: shape coverage {sorted(got)} "
+                f"misses {sorted(want - got)}",
+                file=sys.stderr,
+            )
+        else:
+            from apply_oracle_equivalence_verdict import _apply_one  # noqa: PLC0415
+
+            ar = _apply_one(verdict_path)
+            print(
+                f"  auto-apply {args.task}: {ar.overall} "
+                f"promoted_to_truth={getattr(ar, 'promoted_to_truth', None)}"
+            )
+    except Exception as e:  # never let persistence crash the grade
+        print(f"  auto-apply {args.task} SKIPPED (error): {e}", file=sys.stderr)
     return 0
 
 

@@ -67,10 +67,26 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-02
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-03T01:08:52Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:14:34Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 0.004761904943734407
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: VERIFIED
+        max_abs: 0.03125
+        max_rel: 0.008368200622498989
+      H4:
+        status: VERIFIED
+        max_abs: 0.00390625
+        max_rel: 0.007518797181546688
       P1:
         status: VERIFIED
         max_abs: 0.0
@@ -79,8 +95,21 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: b0fdcf6b2c867b40dbed0d51f965ee7d82a2b005d70c267a3ea0515596d3b11b
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.0049019609577953815
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 0.0602409653365612
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=0.0602 (max_abs=0.125,
+          max_rel=0.0602409653365612, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.00390625
+        max_rel: 0.005494505632668734
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

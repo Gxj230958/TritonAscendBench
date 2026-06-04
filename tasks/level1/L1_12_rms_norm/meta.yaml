@@ -105,10 +105,30 @@ provenance:
   - triton-ascend-bench team
   last_modified: '2026-05-14'
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:19Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:13:13Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
+      H1:
+        status: CEILING_ACCEPTED
+        max_abs: 0.00390625
+        max_rel: 0.006896551698446274
+        blocker: 'output: atol/rtol: max_abs=0.00391, max_rel=0.0069 (max_abs=0.00390625,
+          max_rel=0.006896551698446274, tol=vector_reduce atol=0.001 rtol=0.001)'
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.001953125
+        max_rel: 0.0062500000931322575
+        blocker: 'output: atol/rtol: max_abs=0.00195, max_rel=0.00625 (max_abs=0.001953125,
+          max_rel=0.0062500000931322575, tol=vector_reduce atol=0.001 rtol=0.001)'
       P1:
         status: VERIFIED
         max_abs: 0.0
@@ -117,8 +137,19 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: 95efcd9c092aa9363cd8bf30d3158a4bd8ebb666e671a77d31bda212b6ace668
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 phase_a_prime:
   status: PASS

@@ -66,10 +66,28 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L3-20
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:19:10Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.007308006286621094
+        max_rel: 0.4962232708930969
+      H2:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 0.00025049204123206437
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.01544189453125
+        max_rel: 110.8359603881836
+        blocker: 'w: atol/rtol: max_abs=0.0154, max_rel=111 (max_abs=0.01544189453125,
+          max_rel=110.8359603881836, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.011144638061523438
+        max_rel: 0.13001371920108795
       P1:
         status: VERIFIED
         max_abs: 8.314847946166992e-06
@@ -78,13 +96,28 @@ provenance:
         status: VERIFIED
         max_abs: 0.004530906677246094
         max_rel: 0.1014396920800209
-    golden_source: oracle_pytorch_verified
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.011366844177246094
+        max_rel: 21.1540470123291
+        blocker: 'w: atol/rtol: max_abs=0.0114, max_rel=21.2 (max_abs=0.011366844177246094,
+          max_rel=21.1540470123291, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.014834403991699219
+        max_rel: 953674.3125
+        blocker: 'w: atol/rtol: max_abs=0.0148, max_rel=9.54e+05 (max_abs=0.014834403991699219,
+          max_rel=953674.3125, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.010239601135253906
+        max_rel: 3.0
+    golden_source: dtype_ceiling_accepted
     notes: 'shapes.yaml + oracle_pytorch.py re-authored to the frozen kernel''s head-structured,
       block-diagonal (per-BT-chunk) contract: k[B,L,H//2,D], v[B,L,H,Dv], beta/g_cumsum[B,L,H],
       A[B,L,H,C] (local within-chunk column). Oracle cross-checked against a literal
       make_block_ptr transcription of the kernel (rel err ~1e-7, elementwise). Final
       GPU equivalence pending.'
-    golden_sha256: cef7734493dc629a8b8148da59be820ef83126f7a25ca4e3bc96fa40b9c72505
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false

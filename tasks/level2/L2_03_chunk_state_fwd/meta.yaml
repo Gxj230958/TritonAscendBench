@@ -67,20 +67,51 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-03
   golden:
-    oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-02T12:47:20Z'
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-04T11:14:37Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.010519027709960938
+        max_rel: 6.527095317840576
+      H2:
+        status: VERIFIED
+        max_abs: 0.0036134719848632812
+        max_rel: 0.04601634293794632
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.02584075927734375
+        max_rel: 171.08047485351562
+        blocker: 'states: atol/rtol: max_abs=0.0258, max_rel=171 (max_abs=0.02584075927734375,
+          max_rel=171.08047485351562, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.008315086364746094
+        max_rel: 2.7487785816192627
       P1:
         status: VERIFIED
-        max_abs: 0.022932052612304688
-        max_rel: 0.1358450949192047
+        max_abs: 0.004488945007324219
+        max_rel: 0.13725678622722626
       P2:
         status: VERIFIED
-        max_abs: 0.06475067138671875
-        max_rel: 2.1378262042999268
-    golden_sha256: 47d6a71fd3aeaecb95228e415775658dcc1b3a9ca69cc75a82383434115789d0
-    golden_source: oracle_pytorch_verified
+        max_abs: 0.009302139282226562
+        max_rel: 2.135918617248535
+      P3:
+        status: VERIFIED
+        max_abs: 0.01390838623046875
+        max_rel: 48.79282760620117
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.018707275390625
+        max_rel: 89.7882080078125
+        blocker: 'states: atol/rtol: max_abs=0.0187, max_rel=89.8 (max_abs=0.018707275390625,
+          max_rel=89.7882080078125, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.008836746215820312
+        max_rel: 3.6825811862945557
+    golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
