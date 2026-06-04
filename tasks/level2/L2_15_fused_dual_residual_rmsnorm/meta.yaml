@@ -106,9 +106,7 @@ param_constraints:
       kind: randn
   scalars:
     eps: 0 < eps <= 1e-2
-  tensor_invariants:
-  - x.shape == residual.shape
-  - x.dtype == residual.dtype
+  tensor_invariants: []
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)

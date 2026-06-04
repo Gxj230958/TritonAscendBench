@@ -87,7 +87,7 @@ param_constraints:
   - N >= 2
   - D >= 1
   dtypes:
-    logits: float32
+    logits: bf16
     token_ids: int64
   dists:
     logits:
@@ -96,7 +96,7 @@ param_constraints:
       kind: randint
       args:
         lo: '0'
-        hi: '2'
+        hi: 'N'
   scalars: {}
   tensor_invariants: []
 phase_a_prime:
