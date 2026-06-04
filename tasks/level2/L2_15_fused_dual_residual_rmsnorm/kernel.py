@@ -67,7 +67,7 @@ def fused_dual_residual_rmsnorm(x, residual, weight1, weight2, eps, autotune=Fal
 # gated on a genuine S2-gpu-authoritative PASS (never fabricated).
 def run(inputs: dict) -> dict:  # noqa: D401
     """Standalone S2 entrypoint -- maps `inputs` onto the upstream
-    `fused_dual_residual_rmsnorm` signature STRICTLY BY NAME (codex r5 ISSUE 1: never a silent
+    `fused_dual_residual_rmsnorm` signature STRICTLY BY NAME (never a silent
     skip+positional-shift; a required no-default param with no value is
     a hard BLOCKED(shapes-incomplete), NOT a mis-call), returns a dict
     (mutated args surfaced when the upstream entrypoint mutates in

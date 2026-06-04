@@ -153,7 +153,7 @@ def apply_logit_bias(
 # gated on a genuine S2-gpu-authoritative PASS (never fabricated).
 def run(inputs: dict) -> dict:  # noqa: D401
     """Standalone S2 entrypoint -- maps `inputs` onto the upstream
-    `apply_logit_bias` signature STRICTLY BY NAME (codex r5 ISSUE 1: never a silent
+    `apply_logit_bias` signature STRICTLY BY NAME (never a silent
     skip+positional-shift; a required no-default param with no value is
     a hard BLOCKED(shapes-incomplete), NOT a mis-call), returns a dict
     (mutated args surfaced when the upstream entrypoint mutates in

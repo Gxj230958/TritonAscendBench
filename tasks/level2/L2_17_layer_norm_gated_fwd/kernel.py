@@ -153,7 +153,7 @@ def layer_norm_gated_fwd(x: torch.Tensor, g: torch.Tensor, weight: torch.Tensor,
 # gated on a genuine S2-gpu-authoritative PASS (never fabricated).
 def run(inputs: dict) -> dict:  # noqa: D401
     """Standalone S2 entrypoint -- maps `inputs` onto the upstream
-    `layer_norm_gated_fwd` signature STRICTLY BY NAME (codex r5 ISSUE 1: never a silent
+    `layer_norm_gated_fwd` signature STRICTLY BY NAME (never a silent
     skip+positional-shift; a required no-default param with no value is
     a hard BLOCKED(shapes-incomplete), NOT a mis-call), returns a dict
     (mutated args surfaced when the upstream entrypoint mutates in

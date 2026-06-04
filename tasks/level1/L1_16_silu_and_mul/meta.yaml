@@ -15,6 +15,7 @@ upstream:
   file_sha256: 5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64
   function_hash: 5e0bf53718d4ab671a449fbd96c11b3bb4a4b44ccde4606a684058696c2e3f64
   license: Apache-2.0
+  hand_curated_poc: true  # hand-written faithful to upstream API; verified by S2 + C2, NOT byte-frozen (no pinned upstream commit)
   notes: 'Locks the unquantized variant only (quant_max=None). The quantization
 
     branch in upstream raises NotImplementedError and is excluded from
@@ -134,8 +135,8 @@ phase_a_prime:
   reason: bit-exact (values + alias + mutated-input)
   s2_gpu_run_id: s2-L1_16_silu_and_mul-20260604T180929
   classified_at: '2026-06-04'
-  standalone_sha256: 0c62dc9eb78d0977539304bae6b16059d01266226946c790bd1f438e69f243bb
-  kernel_sha256: 0c62dc9eb78d0977539304bae6b16059d01266226946c790bd1f438e69f243bb
+  standalone_sha256: ef5e7d9ed176a8c6befa9019a55ddd784da47215439293c411ff3b49561a9733
+  kernel_sha256: ef5e7d9ed176a8c6befa9019a55ddd784da47215439293c411ff3b49561a9733
 frozen_deps: []
 classB_symbols: []
 reference_path: native

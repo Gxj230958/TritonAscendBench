@@ -664,7 +664,7 @@ def build_chunk_scan_inputs(inputs: dict) -> dict:
     cu, seq_idx_list = _partition(seqlen, chunk_size)
     nchunks = len(cu) - 1
 
-    # CPU generator so the CPU oracle (R10.a) and GPU launcher (R10.b) draw the
+    # CPU generator so the CPU oracle (the pyref-capture stage) and GPU launcher (the GPU-compare stage) draw the
     # same derived inputs (a CUDA generator yields a different stream per seed).
     gen = torch.Generator()
     gen.manual_seed(_per_chunk_seed(
