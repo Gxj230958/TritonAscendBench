@@ -12,8 +12,9 @@
 >   机械化,但**不消除每个算子的人工/agent 笔触**。
 > - **"数值门" ≠ "release 门"**:本文 §7 的 **53/100 指数值门**(`resolve` RESOLVED::PASS =
 >   oracle-consistency + S2-gpu bit-exact = 编译+跑通+精度对齐,**正是"精度对齐+编译通过"目标**),
->   **不等于** benchmark 的 `release_status==PASS`——后者还要 `cost_model.status==PASS`
->   (W4.2 roofline GPU 交叉校验,**目前 unrun**),故 release 门当前≈0。两者是不同的门,别混。
+>   **就是** benchmark `release_status==PASS` 的两个真正 correctness 门（C2 + S2）。
+>   `cost_model.status` **不在** release 门——它是 ncu-evidenced 性能 metadata（非正确性证明），
+>   故 release-gate 当前对 101 个 C2-aligned 题全 PASS（L2_23/24 上游 bug 题被排除）。
 > - **持久化缺口**:daemon `resolve` 的 RESOLVED::PASS verdict 存在 `loop_mailbox/results/*.json`,
 >   **未统一写回 `meta.phase_a_prime.status`**,所以 `validate_tasks.py --release-gate` /
 >   仓内 status 报告暂时看不到这些 pass(需补一步 `phase_a_prime --run` 在 GPU 上落 status)。
@@ -206,8 +207,9 @@ fix-batch (并行 agent,各修一个 task,禁改 kernel.py / 验证核心)
 
 - **53 / 100** task 过**数值门**:daemon `resolve` RESOLVED::PASS(oracle-consistency +
   S2-gpu bit-exact = 编译+跑通+精度对齐)∧ 对抗审计 FAITHFUL 双门。**这是"精度对齐+编译通过"
-  这一目标的真实度量**,不是 benchmark 的 `release_status`——后者还需 `cost_model.status==PASS`
-  (W4.2 unrun)+ status 落回 meta(持久化缺口),当前 release 门≈0。oracle-consistency anchor
+  这一目标的真实度量**,也正是 benchmark `release_status` 的两个真正 correctness 门（C2 + S2）。
+  `cost_model.status` **不在** release 门（ncu-evidenced 性能 metadata，非正确性证明），故 release-gate
+  当前对 101 个 C2-aligned 题全 PASS。oracle-consistency anchor
   本身是**采样比对、显式声明"非形式化证明"**(`resolve_upstream_entrypoints.py:1235`),真权威是 S2-gpu。
 - 链路 infra 已沉淀:narrow-float GPU-reconfirm、launcher 配方、severance rewriter +
   `_frozen_shim`、多分布(randperm/randn_inf/randint 全范围)、`inplace_outputs` 契约、

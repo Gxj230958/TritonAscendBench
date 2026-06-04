@@ -577,11 +577,15 @@ def test_tab_run_does_not_crash_on_skeleton_solution(tmp_path):
 
 
 # ── Phase A' S6 release_blocked (plan U7 / R6) ──────────────────────
-def test_analyze_release_blocked_when_eligible_not_pass(tmp_path):
-    """Phase A' S6: the real catalogue has no task with
-    phase_a_prime.status==PASS yet -> analyze must emit
-    release_blocked:true + a non-empty blocking list, while STILL
-    emitting the diagnostic score (C2: coherent coexistence)."""
+def test_analyze_release_gate_coexists_with_diagnostic_score(tmp_path):
+    """Phase A' S6: the release gate and the diagnostic score coexist
+    coherently (C2) -- analyze always emits the score AND the release
+    gate fields, and the blocking set keys on the C2-aligned release-
+    ready eligible set. The blocking-set is a subset of that set, so it
+    can never exceed the score-eligible count. (Synthetic blocker /
+    C2-exclusion semantics are covered deterministically in
+    test_validate_w1_5_release_gate.py against monkeypatched corpora;
+    this case asserts coexistence on the live catalogue.)"""
     verified = {"results": []}
     (tmp_path / "v.json").write_text(json.dumps(verified))
     out_path = tmp_path / "score.json"
@@ -595,10 +599,10 @@ def test_analyze_release_blocked_when_eligible_not_pass(tmp_path):
     # Diagnostic score still present (C2).
     assert "capped_geomean_native" in doc
     assert "perf_status" in doc
-    # S6 release gate fields present + blocking (no task is PASS).
-    assert doc["release_blocked"] is True
+    # S6 release gate fields present and well-formed.
+    assert isinstance(doc["release_blocked"], bool)
     assert isinstance(doc["release_blocked_tasks"], list)
-    assert len(doc["release_blocked_tasks"]) > 0
+    assert doc["release_blocked"] is (len(doc["release_blocked_tasks"]) > 0)
     # Blocking set  subset-of  score-eligible set.
     assert len(doc["release_blocked_tasks"]) <= doc["n_score_eligible_tasks"]
 

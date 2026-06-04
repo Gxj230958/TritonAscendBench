@@ -3761,8 +3761,10 @@ def _format_status_md(
 
     ``eligible_count`` (W1.5): the S6 release-gate BLOCKER count -- the
     number of score-eligible tasks whose COMPOSITE ``release_status !=
-    PASS`` (``phase_a_prime.status == PASS AND cost_model.status ==
-    PASS``, DESIGN-V2 §4.4). It is computed by the SAME shared
+    PASS`` (``phase_a_prime.status == PASS`` over the C2-aligned
+    eligible set; cost_model.status is NOT in the gate -- it is
+    ncu-evidenced performance metadata, not a correctness proof). It is
+    computed by the SAME shared
     ``eligibility.compute_release_blocking`` that ``validate_tasks.py
     --release-gate`` uses, so the S6 verdict's blocker count is
     identical to the gate's by construction.
@@ -3885,15 +3887,13 @@ def _format_status_md(
         f"COMPOSITE predicate via `eligibility.compute_release_blocking`)"
     )
     lines.append(
-        "- **composite release predicate (W1.5 / DESIGN-V2 §4.4 + "
-        "Unit 2.3)**: `release_status == PASS  <=>  "
+        "- **composite release predicate**: `release_status == PASS  <=>  "
         "(phase_a_prime.status == PASS  OR  (SKIPPED_BY_DESIGN  AND  "
         "phase_b_capture.status == DONE))  AND  "
         "(NOT phase_b_capture_required  OR  phase_b_capture.status "
-        "== DONE)  AND  (NOT release_scope.excluded)  AND  "
-        "cost_model.status == PASS`. A missing `cost_model.status` "
-        "(most metas pre-W4.2 GPU cross-check) is `!= PASS`, so the "
-        "gate stays red until Phase 4."
+        "== DONE)  AND  (NOT release_scope.excluded)`, over the C2-aligned "
+        "score-eligible set. cost_model.status is NOT in the gate -- it is "
+        "ncu-evidenced performance metadata, not a correctness proof."
     )
     lines.append(
         f"- **benchmark NOT releasable** (S6 hard gate): {n_pass} "
@@ -3904,8 +3904,8 @@ def _format_status_md(
         f"limitation, NOT 'no entrypoint exists' ({n_no_ep} tasks "
         f"genuinely lack a callable). Plus {n_shapes_inc} "
         f"shapes-incomplete + {n_oracle_mismatch} oracle-mismatch; 0 "
-        f"PASS (no GPU). The composite gate ALSO requires "
-        f"`cost_model.status == PASS` (W4.2) -- independently red."
+        f"PASS (no GPU). cost_model.status is NOT in the gate -- it is "
+        f"evidenced performance metadata, not a release blocker."
     )
     lines.append(f"- tasks classified this run: **{len(results)}**")
     lines.append(f"- **PASS: {n_pass}**")
@@ -3984,11 +3984,14 @@ def _release_blocker_count() -> int:
     truth (W1.5 / FIX 3 / U7): MUST match `validate_tasks.py
     --release-gate`'s blocker count.
 
-    A task blocks release iff it is score-eligible AND its COMPOSITE
-    `release_status != PASS`, where (DESIGN-V2 §4.4)::
+    A task blocks release iff it is score-eligible (C2-aligned via
+    `is_provenance_eligible`) AND its COMPOSITE `release_status != PASS`::
 
-        release_status == PASS
-            <=> phase_a_prime.status == PASS AND cost_model.status == PASS
+        release_status == PASS  <=>  phase_a_prime.status == PASS   (S2 severance)
+
+    cost_model.status is NOT in the gate -- it is ncu-evidenced performance
+    metadata, not a correctness proof. The real correctness gates are C2
+    oracle-equivalence (the eligible set) + S2 severance (phase_a_prime).
 
     Uses the SAME shared `eligibility.compute_release_blocking` that
     `validate_tasks.py --release-gate` and `cli.py` analyze use, so the
@@ -3999,11 +4002,11 @@ def _release_blocker_count() -> int:
     from triton_ascend_bench.dataset import iter_all_tasks
     from triton_ascend_bench.eligibility import (
         compute_release_blocking,
-        compute_score_eligible,
+        compute_release_ready_eligible,
     )
 
-    tasks = iter_all_tasks()
-    eligible_ids = compute_score_eligible(tasks)
+    tasks = list(iter_all_tasks())
+    eligible_ids = compute_release_ready_eligible(tasks)
     return len(compute_release_blocking(tasks, eligible_ids))
 
 

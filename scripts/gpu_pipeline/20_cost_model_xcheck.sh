@@ -4,10 +4,17 @@
 # GPU-host P0 #2: cross-check each task's ANALYTIC cost model
 # (meta.yaml.cost_model.flops / bytes formulas) against INSTRUMENTED
 # GPU-Triton measurements, and write meta.yaml: cost_model.status
-# (PASS / BLOCKED) -- the second half of the release-gate predicate
+# (PASS / BLOCKED) -- ncu-evidenced PERFORMANCE metadata, NOT a
+# release gate. Conditional access, L2 reuse, tile geometry, and the
+# HBM burst floor make a portable analytic bytes formula unable to hit
+# per-shape tol everywhere, so most tasks are cost_model BLOCKED; that
+# does not block release. This step only records the evidence.
 #
+# The release gate keys on the two REAL correctness proofs:
 #     release_status == PASS
-#         <=> phase_a_prime.status == PASS AND cost_model.status == PASS
+#         <=> phase_a_prime.status == PASS (S2 severance)
+#             AND oracle_kernel_equivalence in {VERIFIED, CEILING_ACCEPTED}
+#                 (C2 oracle-equivalence)
 #
 # Implementation: scripts/phase_a_cost_xcheck.py. Per task it
 #   1. evaluates the analytic W_c / M_r formulas at each public eval

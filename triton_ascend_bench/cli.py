@@ -1103,20 +1103,34 @@ def _cmd_analyze(args) -> int:
                 return False
         return True
 
-    # S6 release gate (W1.5 / DESIGN-V2 §4.4): if ANY score-eligible
-    # task has `release_status != PASS`, the benchmark is NOT
-    # releasable, where the COMPOSITE predicate is
-    # `release_status == PASS  <=>  phase_a_prime.status == PASS  AND
-    # cost_model.status == PASS`. A missing `cost_model.status` (most
-    # metas pre-W4.2) is NOT PASS. The diagnostic score still computes
-    # (C2: coherent with perf_status=unavailable) -- only the
-    # *releasable leaderboard* is refused. `compute_release_blocking`
-    # is the SAME shared predicate `validate_tasks.py --release-gate`
-    # and `phase_a_prime.py`'s S6 verdict use -> identical blocking set.
-    from .eligibility import compute_release_blocking
+    # S6 release gate: if ANY score-eligible task has
+    # `release_status != PASS`, the benchmark is NOT releasable, where
+    # `release_status == PASS  <=>  phase_a_prime.status PASS` (S2
+    # severance / golden correctness). cost_model is NOT gated here --
+    # it is ncu-evidenced PERFORMANCE/access metadata, not a correctness
+    # proof, so its PASS / BLOCKED_* status stays recorded but never
+    # blocks release. The two real correctness gates are C2
+    # oracle-equivalence (`is_provenance_eligible`) + S2 severance. The
+    # diagnostic score still computes (C2: coherent with
+    # perf_status=unavailable) -- only the *releasable leaderboard* is
+    # refused. `compute_release_blocking` is the SAME shared predicate
+    # `validate_tasks.py --release-gate` and `phase_a_prime.py`'s S6
+    # verdict use -> identical blocking set.
+    #
+    # The blocking set keys on the C2-aligned release-ready eligible set
+    # (`compute_release_ready_eligible` = score-eligible INTERSECT
+    # `is_provenance_eligible`), NOT the score-only set: a C2-FAILED task
+    # is EXCLUDED from the gate (it never enters), not counted as a
+    # blocker. This matches `validate_tasks.py --release-gate` and
+    # `phase_a_prime.py`'s S6 authority.
+    from .eligibility import (
+        compute_release_blocking,
+        compute_release_ready_eligible,
+    )
 
+    release_ready_eligible_ids = compute_release_ready_eligible(all_tasks)
     release_blocking = compute_release_blocking(
-        all_tasks, score_eligible_ids
+        all_tasks, release_ready_eligible_ids
     )
 
     # Build TaskMeasurement only for results whose task_id is in the

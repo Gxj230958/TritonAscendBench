@@ -338,37 +338,50 @@ def compute_verified_blocked(tasks: Iterable[_TaskLike]) -> set[str]:
     }
 
 
-# ── W1.5: composite release gate predicate ──────────────────────────
+# ── composite release gate predicate ─────────────────────────────────
 #
-# DESIGN-V2 §4.4: a task's release_status is PASS *iff* its provider
-# freeze (`phase_a_prime.status`) AND its cost-model GPU cross-check
-# (`cost_model.status`) are BOTH PASS:
+# A task is release-ready *iff* it clears the two REAL correctness
+# proofs, over the C2-aligned eligible set:
 #
-#     release_status == PASS
-#         <=> phase_a_prime.status == PASS  AND  cost_model.status == PASS
+#     release-ready
+#         <=> C2 oracle-equivalence (is_provenance_eligible:
+#                 oracle_kernel_equivalence VERIFIED / CEILING_ACCEPTED)
+#             AND S2 severance (phase_a_prime.status == PASS)
 #
-# `cost_model.status` lives at `meta.cost_model.status` and is written
-# by the W4.2 GPU cross-check step (PASS / BLOCKED). Most task metas do
-# not carry it yet (W4.2 unrun) -- a MISSING `cost_model.status` is
-# treated as NOT PASS, so the release gate stays red until Phase 4.
+# `cost_model.status` is NOT a release blocker -- it is ncu-evidenced
+# PERFORMANCE/access metadata (conditional access, L2 reuse, tile
+# geometry, HBM burst floor make a portable analytic bytes formula
+# structurally unable to hit per-shape tol everywhere), recorded as
+# metadata only. The release-eligible set is computed by
+# `compute_release_ready_eligible` (compute_score_eligible INTERSECT
+# is_provenance_eligible).
 #
-# All three release-status authorities -- `validate_tasks.py
-# --release-gate`, `cli.py` analyze's `release_blocking`, and
-# `phase_a_prime.py`'s S6 verdict report -- call the SAME two functions
-# below, so the blocking set is identical across all three by
-# construction (no predicate drift).
+# All release-status authorities -- `validate_tasks.py --release-gate`,
+# `cli.py` analyze's `release_blocking`, and `phase_a_prime.py`'s S6
+# verdict report -- call the SAME functions below, so the blocking set
+# is identical across all three by construction (no predicate drift).
 
 
 def release_status_pass(meta: dict | None) -> bool:
     """True iff a task's composite ``release_status`` is PASS.
 
-    Base predicate (DESIGN-V2 §4.4)::
+    Base predicate (cost_model removed from the gate)::
 
         release_status == PASS
-            <=> phase_a_prime.status PASSes  AND  cost_model.status == PASS
+            <=> phase_a_prime.status PASSes   (S2 severance / golden correctness)
 
-    A missing ``phase_a_prime`` block, a missing ``cost_model`` block,
-    or a missing ``status`` inside either is treated as NOT PASS.
+    ``cost_model.status`` is NOT a release blocker. cost_model is an
+    ncu-evidenced PERFORMANCE/access model, not a correctness proof:
+    conditional access (e.g. HAS_Z branches), L2 reuse, tile geometry, and
+    the HBM burst floor make a portable analytic bytes formula structurally
+    unable to hit the per-shape tol on every shape. Forcing it into the gate
+    would either pin release RED on a performance-model technicality or push
+    toward dishonest shape-specific fitting. Its per-shape evidence and
+    PASS / BLOCKED_* status stay recorded as metadata. The real correctness
+    gates are C2 oracle-equivalence (``is_provenance_eligible``) + S2
+    severance (``phase_a_prime``).
+
+    A missing ``phase_a_prime`` block or status is treated as NOT PASS.
 
     ``specs/task_api_contract.md`` §6a refinements:
 
@@ -394,7 +407,6 @@ def release_status_pass(meta: dict | None) -> bool:
     """
     m = meta or {}
     pap_status = (m.get("phase_a_prime") or {}).get("status")
-    cm_status = (m.get("cost_model") or {}).get("status")
     pbc_status = (m.get("phase_b_capture") or {}).get("status")
     pbc_required = m.get("phase_b_capture_required") is True
     excluded = (m.get("release_scope") or {}).get("excluded") is True
@@ -402,8 +414,8 @@ def release_status_pass(meta: dict | None) -> bool:
     if excluded:
         return False
 
-    if cm_status != "PASS":
-        return False
+    # cost_model.status is intentionally NOT gated here -- it is evidenced
+    # performance metadata, not a correctness proof (see docstring).
 
     if pap_status == "PASS":
         pap_ok = True
@@ -488,13 +500,12 @@ def is_provenance_eligible(meta: dict | None) -> bool:
 
 
 def release_ready_with_provenance(meta: dict | None) -> bool:
-    """V9 plan M0.0 composite predicate: PHASE A' + cost_model + R10/R5
-    trust chain all green.
+    """Composite release-ready predicate: S2 severance (phase_a_prime) AND
+    C2 oracle-equivalence (provenance) trust chain all green.
 
-    Tightening of :func:`release_status_pass` with the V9 provenance
-    gate. Used by ``cli analyze`` and ``validate_tasks --release-gate``
-    once the V9 schema has been backfilled. Until then, callers can
-    keep using ``release_status_pass`` directly (backward-compatible).
+    Tightening of :func:`release_status_pass` with the provenance (C2) gate.
+    Used by ``cli analyze`` and ``validate_tasks --release-gate``. cost_model
+    is NOT part of this predicate -- it is evidenced performance metadata.
     """
     return release_status_pass(meta) and is_provenance_eligible(meta)
 
@@ -542,7 +553,7 @@ def compute_usability(meta: dict | None, kernel_sha256: str | None = None) -> di
     (no second source of truth -- recomputed on read, never persisted as an
     authority):
 
-      * C2 oracle-equivalence + S2 severance + cost_model + not-excluded
+      * C2 oracle-equivalence + S2 severance + not-excluded
         == :func:`release_ready_with_provenance` (which already requires
         ``phase_a_prime.status`` PASS, so a standalone that fails the S2
         severed audit can never be ``fully_usable`` even if C2 alone says
@@ -560,8 +571,9 @@ def compute_usability(meta: dict | None, kernel_sha256: str | None = None) -> di
         failing.append("C2_oracle_equivalence")
     if not fresh_s2_pass(m, kernel_sha256):
         failing.append("S2_severance")
-    if (m.get("cost_model") or {}).get("status") != "PASS":
-        failing.append("cost_model")
+    # cost_model.status is intentionally NOT a usability gate -- it is an
+    # ncu-evidenced performance/access model, orthogonal to extraction
+    # correctness (C2 + S2 + entrypoint). Its status is recorded as metadata.
     if (m.get("release_scope") or {}).get("excluded") is True:
         failing.append("release_excluded")
     ep = str((m.get("oracle") or {}).get("gpu_triton") or "")

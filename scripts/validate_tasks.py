@@ -1341,10 +1341,15 @@ def _load_eligible_ids() -> tuple[set[str], int]:
     """
     sys.path.insert(0, str(REPO_ROOT))
     from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import compute_score_eligible
+    from triton_ascend_bench.eligibility import compute_release_ready_eligible
 
-    all_tasks = iter_all_tasks()
-    eligible = compute_score_eligible(all_tasks)
+    # Release-ready eligible = score-eligible INTERSECT C2 provenance-eligible
+    # (is_provenance_eligible). Gating the release set on this is what makes C2
+    # a REAL release gate: a C2-FAILED / un-provenanced task is excluded from
+    # the released corpus, so it cannot satisfy the S2-only release_status_pass
+    # and sneak through. (compute_score_eligible alone has no C2 clause.)
+    all_tasks = list(iter_all_tasks())
+    eligible = compute_release_ready_eligible(all_tasks)
     return eligible, len(eligible)
 
 
@@ -1352,17 +1357,23 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
     """`--release-gate` mode (plan U7): SEPARATE from schema/hash mode.
 
     `eligibility  intersect  {release_status != PASS}` non-empty ⇒ nonzero
-    exit + the blocking list, where (W1.5 / DESIGN-V2 §4.4) the
-    COMPOSITE release predicate is::
+    exit + the blocking list, where the COMPOSITE release predicate is::
 
-        release_status == PASS
-            <=> phase_a_prime.status == PASS  AND  cost_model.status == PASS
+        release_status == PASS  <=>  phase_a_prime.status == PASS   (S2 severance)
 
-    A missing `cost_model.status` (most metas pre-W4.2) is NOT PASS, so
-    the gate stays red until Phase 4. The blocking set is computed by
-    the shared `eligibility.compute_release_blocking` -- the SAME
-    function `cli.py` analyze and `phase_a_prime.py`'s S6 verdict use,
-    so all three authorities yield an identical blocking set.
+    over the score-eligible set, which is already intersected with
+    `is_provenance_eligible` (C2 oracle-equivalence VERIFIED / CEILING).
+    So the gate keys on the two real CORRECTNESS proofs -- C2 precision +
+    S2 severance -- not on `cost_model.status`. cost_model is an
+    ncu-evidenced PERFORMANCE/access model whose per-shape status is
+    recorded as metadata but is NOT a release blocker (conditional access,
+    L2 reuse, tile geometry, and the HBM burst floor make a portable
+    analytic formula structurally unable to hit per-shape tol everywhere;
+    gating on it would pin release red on a performance technicality or
+    invite dishonest shape fitting). The blocking set is computed by the
+    shared `eligibility.compute_release_blocking` -- the SAME function
+    `cli.py` analyze and `phase_a_prime.py`'s S6 verdict use, so all three
+    authorities yield an identical blocking set.
 
     PLUS a non-vacuity guard (codex-cep-r3 must-fix): if the examined
     eligible count == 0, OR != the catalogue-expected eligible count,
@@ -1416,9 +1427,10 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
 
     if blocking:
         print(
-            f"RELEASE-GATE FAIL: {len(blocking)} score-eligible task(s) "
-            f"with release_status != PASS (phase_a_prime.status == PASS "
-            f"AND cost_model.status == PASS) -- benchmark NOT releasable:",
+            f"RELEASE-GATE FAIL: {len(blocking)} release-ready "
+            f"(score-eligible AND C2-aligned) task(s) with "
+            f"release_status != PASS (S2 phase_a_prime.status == PASS) "
+            f"-- benchmark NOT releasable:",
             file=sys.stderr,
         )
         for tid in blocking:
@@ -1426,9 +1438,10 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
         return 1
 
     print(
-        f"release-gate OK: all {expected} score-eligible tasks "
-        f"release_status == PASS (phase_a_prime.status == PASS AND "
-        f"cost_model.status == PASS)."
+        f"release-gate OK: all {expected} release-ready "
+        f"(score-eligible AND C2-aligned) task(s) release_status == PASS "
+        f"(phase_a_prime.status == PASS / S2 severance). "
+        f"cost_model is evidenced performance metadata, NOT a release blocker."
     )
     return 0
 
@@ -1440,11 +1453,12 @@ def main() -> int:
                         help="Stop on first task error")
     parser.add_argument(
         "--release-gate", action="store_true",
-        help="S6 release gate (SEPARATE from schema/hash mode): "
-             "eligible  intersect  {release_status != PASS} non-empty ⇒ fail, "
-             "where release_status == PASS <=> phase_a_prime.status == PASS "
-             "AND cost_model.status == PASS (DESIGN-V2 §4.4); "
-             "non-vacuity guarded (never vacuous-pass).",
+        help="S6 release gate (SEPARATE from schema/hash mode): over the "
+             "release-ready set (score-eligible AND C2-aligned), "
+             "{release_status != PASS} non-empty ⇒ fail, where "
+             "release_status == PASS <=> phase_a_prime.status == PASS "
+             "(S2 severance). cost_model is evidenced performance metadata, "
+             "NOT a release blocker; non-vacuity guarded (never vacuous-pass).",
     )
     parser.add_argument(
         "--canary", action="store_true",

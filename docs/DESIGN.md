@@ -150,7 +150,7 @@ vLLM / SGLang 等推理引擎已在 NVIDIA H100/A100 上沉淀了大量成熟的
 | P4 | **单一真值源** | `meta.yaml` 机器可读权威；`contract.md` 只解释 |
 | P5 | **正确性门 + 性能 Roofline 排名** | correctness coverage≥0.70 为排名资格门；入门后按 910B Roofline 归一化效率 geomean 排名 |
 | P6 | **固定分母，不剔分母** | 资格门与性能指标共用固定分母 $|S|$；正确性失败计 0、性能非 ok/fallback 计 ε，BLOCKED 均不剔分母（防"少做难题反而抬指标"）|
-| P7 | **硬发布门** | 发布门：任一 score-eligible 任务 `release_status≠PASS`（`phase_a_prime.status=PASS ∧ cost_model.status=PASS`）⇒ benchmark 不可发布 |
+| P7 | **硬发布门** | 发布门：任一 release-ready（score-eligible ∧ C2-aligned）任务 `release_status≠PASS`（`phase_a_prime.status=PASS`，即 S2 severance；C2 oracle-equivalence 由 release-ready 资格集把守）⇒ benchmark 不可发布。`cost_model.status` **不在发布门**——它是 ncu-evidenced 性能 metadata（conditional access / L2 reuse / tile geometry / HBM burst floor 让解析公式本质难逐 shape 5%），非正确性证明 |
 
 ---
 

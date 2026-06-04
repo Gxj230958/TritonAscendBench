@@ -151,24 +151,20 @@ def test_release_scope_excluded_false_is_eligible(tmp_path):
 def test_backward_compat_meta_without_new_fields(tmp_path):
     """A meta.yaml that predates M2 (no release_scope / phase_b_capture
     blocks) loads and behaves exactly as before — same score-eligibility,
-    same release_status_pass semantics on the legacy two-field
-    conjunction.
+    and release_status_pass keys on phase_a_prime alone.
     """
     _write_real_files(tmp_path)
     # Score-eligibility: same as the legacy positional-only construction.
     legacy = _FakeTask("t", tmp_path, meta={})
     assert eligibility.is_score_eligible(legacy)
-    # release_status_pass: legacy phase_a_prime.status == PASS AND
-    # cost_model.status == PASS still wins.
+    # release_status_pass: phase_a_prime.status == PASS is sufficient.
+    # cost_model is NOT a release blocker (evidenced perf metadata only),
+    # so phase_a_prime PASS alone — with no cost_model block — passes.
     assert eligibility.release_status_pass({
         "phase_a_prime": {"status": "PASS"},
-        "cost_model": {"status": "PASS"},
     })
-    # And a meta with only one PASS still fails (no spurious uplift from
-    # the missing new fields).
-    assert not eligibility.release_status_pass({
-        "phase_a_prime": {"status": "PASS"},
-    })
+    # And a missing phase_a_prime status still fails (no spurious uplift).
+    assert not eligibility.release_status_pass({})
 
 
 # ---------------------------------------------------------------------------

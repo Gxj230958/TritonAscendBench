@@ -34,6 +34,66 @@ cost_model:
   bytes: 8*E + 4*E*128*ceil((T - 1) / 128)
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: '5/5 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation
+    0.9858 > tol 0.0500 (analytic=2080 measured=146176); P2: bytes deviation 0.9729
+    > tol 0.0500 (analytic=4160 measured=153344); P3: bytes deviation 0.7757 > tol
+    0.0500 (analytic=33024 measured=147200); P4: bytes deviation 0.1076 > tol 0.0500
+    (analytic=131584 measured=147456); P5: bytes deviation 0.5578 > tol 0.0500 (analytic=66560
+    measured=150528)'
+  xcheck_run_id: xcheck-2026-06-05-eeebecb7
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 2080.0
+    measured_bytes: 146176.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9857705779334501
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9858 > tol 0.0500 (analytic=2080 measured=146176)
+  - shape_id: P2
+    analytic_bytes_total: 4160.0
+    measured_bytes: 153344.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9728714524207012
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9729 > tol 0.0500 (analytic=4160 measured=153344)
+  - shape_id: P3
+    analytic_bytes_total: 33024.0
+    measured_bytes: 147200.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7756521739130435
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.7757 > tol 0.0500 (analytic=33024 measured=147200)
+  - shape_id: P4
+    analytic_bytes_total: 131584.0
+    measured_bytes: 147456.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.1076388888888889
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.1076 > tol 0.0500 (analytic=131584 measured=147456)
+  - shape_id: P5
+    analytic_bytes_total: 66560.0
+    measured_bytes: 150528.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.5578231292517006
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.5578 > tol 0.0500 (analytic=66560 measured=150528)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -66,7 +126,7 @@ provenance:
   source_md_id: L2-26
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T11:15:18Z'
+    verified_at: '2026-06-04T23:25:40Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       H1:

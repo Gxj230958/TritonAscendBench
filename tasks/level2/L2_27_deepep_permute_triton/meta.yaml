@@ -34,6 +34,69 @@ cost_model:
   bytes: 3*B*D*dtype_size + 16*B
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
+    1.9464 > tol 0.0500 (analytic=3149824 measured=1069056)'
+  xcheck_run_id: xcheck-2026-06-05-8e75960a
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 3200.0
+    measured_bytes: 17152.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8134328358208955
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.8134 > tol 0.0500 (analytic=3200 measured=17152) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=17152 < 0.5xmax=1069056); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 49664.0
+    measured_bytes: 33024.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.5038759689922481
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.5039 > tol 0.0500 (analytic=49664 measured=33024) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=33024 < 0.5xmax=1069056); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 788480.0
+    measured_bytes: 280320.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 1.812785388127854
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 1.8128 > tol 0.0500 (analytic=788480 measured=280320) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=280320 < 0.5xmax=1069056); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 3149824.0
+    measured_bytes: 1069056.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 1.946360153256705
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 1.9464 > tol 0.0500 (analytic=3149824 measured=1069056)
+  - shape_id: P5
+    analytic_bytes_total: 24704.0
+    measured_bytes: 24320.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.015789473684210527
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0158 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -66,7 +129,7 @@ provenance:
   source_md_id: L2-27
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T11:16:18Z'
+    verified_at: '2026-06-04T23:26:44Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       H1:

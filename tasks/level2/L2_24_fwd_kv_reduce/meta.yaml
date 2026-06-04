@@ -42,6 +42,70 @@ cost_model:
   bytes:
     hbm: (4*B*H*L*D + H) * dtype_size
   gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
+    0.8223 > tol 0.0500 (analytic=1073741952 measured=6041664512)'
+  xcheck_run_id: xcheck-2026-06-05-5a052165
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 4194320.0
+    measured_bytes: 9622528.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.56411454453549
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.5641 > tol 0.0500 (analytic=4194320 measured=9622528)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=9622528 < 0.5xmax=6041664512);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 8388640.0
+    measured_bytes: 19592192.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.5718375973449015
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.5718 > tol 0.0500 (analytic=8388640 measured=19592192)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=19592192 < 0.5xmax=6041664512);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 134217792.0
+    measured_bytes: 548124160.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7551325013661139
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7551 > tol 0.0500 (analytic=134217792 measured=548124160)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=548124160 < 0.5xmax=6041664512);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 1073741952.0
+    measured_bytes: 6041664512.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8222771307696206
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.8223 > tol 0.0500 (analytic=1073741952 measured=6041664512)
+  - shape_id: P5
+    analytic_bytes_total: 134217984.0
+    measured_bytes: 548077824.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.755111449282064
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7551 > tol 0.0500 (analytic=134217984 measured=548077824)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=548077824 < 0.5xmax=6041664512);
+      non-blocking per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -74,9 +138,33 @@ provenance:
   source_md_id: L2-24
   golden:
     oracle_kernel_equivalence: BLOCKED_UPSTREAM_BUG
-    verified_at: '2026-06-02T12:47:20Z'
+    verified_at: '2026-06-04T23:25:06Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
+      H1:
+        status: FAILED
+        max_abs: 25.18429946899414
+        max_rel: 1641.4462890625
+        blocker: 'output: atol/rtol: max_abs=25.2, max_rel=1.64e+03 (max_abs=25.18429946899414,
+          max_rel=1641.4462890625, tol=attention_flash atol=0.005 rtol=0.001)'
+      H2:
+        status: FAILED
+        max_abs: 7.109371185302734
+        max_rel: 1681.142333984375
+        blocker: 'output: atol/rtol: max_abs=7.11, max_rel=1.68e+03 (max_abs=7.109371185302734,
+          max_rel=1681.142333984375, tol=attention_flash atol=0.005 rtol=0.001)'
+      H3:
+        status: FAILED
+        max_abs: 49.947059631347656
+        max_rel: 5626.98828125
+        blocker: 'output: atol/rtol: max_abs=49.9, max_rel=5.63e+03 (max_abs=49.947059631347656,
+          max_rel=5626.98828125, tol=attention_flash atol=0.005 rtol=0.001)'
+      H4:
+        status: FAILED
+        max_abs: 44.83611297607422
+        max_rel: 8108.005859375
+        blocker: 'output: atol/rtol: max_abs=44.8, max_rel=8.11e+03 (max_abs=44.83611297607422,
+          max_rel=8108.005859375, tol=attention_flash atol=0.005 rtol=0.001)'
       P1:
         status: FAILED
         max_abs: 19.416406631469727
@@ -89,6 +177,24 @@ provenance:
         max_rel: 109.09911346435547
         blocker: 'output: atol/rtol: max_abs=0.156, max_rel=109 (max_abs=0.15634918212890625,
           max_rel=109.09911346435547, tol=attention_flash atol=0.005 rtol=0.001)'
+      P3:
+        status: FAILED
+        max_abs: 43.132774353027344
+        max_rel: 274837.4375
+        blocker: 'output: atol/rtol: max_abs=43.1, max_rel=2.75e+05 (max_abs=43.132774353027344,
+          max_rel=274837.4375, tol=attention_flash atol=0.005 rtol=0.001)'
+      P4:
+        status: FAILED
+        max_abs: 64.94413757324219
+        max_rel: 40914.70703125
+        blocker: 'output: atol/rtol: max_abs=64.9, max_rel=4.09e+04 (max_abs=64.94413757324219,
+          max_rel=40914.70703125, tol=attention_flash atol=0.005 rtol=0.001)'
+      P5:
+        status: FAILED
+        max_abs: 38.50750732421875
+        max_rel: 8413.703125
+        blocker: 'output: atol/rtol: max_abs=38.5, max_rel=8.41e+03 (max_abs=38.50750732421875,
+          max_rel=8413.703125, tol=attention_flash atol=0.005 rtol=0.001)'
 param_constraints:
   scaffold: false
   dims:

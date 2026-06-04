@@ -34,6 +34,70 @@ cost_model:
   bytes: (3*B*H*D + 3*B*H) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-6f420de6
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 12480.0
+    measured_bytes: 12800.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.025
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0250 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P2
+    analytic_bytes_total: 789504.0
+    measured_bytes: 532992.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.4812680115273775
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4813 > tol 0.0500 (analytic=789504 measured=532992) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=532992 < 0.5xmax=1604635904); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 50380800.0
+    measured_bytes: 37498624.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.3435372988619529
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.3435 > tol 0.0500 (analytic=50380800 measured=37498624)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=37498624 < 0.5xmax=1604635904);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 1611005952.0
+    measured_bytes: 1604635904.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.003969777806990912
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0040 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 6292224.0
+    measured_bytes: 4205824.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.49607401546046626
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4961 > tol 0.0500 (analytic=6292224 measured=4205824)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=4205824 < 0.5xmax=1604635904);
+      non-blocking per asymptotic_hbm_xcheck]'
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:
@@ -66,7 +130,7 @@ provenance:
   source_md_id: L1-26
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-04T11:13:49Z'
+    verified_at: '2026-06-04T23:15:03Z'
     tolerance_class_used: elementwise
     golden_source: dtype_ceiling_accepted
     equivalence_per_shape:
@@ -151,3 +215,6 @@ phase_a_prime:
 frozen_deps: []
 classB_symbols: []
 reference_path: native
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-04T23:15:40Z'

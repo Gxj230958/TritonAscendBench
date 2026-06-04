@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -122,6 +123,36 @@ def main(argv: list[str] | None = None) -> int:
             )
     except Exception as e:  # never let persistence crash the grade
         print(f"  auto-apply {args.task} SKIPPED (error): {e}", file=sys.stderr)
+
+    # Release-cert stage (sentinel-gated): the daemon host is a CUDA GPU, so the
+    # GPU-only cert steps that dev cannot run -- cost_model GPU cross-check (needs
+    # ncu) and golden offline-reference capture (needs CUDA) -- CAN run here. When
+    # a `triton_ascend_bench/.run_cert` sentinel is synced in, run them on this
+    # host after the C2 grade. Best-effort: never affects the C2 verdict, and
+    # sentinel-gated so ordinary C2 batches stay fast.
+    if (REPO_ROOT / "triton_ascend_bench" / ".run_cert").is_file():
+        # cost-xcheck applies to every task; golden capture only to score-eligible
+        # upstream_oracle_required tasks (it returns rc=1 by design elsewhere), so
+        # prefilter golden to avoid noisy no-op runs.
+        cert = [("phase_a_cost_xcheck.py", ["--apply"], "cost-xcheck")]
+        try:
+            import yaml  # noqa: PLC0415
+
+            meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+            if meta.get("oracle_simplified") == "upstream_oracle_required":
+                cert.append(("phase_b_golden_capture.py", [], "golden"))
+        except Exception:  # noqa: BLE001 -- prefilter best-effort; default cost-only
+            pass
+        for script, extra, label in cert:
+            try:
+                r = subprocess.run(
+                    ["python3", f"scripts/{script}", "--task", args.task, *extra],
+                    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=900,
+                )
+                tail = ((r.stdout or "") + (r.stderr or ""))[-300:].replace("\n", " ")
+                print(f"  cert/{label} {args.task}: rc={r.returncode} {tail}")
+            except Exception as e:  # cert is best-effort, never crash the grade
+                print(f"  cert/{label} {args.task} SKIPPED: {e}", file=sys.stderr)
     return 0
 
 

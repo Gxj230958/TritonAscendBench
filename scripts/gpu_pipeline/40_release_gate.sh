@@ -5,20 +5,25 @@
 #
 #   1. schema/hash validation -- 5-file contract, schema, ast.parse,
 #      kernel.py SHA-256 (validate_tasks.py default mode);
-#   2. --release-gate -- the HARD gate (DESIGN.md §4.4): every
-#      score-eligible task must have release_status == PASS, where
-#      release_status == PASS <=> phase_a_prime.status == PASS AND
-#      cost_model.status == PASS. A non-empty blocking set => non-zero
-#      exit + a blocking task list.
+#   2. --release-gate -- the HARD gate (DESIGN.md §4.4): keys on the
+#      two real correctness proofs. The release-eligible set is the
+#      score-eligible set INTERSECT C2 oracle-equivalence
+#      (oracle_kernel_equivalence == VERIFIED/CEILING_ACCEPTED); over
+#      that set every task must have release_status == PASS, where
+#      release_status == PASS <=> phase_a_prime.status == PASS (S2
+#      severance). cost_model.status is ncu-evidenced perf metadata,
+#      not a correctness blocker, so it is NOT gated here. A non-empty
+#      blocking set => non-zero exit + a blocking task list.
 #
 # Also runs verify_version_matrix.py so infra/version_matrix.toml is
 # checked for missing keys / unresolved placeholders.
 #
-# This step is EXPECTED to fail (non-zero) until every upstream GPU
-# step (10 Phase A' freeze, 20 cost-model cross-check, 30 golden
-# capture) has actually run on a GPU host and stamped its status into
-# meta.yaml -- that is the gate doing its job, not a script bug. It is
-# always run so the operator gets the authoritative blocking list.
+# This step is EXPECTED to fail (non-zero) until the gating GPU steps
+# (10 Phase A' freeze for S2 severance, 30 golden capture for C2
+# oracle-equivalence) have actually run on a GPU host and stamped
+# their status into meta.yaml -- that is the gate doing its job, not a
+# script bug. It is always run so the operator gets the authoritative
+# blocking list.
 #
 # Exit code: non-zero if ANY of the three checks failed -- the version
 # matrix check, the schema/hash check, or the release gate (no failure
@@ -89,9 +94,9 @@ log_err "  version-matrix rc = ${VVM_RC}"
 log_err "  schema/hash rc = ${SCHEMA_RC}"
 log_err "  release-gate rc = ${GATE_RC}"
 log_err ""
-log_err "  This is expected until every GPU-side step (10 Phase A' freeze,"
-log_err "  20 cost-model cross-check, 30 golden capture) has actually run on"
-log_err "  a GPU host -- the gate is correctly blocking, not a script bug."
+log_err "  This is expected until the gating GPU steps (10 Phase A' freeze,"
+log_err "  30 golden capture) have actually run on a GPU host -- the gate is"
+log_err "  correctly blocking, not a script bug."
 log_err "  The blocking task list is in ${PIPELINE_STATE_DIR}/release_gate.log"
 
 # Exit non-zero if ANY stage failed. A version-matrix or schema/hash

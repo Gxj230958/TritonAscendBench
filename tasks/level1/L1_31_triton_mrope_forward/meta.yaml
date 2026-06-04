@@ -39,6 +39,111 @@ cost_model:
   bytes: (32*B*H + 32*B + 48*B) * dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: "5/5 gate shape(s) could not be measured / exceeded gpu_xcheck_tol=0.05:\
+    \ P1: BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P1; stderr\
+    \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+    \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+    , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+    \ attempted relative import with no known parent package; P2: BLOCKED -- ncu exited\
+    \ 1 profiling L1_31_triton_mrope_forward/P2; stderr tail: ib._bootstrap_external>\"\
+    , line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488,\
+    \ in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+    , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+    \ attempted relative import with no known parent package; P3: BLOCKED -- ncu exited\
+    \ 1 profiling L1_31_triton_mrope_forward/P3; stderr tail: ib._bootstrap_external>\"\
+    , line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488,\
+    \ in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+    , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+    \ attempted relative import with no known parent package; P4: BLOCKED -- ncu exited\
+    \ 1 profiling L1_31_triton_mrope_forward/P4; stderr tail: ib._bootstrap_external>\"\
+    , line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488,\
+    \ in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+    , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+    \ attempted relative import with no known parent package; P5: BLOCKED -- ncu exited\
+    \ 1 profiling L1_31_triton_mrope_forward/P5; stderr tail: ib._bootstrap_external>\"\
+    , line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488,\
+    \ in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+    , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+    \ attempted relative import with no known parent package"
+  xcheck_run_id: xcheck-2026-06-05-d0ecde1e
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 832.0
+    measured_bytes: null
+    measured_via: null
+    bytes_deviation: null
+    kernel_launched: null
+    flops_checked: false
+    blocked: true
+    within_tol: false
+    note: "BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P1; stderr\
+      \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+      \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"\
+      /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+      , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+      \ attempted relative import with no known parent package"
+  - shape_id: P2
+    analytic_bytes_total: 2688.0
+    measured_bytes: null
+    measured_via: null
+    bytes_deviation: null
+    kernel_launched: null
+    flops_checked: false
+    blocked: true
+    within_tol: false
+    note: "BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P2; stderr\
+      \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+      \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"\
+      /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+      , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+      \ attempted relative import with no known parent package"
+  - shape_id: P3
+    analytic_bytes_total: 9472.0
+    measured_bytes: null
+    measured_via: null
+    bytes_deviation: null
+    kernel_launched: null
+    flops_checked: false
+    blocked: true
+    within_tol: false
+    note: "BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P3; stderr\
+      \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+      \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"\
+      /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+      , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+      \ attempted relative import with no known parent package"
+  - shape_id: P4
+    analytic_bytes_total: 35328.0
+    measured_bytes: null
+    measured_via: null
+    bytes_deviation: null
+    kernel_launched: null
+    flops_checked: false
+    blocked: true
+    within_tol: false
+    note: "BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P4; stderr\
+      \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+      \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"\
+      /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+      , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+      \ attempted relative import with no known parent package"
+  - shape_id: P5
+    analytic_bytes_total: 8512.0
+    measured_bytes: null
+    measured_via: null
+    bytes_deviation: null
+    kernel_launched: null
+    flops_checked: false
+    blocked: true
+    within_tol: false
+    note: "BLOCKED -- ncu exited 1 profiling L1_31_triton_mrope_forward/P5; stderr\
+      \ tail: ib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen\
+      \ importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"\
+      /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
+      , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
+      \ attempted relative import with no known parent package"
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -71,7 +176,7 @@ provenance:
   source_md_id: L1-31
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T11:13:47Z'
+    verified_at: '2026-06-04T23:16:39Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

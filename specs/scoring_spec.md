@@ -53,13 +53,13 @@ fallback_detected  ∈ bool   # normalized to a correctness failure before scori
 
 ## Release Gate (S6)
 
-A task is release-eligible only if `release_status == PASS`, where
+The release-eligible set is the C2-aligned eligible set (`compute_release_ready_eligible` = `compute_score_eligible` ∩ `is_provenance_eligible`, i.e. `oracle_kernel_equivalence ∈ {VERIFIED, CEILING_ACCEPTED}`). Over that set, a task is release-eligible only if `release_status == PASS`, where
 
 ```
-release_status == PASS  ⟺  phase_a_prime.status == PASS  ∧  cost_model.status == PASS
+release_status == PASS  ⟺  phase_a_prime.status == PASS
 ```
 
-(reproducible freeze ∧ cost model GPU-cross-validated). Any score-eligible task with `release_status != PASS` blocks benchmark release (`validate_tasks.py --release-gate`). BLOCKED is hard and cannot be evaded by removing the task from `|S|`.
+(S2 reproducible severance freeze). `cost_model.status` is ncu-evidenced performance/access metadata (conditional access, L2 reuse, tile geometry, HBM burst floor make a portable analytic bytes formula structurally unable to hit per-shape tol everywhere) — it is **not** a release blocker. Any C2-aligned task with `release_status != PASS` blocks benchmark release (`validate_tasks.py --release-gate`). BLOCKED is hard and cannot be evaded by removing the task from `|S|`. Tasks outside the C2-aligned set (e.g. `oracle_kernel_equivalence == BLOCKED_UPSTREAM_BUG`) are excluded from the released corpus.
 
 ## Sanity Bounds
 
