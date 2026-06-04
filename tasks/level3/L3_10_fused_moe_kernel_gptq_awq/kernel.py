@@ -141,7 +141,7 @@ import triton.language as tl
 #
 # Quantization layout (matches the re-authored oracle_pytorch and the kernel's
 # unpack arithmetic, asymmetric int4 / AWQ -> has_zp=True):
-#   a        [M, K]            fp32 activations (K == D == contraction axis)
+#   a        [M, K]            bf16 activations (K == D == contraction axis)
 #   b        [E, N, K//2]      int32, 2 int4 nibbles packed along K
 #                              (even k -> low nibble, odd k -> high; shift (k%2)*4)
 #   b_scale  [E, N, K//GS]     fp32 per-(expert,n,group) dequant scale
@@ -253,7 +253,7 @@ def run(inputs: dict) -> dict:
         SPLIT_K=1,
         MUL_ROUTED_WEIGHT=apply_weight,
         top_k=top_k,
-        compute_type=tl.float32,
+        compute_type=tl.bfloat16,
         has_zp=True,
         use_int4_w4a16=True,
         use_int8_w8a16=False,

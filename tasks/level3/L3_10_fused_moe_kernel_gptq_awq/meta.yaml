@@ -70,7 +70,7 @@ provenance:
   source_md_id: L3-10
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T11:17:14Z'
+    verified_at: '2026-06-04T13:34:35Z'
     tolerance_class_used: int4_w4a8
     equivalence_per_shape:
       H1:
@@ -170,10 +170,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_10_fused_moe_kernel_gptq_awq-20260602T203252
-  classified_at: '2026-06-02'
-  standalone_sha256: 8d763f04484948f9206ce9618dcbf25e2b198ba1775fcb9b001266adb737c286
-  kernel_sha256: 8d763f04484948f9206ce9618dcbf25e2b198ba1775fcb9b001266adb737c286
+  s2_gpu_run_id: s2-L3_10_fused_moe_kernel_gptq_awq-20260604T214650
+  classified_at: '2026-06-04'
+  standalone_sha256: 620f5fb7bdeaa79b8ef777c0db9dcefb8ca6a4d65d2cfb2dd620084dc3ab66b0
+  kernel_sha256: 620f5fb7bdeaa79b8ef777c0db9dcefb8ca6a4d65d2cfb2dd620084dc3ab66b0
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.init_logger
@@ -187,4 +187,4 @@ classB_symbols:
   proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
     rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
     shimmed)
-reference_path: triton_fallback
+reference_path: native

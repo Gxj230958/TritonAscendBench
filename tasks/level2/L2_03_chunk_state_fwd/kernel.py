@@ -273,27 +273,6 @@ def _to_upstream_inputs(inputs: dict) -> dict:
         "C": C, "L": L, "N": N, "D": D,
     }
 
-
-def run(inputs: dict) -> dict:
-    built = _to_upstream_inputs(inputs)
-
-    states = _chunk_state_fwd(  # noqa: F821 (exec'd into kernel module namespace)
-        built["B"],
-        built["x"],
-        built["dt"],
-        built["dA_cumsum"],
-        built["cu_chunk_seqlens"],
-        states=None,
-        states_in_fp32=True,
-    )
-    # states: [nchunks=C, nheads=1, headdim=D, dstate=N]. The oracle contract
-    # is [C, N, D] (einsum cln,clp->cnp): drop the head axis, swap the trailing
-    # (headdim, dstate) -> (dstate, headdim). states stay fp32 (upstream
-    # states_in_fp32=True; the oracle returns and saves fp32) -- a bf16 downcast
-    # here would lose precision and mismatch the fp32 oracle ref dtype.
-    states = states[:, 0].transpose(1, 2).contiguous()  # [C, N, D]
-    return {"states": states}
-
 """Authored launcher for L2_03_chunk_state_fwd.
 
 Drives the in-module host wrapper ``_chunk_state_fwd`` (kernel.py) -- which
@@ -378,24 +357,3 @@ def _to_upstream_inputs(inputs: dict) -> dict:
         "cu_chunk_seqlens": cu_chunk_seqlens,
         "C": C, "L": L, "N": N, "D": D,
     }
-
-
-def run(inputs: dict) -> dict:
-    built = _to_upstream_inputs(inputs)
-
-    states = _chunk_state_fwd(  # noqa: F821 (exec'd into kernel module namespace)
-        built["B"],
-        built["x"],
-        built["dt"],
-        built["dA_cumsum"],
-        built["cu_chunk_seqlens"],
-        states=None,
-        states_in_fp32=True,
-    )
-    # states: [nchunks=C, nheads=1, headdim=D, dstate=N]. The oracle contract
-    # is [C, N, D] (einsum cln,clp->cnp): drop the head axis, swap the trailing
-    # (headdim, dstate) -> (dstate, headdim). states stay fp32 (upstream
-    # states_in_fp32=True; the oracle returns and saves fp32) -- a bf16 downcast
-    # here would lose precision and mismatch the fp32 oracle ref dtype.
-    states = states[:, 0].transpose(1, 2).contiguous()  # [C, N, D]
-    return {"states": states}

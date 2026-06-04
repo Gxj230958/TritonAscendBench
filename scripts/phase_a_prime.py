@@ -6435,6 +6435,46 @@ def run(inputs: dict) -> dict:  # noqa: D401
 '''
 
 
+def _has_module_level_run(src: str) -> bool:
+    """True iff ``src`` defines a module-level (col 0) ``def run`` / ``async
+    def run``. Shared by ``synthesise_standalone_run`` and
+    ``build_staged_candidate`` so neither emits a duplicate ``run`` on a
+    kernel.py that is already self-contained."""
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(src)
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+        and n.name == "run"
+        and n.col_offset == 0
+        for n in tree.body
+    )
+
+
+def _extract_module_level_run(src: str) -> str | None:
+    """Source text of the LAST module-level ``def run`` (the one Python binds
+    when more than one is present), or ``None``. Used to fail-closed when an
+    in-kernel run and a ``_pa_launcher.py`` run disagree -- a divergence means
+    the in-kernel copy is stale (the L3_10 class of bug)."""
+    import ast as _ast
+
+    try:
+        tree = _ast.parse(src)
+    except SyntaxError:
+        return None
+    runs = [
+        n
+        for n in tree.body
+        if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+        and n.name == "run"
+        and n.col_offset == 0
+    ]
+    return _ast.get_source_segment(src, runs[-1]) if runs else None
+
+
 def synthesise_standalone_run(
     src: str, entrypoint: str | None,
     param_name_map: dict | None = None,
@@ -6450,19 +6490,7 @@ def synthesise_standalone_run(
         # entrypoint == "run" -> the module already supplies run (jit-only
         # launcher / fixture); wrapping it would self-reference.
         return src
-    import ast as _ast
-
-    try:
-        tree = _ast.parse(src)
-    except SyntaxError:
-        return src
-    has_run = any(
-        isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
-        and n.name == "run"
-        and n.col_offset == 0
-        for n in tree.body
-    )
-    if has_run:
+    if _has_module_level_run(src):
         return src
     return src + _SYNTH_RUN_TEMPLATE.format(
         ep=entrypoint, pnm=dict(param_name_map or {})
@@ -6572,7 +6600,27 @@ def build_staged_candidate(
     # run(inputs) on instead so it sees the kernel in-module; a wrong launcher
     # still fails the oracle + S2, so it cannot fake a PASS.
     _launcher = task_dir / "_pa_launcher.py"
-    if _launcher.is_file():
+    if _has_module_level_run(rewritten):
+        # The rewritten kernel.py already carries a module-level run(inputs);
+        # splicing the launcher on top would emit a duplicate `def run` (the
+        # first becomes dead code). The in-module run wins -- it is the one S2
+        # already proved equivalent to the original. Fail closed if a launcher
+        # ALSO exists and its run diverges from the in-kernel one: a mismatch
+        # means the in-kernel copy is stale (the L3_10 class of bug), which must
+        # be surfaced and reconciled, not silently promoted.
+        if _launcher.is_file():
+            _krun = _extract_module_level_run(rewritten)
+            _lrun = _extract_module_level_run(
+                _launcher.read_text(encoding="utf-8", errors="replace")
+            )
+            if _krun and _lrun and _krun.strip() != _lrun.strip():
+                raise ValueError(
+                    f"{task_dir.name}: in-kernel run diverges from "
+                    f"_pa_launcher.py run (stale in-kernel copy?); reconcile "
+                    f"before severance"
+                )
+        staged_src = rewritten
+    elif _launcher.is_file():
         staged_src = (
             rewritten.rstrip() + "\n\n"
             + _launcher.read_text(encoding="utf-8", errors="replace")
@@ -6641,6 +6689,16 @@ def promote_staged_candidate(
         for s in classification.symbols
         if s.cls in (CLASS_B_INERT_SHIM, CLASS_B_REWRITE_PUBLIC)
     ]
+    # Preserve original severance provenance across an idempotent re-promote:
+    # reclassifying an already-severed kernel.py finds no Class-B symbols (the
+    # upstream imports they shim are already gone), which would silently drop
+    # the recorded classB_symbols. Merge the existing meta records by sym --
+    # newly discovered proofs still win, prior provenance is kept.
+    _prev_meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
+    _by_sym = {c.get("sym"): c for c in class_b}
+    for _c in _prev_meta.get("classB_symbols") or []:
+        _by_sym.setdefault(_c.get("sym"), _c)
+    class_b = list(_by_sym.values())
     # frozen_deps records WHAT WAS ACTUALLY SHIPPED to the content-addressed
     # pool, scanned from the promoted standalone source -- not the raw
     # classification CLASS_A set. The CLASS_A set is the import-graph closure
