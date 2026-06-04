@@ -26,7 +26,7 @@ interface:
   rng_state_policy: deterministic
 oracle:
   pytorch: oracle_pytorch.py::run
-  gpu_triton: kernel.py::run
+  gpu_triton: _pa_launcher.py::run
 tolerance_class: cube_matmul_fp16
 cost_model:
   flops: 2*B*D*G
