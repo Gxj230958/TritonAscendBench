@@ -31,13 +31,13 @@ _SCRIPTS = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from oracle_pyref_precompute import _audit_task  # noqa: E402
 from oracle_equivalence_gpu_runner import (  # noqa: E402
     REPO_ROOT,
     ShapeVerdict,
     TaskVerdict,
     _verify_one_task,
 )
+from oracle_pyref_precompute import _audit_task  # noqa: E402
 
 
 def _blocked(task_id: str, overall: str, reason: str) -> TaskVerdict:
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
     # only with full shape coverage; _apply_one carries the per-status guards
     # (S2-fresh + kernel_sha256, golden_sha256-only-for-VERIFIED, known-bug -> BLOCKED).
     try:
-        import yaml  # noqa: PLC0415
+        import yaml
 
         sd = yaml.safe_load((task_dir / "shapes.yaml").read_text()) or {}
         want = {
@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
         else:
-            from apply_oracle_equivalence_verdict import _apply_one  # noqa: PLC0415
+            from apply_oracle_equivalence_verdict import _apply_one
 
             ar = _apply_one(verdict_path)
             print(
@@ -134,14 +134,20 @@ def main(argv: list[str] | None = None) -> int:
         # cost-xcheck applies to every task; golden capture only to score-eligible
         # upstream_oracle_required tasks (it returns rc=1 by design elsewhere), so
         # prefilter golden to avoid noisy no-op runs.
-        cert = [("phase_a_cost_xcheck.py", ["--apply"], "cost-xcheck")]
+        cert = [
+            ("phase_a_cost_xcheck.py", ["--apply"], "cost-xcheck"),
+            # formula auditor runs the oracle to measure real read/write bytes
+            # against the analytic formula -- needs the daemon's large RAM (no
+            # GPU/ncu; a big output shape OOMs the dev box). report-only, no meta write.
+            ("audit_cost_model_formulas.py", [], "formula-audit"),
+        ]
         try:
-            import yaml  # noqa: PLC0415
+            import yaml
 
             meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
             if meta.get("oracle_simplified") == "upstream_oracle_required":
                 cert.append(("phase_b_golden_capture.py", [], "golden"))
-        except Exception:  # noqa: BLE001 -- prefilter best-effort; default cost-only
+        except Exception:
             pass
         for script, extra, label in cert:
             try:
