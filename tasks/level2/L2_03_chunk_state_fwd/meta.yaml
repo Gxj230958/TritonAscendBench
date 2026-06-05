@@ -38,8 +38,10 @@ cost_model:
       C*N*D*4 + ceil(D/64)*ceil(N/64)*C*(2*4 + 4)
   gpu_xcheck_tol: 0.05
   status: BLOCKED
-  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.0750 > tol 0.0500 (analytic=21498880 measured=23242752)'
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.0750 > tol 0.0500
+    (analytic=21498880 measured=23242752)'
   xcheck_run_id: xcheck-2026-06-05-5a43a708
   xchecked_at: '2026-06-05'
   xcheck_evidence:

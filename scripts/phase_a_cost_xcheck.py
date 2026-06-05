@@ -954,7 +954,16 @@ def cross_check_task(task: TaskDef, *, dry_run: bool) -> TaskXCheck:
             if n_blocked
             else "gate shape(s) exceeded "
         )
+        # A >tol gap is an analytic-vs-H200-ncu MEASUREMENT difference, not
+        # necessarily a formula error: H200's large L2 absorbs small output
+        # writeback, DRAM burst granularity adds a few-% over-fetch, and
+        # gather/attention traffic is data-dependent. cost_model is NOT a release
+        # gate and scoring uses the formula value (not this status). Per-task
+        # classification: docs/reviews/2026-06-05-costmodel-nonpass-analysis.md.
         reason = (
+            "GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a "
+            "formula error -- see docs/reviews/2026-06-05-costmodel-nonpass-"
+            "analysis.md). "
             f"{len(failing)}/{len(gate)} {kind}"
             f"gpu_xcheck_tol={cost_model.gpu_xcheck_tol}: "
             + "; ".join(f"{s.shape_id}: {s.note}" for s in failing)

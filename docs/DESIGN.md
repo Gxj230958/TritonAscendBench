@@ -47,7 +47,7 @@ TritonAscendBench 回答一个具体问题:
 | 证明冻结没改语义 | 等价与确定性校验 | 原始 vs 切断后 kernel 在 GPU 上严格 bit-exact;**唯一权威 PASS 来源是 GPU 实测**,CPU 形式只预检不判 PASS |
 | 入口选对了没有 | 入口双锚校验 | 写入 `meta.yaml` 前,用 ≥2 shape 的 oracle 一致性 + CPU 等价预检确认入口确为目标算子 |
 | 冻结后是否稳定 | 确定性校验(首跑 + 5 重跑) | 冻结候选多次重跑必须 bit-exact 一致 |
-| 题库能否发布 | 发布门 / `validate_tasks --release-gate` | 任一可计分任务未达 `release_status=PASS`（冻结 PASS ∧ cost-model PASS）⇒ 整套基准不可发布 |
+| 题库能否发布 | 发布门 / `validate_tasks --release-gate` | 任一 release-ready 任务未达 `release_status=PASS`（S2 severance 冻结 PASS；C2 oracle-equivalence 由 release-ready 资格集把守）⇒ 整套基准不可发布。`cost_model.status` **不在发布门**（ncu-evidenced 性能 metadata，见 P7） |
 | 哪些任务进分母 | score-eligible 集 / `eligibility.py` | oracle 非 stub 且 shapes 非手工占位的任务,作为正确率与性能的固定分母 |
 | 性能分母是什么 | 910B Roofline $t_{ref}$ | 按 910B 峰值算力/带宽推导的理论最快时间,不拿 GPU 延迟当分母 |
 | 候选是否绕规则 | reward hacking 防御 | 静态检查 + 进程隔离 + 隐藏输入 + canary + 计时仲裁协同 |
@@ -70,7 +70,7 @@ TritonAscendBench 回答一个具体问题:
 | **可复现冻结** | 符号级切断 `kernel.py` 对运行时安装上游包的依赖（severing），并经**等价与确定性校验**证明"行为不变"后的 `kernel.py`（§4） |
 | **等价与确定性校验** | 原始上游 vs 切断后候选的**严格 bit-exact** 比对（等价）+ 首跑后 5 次重跑全一致（确定性）。GPU 实测是**唯一权威 PASS 来源**；CPU/`TRITON_INTERPRET=1` 形式做真实比对但**永不判 PASS**（无 GPU 记 `UNRUN(needs-gpu)`） |
 | **入口双锚校验** | 上游入口写入 `meta.yaml` 前的双重锚定：≥2 个 shape 的 oracle 输出一致 + 输出结构/dtype 匹配 + CPU 等价预检（§4.3） |
-| **发布门** | 任一 score-eligible 任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 基准不可发布；$\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}\wedge\text{cost\_model.status}{=}\textsf{PASS}$（§4.4） |
+| **发布门** | 任一 release-ready 任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 基准不可发布；$\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}$（S2 severance；C2 oracle-equivalence 由 release-ready 资格集把守）。`cost_model.status` **不在发布门**（性能 metadata，见 P7，§4.4） |
 | **score-eligible 集 $S$** | oracle 源非 stub（无 `raise NotImplementedError` 文本）且 `shapes.yaml` 非 `PHASE-C-MANUAL` 的任务集，由 `eligibility.py` 单一来源计算 |
 | **$t_{ref}$** | **910B Roofline 理论延迟** $\max\!\big(\max_c W_c/\pi_c,\,\max_r M_r/\beta_r\big)$（计算类 $c$、数据资源 $r$；单类单资源即 $\max(W/\pi,M/\beta)$）：由算子工作量与 910B 算力/带宽峰值推导的硬件归一化性能基线（§9） |
 | **Roofline 效率** | $\min(P_{cap},\,t_{ref}/t_{npu})$：候选达到 910B 屋脊的比例，理论 $\in(0,1]$（$t_{ref}$ 为下界）；$>1$ 仅源于 cost-model 低估或计时噪声，由 $P_{cap}{=}5.0$ 钳制并标记需复核。算子计算受限/带宽受限由操作强度 $W/M$ 与屋脊点 $\pi/\beta$ 的相对位置决定 |
@@ -340,7 +340,7 @@ flowchart TB
 
 ### 4.4 发布门（硬门）
 
-`validate_tasks.py --release-gate`（与 schema/hash 模式**分离**）：score-eligible 集中任一任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 非零退出 + 阻塞清单，其中 $\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}\ \wedge\ \text{cost\_model.status}{=}\textsf{PASS}$（可复现冻结 ∧ cost-model 经 GPU 交叉校验，§5.6）。**非空泛守卫**：score-eligible 集与其期望计数同源于 `eligibility.py`；若该期望计数为 0、examined 集为空、或 examined 集与期望计数不一致，则硬失败——杜绝"无任务 ⇒ 无阻塞 ⇒ 可发布"的空泛通过，并捕获 catalogue 两次物化之间的不一致（生成器耗尽 / 迭代不确定）。可复现冻结 BLOCKED 与 cost-model BLOCKED 同为硬阻塞，不可通过从分母剔除该任务规避（对应原则 P6/P7）。
+`validate_tasks.py --release-gate`（与 schema/hash 模式**分离**）：score-eligible 集中任一任务 $\text{release\_status}\neq\textsf{PASS}$ ⇒ 非零退出 + 阻塞清单，其中 $\text{release\_status}{=}\textsf{PASS}\iff\text{phase\_a\_prime.status}{=}\textsf{PASS}$（S2 severance；C2 oracle-equivalence 由 release-ready 资格集把守）。`cost_model.status` **不在发布门**（性能 metadata，§5.6）。**非空泛守卫**：score-eligible 集与其期望计数同源于 `eligibility.py`；若该期望计数为 0、examined 集为空、或 examined 集与期望计数不一致，则硬失败——杜绝"无任务 ⇒ 无阻塞 ⇒ 可发布"的空泛通过，并捕获 catalogue 两次物化之间的不一致（生成器耗尽 / 迭代不确定）。可复现冻结 BLOCKED（S2/C2 正确性失败）不可通过从分母剔除该任务规避（对应原则 P6/P7）；`cost_model.status` 非正确性证明，不在此门。
 
 ---
 
@@ -430,7 +430,7 @@ def npu_triton_impl(inputs: dict) -> dict:
 性能计分需硬件归一化的理论延迟基线（§9）。算子可混合多种计算类（cube fp16/bf16、int8、vector）与多种数据资源（HBM、跨设备通信），故**按资源分别建模、取约束最紧资源为下界**（标准 Roofline：假设各资源理想重叠，得最紧理论地板；若计算与访存完全串行不重叠则为 $\sum$ 即 $W/\pi+M/\beta$）：$t_{ref}=\max\!\big(\max_c W_c/\pi_c,\ \max_r M_r/\beta_r\big)$，$W_c$=第 $c$ 计算类 FLOPs、$\pi_c$=910B 该类峰值算力，$M_r$=第 $r$ 资源字节、$\beta_r$=该资源峰值带宽（单类/单资源时退化为 $\max(W/\pi,\,M/\beta)$）。各 $W_c$/$M_r$ 由每任务 cost model 提供：
 
 - **解析声明**：`meta.yaml.cost_model` 以 size-knob 公式（与 §5.2 shapes 同一参数化体系）按**计算类**给出 `flops`（$\{c:W_c(\text{knobs})\}$）、按**数据资源**给出 `bytes`（$\{r:M_r(\text{knobs})\}$），随 shape 确定取值；单计算类/单资源时退化为标量 `flops`/`bytes`（与 $t_{ref}$ 公式同源的退化形）；
-- **GPU 实测交叉校验（双锚，fail-closed）**：provider 侧 GPU 权威的 GPU-Triton 参考运行经插桩实测 FLOPs/字节，与解析声明逐 shape 比对；偏差超容差 ⇒ 该任务 cost-model `BLOCKED`（硬阻塞，进发布门，§4.4），绝不以未经校验的基线产出加速比；
+- **GPU 实测交叉校验（双锚，fail-closed）**：provider 侧 GPU 权威的 GPU-Triton 参考运行经插桩实测 FLOPs/字节，与解析声明逐 shape 比对；偏差超容差 ⇒ 该任务 cost-model `BLOCKED`（性能 evidence，**不在发布门**，§4.4/P7），绝不以未经校验的基线产出加速比；
 - **910B 峰值表**：`infra/` 维护 910B 各计算类/精度的 $\pi$（fp16/bf16 cube、int8、vector）与 $\beta$（HBM / 通信带宽）峰值，与 `version_matrix.toml` 同级锁定。
 
 此为正确性侧"双锚"在性能侧的同构镜像：解析模型 + 真实运行交叉证伪，杜绝错误基线静默扭曲性能分。
@@ -465,7 +465,7 @@ def npu_triton_impl(inputs: dict) -> dict:
 
 ### 6.3 `eval.py` — 评测编排
 **初衷**：编排一次 `(task, solution)` 评测，判定显式拆成**判定状态组**——三个状态枚举 `correctness_status` / `runtime_status` / `performance_status`，外加 `fallback_detected` 标志与 `performance_flags` 列表；下游评分仅依据这些字段，不从"静态检查通过"推断"输出正确"。
-**机制**：加载 → 静态检查（blocked 即 correctness=fail 短路）→ `inputs` 逐 shape 物化 → `process_isolation` 隔离 candidate 子进程跑 solution、可信进程取 golden（PyTorch 可对齐题现跑 oracle；`upstream_oracle_required` 题加载 provider 离线固定 golden，§5.7）→ 逐 shape `tolerance.compare` 得 correctness（缺输出/不符即 fail）→ Roofline 效率计算（$t_{ref}$ 见 §5.6/§9）→ `scoring` 汇总。`fallback_detected` 直接判 `correctness_status=fail`（正确但回退实现不得过资格门）；cost-model BLOCKED 任务性能计 ε。
+**机制**：加载 → 静态检查（blocked 即 correctness=fail 短路）→ `inputs` 逐 shape 物化 → `process_isolation` 隔离 candidate 子进程跑 solution、可信进程取 golden（PyTorch 可对齐题现跑 oracle；`upstream_oracle_required` 题加载 provider 离线固定 golden，§5.7）→ 逐 shape `tolerance.compare` 得 correctness（缺输出/不符即 fail）→ Roofline 效率计算（$t_{ref}$ 见 §5.6/§9）→ `scoring` 汇总。`fallback_detected` 直接判 `correctness_status=fail`（正确但回退实现不得过资格门）。`cost_model.status` 不影响性能评分——`scoring` 用 cost_model 的**公式值**算 $t_{ref}$，不读其 PASS/BLOCKED 状态。
 
 ### 6.4 `static_checker.py` — Layer A–D/F 静态防御 + Layer E 运行时回退 ★
 **初衷**：在候选代码运行**前**拦截 `specs/ast_denylist.md` 中静态可判定的评分操纵与沙箱逃逸向量；策略为**正向 AST 白名单**（不在允许集内即拒绝），强于黑名单。
@@ -651,7 +651,7 @@ $$
 
 $s_t\!\approx\!1$ 表示打满 910B 屋脊。ε-fill 与固定 $|S|$ 分母作用于性能指标：非 ok / fallback 任务计 $\epsilon$ 而**不**从分母剔除——与资格门同源杜绝选择性规避（与 P6 一致）。
 
-**性能基线 provenance**：`baseline_ns`=$t_{ref}$（910B Roofline 理论延迟），`measured_ns`=$t_{npu}$（实测）。cost model 解析 $W/M$ 与插桩 GPU-Triton 参考实测不一致超容差 ⇒ 该任务 cost-model `BLOCKED`（硬阻塞，发布门，§4.4/§5.6），其性能计 $\epsilon$，绝不以错误基线产出加速比。
+**性能基线 provenance**：`baseline_ns`=$t_{ref}$（910B Roofline 理论延迟），`measured_ns`=$t_{npu}$（实测）。cost model 解析 $W/M$ 与插桩 GPU-Triton 参考实测不一致超容差 ⇒ cost-model `BLOCKED`（性能 evidence，**不在发布门**，§4.4/P7）；`scoring` 仍用 cost_model 公式值算 $t_{ref}$，**不因 BLOCKED 计 $\epsilon$**，绝不以错误基线产出加速比。
 
 数据流：`run-suite → suite_results.json → tab analyze（catalogue 冻结 S）→ score_report.json`。
 
