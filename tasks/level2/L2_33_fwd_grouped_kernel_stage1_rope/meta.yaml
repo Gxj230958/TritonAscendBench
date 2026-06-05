@@ -36,123 +36,67 @@ cost_model:
     hbm: 2*(B*H*C + 2*B*H*R + ceil(H/16)*B*R + ceil(H/16)*B*S*(2*C+R) + B*R) + 4*B*H*(C+1)
   gpu_xcheck_tol: 0.05
   status: BLOCKED
-  status_reason: "5/5 gate shape(s) could not be measured / exceeded gpu_xcheck_tol=0.05:\
-    \ P1: BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P1;\
-    \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-    \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n \
-    \       # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-    \            # debug assert\n            if (cur_batch == 0 and cur_head == 0)\
-    \ and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-    \ with more than one value is ambiguous; P2: BLOCKED -- ncu exited 1 profiling\
-    \ L2_33_fwd_grouped_kernel_stage1_rope/P2; stderr tail: er=0.0,\n        )\n \
-    \       q_pe_rot = tl.where(mask_rotate[None, :], -q_pe_rot, q_pe_rot)\n\n   \
-    \     q_pe = q_pe * cos + q_pe_rot * sin\n\n        # we only apply to the last\
-    \ token in the K_PE\n        if LAST_SPLIT:\n            # debug assert\n    \
-    \        if (cur_batch == 0 and cur_head == 0) and split_kv_id < NUM_KV_SPLITS\
-    \ - 1:\n            ^\nBoolean value of Tensor with more than one value is ambiguous;\
-    \ P3: BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P3;\
-    \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-    \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n \
-    \       # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-    \            # debug assert\n            if (cur_batch == 0 and cur_head == 0)\
-    \ and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-    \ with more than one value is ambiguous; P4: BLOCKED -- ncu exited 1 profiling\
-    \ L2_33_fwd_grouped_kernel_stage1_rope/P4; stderr tail: er=0.0,\n        )\n \
-    \       q_pe_rot = tl.where(mask_rotate[None, :], -q_pe_rot, q_pe_rot)\n\n   \
-    \     q_pe = q_pe * cos + q_pe_rot * sin\n\n        # we only apply to the last\
-    \ token in the K_PE\n        if LAST_SPLIT:\n            # debug assert\n    \
-    \        if (cur_batch == 0 and cur_head == 0) and split_kv_id < NUM_KV_SPLITS\
-    \ - 1:\n            ^\nBoolean value of Tensor with more than one value is ambiguous;\
-    \ P5: BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P5;\
-    \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-    \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n \
-    \       # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-    \            # debug assert\n            if (cur_batch == 0 and cur_head == 0)\
-    \ and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-    \ with more than one value is ambiguous"
-  xcheck_run_id: xcheck-2026-06-05-8ab833b2
+  status_reason: '3/3 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation
+    0.3871 > tol 0.0500 (analytic=226560 measured=163328); P4: bytes deviation 0.6467
+    > tol 0.0500 (analytic=492800 measured=299264); P5: bytes deviation 0.8725 > tol
+    0.0500 (analytic=353280 measured=188672)'
+  xcheck_run_id: xcheck-2026-06-05-44440e55
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 8352.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 50944.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8360552763819096
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P1;\
-      \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-      \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n\
-      \        # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-      \            # debug assert\n            if (cur_batch == 0 and cur_head ==\
-      \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-      \ with more than one value is ambiguous"
+    note: 'bytes deviation 0.8361 > tol 0.0500 (analytic=8352 measured=50944) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=50944 < 0.5xmax=299264); non-blocking
+      per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 49632.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 73984.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.3291522491349481
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P2;\
-      \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-      \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n\
-      \        # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-      \            # debug assert\n            if (cur_batch == 0 and cur_head ==\
-      \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-      \ with more than one value is ambiguous"
+    note: 'bytes deviation 0.3292 > tol 0.0500 (analytic=49632 measured=73984) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=73984 < 0.5xmax=299264); non-blocking
+      per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 226560.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 163328.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.3871473354231975
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P3;\
-      \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-      \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n\
-      \        # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-      \            # debug assert\n            if (cur_batch == 0 and cur_head ==\
-      \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-      \ with more than one value is ambiguous"
+    note: bytes deviation 0.3871 > tol 0.0500 (analytic=226560 measured=163328)
   - shape_id: P4
     analytic_bytes_total: 492800.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 299264.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6467065868263473
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P4;\
-      \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-      \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n\
-      \        # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-      \            # debug assert\n            if (cur_batch == 0 and cur_head ==\
-      \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-      \ with more than one value is ambiguous"
+    note: bytes deviation 0.6467 > tol 0.0500 (analytic=492800 measured=299264)
   - shape_id: P5
     analytic_bytes_total: 353280.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 188672.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8724559023066486
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L2_33_fwd_grouped_kernel_stage1_rope/P5;\
-      \ stderr tail: er=0.0,\n        )\n        q_pe_rot = tl.where(mask_rotate[None,\
-      \ :], -q_pe_rot, q_pe_rot)\n\n        q_pe = q_pe * cos + q_pe_rot * sin\n\n\
-      \        # we only apply to the last token in the K_PE\n        if LAST_SPLIT:\n\
-      \            # debug assert\n            if (cur_batch == 0 and cur_head ==\
-      \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
-      \ with more than one value is ambiguous"
+    note: bytes deviation 0.8725 > tol 0.0500 (analytic=353280 measured=188672)
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:
@@ -185,7 +129,7 @@ provenance:
   source_md_id: L2-33
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:11:49Z'
+    verified_at: '2026-06-05T04:21:11Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -276,4 +220,4 @@ classB_symbols: []
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-05T01:12:11Z'
+  captured_at: '2026-06-05T04:21:50Z'

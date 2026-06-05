@@ -35,101 +35,69 @@ cost_model:
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
-  status_reason: "5/5 gate shape(s) could not be measured / exceeded gpu_xcheck_tol=0.05:\
-    \ P1: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P1; stderr\
-    \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpctl2fjgv_ncu_worker.py\"\
-    , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-    , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-    KeyError: '_ncu_kernel'; P2: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P2;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpfcbog70u_ncu_worker.py\"\
-    , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-    , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-    KeyError: '_ncu_kernel'; P3: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P3;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpx1jl_fr1_ncu_worker.py\"\
-    , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-    , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-    KeyError: '_ncu_kernel'; P4: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P4;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpj0xbs0jj_ncu_worker.py\"\
-    , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-    , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-    KeyError: '_ncu_kernel'; P5: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P5;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmp5_alho7p_ncu_worker.py\"\
-    , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-    , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-    KeyError: '_ncu_kernel'"
-  xcheck_run_id: xcheck-2026-06-05-ccc35666
+  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
+    0.9558 > tol 0.0500 (analytic=8648 measured=195584)'
+  xcheck_run_id: xcheck-2026-06-05-6e223efd
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 8256.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 56320.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8534090909090909
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P1; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpctl2fjgv_ncu_worker.py\"\
-      , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-      , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-      KeyError: '_ncu_kernel'"
+    note: 'bytes deviation 0.8534 > tol 0.0500 (analytic=8256 measured=56320) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=56320 < 0.5xmax=195584); non-blocking
+      per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 8312.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 62208.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.866383744855967
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P2; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpfcbog70u_ncu_worker.py\"\
-      , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-      , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-      KeyError: '_ncu_kernel'"
+    note: 'bytes deviation 0.8664 > tol 0.0500 (analytic=8312 measured=62208) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=62208 < 0.5xmax=195584); non-blocking
+      per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 8424.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 88064.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9043422965116279
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P3; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpx1jl_fr1_ncu_worker.py\"\
-      , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-      , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-      KeyError: '_ncu_kernel'"
+    note: 'bytes deviation 0.9043 > tol 0.0500 (analytic=8424 measured=88064) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=88064 < 0.5xmax=195584); non-blocking
+      per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 8648.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 195584.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9557837041884817
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P4; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpj0xbs0jj_ncu_worker.py\"\
-      , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-      , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-      KeyError: '_ncu_kernel'"
+    note: bytes deviation 0.9558 > tol 0.0500 (analytic=8648 measured=195584)
   - shape_id: P5
     analytic_bytes_total: 8256.0
-    measured_bytes: null
-    measured_via: null
-    bytes_deviation: null
-    kernel_launched: null
+    measured_bytes: 71680.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8848214285714285
+    kernel_launched: true
     flops_checked: false
-    blocked: true
+    blocked: false
     within_tol: false
-    note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P5; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmp5_alho7p_ncu_worker.py\"\
-      , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
-      , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
-      KeyError: '_ncu_kernel'"
+    note: 'bytes deviation 0.8848 > tol 0.0500 (analytic=8256 measured=71680) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=71680 < 0.5xmax=195584); non-blocking
+      per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -162,7 +130,7 @@ provenance:
   source_md_id: L1-02
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T00:54:12Z'
+    verified_at: '2026-06-05T04:21:11Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

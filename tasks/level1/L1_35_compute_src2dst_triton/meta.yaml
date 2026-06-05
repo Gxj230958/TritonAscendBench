@@ -34,13 +34,11 @@ cost_model:
   bytes: B*8 + B*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-  status: BLOCKED
-  status_reason: '5/5 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation
-    0.9750 > tol 0.0500 (analytic=96 measured=3840); P2: bytes deviation 0.9062 >
-    tol 0.0500 (analytic=384 measured=4096); P3: bytes deviation 0.6842 > tol 0.0500
-    (analytic=1536 measured=4864); P4: bytes deviation 0.4545 > tol 0.0500 (analytic=3072
-    measured=5632); P5: bytes deviation 0.9750 > tol 0.0500 (analytic=96 measured=3840)'
-  xcheck_run_id: xcheck-2026-06-05-f57d1186
+  status: FLOOR_DOMINATED
+  status_reason: 'no asymptotic HBM regime: max analytic bytes 3072 < min measured
+    3840 across all 5 shape(s); cost_model.bytes not applicable (measured dominated
+    by burst/launch floor)'
+  xcheck_run_id: xcheck-2026-06-05-15e710f6
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
@@ -55,14 +53,14 @@ cost_model:
     note: bytes deviation 0.9750 > tol 0.0500 (analytic=96 measured=3840)
   - shape_id: P2
     analytic_bytes_total: 384.0
-    measured_bytes: 4096.0
+    measured_bytes: 3840.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.90625
+    bytes_deviation: 0.9
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9062 > tol 0.0500 (analytic=384 measured=4096)
+    note: bytes deviation 0.9000 > tol 0.0500 (analytic=384 measured=3840)
   - shape_id: P3
     analytic_bytes_total: 1536.0
     measured_bytes: 4864.0
@@ -75,14 +73,14 @@ cost_model:
     note: bytes deviation 0.6842 > tol 0.0500 (analytic=1536 measured=4864)
   - shape_id: P4
     analytic_bytes_total: 3072.0
-    measured_bytes: 5632.0
+    measured_bytes: 5888.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.45454545454545453
+    bytes_deviation: 0.4782608695652174
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.4545 > tol 0.0500 (analytic=3072 measured=5632)
+    note: bytes deviation 0.4783 > tol 0.0500 (analytic=3072 measured=5888)
   - shape_id: P5
     analytic_bytes_total: 96.0
     measured_bytes: 3840.0
@@ -125,7 +123,7 @@ provenance:
   source_md_id: L1-35
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:02:51Z'
+    verified_at: '2026-06-05T04:27:50Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       H1:
