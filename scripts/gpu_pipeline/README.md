@@ -82,8 +82,10 @@ promoted `kernel.py` on a live CUDA device under **Nsight Compute**
 (`ncu`) to measure HBM traffic via the hardware DRAM counters
 `dram__bytes_read.sum` + `dram__bytes_write.sum`, reconciles
 `|analytic-measured|/measured <= gpu_xcheck_tol` for the **bytes** model,
-and atomically writes `meta.cost_model.status = PASS|BLOCKED` plus a
-per-shape evidence block (mirroring `update_meta_phase_a_prime`).
+and atomically writes `meta.cost_model.status = PASS|BLOCKED|FLOOR_DOMINATED`
+(the last for sub-burst index kernels with no asymptotic HBM regime —
+a source-audited NOT_APPLICABLE class, never a PASS) plus a per-shape
+evidence block (mirroring `update_meta_phase_a_prime`).
 
 It is **measurement-authoritative and fail-closed**: HBM traffic is only
 ever taken from the `ncu` DRAM counters. If `ncu` is not on `PATH`, the

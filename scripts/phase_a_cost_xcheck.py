@@ -14,7 +14,9 @@ Closes Gap 1 of ``scripts/gpu_pipeline/`` (step 20). Per task it:
    ``M_r`` actually models;
 3. reconciles ``|analytic - measured| / measured`` against
    ``meta.cost_model.gpu_xcheck_tol`` (default ``0.05``);
-4. atomically writes ``meta.yaml: cost_model.status = PASS | BLOCKED`` plus a
+4. atomically writes ``meta.yaml: cost_model.status = PASS | BLOCKED |
+   FLOOR_DOMINATED`` (the last for sub-burst index kernels with no asymptotic
+   HBM regime -- a source-audited NOT_APPLICABLE class, never a PASS) plus a
    provenance block (run-id, per-shape evidence), mirroring
    :func:`phase_a_prime.update_meta_phase_a_prime`.
 
@@ -117,6 +119,15 @@ STATUS_BLOCKED = "BLOCKED"
 #: cross-checked at all -- its cost_model is a placeholder and it never
 #: enters the scored denominator, so it must not be able to BLOCKED the gate.
 STATUS_SKIPPED = "SKIPPED_NON_ELIGIBLE"
+#: A kernel with NO asymptotic HBM regime in the provided shapes: every analytic
+#: byte total sits below the smallest measured DRAM value, so the continuous
+#: cost_model.bytes access model does not apply (measured traffic is dominated by
+#: the burst/launch floor, not kernel bytes). Distinct from BLOCKED (a formula
+#: mismatch the kernel COULD asymptotically hit) -- a NOT_APPLICABLE class, never
+#: counted as a verified PASS. cost_model is not a release gate, so this carries
+#: no gate weight; it only keeps the evidence honest instead of mislabelling a
+#: sub-burst index kernel BLOCKED.
+STATUS_FLOOR_DOMINATED = "FLOOR_DOMINATED"
 
 #: asymptotic_hbm_xcheck floor cutoff. A first-principles analytic bytes model
 #: matches measured DRAM on large shapes but cannot match tiny shapes dominated
@@ -126,6 +137,18 @@ STATUS_SKIPPED = "SKIPPED_NON_ELIGIBLE"
 #: bench-wide policy constant -- NEVER tuned per task and NEVER fitted from the
 #: deviation table -- so it is an honest size policy, not a tolerance backdoor.
 _FLOOR_FRACTION = 0.5
+
+
+def _floor_dominated_allowlist() -> set[str]:
+    """Source-audited task ids eligible for FLOOR_DOMINATED -- see
+    ``triton_ascend_bench/floor_dominated_acceptance.yaml``. The structural test
+    (>= 2 shapes, max analytic < min measured) cannot by itself tell a true
+    sub-burst floor from a formula that systematically under-counts (L2_26 omits
+    its m_indices store), so a task must ALSO be audited into this allowlist."""
+    p = REPO_ROOT / "triton_ascend_bench" / "floor_dominated_acceptance.yaml"
+    if not p.is_file():
+        return set()
+    return set((yaml.safe_load(p.read_text()) or {}).get("floor_dominated_tasks") or [])
 
 
 # --------------------------------------------------------------------------
@@ -372,9 +395,15 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
     runner = importlib.util.module_from_spec(_rspec)
     _rspec.loader.exec_module(runner)
 
-    kspec = importlib.util.spec_from_file_location("_ncu_kernel", {kernel_path!r})
-    kmod = importlib.util.module_from_spec(kspec)
-    kspec.loader.exec_module(kmod)
+    from pathlib import Path as _Path
+    # Load the frozen kernel through the SAME path C2/S2 use: a per-call
+    # synthetic package (so ``from .base`` frozen-dep relative imports
+    # resolve), sys.modules registration (so a kernel reading
+    # sys.modules[run.__module__] finds itself), device_assert-strip compat
+    # load, and _pa_launcher.py exec (so jit-only kernels expose run). A flat
+    # spec_from_file_location skipped all four. upstream_roots=None: the
+    # on-disk kernel is the severed standalone (no vllm relative imports).
+    kmod = runner._load_kernel_with_optional_bridge(_Path({kernel_path!r}), "_pa_kernel", None)
     fn = runner._resolve_entrypoint(kmod, {{"entrypoint": {entrypoint!r}, "param_name_map": {param_name_map!r}}})
     if not callable(fn):
         print("XCHECK_WORKER_ERROR: kernel.py exposes no resolvable entrypoint",
@@ -878,6 +907,43 @@ def cross_check_task(task: TaskDef, *, dry_run: bool) -> TaskXCheck:
                 f"max={max_meas:.0f}); non-blocking per asymptotic_hbm_xcheck]"
             ).strip()
 
+    # FLOOR_DOMINATED (task-level): if EVERY analytic byte total sits below the
+    # smallest measured DRAM value, the kernel has no asymptotic regime in these
+    # shapes and cost_model.bytes is not applicable. Structural test -- analytic
+    # fully decoupled below measured -- never a fitted threshold. Checked before
+    # the gate/floor verdict so a sub-burst index kernel is not mislabelled
+    # BLOCKED (a formula it could never asymptotically hit). Requires >= 2
+    # measured shapes (a lone shape with measured slightly above analytic is a
+    # within-tol PASS, not a floor) AND a source-audited allowlist entry: the
+    # structural test alone cannot tell a true floor from a formula that
+    # under-counts (a missing term also yields max_analytic < min_measured, as
+    # L2_26 does), so the kernel must be audited as genuinely sub-burst.
+    analytic_totals = [
+        sum(s.analytic_bytes.values())
+        for s in shape_results
+        if s.analytic_bytes and not s.blocked and s.measured_bytes is not None
+    ]
+    if (
+        len(measured_vals) >= 2
+        and analytic_totals
+        and max(analytic_totals) < min(measured_vals)
+        and task.task_id in _floor_dominated_allowlist()
+    ):
+        return TaskXCheck(
+            task_id=task.task_id,
+            status=STATUS_FLOOR_DOMINATED,
+            reason=(
+                f"no asymptotic HBM regime: max analytic bytes "
+                f"{max(analytic_totals):.0f} < min measured {min(measured_vals):.0f} "
+                f"across all {len(shape_results)} shape(s); cost_model.bytes not "
+                f"applicable (measured dominated by burst/launch floor)"
+            ),
+            run_id=run_id,
+            gpu_xcheck_tol=cost_model.gpu_xcheck_tol,
+            shapes=shape_results,
+            dry_run=False,
+        )
+
     failing = [s for s in gate if not s.within_tol]
     floor_observed = sum(1 for s in floor if not s.within_tol and not s.blocked)
     if failing:
@@ -1092,6 +1158,7 @@ def main(argv: list[str] | None = None) -> int:
             STATUS_PASS: "PASS",
             STATUS_BLOCKED: "BLOCKED",
             STATUS_SKIPPED: "SKIP",
+            STATUS_FLOOR_DOMINATED: "FLOOR",
         }.get(v.status, v.status)
         logger.info("[%s] %s -- %s", marker, v.task_id, v.reason)
 
@@ -1109,9 +1176,10 @@ def main(argv: list[str] | None = None) -> int:
 
     n_pass = sum(1 for v in verdicts if v.status == STATUS_PASS)
     n_skip = sum(1 for v in verdicts if v.status == STATUS_SKIPPED)
+    n_floor = sum(1 for v in verdicts if v.status == STATUS_FLOOR_DOMINATED)
     logger.info(
-        "cross-check done: %s PASS, %s BLOCKED, %s skipped",
-        n_pass, blocked, n_skip,
+        "cross-check done: %s PASS, %s BLOCKED, %s FLOOR_DOMINATED, %s skipped",
+        n_pass, blocked, n_floor, n_skip,
     )
     if args.dry_run:
         logger.info("dry-run: no meta.yaml written; verdicts are advisory")

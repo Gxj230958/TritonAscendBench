@@ -371,6 +371,76 @@ def test_cross_check_gpu_blocked_when_bytes_exceed_tol(tmp_path, monkeypatch):
     assert "exceeded" in v.reason
 
 
+def test_cross_check_floor_dominated_when_no_asymptotic_regime(tmp_path, monkeypatch):
+    """Sub-burst index kernel: analytic bytes stay below the measured DRAM floor
+    across ALL shapes -> FLOOR_DOMINATED (cost_model.bytes not applicable), not
+    BLOCKED (which would imply a formula the kernel could asymptotically hit)."""
+    task = _make_task(
+        tmp_path,
+        cost_model_block={
+            "flops": "1*B", "flops_class": "vector",
+            "bytes": "4*B", "bytes_resource": "hbm",
+        },
+        public_shapes=[
+            {"id": "P1", "name": "p1", "knobs": {"B": 1}},
+            {"id": "P2", "name": "p2", "knobs": {"B": 2}},
+            {"id": "P3", "name": "p3", "knobs": {"B": 4}},
+        ],
+    )
+    # analytic bytes = 4, 8, 16 (tiny); measured pinned near a ~1000-byte burst
+    # floor regardless of shape -> max_analytic(16) < min_measured(1000).
+    floor = {"P1": 1000.0, "P2": 1010.0, "P3": 1020.0}
+    monkeypatch.setattr(xc, "measure_kernel_bytes", lambda _t, _d, sid: (floor[sid], True))
+    monkeypatch.setattr(xc, "_floor_dominated_allowlist", lambda: {"L9_99_synthetic"})
+    v = xc.cross_check_task(task, dry_run=False)
+    assert v.status == xc.STATUS_FLOOR_DOMINATED
+    assert "no asymptotic HBM regime" in v.reason
+
+
+def test_cross_check_floor_structural_hit_but_not_allowlisted_stays_blocked(tmp_path, monkeypatch):
+    """A task passing the structural floor test (analytic fully below measured)
+    but NOT source-audited into the allowlist stays BLOCKED -- the L2_26 guard:
+    a formula that under-counts must never be whitewashed as FLOOR_DOMINATED."""
+    task = _make_task(
+        tmp_path,
+        cost_model_block={
+            "flops": "1*B", "flops_class": "vector",
+            "bytes": "4*B", "bytes_resource": "hbm",
+        },
+        public_shapes=[
+            {"id": "P1", "name": "p1", "knobs": {"B": 1}},
+            {"id": "P2", "name": "p2", "knobs": {"B": 2}},
+        ],
+    )
+    floor = {"P1": 1000.0, "P2": 1010.0}
+    monkeypatch.setattr(xc, "measure_kernel_bytes", lambda _t, _d, sid: (floor[sid], True))
+    monkeypatch.setattr(xc, "_floor_dominated_allowlist", lambda: set())
+    v = xc.cross_check_task(task, dry_run=False)
+    assert v.status == xc.STATUS_BLOCKED
+
+
+def test_cross_check_multishape_scaling_is_not_floor(tmp_path, monkeypatch):
+    """A kernel whose measured DRAM scales with shape (analytic tracks it within
+    tol) is a PASS, never FLOOR_DOMINATED -- the floor test must not fire just
+    because the smallest shape's measured exceeds the smallest analytic."""
+    task = _make_task(
+        tmp_path,
+        cost_model_block={
+            "flops": "1*B", "flops_class": "vector",
+            "bytes": "1000*B", "bytes_resource": "hbm",
+        },
+        public_shapes=[
+            {"id": "P1", "name": "p1", "knobs": {"B": 1}},
+            {"id": "P2", "name": "p2", "knobs": {"B": 10}},
+        ],
+    )
+    # analytic 1000, 10000; measured tracks within tol -> max_an(10000) > min_meas(1005).
+    meas = {"P1": 1005.0, "P2": 10050.0}
+    monkeypatch.setattr(xc, "measure_kernel_bytes", lambda _t, _d, sid: (meas[sid], True))
+    v = xc.cross_check_task(task, dry_run=False)
+    assert v.status == xc.STATUS_PASS
+
+
 # --------------------------------------------------------------------------
 # L1_21 / non-score-eligible special case
 # --------------------------------------------------------------------------

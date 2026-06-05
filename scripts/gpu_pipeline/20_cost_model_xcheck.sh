@@ -4,7 +4,7 @@
 # GPU-host P0 #2: cross-check each task's ANALYTIC cost model
 # (meta.yaml.cost_model.flops / bytes formulas) against INSTRUMENTED
 # GPU-Triton measurements, and write meta.yaml: cost_model.status
-# (PASS / BLOCKED) -- ncu-evidenced PERFORMANCE metadata, NOT a
+# (PASS / BLOCKED / FLOOR_DOMINATED) -- ncu-evidenced PERFORMANCE metadata, NOT a
 # release gate. Conditional access, L2 reuse, tile geometry, and the
 # HBM burst floor make a portable analytic bytes formula unable to hit
 # per-shape tol everywhere, so most tasks are cost_model BLOCKED; that
@@ -24,8 +24,10 @@
 #      hardware DRAM counters dram__bytes_read.sum + dram__bytes_write.sum;
 #   3. reconciles |analytic - measured| / measured <= gpu_xcheck_tol for
 #      the bytes model (FLOPs are recorded analytic-only, not GPU-measured);
-#   4. atomically writes meta.yaml: cost_model.status = PASS|BLOCKED with
-#      a per-shape evidence block (mirrors update_meta_phase_a_prime).
+#   4. atomically writes meta.yaml: cost_model.status = PASS|BLOCKED|
+#      FLOOR_DOMINATED (the last for sub-burst index kernels with no asymptotic
+#      HBM regime, source-audited; never a PASS) with a per-shape evidence
+#      block (mirrors update_meta_phase_a_prime).
 #
 # It is fail-closed: if ncu is unavailable or yields no DRAM metric the
 # affected shape/task is BLOCKED with an explicit reason -- never a

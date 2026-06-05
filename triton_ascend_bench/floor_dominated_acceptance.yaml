@@ -1,0 +1,28 @@
+# FLOOR_DOMINATED acceptance allowlist. A task is marked cost_model.status =
+# FLOOR_DOMINATED (a NOT_APPLICABLE class -- distinct from BLOCKED, never a PASS)
+# ONLY if BOTH hold:
+#   1. structural: >= 2 measured shapes AND max(analytic_total) < min(measured)
+#      across all shapes -- the analytic byte model sits fully below the smallest
+#      measured DRAM, so the kernel has no asymptotic HBM regime in these shapes.
+#   2. source-audited into this allowlist: a read of the kernel confirmed the
+#      formula FAITHFULLY captures the kernel's DRAM accesses and the kernel is
+#      genuinely sub-burst (tiny index/metadata), so measured is the fixed DRAM
+#      burst/launch floor -- NOT real traffic the formula under-counts.
+# The allowlist is mandatory: the structural test ALONE cannot distinguish a true
+# floor (kernel bytes << DRAM burst) from a formula that systematically
+# under-counts (a missing multiplicative term ALSO yields max_analytic <
+# min_measured). L2_26 is the cautionary case -- structurally it matches, but its
+# formula omits the m_indices int32 store + per-expert count load + launcher fill
+# (~150KB real traffic), so it is a formula-audit failure, NOT a floor.
+floor_dominated_tasks:
+  - L1_28_pack_bitmatrix              # bit-pack; logical 32-640 B vs ~121KB burst (189x); formula faithful
+  - L1_35_compute_src2dst_triton      # src->dst index map; formula matches closely
+  - L1_37_compute_problem_sizes_w4a8  # problem-size metadata; formula matches closely
+  - L1_04_copy_page_indices           # page-index copy; metadata/index kernel, formula faithful
+  - L1_24_rejection_sample            # rejection-sample index kernel; sub-burst
+  - L1_29_prepare_eagle_inputs        # eagle input prep; metadata/index kernel, sub-burst
+# NOT included (stay BLOCKED):
+#   L2_26_fwd_kernel_ep_scatter_1 -- formula omits m_indices store + per-expert
+#     count load + launcher fill (real ~150KB), a formula-audit failure not a floor.
+#   L1_32_create_flashinfer_kv_indices_triton -- not decoupled (a shape's analytic
+#     131712 exceeds the min measured 70400).
