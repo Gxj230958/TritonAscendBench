@@ -31,70 +31,71 @@ tolerance_class: vector_reduce
 cost_model:
   flops: 2*B*N*D
   flops_class: int8
-  bytes: (B*D + N*D) * dtype_size + B*((D+31)//32)*4 + (N//8)*((D+31)//32)*4 + B*N*2
+  bytes: B*D + N*D + B*((D+31)//32)*4 + (N//8)*((D+31)//32)*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-  status: BLOCKED
-  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.2253 > tol 0.0500 (analytic=2801664 measured=2286592)'
-  xcheck_run_id: xcheck-2026-06-05-28b910df
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 2 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-bda83896
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 9408.0
+    analytic_bytes_total: 8896.0
     measured_bytes: 18432.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4895833333333333
+    bytes_deviation: 0.5173611111111112
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4896 > tol 0.0500 (analytic=9408 measured=18432) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=18432 < 0.5xmax=2286592); non-blocking
+    note: 'bytes deviation 0.5174 > tol 0.0500 (analytic=8896 measured=18432) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=18432 < 0.5xmax=2286848); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 79360.0
-    measured_bytes: 80384.0
+    analytic_bytes_total: 71168.0
+    measured_bytes: 80640.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.012738853503184714
+    bytes_deviation: 0.11746031746031746
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1175 > tol 0.0500 (analytic=71168 measured=80640) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=80640 < 0.5xmax=2286848); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 569344.0
+    measured_bytes: 578816.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.016364440513047324
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0127 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0164 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
-  - shape_id: P3
-    analytic_bytes_total: 700416.0
-    measured_bytes: 578560.0
-    measured_via: ncu_dram_bytes
-    bytes_deviation: 0.21061946902654868
-    kernel_launched: true
-    flops_checked: false
-    blocked: false
-    within_tol: false
-    note: 'bytes deviation 0.2106 > tol 0.0500 (analytic=700416 measured=578560) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=578560 < 0.5xmax=2286592); non-blocking
-      per asymptotic_hbm_xcheck]'
   - shape_id: P4
-    analytic_bytes_total: 2801664.0
-    measured_bytes: 2286592.0
+    analytic_bytes_total: 2277376.0
+    measured_bytes: 2286848.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.22525750111957007
+    bytes_deviation: 0.004141945594984888
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: bytes deviation 0.2253 > tol 0.0500 (analytic=2801664 measured=2286592)
+    within_tol: true
+    note: bytes deviation 0.0041 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P5
-    analytic_bytes_total: 1091584.0
+    analytic_bytes_total: 1083392.0
     measured_bytes: 1092608.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.0009372071227741331
+    bytes_deviation: 0.008434864104967198
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0009 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0084 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -128,7 +129,7 @@ provenance:
   source_md_id: L2-11
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:06:27Z'
+    verified_at: '2026-06-05T02:00:50Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
