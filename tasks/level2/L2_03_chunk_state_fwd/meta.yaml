@@ -39,67 +39,67 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.0750 > tol 0.0500 (analytic=21498880 measured=23241216)'
-  xcheck_run_id: xcheck-2026-06-05-f7d5a1f3
+    0.0750 > tol 0.0500 (analytic=21498880 measured=23242752)'
+  xcheck_run_id: xcheck-2026-06-05-5a43a708
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 14896.0
-    measured_bytes: 118016.0
+    measured_bytes: 118528.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8737798264642083
+    bytes_deviation: 0.8743250539956804
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.8738 > tol 0.0500 (analytic=14896 measured=118016) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=118016 < 0.5xmax=23241216); non-blocking
+    note: 'bytes deviation 0.8743 > tol 0.0500 (analytic=14896 measured=118528) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=118528 < 0.5xmax=23242752); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 168032.0
-    measured_bytes: 455168.0
+    measured_bytes: 454912.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6308352080989876
+    bytes_deviation: 0.6306274620146314
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6308 > tol 0.0500 (analytic=168032 measured=455168) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=455168 < 0.5xmax=23241216); non-blocking
+    note: 'bytes deviation 0.6306 > tol 0.0500 (analytic=168032 measured=454912) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=454912 < 0.5xmax=23242752); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 1606016.0
-    measured_bytes: 2990848.0
+    measured_bytes: 2990592.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4630231960968929
+    bytes_deviation: 0.46297722992638246
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4630 > tol 0.0500 (analytic=1606016 measured=2990848)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2990848 < 0.5xmax=23241216);
+    note: 'bytes deviation 0.4630 > tol 0.0500 (analytic=1606016 measured=2990592)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2990592 < 0.5xmax=23242752);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 21498880.0
-    measured_bytes: 23241216.0
+    measured_bytes: 23242752.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.07496750600312824
+    bytes_deviation: 0.07502863688430698
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.0750 > tol 0.0500 (analytic=21498880 measured=23241216)
+    note: bytes deviation 0.0750 > tol 0.0500 (analytic=21498880 measured=23242752)
   - shape_id: P5
     analytic_bytes_total: 532672.0
-    measured_bytes: 946176.0
+    measured_bytes: 946432.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.43702651515151514
+    bytes_deviation: 0.4371787936164458
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4370 > tol 0.0500 (analytic=532672 measured=946176) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=946176 < 0.5xmax=23241216); non-blocking
+    note: 'bytes deviation 0.4372 > tol 0.0500 (analytic=532672 measured=946432) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=946432 < 0.5xmax=23242752); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -132,52 +132,49 @@ provenance:
   last_modified: '2026-05-15'
   source_md_id: L2-03
   golden:
-    oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:04:16Z'
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T06:01:48Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       H1:
         status: VERIFIED
-        max_abs: 0.010519027709960938
-        max_rel: 6.527095317840576
+        max_abs: 1.33514404296875e-05
+        max_rel: 0.04926108196377754
       H2:
         status: VERIFIED
-        max_abs: 0.0036134719848632812
-        max_rel: 0.04601634293794632
+        max_abs: 9.5367431640625e-07
+        max_rel: 4.055413228343241e-06
       H3:
-        status: CEILING_ACCEPTED
-        max_abs: 0.02584075927734375
-        max_rel: 171.08047485351562
-        blocker: 'states: atol/rtol: max_abs=0.0258, max_rel=171 (max_abs=0.02584075927734375,
-          max_rel=171.08047485351562, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+        status: VERIFIED
+        max_abs: 0.0036420822143554688
+        max_rel: 1.3902438879013062
       H4:
         status: VERIFIED
-        max_abs: 0.008315086364746094
-        max_rel: 2.7487785816192627
+        max_abs: 2.86102294921875e-06
+        max_rel: 0.001072386046871543
       P1:
         status: VERIFIED
-        max_abs: 0.004488945007324219
-        max_rel: 0.13725678622722626
+        max_abs: 1.430511474609375e-06
+        max_rel: 2.7695461540133692e-05
       P2:
         status: VERIFIED
-        max_abs: 0.009302139282226562
-        max_rel: 2.135918617248535
+        max_abs: 5.7220458984375e-06
+        max_rel: 0.0026702270843088627
       P3:
         status: VERIFIED
-        max_abs: 0.01390838623046875
-        max_rel: 48.79282760620117
+        max_abs: 7.82310962677002e-05
+        max_rel: 0.006172839552164078
       P4:
-        status: CEILING_ACCEPTED
-        max_abs: 0.018707275390625
-        max_rel: 89.7882080078125
-        blocker: 'states: atol/rtol: max_abs=0.0187, max_rel=89.8 (max_abs=0.018707275390625,
-          max_rel=89.7882080078125, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+        status: VERIFIED
+        max_abs: 0.00305938720703125
+        max_rel: 0.6607142686843872
       P5:
         status: VERIFIED
-        max_abs: 0.008836746215820312
-        max_rel: 3.6825811862945557
-    golden_source: dtype_ceiling_accepted
+        max_abs: 7.62939453125e-06
+        max_rel: 0.002152562839910388
+    golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
+    golden_sha256: 0398dc4fe2fa5bbded9eec02019e711d0f863fb3ea192c6c2fd21027bc6be6fd
 param_constraints:
   scaffold: false
   dims:
