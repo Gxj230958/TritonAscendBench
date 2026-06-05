@@ -23,6 +23,14 @@ auditable.
 BLOCKED here means "fix UPSTREAM before NPU migration is meaningful." We refuse to
 silently fix them — that refusal is what makes the discovered bugs credible.
 
+> Note (2026-06-05): `L2_23` / `L2_24` are moved to `tasks/_deprecated/` so the
+> `iter_all_tasks()` metrics (cost_model / C2 denominator) stop counting a kernel
+> whose UPSTREAM source is itself buggy. They remain **reported here** as the
+> bench's discovered upstream bugs, with the proof and `tasks/_corrected/`
+> variants kept in-repo — this is **exclusion-with-evidence, not a silent fix or
+> hide**. (`L2_33` stays in the scored set: its debug-assert is compile-compat,
+> not numerical.)
+
 ## SECONDARY (derived, footnoted, NEVER bare, NEVER co-equal)
 
 **99 / 100 with proven upstream fixes applied (non-scored)** — the 97 plus the two
