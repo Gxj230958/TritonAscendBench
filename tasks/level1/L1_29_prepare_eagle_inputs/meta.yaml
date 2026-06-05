@@ -32,69 +32,69 @@ tolerance_class: sampling_rng
 cost_model:
   flops: 4*B*T
   flops_class: vector
-  bytes: 24*B*T
+  bytes: 24*B*T + 52*B + 16*G + 12
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '5/5 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation
-    0.9947 > tol 0.0500 (analytic=576 measured=108288); P2: bytes deviation 0.9787
-    > tol 0.0500 (analytic=2304 measured=108288); P3: bytes deviation 0.9720 > tol
-    0.0500 (analytic=3072 measured=109824); P4: bytes deviation 0.8940 > tol 0.0500
-    (analytic=12288 measured=115968); P5: bytes deviation 0.9438 > tol 0.0500 (analytic=6144
-    measured=109312)'
-  xcheck_run_id: xcheck-2026-06-05-116267cc
+    0.9922 > tol 0.0500 (analytic=828 measured=106752); P2: bytes deviation 0.9743
+    > tol 0.0500 (analytic=2796 measured=108800); P3: bytes deviation 0.9631 > tol
+    0.0500 (analytic=4044 measured=109568); P4: bytes deviation 0.8755 > tol 0.0500
+    (analytic=14092 measured=113152); P5: bytes deviation 0.9416 > tol 0.0500 (analytic=6428
+    measured=110080)'
+  xcheck_run_id: xcheck-2026-06-05-a0e43b2b
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 576.0
-    measured_bytes: 108288.0
+    analytic_bytes_total: 828.0
+    measured_bytes: 106752.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9946808510638298
+    bytes_deviation: 0.9922437050359713
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9947 > tol 0.0500 (analytic=576 measured=108288)
+    note: bytes deviation 0.9922 > tol 0.0500 (analytic=828 measured=106752)
   - shape_id: P2
-    analytic_bytes_total: 2304.0
-    measured_bytes: 108288.0
+    analytic_bytes_total: 2796.0
+    measured_bytes: 108800.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9787234042553191
+    bytes_deviation: 0.9743014705882352
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9787 > tol 0.0500 (analytic=2304 measured=108288)
+    note: bytes deviation 0.9743 > tol 0.0500 (analytic=2796 measured=108800)
   - shape_id: P3
-    analytic_bytes_total: 3072.0
-    measured_bytes: 109824.0
+    analytic_bytes_total: 4044.0
+    measured_bytes: 109568.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.972027972027972
+    bytes_deviation: 0.9630914135514018
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9720 > tol 0.0500 (analytic=3072 measured=109824)
+    note: bytes deviation 0.9631 > tol 0.0500 (analytic=4044 measured=109568)
   - shape_id: P4
-    analytic_bytes_total: 12288.0
-    measured_bytes: 115968.0
+    analytic_bytes_total: 14092.0
+    measured_bytes: 113152.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8940397350993378
+    bytes_deviation: 0.8754595588235294
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.8940 > tol 0.0500 (analytic=12288 measured=115968)
+    note: bytes deviation 0.8755 > tol 0.0500 (analytic=14092 measured=113152)
   - shape_id: P5
-    analytic_bytes_total: 6144.0
-    measured_bytes: 109312.0
+    analytic_bytes_total: 6428.0
+    measured_bytes: 110080.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9437939110070258
+    bytes_deviation: 0.9416061046511628
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9438 > tol 0.0500 (analytic=6144 measured=109312)
+    note: bytes deviation 0.9416 > tol 0.0500 (analytic=6428 measured=110080)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -127,7 +127,7 @@ provenance:
   source_md_id: L1-29
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:15:50Z'
+    verified_at: '2026-06-05T01:00:20Z'
     tolerance_class_used: sampling_rng
     equivalence_per_shape:
       H1:

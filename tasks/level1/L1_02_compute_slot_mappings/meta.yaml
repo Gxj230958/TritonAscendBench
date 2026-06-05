@@ -31,37 +31,37 @@ tolerance_class: attention_flash
 cost_model:
   flops: 4*B
   flops_class: vector
-  bytes: 4*B*dtype_size
+  bytes: 8*B + 8*B + 8*(B+1) + 4*B + 8*1024
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: "5/5 gate shape(s) could not be measured / exceeded gpu_xcheck_tol=0.05:\
     \ P1: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P1; stderr\
-    \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpk1b_8u6__ncu_worker.py\"\
+    \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpctl2fjgv_ncu_worker.py\"\
     , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
     , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
     KeyError: '_ncu_kernel'; P2: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P2;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpupfnhjg1_ncu_worker.py\"\
+    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpfcbog70u_ncu_worker.py\"\
     , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
     , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
     KeyError: '_ncu_kernel'; P3: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P3;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpttxta4y8_ncu_worker.py\"\
+    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpx1jl_fr1_ncu_worker.py\"\
     , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
     , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
     KeyError: '_ncu_kernel'; P4: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P4;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmp6gwuinor_ncu_worker.py\"\
+    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpj0xbs0jj_ncu_worker.py\"\
     , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
     , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
     KeyError: '_ncu_kernel'; P5: BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P5;\
-    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmpzuhwehb4_ncu_worker.py\"\
+    \ stderr tail: Traceback (most recent call last):\n  File \"/tmp/tmp5_alho7p_ncu_worker.py\"\
     , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
     , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
     KeyError: '_ncu_kernel'"
-  xcheck_run_id: xcheck-2026-06-05-9ed52577
+  xcheck_run_id: xcheck-2026-06-05-ccc35666
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 64.0
+    analytic_bytes_total: 8256.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -70,12 +70,12 @@ cost_model:
     blocked: true
     within_tol: false
     note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P1; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpk1b_8u6__ncu_worker.py\"\
+      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpctl2fjgv_ncu_worker.py\"\
       , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
       , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
       KeyError: '_ncu_kernel'"
   - shape_id: P2
-    analytic_bytes_total: 128.0
+    analytic_bytes_total: 8312.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -84,12 +84,12 @@ cost_model:
     blocked: true
     within_tol: false
     note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P2; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpupfnhjg1_ncu_worker.py\"\
+      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpfcbog70u_ncu_worker.py\"\
       , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
       , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
       KeyError: '_ncu_kernel'"
   - shape_id: P3
-    analytic_bytes_total: 256.0
+    analytic_bytes_total: 8424.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -98,12 +98,12 @@ cost_model:
     blocked: true
     within_tol: false
     note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P3; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpttxta4y8_ncu_worker.py\"\
+      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpx1jl_fr1_ncu_worker.py\"\
       , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
       , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
       KeyError: '_ncu_kernel'"
   - shape_id: P4
-    analytic_bytes_total: 512.0
+    analytic_bytes_total: 8648.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -112,12 +112,12 @@ cost_model:
     blocked: true
     within_tol: false
     note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P4; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmp6gwuinor_ncu_worker.py\"\
+      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpj0xbs0jj_ncu_worker.py\"\
       , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
       , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
       KeyError: '_ncu_kernel'"
   - shape_id: P5
-    analytic_bytes_total: 64.0
+    analytic_bytes_total: 8256.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -126,7 +126,7 @@ cost_model:
     blocked: true
     within_tol: false
     note: "BLOCKED -- ncu exited 1 profiling L1_02_compute_slot_mappings/P5; stderr\
-      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmpzuhwehb4_ncu_worker.py\"\
+      \ tail: Traceback (most recent call last):\n  File \"/tmp/tmp5_alho7p_ncu_worker.py\"\
       , line 43, in <module>\n    fn(warm)\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_02_compute_slot_mappings/kernel.py\"\
       , line 372, in run\n    _kmod = sys.modules[run.__module__]\n            ~~~~~~~~~~~^^^^^^^^^^^^^^^^\n\
       KeyError: '_ncu_kernel'"
@@ -162,7 +162,7 @@ provenance:
   source_md_id: L1-02
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:10:02Z'
+    verified_at: '2026-06-05T00:54:12Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

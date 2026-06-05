@@ -31,71 +31,72 @@ tolerance_class: attention_flash
 cost_model:
   flops: B*H*(3*E + D + 2) + (1-LSEB)*E*B*H
   flops_class: vector
-  bytes: (2*B*H*D + E*B*H) * dtype_size
+  bytes: 2*B*H*D + 4*E*B*H + 8*B*H
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-  status: BLOCKED
-  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.6751 > tol 0.0500 (analytic=557056 measured=332544)'
-  xcheck_run_id: xcheck-2026-06-05-6cc10a9b
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 4 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-1a09c929
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 1088.0
-    measured_bytes: 5120.0
+    analytic_bytes_total: 704.0
+    measured_bytes: 4864.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7875
+    bytes_deviation: 0.8552631578947368
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.7875 > tol 0.0500 (analytic=1088 measured=5120) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=5120 < 0.5xmax=332544); non-blocking per
+    note: 'bytes deviation 0.8553 > tol 0.0500 (analytic=704 measured=4864) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=4864 < 0.5xmax=332544); non-blocking per
       asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 8704.0
+    analytic_bytes_total: 5376.0
     measured_bytes: 9984.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.1282051282051282
+    bytes_deviation: 0.46153846153846156
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1282 > tol 0.0500 (analytic=8704 measured=9984) [FLOOR_OBSERVED:
+    note: 'bytes deviation 0.4615 > tol 0.0500 (analytic=5376 measured=9984) [FLOOR_OBSERVED:
       small-shape HBM burst floor (measured=9984 < 0.5xmax=332544); non-blocking per
       asymptotic_hbm_xcheck]'
   - shape_id: P3
-    analytic_bytes_total: 69632.0
+    analytic_bytes_total: 41984.0
     measured_bytes: 45568.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5280898876404494
+    bytes_deviation: 0.07865168539325842
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.5281 > tol 0.0500 (analytic=69632 measured=45568) [FLOOR_OBSERVED:
+    note: 'bytes deviation 0.0787 > tol 0.0500 (analytic=41984 measured=45568) [FLOOR_OBSERVED:
       small-shape HBM burst floor (measured=45568 < 0.5xmax=332544); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P4
-    analytic_bytes_total: 557056.0
+    analytic_bytes_total: 331776.0
     measured_bytes: 332544.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6751347190146266
+    bytes_deviation: 0.0023094688221709007
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: bytes deviation 0.6751 > tol 0.0500 (analytic=557056 measured=332544)
+    within_tol: true
+    note: bytes deviation 0.0023 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P5
-    analytic_bytes_total: 67584.0
+    analytic_bytes_total: 37888.0
     measured_bytes: 41472.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6296296296296297
+    bytes_deviation: 0.08641975308641975
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6296 > tol 0.0500 (analytic=67584 measured=41472) [FLOOR_OBSERVED:
+    note: 'bytes deviation 0.0864 > tol 0.0500 (analytic=37888 measured=41472) [FLOOR_OBSERVED:
       small-shape HBM burst floor (measured=41472 < 0.5xmax=332544); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
@@ -133,7 +134,7 @@ provenance:
     docs/npu/benchmark_select.md (root-owned) pending sync.'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:31:26Z'
+    verified_at: '2026-06-05T01:15:51Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

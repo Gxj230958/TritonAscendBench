@@ -39,73 +39,71 @@ tolerance_class: elementwise
 cost_model:
   flops: 6*B*D
   flops_class: vector
-  bytes: 3*B*D*dtype_size
+  bytes: 2*B*D*dtype_size
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.3903 > tol 0.0500 (analytic=50331648 measured=36201216)'
-  xcheck_run_id: xcheck-2026-06-05-c8691bfb
+    0.0760 > tol 0.0500 (analytic=33554432 measured=36313344)'
+  xcheck_run_id: xcheck-2026-06-05-575787f0
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 3072.0
-    measured_bytes: 5376.0
+    analytic_bytes_total: 2048.0
+    measured_bytes: 5632.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.42857142857142855
+    bytes_deviation: 0.6363636363636364
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4286 > tol 0.0500 (analytic=3072 measured=5376) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=5376 < 0.5xmax=36201216); non-blocking
+    note: 'bytes deviation 0.6364 > tol 0.0500 (analytic=2048 measured=5632) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=5632 < 0.5xmax=36313344); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 98304.0
+    analytic_bytes_total: 65536.0
     measured_bytes: 69376.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.41697416974169743
+    bytes_deviation: 0.055350553505535055
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4170 > tol 0.0500 (analytic=98304 measured=69376) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=69376 < 0.5xmax=36201216); non-blocking
+    note: 'bytes deviation 0.0554 > tol 0.0500 (analytic=65536 measured=69376) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=69376 < 0.5xmax=36313344); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
-    analytic_bytes_total: 3145728.0
+    analytic_bytes_total: 2097152.0
     measured_bytes: 2102272.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4963468095470044
+    bytes_deviation: 0.0024354603019970775
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: 'bytes deviation 0.4963 > tol 0.0500 (analytic=3145728 measured=2102272)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2102272 < 0.5xmax=36201216);
-      non-blocking per asymptotic_hbm_xcheck]'
+    within_tol: true
+    note: bytes deviation 0.0024 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P4
-    analytic_bytes_total: 50331648.0
-    measured_bytes: 36201216.0
+    analytic_bytes_total: 33554432.0
+    measured_bytes: 36313344.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.3903303137662558
+    bytes_deviation: 0.07597515668069567
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.3903 > tol 0.0500 (analytic=50331648 measured=36201216)
+    note: bytes deviation 0.0760 > tol 0.0500 (analytic=33554432 measured=36313344)
   - shape_id: P5
-    analytic_bytes_total: 786432.0
-    measured_bytes: 543744.0
+    analytic_bytes_total: 524288.0
+    measured_bytes: 543488.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4463276836158192
+    bytes_deviation: 0.03532736693358455
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: 'bytes deviation 0.4463 > tol 0.0500 (analytic=786432 measured=543744) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=543744 < 0.5xmax=36201216); non-blocking
-      per asymptotic_hbm_xcheck]'
+    within_tol: true
+    note: bytes deviation 0.0353 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
 param_constraints:
   scaffold: false
   dims:
@@ -152,7 +150,7 @@ provenance:
   last_modified: '2026-05-14'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:12:36Z'
+    verified_at: '2026-06-05T00:57:01Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       H1:

@@ -36,7 +36,7 @@ tolerance_class: attention_flash
 cost_model:
   flops: 64*B*(H+1)
   flops_class: vector
-  bytes: (32*B*H + 32*B + 48*B) * dtype_size
+  bytes: (2*B*H*16*2) + (2*B*16*2) + (B*8*4) + (B*8*4)
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
@@ -66,11 +66,11 @@ cost_model:
     \ in _call_with_frames_removed\n  File \"/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/tasks/level1/L1_31_triton_mrope_forward/kernel.py\"\
     , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
     \ attempted relative import with no known parent package"
-  xcheck_run_id: xcheck-2026-06-05-d0ecde1e
+  xcheck_run_id: xcheck-2026-06-05-981c8729
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 832.0
+    analytic_bytes_total: 768.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -85,7 +85,7 @@ cost_model:
       , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
       \ attempted relative import with no known parent package"
   - shape_id: P2
-    analytic_bytes_total: 2688.0
+    analytic_bytes_total: 2560.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -100,7 +100,7 @@ cost_model:
       , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
       \ attempted relative import with no known parent package"
   - shape_id: P3
-    analytic_bytes_total: 9472.0
+    analytic_bytes_total: 9216.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -115,7 +115,7 @@ cost_model:
       , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
       \ attempted relative import with no known parent package"
   - shape_id: P4
-    analytic_bytes_total: 35328.0
+    analytic_bytes_total: 34816.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -130,7 +130,7 @@ cost_model:
       , line 25, in <module>\n    from .base import RotaryEmbeddingBase\nImportError:\
       \ attempted relative import with no known parent package"
   - shape_id: P5
-    analytic_bytes_total: 8512.0
+    analytic_bytes_total: 8448.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -176,7 +176,7 @@ provenance:
   source_md_id: L1-31
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:16:39Z'
+    verified_at: '2026-06-05T01:01:07Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

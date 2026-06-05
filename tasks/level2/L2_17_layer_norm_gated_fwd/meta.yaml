@@ -38,70 +38,70 @@ tolerance_class: vector_reduce
 cost_model:
   flops: 16*B*D
   flops_class: vector
-  bytes: (4*B*D + 2*D) * dtype_size
+  bytes: 3*B*D*2 + 2*D*2 + B*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
-  status_reason: '2/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation
-    0.2808 > tol 0.0500 (analytic=266240 measured=207872); P4: bytes deviation 0.2062
-    > tol 0.0500 (analytic=278528 measured=230912)'
-  xcheck_run_id: xcheck-2026-06-05-98940a63
+  status_reason: '1/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
+    0.0775 > tol 0.0500 (analytic=213024 measured=230912)'
+  xcheck_run_id: xcheck-2026-06-05-08665242
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 2304.0
+    analytic_bytes_total: 1808.0
     measured_bytes: 13312.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8269230769230769
+    bytes_deviation: 0.8641826923076923
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.8269 > tol 0.0500 (analytic=2304 measured=13312) [FLOOR_OBSERVED:
+    note: 'bytes deviation 0.8642 > tol 0.0500 (analytic=1808 measured=13312) [FLOOR_OBSERVED:
       small-shape HBM burst floor (measured=13312 < 0.5xmax=230912); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 33792.0
-    measured_bytes: 60672.0
+    analytic_bytes_total: 25664.0
+    measured_bytes: 60416.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4430379746835443
+    bytes_deviation: 0.5752118644067796
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4430 > tol 0.0500 (analytic=33792 measured=60672) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=60672 < 0.5xmax=230912); non-blocking
+    note: 'bytes deviation 0.5752 > tol 0.0500 (analytic=25664 measured=60416) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=60416 < 0.5xmax=230912); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
-    analytic_bytes_total: 266240.0
-    measured_bytes: 207872.0
+    analytic_bytes_total: 200832.0
+    measured_bytes: 208128.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.28078817733990147
+    bytes_deviation: 0.03505535055350553
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: bytes deviation 0.2808 > tol 0.0500 (analytic=266240 measured=207872)
+    within_tol: true
+    note: bytes deviation 0.0351 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P4
-    analytic_bytes_total: 278528.0
+    analytic_bytes_total: 213024.0
     measured_bytes: 230912.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.20620842572062084
+    bytes_deviation: 0.07746674057649668
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.2062 > tol 0.0500 (analytic=278528 measured=230912)
+    note: bytes deviation 0.0775 > tol 0.0500 (analytic=213024 measured=230912)
   - shape_id: P5
-    analytic_bytes_total: 40960.0
+    analytic_bytes_total: 32776.0
     measured_bytes: 43520.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.058823529411764705
+    bytes_deviation: 0.246875
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.0588 > tol 0.0500 (analytic=40960 measured=43520) [FLOOR_OBSERVED:
+    note: 'bytes deviation 0.2469 > tol 0.0500 (analytic=32776 measured=43520) [FLOOR_OBSERVED:
       small-shape HBM burst floor (measured=43520 < 0.5xmax=230912); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: upstream_oracle_required
@@ -136,7 +136,7 @@ provenance:
   source_md_id: L2-17
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-04T23:23:08Z'
+    verified_at: '2026-06-05T01:07:55Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
@@ -230,4 +230,4 @@ classB_symbols:
 reference_path: triton_fallback
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-04T23:23:53Z'
+  captured_at: '2026-06-05T01:08:45Z'

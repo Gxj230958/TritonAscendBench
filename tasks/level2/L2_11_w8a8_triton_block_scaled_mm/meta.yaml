@@ -37,31 +37,31 @@ cost_model:
   status: BLOCKED
   status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
     0.2253 > tol 0.0500 (analytic=2801664 measured=2286592)'
-  xcheck_run_id: xcheck-2026-06-05-e41d7b04
+  xcheck_run_id: xcheck-2026-06-05-28b910df
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 9408.0
-    measured_bytes: 18176.0
+    measured_bytes: 18432.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4823943661971831
+    bytes_deviation: 0.4895833333333333
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4824 > tol 0.0500 (analytic=9408 measured=18176) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=18176 < 0.5xmax=2286592); non-blocking
+    note: 'bytes deviation 0.4896 > tol 0.0500 (analytic=9408 measured=18432) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=18432 < 0.5xmax=2286592); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 79360.0
-    measured_bytes: 80640.0
+    measured_bytes: 80384.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.015873015873015872
+    bytes_deviation: 0.012738853503184714
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0159 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0127 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P3
     analytic_bytes_total: 700416.0
@@ -128,7 +128,7 @@ provenance:
   source_md_id: L2-11
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:21:37Z'
+    verified_at: '2026-06-05T01:06:27Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:

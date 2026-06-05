@@ -33,72 +33,72 @@ tolerance_class: sampling_rng
 cost_model:
   flops: 7*B*N
   flops_class: vector
-  bytes: 2*B*N*dtype_size + 8*B + 4*E
+  bytes: 4*B*N + 8*B + 4*E
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-  status: BLOCKED
-  status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.9970 > tol 0.0500 (analytic=33555584 measured=16803328)'
-  xcheck_run_id: xcheck-2026-06-05-047a8e00
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-3132b09a
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 4144.0
-    measured_bytes: 11520.0
+    analytic_bytes_total: 2096.0
+    measured_bytes: 11776.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6402777777777777
+    bytes_deviation: 0.8220108695652174
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6403 > tol 0.0500 (analytic=4144 measured=11520) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=11520 < 0.5xmax=16803328); non-blocking
+    note: 'bytes deviation 0.8220 > tol 0.0500 (analytic=2096 measured=11776) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=11776 < 0.5xmax=16794368); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 65696.0
+    analytic_bytes_total: 32928.0
     measured_bytes: 42240.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5553030303030303
+    bytes_deviation: 0.22045454545454546
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.5553 > tol 0.0500 (analytic=65696 measured=42240) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=42240 < 0.5xmax=16803328); non-blocking
+    note: 'bytes deviation 0.2205 > tol 0.0500 (analytic=32928 measured=42240) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=42240 < 0.5xmax=16794368); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
-    analytic_bytes_total: 2097728.0
+    analytic_bytes_total: 1049152.0
     measured_bytes: 1058560.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9816807738814994
+    bytes_deviation: 0.008887545344619106
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: 'bytes deviation 0.9817 > tol 0.0500 (analytic=2097728 measured=1058560)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1058560 < 0.5xmax=16803328);
-      non-blocking per asymptotic_hbm_xcheck]'
+    within_tol: true
+    note: bytes deviation 0.0089 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P4
-    analytic_bytes_total: 33555584.0
-    measured_bytes: 16803328.0
+    analytic_bytes_total: 16778368.0
+    measured_bytes: 16794368.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9969606020902526
+    bytes_deviation: 0.000952700333826197
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: bytes deviation 0.9970 > tol 0.0500 (analytic=33555584 measured=16803328)
+    within_tol: true
+    note: bytes deviation 0.0010 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P5
-    analytic_bytes_total: 131168.0
-    measured_bytes: 75264.0
+    analytic_bytes_total: 65632.0
+    measured_bytes: 75008.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7427721088435374
+    bytes_deviation: 0.125
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.7428 > tol 0.0500 (analytic=131168 measured=75264) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=75264 < 0.5xmax=16803328); non-blocking
+    note: 'bytes deviation 0.1250 > tol 0.0500 (analytic=65632 measured=75008) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=75008 < 0.5xmax=16794368); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -132,7 +132,7 @@ provenance:
   source_md_id: L1-22
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:13:55Z'
+    verified_at: '2026-06-05T00:58:16Z'
     tolerance_class_used: sampling_rng
     equivalence_per_shape:
       H1:

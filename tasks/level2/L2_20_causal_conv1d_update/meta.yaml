@@ -37,72 +37,71 @@ tolerance_class: vector_reduce
 cost_model:
   flops: B*D*(2*KW + 6)
   flops_class: vector
-  bytes: (2*B*D + 2*B*D*(KW-1) + D*KW + D) * dtype_size
+  bytes: ((2*B*D + B*D*(KW-1) + D*KW + D) * 2) + (B * 4)
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.8408 > tol 0.0500 (analytic=272384 measured=147968)'
-  xcheck_run_id: xcheck-2026-06-05-020c6f96
+    0.1789 > tol 0.0500 (analytic=174144 measured=147712)'
+  xcheck_run_id: xcheck-2026-06-05-a456a517
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 1408.0
-    measured_bytes: 5120.0
+    analytic_bytes_total: 1160.0
+    measured_bytes: 5376.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.725
+    bytes_deviation: 0.7842261904761905
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.7250 > tol 0.0500 (analytic=1408 measured=5120) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=5120 < 0.5xmax=147968); non-blocking per
+    note: 'bytes deviation 0.7842 > tol 0.0500 (analytic=1160 measured=5376) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=5376 < 0.5xmax=147712); non-blocking per
       asymptotic_hbm_xcheck]'
   - shape_id: P2
-    analytic_bytes_total: 14336.0
-    measured_bytes: 13312.0
+    analytic_bytes_total: 10256.0
+    measured_bytes: 13568.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.07692307692307693
+    bytes_deviation: 0.24410377358490565
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.0769 > tol 0.0500 (analytic=14336 measured=13312) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=13312 < 0.5xmax=147968); non-blocking
+    note: 'bytes deviation 0.2441 > tol 0.0500 (analytic=10256 measured=13568) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=13568 < 0.5xmax=147712); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
-    analytic_bytes_total: 70656.0
-    measured_bytes: 44544.0
+    analytic_bytes_total: 46112.0
+    measured_bytes: 44288.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5862068965517241
+    bytes_deviation: 0.041184971098265896
     kernel_launched: true
     flops_checked: false
     blocked: false
-    within_tol: false
-    note: 'bytes deviation 0.5862 > tol 0.0500 (analytic=70656 measured=44544) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=44544 < 0.5xmax=147968); non-blocking
-      per asymptotic_hbm_xcheck]'
+    within_tol: true
+    note: bytes deviation 0.0412 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
   - shape_id: P4
-    analytic_bytes_total: 272384.0
-    measured_bytes: 147968.0
+    analytic_bytes_total: 174144.0
+    measured_bytes: 147712.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8408304498269896
+    bytes_deviation: 0.1789428076256499
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.8408 > tol 0.0500 (analytic=272384 measured=147968)
+    note: bytes deviation 0.1789 > tol 0.0500 (analytic=174144 measured=147712)
   - shape_id: P5
-    analytic_bytes_total: 65536.0
+    analytic_bytes_total: 49160.0
     measured_bytes: 46080.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.4222222222222222
+    bytes_deviation: 0.06684027777777778
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4222 > tol 0.0500 (analytic=65536 measured=46080) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=46080 < 0.5xmax=147968); non-blocking
+    note: 'bytes deviation 0.0668 > tol 0.0500 (analytic=49160 measured=46080) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=46080 < 0.5xmax=147712); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -179,7 +178,7 @@ provenance:
       [B,D,KW-1], bias [D], load-bearing conv_state_indices (cyclic_perm), null_block_id
       null. Oracle gathers/rolls/scatters per index. Needs GPU golden re-capture before
       baseline eligibility.'
-    verified_at: '2026-06-04T23:23:57Z'
+    verified_at: '2026-06-05T01:08:48Z'
     golden_sha256: 1164d4f43dce5c6751d6c3e282c5eff20fa5be0decc09a5276c1e1a83450e8f0
     cross_check: S2_FRESH
 param_constraints:

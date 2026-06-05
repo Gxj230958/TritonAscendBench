@@ -31,69 +31,69 @@ tolerance_class: attention_flash
 cost_model:
   flops: 2*E
   flops_class: vector
-  bytes: (E + E*N)*dtype_size + E*N*4
+  bytes: (E*(N//4))*8 + (E*(N//4))*4 + 2*(E+1)*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '5/5 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation
-    0.9701 > tol 0.0500 (analytic=3104 measured=103936); P2: bytes deviation 0.8817
-    > tol 0.0500 (analytic=12352 measured=104448); P3: bytes deviation 0.5361 > tol
-    0.0500 (analytic=49280 measured=106240); P4: bytes deviation 0.6189 > tol 0.0500
-    (analytic=196864 measured=121600); P5: bytes deviation 0.7641 > tol 0.0500 (analytic=24640
-    measured=104448)'
-  xcheck_run_id: xcheck-2026-06-05-1c6de4bd
+    0.9929 > tol 0.0500 (analytic=808 measured=113152); P2: bytes deviation 0.9698
+    > tol 0.0500 (analytic=3144 measured=104192); P3: bytes deviation 0.8850 > tol
+    0.0500 (analytic=12424 measured=108032); P4: bytes deviation 0.5953 > tol 0.0500
+    (analytic=49416 measured=122112); P5: bytes deviation 0.9406 > tol 0.0500 (analytic=6216
+    measured=104704)'
+  xcheck_run_id: xcheck-2026-06-05-16875f66
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 3104.0
-    measured_bytes: 103936.0
+    analytic_bytes_total: 808.0
+    measured_bytes: 113152.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9701354679802956
+    bytes_deviation: 0.9928591628959276
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9701 > tol 0.0500 (analytic=3104 measured=103936)
+    note: bytes deviation 0.9929 > tol 0.0500 (analytic=808 measured=113152)
   - shape_id: P2
-    analytic_bytes_total: 12352.0
-    measured_bytes: 104448.0
+    analytic_bytes_total: 3144.0
+    measured_bytes: 104192.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8817401960784313
+    bytes_deviation: 0.9698249385749386
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.8817 > tol 0.0500 (analytic=12352 measured=104448)
+    note: bytes deviation 0.9698 > tol 0.0500 (analytic=3144 measured=104192)
   - shape_id: P3
-    analytic_bytes_total: 49280.0
-    measured_bytes: 106240.0
+    analytic_bytes_total: 12424.0
+    measured_bytes: 108032.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.536144578313253
+    bytes_deviation: 0.884997037914692
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.5361 > tol 0.0500 (analytic=49280 measured=106240)
+    note: bytes deviation 0.8850 > tol 0.0500 (analytic=12424 measured=108032)
   - shape_id: P4
-    analytic_bytes_total: 196864.0
-    measured_bytes: 121600.0
+    analytic_bytes_total: 49416.0
+    measured_bytes: 122112.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6189473684210526
+    bytes_deviation: 0.5953223270440252
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.6189 > tol 0.0500 (analytic=196864 measured=121600)
+    note: bytes deviation 0.5953 > tol 0.0500 (analytic=49416 measured=122112)
   - shape_id: P5
-    analytic_bytes_total: 24640.0
-    measured_bytes: 104448.0
+    analytic_bytes_total: 6216.0
+    measured_bytes: 104704.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7640931372549019
+    bytes_deviation: 0.9406326405867971
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.7641 > tol 0.0500 (analytic=24640 measured=104448)
+    note: bytes deviation 0.9406 > tol 0.0500 (analytic=6216 measured=104704)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -126,7 +126,7 @@ provenance:
   source_md_id: L1-04
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:10:02Z'
+    verified_at: '2026-06-05T00:54:12Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

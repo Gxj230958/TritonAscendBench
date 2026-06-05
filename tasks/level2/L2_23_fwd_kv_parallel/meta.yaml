@@ -44,67 +44,67 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: '1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation
-    0.7949 > tol 0.0500 (analytic=1073741952 measured=5235228160)'
-  xcheck_run_id: xcheck-2026-06-05-0973c067
+    0.7949 > tol 0.0500 (analytic=1073741952 measured=5234613760)'
+  xcheck_run_id: xcheck-2026-06-05-30a30eeb
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 262160.0
-    measured_bytes: 715520.0
+    measured_bytes: 697856.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6336091234347049
+    bytes_deviation: 0.6243351063829787
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6336 > tol 0.0500 (analytic=262160 measured=715520) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=715520 < 0.5xmax=5235228160); non-blocking
+    note: 'bytes deviation 0.6243 > tol 0.0500 (analytic=262160 measured=697856) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=697856 < 0.5xmax=5234613760); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 8388640.0
-    measured_bytes: 16425472.0
+    measured_bytes: 16417536.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.48929077958916495
+    bytes_deviation: 0.48904391012147014
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4893 > tol 0.0500 (analytic=8388640 measured=16425472)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=16425472 < 0.5xmax=5235228160);
+    note: 'bytes deviation 0.4890 > tol 0.0500 (analytic=8388640 measured=16417536)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=16417536 < 0.5xmax=5234613760);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 134217792.0
-    measured_bytes: 482953984.0
+    measured_bytes: 482978304.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7220898958357076
+    bytes_deviation: 0.7221038897846641
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.7221 > tol 0.0500 (analytic=134217792 measured=482953984)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=482953984 < 0.5xmax=5235228160);
+    note: 'bytes deviation 0.7221 > tol 0.0500 (analytic=134217792 measured=482978304)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=482978304 < 0.5xmax=5234613760);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 1073741952.0
-    measured_bytes: 5235228160.0
+    measured_bytes: 5234613760.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7949006386762711
+    bytes_deviation: 0.7948765656398687
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.7949 > tol 0.0500 (analytic=1073741952 measured=5235228160)
+    note: bytes deviation 0.7949 > tol 0.0500 (analytic=1073741952 measured=5234613760)
   - shape_id: P5
     analytic_bytes_total: 33554688.0
-    measured_bytes: 84437760.0
+    measured_bytes: 84467712.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6026103961071445
+    bytes_deviation: 0.60275130928135
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6026 > tol 0.0500 (analytic=33554688 measured=84437760)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=84437760 < 0.5xmax=5235228160);
+    note: 'bytes deviation 0.6028 > tol 0.0500 (analytic=33554688 measured=84467712)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=84467712 < 0.5xmax=5234613760);
       non-blocking per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -138,7 +138,7 @@ provenance:
   source_md_id: L2-23
   golden:
     oracle_kernel_equivalence: BLOCKED_UPSTREAM_BUG
-    verified_at: '2026-06-04T23:24:56Z'
+    verified_at: '2026-06-05T01:09:20Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

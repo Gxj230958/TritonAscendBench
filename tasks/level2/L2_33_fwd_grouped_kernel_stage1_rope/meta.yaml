@@ -33,7 +33,7 @@ cost_model:
     fp16_cube: 2*B*H*S*(2*C+R)
     vector: 8*B*H*S
   bytes:
-    hbm: (B*H*(C+R) + B*S*(C+R) + B*S*C + B*H*(C+1)) * dtype_size
+    hbm: 2*(B*H*C + 2*B*H*R + ceil(H/16)*B*R + ceil(H/16)*B*S*(2*C+R) + B*R) + 4*B*H*(C+1)
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: "5/5 gate shape(s) could not be measured / exceeded gpu_xcheck_tol=0.05:\
@@ -70,11 +70,11 @@ cost_model:
     \            # debug assert\n            if (cur_batch == 0 and cur_head == 0)\
     \ and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
     \ with more than one value is ambiguous"
-  xcheck_run_id: xcheck-2026-06-05-b54160cb
+  xcheck_run_id: xcheck-2026-06-05-8ab833b2
   xchecked_at: '2026-06-05'
   xcheck_evidence:
   - shape_id: P1
-    analytic_bytes_total: 6928.0
+    analytic_bytes_total: 8352.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -90,7 +90,7 @@ cost_model:
       \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
       \ with more than one value is ambiguous"
   - shape_id: P2
-    analytic_bytes_total: 41520.0
+    analytic_bytes_total: 49632.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -106,7 +106,7 @@ cost_model:
       \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
       \ with more than one value is ambiguous"
   - shape_id: P3
-    analytic_bytes_total: 184448.0
+    analytic_bytes_total: 226560.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -122,7 +122,7 @@ cost_model:
       \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
       \ with more than one value is ambiguous"
   - shape_id: P4
-    analytic_bytes_total: 417920.0
+    analytic_bytes_total: 492800.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -138,7 +138,7 @@ cost_model:
       \ 0) and split_kv_id < NUM_KV_SPLITS - 1:\n            ^\nBoolean value of Tensor\
       \ with more than one value is ambiguous"
   - shape_id: P5
-    analytic_bytes_total: 209024.0
+    analytic_bytes_total: 353280.0
     measured_bytes: null
     measured_via: null
     bytes_deviation: null
@@ -185,7 +185,7 @@ provenance:
   source_md_id: L2-33
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-04T23:27:25Z'
+    verified_at: '2026-06-05T01:11:49Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -276,4 +276,4 @@ classB_symbols: []
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-04T23:27:46Z'
+  captured_at: '2026-06-05T01:12:11Z'
