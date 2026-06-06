@@ -270,6 +270,35 @@ def _run_verify_one(
             "--output-dir",
             str(r10_dir),
         ]
+    elif action == "gpu-grade":
+        # Candidate-grade GPU smoke: run a real triton kernel through the
+        # process_isolation sandbox on this CUDA host. Writes a structured
+        # verdict JSON like oracle-equiv. Validates the GPU-backend sandbox
+        # path (CUDA pre-init, warmup-before-hook JIT, save-path warm, event
+        # timer) on the authoritative daemon GPU.
+        gg_dir = RESULTS / batch_id / "gpu_grade"
+        cmd = [
+            phase_python,
+            "scripts/loop/gpu_grade_one.py",
+            "--task",
+            task_id,
+            "--output-dir",
+            str(gg_dir),
+        ]
+    elif action == "gpu-rank":
+        # Trusted-operator cost-model ranking: run the task's own reference
+        # triton kernel via the oracle-equiv path with device-only CUDA-event
+        # timing, then fold t_npu with the cost-model t_ref into per-shape e.
+        # Writes a verdict JSON with correctness + s_t + per-shape e.
+        gr_dir = RESULTS / batch_id / "gpu_rank"
+        cmd = [
+            phase_python,
+            "scripts/loop/gpu_rank_one.py",
+            "--task",
+            task_id,
+            "--output-dir",
+            str(gr_dir),
+        ]
     elif action == "resolve":
         cmd = [
             phase_python,
@@ -341,6 +370,33 @@ def _run_verify_one(
                 tv = json.loads(vp.read_text())
                 verdict_status = tv.get("overall", "")
                 verdict_line = f"oracle-equiv {task_id}: {verdict_status}"
+            except (ValueError, OSError):
+                verdict_status = "VERDICT_PARSE_ERROR"
+        if not verdict_status:
+            verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
+    elif action == "gpu-grade":
+        # gpu_grade_one writes a structured verdict JSON (overall field).
+        vp = RESULTS / batch_id / "gpu_grade" / f"{task_id}.json"
+        if vp.is_file():
+            try:
+                gv = json.loads(vp.read_text())
+                verdict_status = gv.get("overall", "")
+                verdict_line = f"gpu-grade {task_id}: {verdict_status}"
+            except (ValueError, OSError):
+                verdict_status = "VERDICT_PARSE_ERROR"
+        if not verdict_status:
+            verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
+    elif action == "gpu-rank":
+        vp = RESULTS / batch_id / "gpu_rank" / f"{task_id}.json"
+        if vp.is_file():
+            try:
+                gv = json.loads(vp.read_text())
+                verdict_status = gv.get("overall", "")
+                # Surface ranked/total so the mailbox distinguishes a partial
+                # (e.g. MIXED 4/5) from a full (9/9) ranking at a glance.
+                _nr, _nt = gv.get("n_shapes_ranked"), gv.get("n_shapes_total")
+                _shapes = f" {_nr}/{_nt}" if _nr is not None else ""
+                verdict_line = f"gpu-rank {task_id}: {verdict_status}{_shapes}"
             except (ValueError, OSError):
                 verdict_status = "VERDICT_PARSE_ERROR"
         if not verdict_status:
@@ -426,7 +482,8 @@ def _handle_batch(
     accept_stale = bool(spec.get("accept_stale_cache", True))
     require_smoke = bool(spec.get("require_smoke", False))
     action = spec.get("action", "verify")
-    if action not in ("verify", "resolve", "oracle-equiv"):
+    if action not in ("verify", "resolve", "oracle-equiv", "gpu-grade",
+                      "gpu-rank"):
         # Fail-closed: an unknown action is an operator error, never a silent
         # downgrade to verify (that would emit a wrong verdict -- e.g. a
         # bit-exact S2 check for an oracle-equiv request).

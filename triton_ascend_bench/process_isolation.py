@@ -152,18 +152,18 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # W1.0 frozen protocol versions. Bump when the wire schema changes;
 # downstream W items pin against these.
-PROTOCOL_VERSION = 1        # parent -> child args schema
+PROTOCOL_VERSION = 2        # parent -> child args schema (v2: + backend)
 # v2 (R1-3): per-shape `event_ns` added — the timing-pass child's NPU
 # event-timer cross-check series (None on the dev machine; real on the
 # 910B). The parent feeds it to `timing.arbitrate_timing(event_ns=...)`.
 STATUS_SCHEMA_VERSION = 2   # child -> parent status.json schema
 
-# W1.3 timing-pass defaults (host-side; the spec's full 100-trial /
-# 10-sample loop is the NPU-machine config — kept overridable so the dev
-# machine can run a cheap pipeline-connectivity smoke).
-DEFAULT_N_WARMUP = 5
-DEFAULT_N_TRIALS = 30
-DEFAULT_SAMPLE_SIZE = 5
+# Timing-pass defaults aligned to specs/timing_arbitration.md (10 warmup /
+# 100 trials / 10 samples). Kept overridable so a dev-box smoke can drop to a
+# cheaper loop.
+DEFAULT_N_WARMUP = 10
+DEFAULT_N_TRIALS = 100
+DEFAULT_SAMPLE_SIZE = 10
 
 # Triton-Ascend compile-cache / scratch paths scrubbed between the two
 # passes so the timing pass cannot read a correctness-pass artifact.
@@ -225,20 +225,28 @@ class TwoPassResult:
 # with CLOCK_MONOTONIC_RAW host timing — and sends up durations + the
 # runner-selected sampled outputs. Never imports the oracle.
 #
-# W2.4 — before any candidate code runs the child installs the Layer E
-# `sys.addaudithook` runtime-defense hook, and once per shape it profiles
-# one candidate call for the NPU kernel-event / non-default-stream /
-# fallback diagnostics (kernel-event source stubbed on the dev machine).
+# W2.4 — after the candidate module loads but before any warmup/graded call the
+# child installs the Layer E `sys.addaudithook` runtime-defense hook (a brief
+# "compile" phase around the triton warmup; "graded" thereafter), and once per
+# shape it profiles one candidate call for the NPU kernel-event /
+# non-default-stream / fallback diagnostics (kernel-event source stubbed on dev).
 _CHILD = r'''
 import contextlib, json, math, sys, time, importlib.util
 from pathlib import Path
 import torch
 from safetensors.torch import load_file, save_file
+# Warm safetensors' lazy save-path import (`numpy.ctypeslib`, lazily pulled in
+# on first `np.ctypeslib` access in newer numpy) now, before the Layer E hook —
+# a post-hook lazy import fires an `exec` audit event the hook would block.
+import numpy.ctypeslib  # noqa: F401
 
-args = json.loads(sys.argv[1])
+args = json.loads(Path(sys.argv[1]).read_text())
 out_dir = Path(args["out_dir"])
 inputs_mode = args["inputs_mode"]
 pass_kind = args.get("pass_kind", "correctness")
+# Required (protocol v2): the parent always stamps it. Fail loud on a missing
+# key rather than silently routing a gpu request to the npu default.
+backend = args["backend"]
 
 
 def _fail_child(load_error):
@@ -289,7 +297,10 @@ def _fail_child(load_error):
 # pass cannot see. Imported here; *installed* below after every other
 # trusted-shim import has been cached.
 try:
-    from triton_ascend_bench.static_checker import install_runtime_audit_hook
+    from triton_ascend_bench.static_checker import (
+        install_runtime_audit_hook,
+        set_audit_phase,
+    )
 except Exception as e:  # noqa: BLE001
     _fail_child("trusted-shim import failed: "
                 "triton_ascend_bench.static_checker "
@@ -314,16 +325,26 @@ except Exception as e:  # noqa: BLE001
 #
 # R6-2: this import is also a trusted-shim import — a failure is a
 # misconfigured child, surfaced via `load_error`, not silently swallowed.
-# `backends.npu` imports cleanly even without `torch_npu` (it guards the
-# import); only the *device* is absent on the dev machine.
+# Both backends guard their accelerator import, so the module loads even
+# without torch_npu / CUDA; only the *device* is absent on the dev machine.
 try:
-    from triton_ascend_bench.backends.npu import NpuBackend as _NpuBackend
+    from triton_ascend_bench.backends import get_backend
+    _BACKEND = get_backend(backend)
 except Exception as e:  # noqa: BLE001
     _fail_child("trusted-shim import failed: "
-                "triton_ascend_bench.backends.npu "
-                "(%s: %s)" % (type(e).__name__, e))
-_PROFILER = _NpuBackend()
-_BACKEND = _PROFILER
+                "triton_ascend_bench.backends.%s "
+                "(%s: %s)" % (backend, type(e).__name__, e))
+_PROFILER = _BACKEND if hasattr(_BACKEND, "profile_call") else None
+
+# Force the accelerator's lazy device init NOW, while dlopen is still allowed:
+# CUDA defers its driver/runtime dlopen to the first device op, which would
+# otherwise fire inside a graded candidate call and be blocked by the Layer E
+# hook below (DeferredCudaCallError). No-op on NPU / the dev machine.
+try:
+    _BACKEND.ensure_initialized()
+except Exception as e:  # noqa: BLE001
+    _fail_child("backend init failed: %s (%s: %s)"
+                % (backend, type(e).__name__, e))
 
 # NOTE: the Layer E audit hook is NOT installed here — it is installed
 # below, AFTER the candidate `solution.py` module is loaded but BEFORE any
@@ -335,10 +356,20 @@ _BACKEND = _PROFILER
 # `fn(inp)` calls — see the install site after the candidate load below.
 
 
-def _make_event_timer():
-    """Return a fresh NPU `EventTimer` for ONE measured call, or `None`.
+def _sync_device():
+    """Flush in-flight device work so host timestamps bracket real execution.
+    No-op when the backend's accelerator is absent (dev box)."""
+    if _BACKEND is not None:
+        try:
+            _BACKEND.synchronize()
+        except Exception:  # noqa: BLE001
+            pass
 
-    `None` on the dev machine (no NPU) — the caller then uses a
+
+def _make_event_timer():
+    """Return a fresh `EventTimer` for ONE measured call, or `None`.
+
+    `None` on the dev machine (no accelerator) — the caller then uses a
     `contextlib.nullcontext()` and the trial is host-only timed.
     """
     if _BACKEND is None:
@@ -383,6 +414,18 @@ def _profile(fn, inp):
     return res.get("output"), diag
 
 
+def _to_device(d):
+    """Move tensor inputs to the backend device before fn(inp). No-op when the
+    accelerator is absent (dev box) — inputs stay on CPU."""
+    if _BACKEND is None:
+        return d
+    try:
+        dev = _BACKEND.device
+    except Exception:  # noqa: BLE001 — accelerator absent on the dev box.
+        return d
+    return {k: (v.to(dev) if hasattr(v, "to") else v) for k, v in d.items()}
+
+
 def _merge(tensors_path, sidecar_path):
     """Rebuild a mixed inputs dict from a safetensors payload + JSON sidecar.
 
@@ -396,7 +439,7 @@ def _merge(tensors_path, sidecar_path):
     sidecar = json.loads(Path(sidecar_path).read_text())
     for k, v in sidecar.items():
         merged[k] = v
-    return merged
+    return _to_device(merged)
 
 
 spec = importlib.util.spec_from_file_location("_candidate", args["solution"])
@@ -416,16 +459,50 @@ except Exception as e:  # noqa: BLE001
     status["load_error"] = f"{type(e).__name__}: {e}"
     fn = None
 
-# W2.4 / R6-2 Layer E: install the sys.addaudithook runtime-defense hook
-# NOW — after the candidate module body has been loaded (it passed the
-# static AST whitelist) but BEFORE any graded `fn(inp)` invocation. The
-# hook traps dynamic-import / exec / subprocess / ctypes the static pass
-# cannot see; CPython emits an `exec` audit event for module-code
-# execution, so installing it earlier would have blocked the candidate's
-# own load. Every `fn(inp)` call below — correctness and timing — runs
-# under this hook. The install is unconditional and not swallowed: the
-# helper imported cleanly above (R6-2), so this cannot silently no-op.
+# Q3: a triton kernel needs the compile warmup; a torch-only candidate does
+# not. Read the (vetted) source once, before the hook, to skip the extra call
+# for non-triton candidates. Fail-open (warmup) if the source is unreadable.
+try:
+    _uses_triton = "triton" in Path(args["solution"]).read_text()
+except Exception:  # noqa: BLE001
+    _uses_triton = True
+
+# W2.4 / R6-2 Layer E: install the sys.addaudithook runtime-defense hook NOW —
+# after the candidate module body loaded (vetted source) but BEFORE any warmup
+# or graded `fn(inp)` call. It defaults to the "graded" phase (everything
+# blocked); the compile warmup below briefly flips it to the narrow "compile"
+# phase. CPython emits an `exec` audit event for module-code execution, so
+# installing earlier would have blocked the candidate's own load. The install
+# is unconditional and not swallowed (R6-2).
 install_runtime_audit_hook()
+
+# Warmup-compile (Q2 phase-aware, Q3 triton-gated): a triton kernel JIT-compiles
+# + dlopens its module on the FIRST call. Run it ONCE per shape under the narrow
+# "compile" audit phase (native loads allowed, process/shell escapes still
+# blocked) so the graded calls below reuse triton's compiled-kernel cache and
+# never dlopen. `finally` restores the "graded" phase even on a warmup error, so
+# the lockdown is never left relaxed. Gated to a real accelerator AND a triton
+# candidate: the dev box / torch-only paths take NO extra call, keeping the
+# exactly-one-graded-call R5/R6 invariant intact. Errors are swallowed — a
+# genuine candidate fault resurfaces in the graded passes below.
+if (fn is not None and _BACKEND is not None
+        and _BACKEND.needs_compile_warmup() and _uses_triton):
+    set_audit_phase("compile")
+    try:
+        for _wshape in args["shapes"]:
+            try:
+                if inputs_mode == "single":
+                    _winp = _merge(_wshape["input_tensors"],
+                                   _wshape["input_sidecar"])
+                else:
+                    _wt = _wshape["trials"][0]
+                    _winp = _merge(_wt["input_tensors"], _wt["input_sidecar"])
+                fn(_winp)
+            except Exception:  # noqa: BLE001
+                pass
+        _sync_device()
+    finally:
+        set_audit_phase("graded")
 
 
 def _new_rec():
@@ -596,18 +673,29 @@ def _timing_shape(fn, shape, rec):
             # there is no second call — cannot run honestly on the timed
             # call and cheat on a re-run that produces the sampled output
             # (R5-2 / R6-1).
+            _sync_device()
             h0 = _host_ns()
-            with bracket:
-                out, diag = _profile(fn, inp)
+            # The post-bracket sync runs in `finally` so an exception from the
+            # candidate still drains the device — otherwise its in-flight async
+            # work would leak into the next shape in this child.
+            try:
+                with bracket:
+                    out, diag = _profile(fn, inp)
+            finally:
+                _sync_device()
             h1 = _host_ns()
             rec["kernel_event_present"] = diag.get("kernel_event_present")
             rec["stream_nondefault"] = diag.get("stream_nondefault")
             rec["fallback_signal"] = diag.get("fallback_signal")
             flat, err = _flatten(out)
         else:
+            _sync_device()
             h0 = _host_ns()
-            with bracket:
-                out = fn(inp)
+            try:
+                with bracket:
+                    out = fn(inp)
+            finally:
+                _sync_device()
             h1 = _host_ns()
             flat, err = _flatten(out)
         if err is not None:
@@ -708,6 +796,7 @@ def run_candidate_isolated(
     n_warmup: int = DEFAULT_N_WARMUP,
     sample_size: int = DEFAULT_SAMPLE_SIZE,
     sampled_indices: dict[str, list[int]] | None = None,
+    backend: str = "npu",
 ) -> CandidateRunResult:
     """Spawn the candidate in an isolated subprocess; return its per-shape
     outputs (loaded from safetensors). Never executes candidate code in
@@ -812,6 +901,7 @@ def run_candidate_isolated(
             "n_warmup": n_warmup,
             "sample_size": sample_size,
             "sampled_indices": sampled_indices or {},
+            "backend": backend,
             "shapes": shapes_arg,
         }
         # R6-2: prepend REPO_ROOT to the child's PYTHONPATH so its
@@ -849,8 +939,12 @@ def run_candidate_isolated(
         # leader; its PGID == its PID, and `os.killpg(pgid, SIGKILL)`
         # reaps every descendant.
         timed_out = False
+        # Pass args via a file, not argv: the per-trial `shapes` payload scales
+        # with n_trials (100 per spec) and overflows ARG_MAX on argv.
+        args_path = tdp / "_args.json"
+        args_path.write_text(json.dumps(args))
         proc = subprocess.Popen(
-            [sys.executable, str(child_py), json.dumps(args)],
+            [sys.executable, str(child_py), str(args_path)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=td,
@@ -995,6 +1089,7 @@ def run_two_pass(
     n_warmup: int = DEFAULT_N_WARMUP,
     sample_size: int = DEFAULT_SAMPLE_SIZE,
     golden_fixed_inputs: dict[str, object] | None = None,
+    backend: str = "npu",
 ) -> TwoPassResult:
     """W1.3 dual-sandbox driver — two independent candidate subprocesses.
 
@@ -1044,7 +1139,7 @@ def run_two_pass(
     # Pass 1 — correctness sandbox.
     correctness = run_candidate_isolated(
         solution_path, correctness_inputs,
-        timeout_s=timeout_s, pass_kind="correctness")
+        timeout_s=timeout_s, pass_kind="correctness", backend=backend)
 
     # Between passes — the correctness-pass process group was SIGKILLed in
     # `run_candidate_isolated` (R3-4); here we scrub the cross-pass
@@ -1082,7 +1177,7 @@ def run_two_pass(
         solution_path, timing_inputs,
         timeout_s=timeout_s, pass_kind="timing",
         n_warmup=n_warmup, sample_size=sample_size,
-        sampled_indices=sampled_indices)
+        sampled_indices=sampled_indices, backend=backend)
 
     return TwoPassResult(correctness=correctness, timing=timing,
                          scrubbed=scrubbed)

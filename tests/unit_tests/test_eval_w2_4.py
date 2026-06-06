@@ -160,7 +160,7 @@ def test_run_task_metamorphic_real_registry_executes_transform(monkeypatch):
     }
 
     # Stub the context build: honest kernel — silu(0)*1 == 0.
-    def _fake_ctx(solution_path, sd, sid, tol):
+    def _fake_ctx(solution_path, sd, sid, tol, backend="npu"):
         base = {"x1": torch.randn(8)}
         return adversarial.MetamorphicContext(
             base_inputs=base,
@@ -191,7 +191,7 @@ def test_run_task_metamorphic_real_registry_catches_cheat(monkeypatch):
     task = _FakeTask({"runner_checks": {
         "metamorphic_checks": [{"name": "zero_x1_yields_zero"}]}})
 
-    def _fake_ctx(solution_path, sd, sid, tol):
+    def _fake_ctx(solution_path, sd, sid, tol, backend="npu"):
         base = {"x1": torch.randn(8)}
         # cheat: constant output, ignores x1.
         return adversarial.MetamorphicContext(

@@ -4187,26 +4187,72 @@ def _check_call_allow_either(
 # *runtime fallback* line: a `sys.addaudithook` callback that traps
 # dynamically-constructed dangerous operations the static pass cannot see
 # (e.g. an `exec` reached via an alias, a `subprocess` spawned through a
-# data-dependent path). The verified runner installs it inside the
-# isolated candidate child *before* candidate code runs.
+# data-dependent path). The verified runner installs it inside the isolated
+# candidate child after the candidate MODULE loads (its body is vetted source)
+# but before any graded `fn(inp)` call.
+#
+# Phase-aware (compile warmup): a triton kernel JIT-compiles its module on the
+# FIRST call, which must happen before the graded calls. The hook is installed
+# BEFORE that warmup call and runs in a ``"compile"`` phase. A triton JIT is a
+# code-generation engine, so compiling genuinely needs ``exec`` + ``compile``
+# (codegen), a ``subprocess.Popen`` (ptxas/ldconfig/file), and ``ctypes`` native
+# loads — the ``"compile"`` phase permits exactly that set, and ONLY then.
+# HONEST RESIDUAL: this is a real narrowing over a fully-unhooked warmup (the
+# ``os.*`` process/shell escapes stay blocked in every phase) but NOT strong
+# containment — the compile window exposes the codegen toolchain for ONE bounded
+# call in the isolated, killed-after, Layer-A-D-vetted child. Once the phase
+# flips back to ``"graded"`` EVERY one of those events aborts again. The clean
+# fix — a throwaway compile subprocess that populates triton's cache + a fully
+# locked-down grade child that only reads it — is tracked as future hardening.
 
 # Audit events that abort the candidate process when raised. CPython emits
 # these for the corresponding dangerous operations regardless of how the
 # call was syntactically spelled (alias, getattr, exec'd string …), so the
 # hook catches what the static AST scan misses.
-_AUDIT_BLOCKED_EVENTS = frozenset({
-    "exec",                 # exec()/eval() of a code object
-    "compile",              # compile() of a source string
-    "subprocess.Popen",     # any subprocess spawn
+# Direct OS process / shell escapes — blocked in EVERY phase, including the
+# compile warmup. A triton JIT never shells out or forks; these are the most
+# direct sandbox escapes, so they stay blocked even while the toolchain compiles.
+_AUDIT_ALWAYS_BLOCKED = frozenset({
     "os.system",            # shell-out
     "os.exec",              # exec-family
     "os.spawn",             # spawn-family
     "os.fork",              # fork
+})
+
+# Events a triton kernel's JIT genuinely needs to GENERATE, compile, and load its
+# module: Python code-gen (exec/compile), the compiler-toolchain subprocess
+# (ptxas/ldconfig/file), and native-library loads (ctypes). Blocked during GRADED
+# execution; permitted ONLY during the pre-grading compile warmup, after which
+# the kernel is cached and never recompiles. HONEST RESIDUAL: a triton JIT is a
+# code-generation engine, so this compile window inherently exposes a powerful
+# toolchain (only `os.*` escapes stay blocked) for ONE bounded call in the
+# isolated, killed-after child whose source already passed the Layer A-D static
+# whitelist. The clean fix — a separate locked-down grade child reusing a cache
+# a throwaway compile subprocess populated — is tracked as future hardening.
+_AUDIT_COMPILE_ALLOWED = frozenset({
+    "exec",                 # triton codegen exec()
+    "compile",              # triton codegen compile()
+    "subprocess.Popen",     # compiler toolchain (ptxas/ldconfig/file)
     "ctypes.dlopen",        # native library load
     "ctypes.dlsym",         # native symbol resolution
     "ctypes.call_function", # raw native call
-    "import",               # __import__ — see _AUDIT_IMPORT_DENY below
 })
+
+# Back-compat alias: the full set blocked during graded execution.
+_AUDIT_BLOCKED_EVENTS = _AUDIT_ALWAYS_BLOCKED | _AUDIT_COMPILE_ALLOWED | {"import"}
+
+# Audit phase: "graded" (fail-closed default — everything blocked) or "compile"
+# (the narrow warmup window where _AUDIT_COMPILE_ALLOWED events pass).
+_AUDIT_PHASE = "graded"
+
+
+def set_audit_phase(phase: str) -> None:
+    """Switch the Layer E hook between the ``"compile"`` warmup window (native
+    library loads allowed) and ``"graded"`` execution (all blocked). The child
+    sets ``"compile"`` only around the pre-hook-grading warmup call."""
+    global _AUDIT_PHASE
+    _AUDIT_PHASE = phase
+
 
 # Modules a runtime `import` audit event must refuse. The Layer A static
 # import denylist already rejects these in source; this is the runtime
@@ -4232,10 +4278,19 @@ def _runtime_audit_hook(event: str, audit_args: tuple) -> None:
     process) — this is the intended fail-closed behaviour inside the
     isolated candidate child. Never installed in the trusted parent.
     """
-    if event in _AUDIT_BLOCKED_EVENTS and event != "import":
+    if event in _AUDIT_ALWAYS_BLOCKED:
         raise RuntimeAuditViolation(
             f"Layer E: blocked runtime operation {event!r}"
         )
+    if event in _AUDIT_COMPILE_ALLOWED:
+        # Compile-toolchain events (native loads + the ptxas/ldconfig subprocess)
+        # pass ONLY in the compile-warmup window; once the phase is "graded" they
+        # abort like everything else.
+        if _AUDIT_PHASE != "compile":
+            raise RuntimeAuditViolation(
+                f"Layer E: blocked runtime operation {event!r}"
+            )
+        return
     if event == "import":
         # audit_args for "import" is
         # (module, filename, sys.path, sys.meta_path, sys.path_hooks).
@@ -4254,11 +4309,14 @@ _AUDIT_HOOK_INSTALLED = False
 def install_runtime_audit_hook() -> bool:
     """Install the Layer E `sys.addaudithook` runtime-defense hook.
 
-    Called by `process_isolation`'s candidate child at start-up, *before*
-    any candidate code loads. Idempotent: a second call is a no-op and
-    returns ``False``; the first install returns ``True``. Audit hooks
-    cannot be removed once installed (CPython has no `removeaudithook`),
-    so the idempotency guard avoids stacking duplicates across re-entry.
+    Called by `process_isolation`'s candidate child AFTER the candidate module
+    body has loaded (vetted source; loading it emits an `exec` event the hook
+    would otherwise block) but BEFORE any warmup or graded `fn(inp)` call. The
+    hook starts in the fail-closed ``"graded"`` phase; the compile warmup, if
+    any, briefly flips it to ``"compile"`` (see `set_audit_phase`). Idempotent: a
+    second call is a no-op and returns ``False``; the first install returns
+    ``True``. Audit hooks cannot be removed once installed (CPython has no
+    `removeaudithook`), so the idempotency guard avoids stacking duplicates.
 
     Returns ``True`` if this call installed the hook, ``False`` if it was
     already installed.

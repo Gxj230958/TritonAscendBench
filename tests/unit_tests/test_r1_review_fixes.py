@@ -443,14 +443,15 @@ def _run_child_merge(tensors_path: str, sidecar_path: str) -> dict:
 
     from safetensors.torch import load_file as _lf
 
-    # Parse the _CHILD source and pull out the `_merge` function def.
+    # Parse the _CHILD source and pull out `_merge` + its `_to_device` helper.
+    # `_BACKEND=None` makes `_to_device` a no-op (dev box), so the test pins
+    # the real sentinel-stripping path without an accelerator.
     tree = ast.parse(pi._CHILD)
-    merge_def = next(
-        n for n in tree.body
-        if isinstance(n, ast.FunctionDef) and n.name == "_merge")
-    ns: dict = {"load_file": _lf, "json": json, "Path": Path}
+    defs = {n.name: n for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.name in ("_to_device", "_merge")}
+    ns: dict = {"load_file": _lf, "json": json, "Path": Path, "_BACKEND": None}
     exec(  # noqa: S102 — running our own vetted child snippet, not input.
-        compile(ast.Module(body=[merge_def], type_ignores=[]),
-                "<child-merge>", "exec"),
+        compile(ast.Module(body=[defs["_to_device"], defs["_merge"]],
+                           type_ignores=[]), "<child-merge>", "exec"),
         ns)
     return ns["_merge"](tensors_path, sidecar_path)

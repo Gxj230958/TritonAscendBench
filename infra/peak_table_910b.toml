@@ -32,30 +32,29 @@ device = "Ascend 910B / Atlas A2"
 
 [compute_class.fp16_cube]
 # Cube (matrix) 单元 fp16 累加峰值算力。
-peak_tflops = 256.0   # TFLOP/s; 来源: 华为昇腾 910B 公开规格 (FP16 算力 ~256 TFLOPS),
-                      # 与 version_matrix.toml [hardware.910b].peak_fp16_tflops 一致。
+peak_tflops = 256.0   # TFLOP/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+provenance = "huawei-official"
 description = "Cube unit, fp16 matrix multiply-accumulate"
 
 [compute_class.bf16_cube]
-# Cube 单元 bf16 累加峰值算力。910B Cube 对 bf16 与 fp16 走同一矩阵流水,
-# 公开规格未单列 bf16,按与 fp16 同档处理。
-peak_tflops = 256.0   # TFLOP/s; [unverified] — 公开规格未单列 bf16 cube 峰值,
-                      # 此处按 fp16_cube 同档假设,待 910B 实机核实。
+# Cube 单元 bf16 峰值。公开规格未单列 bf16, 按 fp16 同档 (同一矩阵流水) 假设。
+peak_tflops = 256.0   # TFLOP/s; 按 fp16_cube 同档假设, 非官方单列。无 task 引用 bf16_cube。
+provenance = "architecture-estimate"
 description = "Cube unit, bf16 matrix multiply-accumulate"
 
 [compute_class.int8]
 # Cube 单元 int8 量化峰值算力。
-peak_tops = 512.0     # TOP/s; 来源: 华为昇腾 910B 公开规格 (INT8 算力 ~512 TOPS),
-                      # 与 version_matrix.toml [hardware.910b].peak_int8_tops 一致。
+peak_tops = 512.0     # TOP/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+provenance = "huawei-official"
 description = "Cube unit, int8 quantized multiply-accumulate"
 
 [compute_class.vector]
-# Vector (SIMD) 单元逐元素 / 归约峰值算力。910B 公开规格未单列 vector 单元
-# 的 FLOPS 峰值;vector 算力远低于 cube,此值对 vector-bound 算子的 t_ref 计算
-# 必不可少,但暂无公开权威数字。
-peak_tflops = 0.0     # TFLOP/s; [unverified] — 公开规格未给 vector 单元峰值算力,
-                      # 占位 0.0,须在 910B 实机用 microbenchmark 实测后回填。
-                      # loader 会对 π_c<=0 的类拒绝并报错,强制核实后才可用于评分。
+# Vector (SIMD/AIV) 单元峰值算力。华为不单列 vector; 取第三方学术 spec
+# (arXiv 2505.14022 Table1 910B2C 48-AIV Vector@FP16=20T + CSET, 微架构推算一致)。
+peak_tflops = 20.0    # TFLOP/s FP16; provenance=academic-spec -> 排名可用, 绝对效率%
+                      # 待 910B microbench。SKU 相关: 48 AIV=20T / 40 AIV=16.7T,
+                      # 用 npu-smi 确认机器 SKU 后填对应值。
+provenance = "third-party-academic-spec"
 description = "Vector unit, elementwise / reduction FLOPS"
 
 # ============================================================================
@@ -65,9 +64,8 @@ description = "Vector unit, elementwise / reduction FLOPS"
 
 [resource.hbm]
 # 片上 HBM (片内显存) 峰值带宽。
-peak_bandwidth_gbps = 1600.0  # GB/s; 来源: 华为昇腾 910B 公开规格
-                              # (HBM 带宽 ~1.6 TB/s),与 version_matrix.toml
-                              # [hardware.910b].hbm_bandwidth_gbps 一致。
+peak_bandwidth_gbps = 1600.0  # GB/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+provenance = "huawei-official"
 description = "On-package HBM memory bandwidth"
 
 [resource.interconnect]

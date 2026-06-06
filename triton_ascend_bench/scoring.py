@@ -135,6 +135,10 @@ class TaskMeasurement:
     # leaves this True and is still scored as ε — its data was fine, the
     # *candidate* failed.
     roofline_data_complete: bool = True
+    # True iff every referenced peak is vendor-official / on-device-measured.
+    # Gates absolute "% of Roofline" claims; ranking only needs
+    # roofline_data_complete (an academic-spec peak ranks, not absolute).
+    absolute_verified: bool = False
 
     @property
     def all_statuses_ok(self) -> bool:
@@ -316,8 +320,8 @@ def shape_efficiency(
     """Per-shape Roofline efficiency ``e = min(P_CAP, t_ref / t_npu)``.
 
     Theory bounds ``e`` to ``(0, 1]`` (``t_ref`` is the floor); a value
-    ``> 1`` is cost-model under-estimate / measurement noise and is clamped
-    by ``P_CAP``. Non-finite / non-positive inputs raise ``ValueError`` so a
+    ``> 1`` is a cost-model over-estimate (t_ref above the measured latency)
+    or measurement noise, and is clamped by ``P_CAP``. Non-finite / non-positive inputs raise ``ValueError`` so a
     caller cannot smuggle a NaN past the cap (``min(p_cap, nan) == p_cap``
     on most platforms — a gaming vector).
     """

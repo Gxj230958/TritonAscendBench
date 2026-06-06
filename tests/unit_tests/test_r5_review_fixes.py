@@ -244,8 +244,10 @@ def test_r5_4_provenance_pair_from_same_shape():
     result.shape_results = [s1, s2]
 
     tm = result.task_measurement()
-    # The pair MUST be S2's (20, 40), never (S1.t_ref=10, S2.t_npu=40).
-    assert tm.baseline_ns == 20.0
+    # The pair MUST be S2's, never spliced (S1.t_ref=10, S2.t_npu=40).
+    # baseline_ns is t_ref(s) converted to ns = 20.0 * 1e9; measured_ns
+    # is t_npu (ns).
+    assert tm.baseline_ns == 20.0e9
     assert tm.measured_ns == 40.0
 
 

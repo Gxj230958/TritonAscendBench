@@ -25,47 +25,51 @@ class EventTimer:
             out = fn(inp)                      # the ONE measured call
         event_ns = timer.elapsed_ns()          # reads start.elapsed_time(end)
 
-    `__enter__` records the start event on the current stream; `__exit__`
-    records the end event and syncs so `elapsed_time` is readable. The
-    candidate `fn` is invoked exactly once — by the caller, inside the
-    `with` block — so a stateful candidate cannot be handed a second,
-    untimed call (R6-1 / re-closes the R5-2 stateful-candidate hole).
+    `__enter__`/`__exit__` only RECORD the start/end events on the current
+    stream — they do NOT synchronize. The trusted-shim caller already drains
+    the device before h0 and again before reading, so an in-bracket sync would
+    only add a redundant synchronize to host_ns and bias small-kernel latency.
+    The candidate `fn` is invoked exactly once — by the caller, inside the
+    `with` block — so a stateful candidate cannot be handed a second, untimed
+    call (R6-1 / re-closes the R5-2 stateful-candidate hole).
 
     On the dev machine there is no NPU; `NpuBackend.event_timer()` returns
     `None` and the caller degrades to host-only timing.
     """
 
-    def __init__(self, sync: Callable | None = None) -> None:
-        self._sync = sync
+    def __init__(self) -> None:
         self._ev_start = torch.npu.Event(enable_timing=True)
         self._ev_end = torch.npu.Event(enable_timing=True)
+        self._ended = False
         self._elapsed_ns: int | None = None
 
     def __enter__(self) -> "EventTimer":
-        if self._sync:
-            self._sync()
         self._ev_start.record()  # current stream
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:
-        self._ev_end.record()
-        if self._sync:
-            self._sync()
-        # PyTorch / torch_npu API: `start.elapsed_time(end)` returns the
-        # elapsed time FROM the start event TO the end event. The receiver
-        # must be the earlier (start) event and the argument the later
-        # (end) event — the reversed form yields a wrong / negative
-        # duration on a real 910B. Result is milliseconds; convert to ns.
-        # Only read a clean exit — on an exception the bracket is
-        # incomplete and `event_ns` stays None.
+        # Record the end event only on a clean exit; an exception leaves the
+        # bracket incomplete and elapsed_ns() stays None.
         if exc_type is None:
-            self._elapsed_ns = int(
-                self._ev_start.elapsed_time(self._ev_end) * 1e6)
+            self._ev_end.record()
+            self._ended = True
         return False  # never suppress an exception from the measured call
 
     def elapsed_ns(self) -> int | None:
-        """Event-measured nanoseconds for the bracketed call, or ``None``
-        when the bracket did not complete cleanly."""
+        """Event-measured nanoseconds for the bracketed call, or ``None`` when
+        the bracket did not complete cleanly.
+
+        CONTRACT: the caller must device-sync between ``__exit__`` and this call
+        (the trusted shim's post-bracket synchronize) so both events are
+        complete. PyTorch / torch_npu API: ``start.elapsed_time(end)`` returns
+        the elapsed time FROM the start event TO the end event — the receiver
+        must be the earlier (start) event, the argument the later (end) event;
+        the reversed form yields a wrong / negative duration on a real 910B.
+        Result is milliseconds; convert to ns.
+        """
+        if self._ended and self._elapsed_ns is None:
+            self._elapsed_ns = int(
+                self._ev_start.elapsed_time(self._ev_end) * 1e6)
         return self._elapsed_ns
 
 
@@ -82,6 +86,19 @@ class NpuBackend:
         if _NPU_AVAILABLE:
             torch.npu.synchronize()
 
+    def needs_compile_warmup(self) -> bool:
+        """True when a real NPU is present: a triton-ascend kernel JIT-compiles
+        + loads on first call, which must happen before the Layer E hook. False
+        on the dev box (no device, no JIT) — preserving the exactly-one-graded-
+        call R5/R6 invariant there."""
+        return _NPU_AVAILABLE
+
+    def ensure_initialized(self) -> None:
+        """No-op: ``import torch_npu`` initializes the device eagerly, so
+        there is no deferred dlopen to force before the Layer E hook (unlike
+        CUDA's lazy init). Defined for backend-interface symmetry."""
+        return
+
     def dtype_supported(self, dtype: torch.dtype) -> bool:
         # 910B does not have FP8 cube arithmetic; software emulation only.
         if dtype in {getattr(torch, "float8_e4m3fn", None), getattr(torch, "float8_e5m2", None)}:
@@ -93,7 +110,7 @@ class NpuBackend:
             return "<no torch_npu>"
         return torch.npu.get_device_name(0)
 
-    def event_timer(self, sync: Callable | None = None) -> EventTimer | None:
+    def event_timer(self) -> EventTimer | None:
         """W1.3 / R1-3 / R6-1 timing cross-check seam
         (specs/timing_arbitration.md).
 
@@ -106,10 +123,12 @@ class NpuBackend:
         the SAME single measured `fn(inp)` invocation that host time and
         the profiler observe — the timing-pass child does::
 
-            timer = backend.event_timer(sync)
+            timer = backend.event_timer()
             with (timer or contextlib.nullcontext()):
                 out = fn(inp)            # the one measured call
             event_ns = timer.elapsed_ns() if timer else None
+
+        The timer records only; the caller owns the surrounding device syncs.
 
         The candidate is never invoked a second time merely to take an
         event sample (that re-opened the R5-2 stateful-candidate hole —
@@ -130,7 +149,7 @@ class NpuBackend:
         """
         if not _NPU_AVAILABLE:
             return None
-        return EventTimer(sync=sync)
+        return EventTimer()
 
     def profile_call(self, fn: Callable, inputs: object) -> dict:
         """W2.4 runtime-defense profiler seam.

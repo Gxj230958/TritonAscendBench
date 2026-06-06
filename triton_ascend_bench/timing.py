@@ -92,10 +92,14 @@ def time_one_run(
     if sync:
         sync()
     t0 = _host_ns()
-    with bracket:
-        fn(*args, **kwargs)
-    if sync:
-        sync()
+    # The post sync runs in `finally` so an exception from `fn` still drains the
+    # device; the event timer records only and is read after that sync.
+    try:
+        with bracket:
+            fn(*args, **kwargs)
+    finally:
+        if sync:
+            sync()
     t1 = _host_ns()
     host_ns = t1 - t0
 

@@ -42,7 +42,7 @@ torch.npu.synchronize()  # device-wide sync — capture all streams
 
 host_t1 = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
 host_ms = (host_t1 - host_t0) / 1e6
-event_ms = event_end.elapsed_time(event_start)
+event_ms = event_start.elapsed_time(event_end)  # start → end (receiver = earlier event)
 
 # Authoritative: host_ms (covers all streams)
 # Cross-check: event_ms

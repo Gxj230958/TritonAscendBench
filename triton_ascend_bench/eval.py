@@ -159,6 +159,9 @@ class TaskEvalResult:
     # `scoring.aggregate_perf` keeps such a task out of the perf geomean
     # rather than ε-collapsing the candidate's score for it.
     roofline_data_complete: bool = True
+    # True iff every referenced peak is vendor-official / on-device-measured.
+    # Gates absolute efficiency claims (not ranking). Set by _apply_roofline.
+    absolute_verified: bool = False
     # W1.4 / W4.3: orthogonal evaluability status. W1.4 only introduces it
     # (always "evaluated" here); the unsupported / blocked producers land
     # in W4.3.
@@ -195,7 +198,8 @@ class TaskEvalResult:
         # Scoring uses s_t, not this ratio; the pair is provenance only.
         rep = next((r for r in self.shape_results
                     if r.t_ref is not None and r.t_npu is not None), None)
-        t_ref = rep.t_ref if rep is not None else None
+        # baseline_ns is ns — convert rep.t_ref (seconds) here.
+        t_ref_ns = rep.t_ref * 1e9 if rep is not None else None
         t_npu = rep.t_npu if rep is not None else None
         return scoring.TaskMeasurement(
             task_id=self.task_id,
@@ -205,10 +209,11 @@ class TaskEvalResult:
             performance_flags=list(self.performance_flags),
             fallback_detected=self.fallback_detected,
             measured_ns=t_npu,
-            baseline_ns=t_ref,
+            baseline_ns=t_ref_ns,
             s_t=self.s_t,
             task_status=self.task_status,
             roofline_data_complete=self.roofline_data_complete,
+            absolute_verified=self.absolute_verified,
         )
 
 
@@ -332,7 +337,8 @@ def _verify_sampled_outputs_offline(
     return {"checked": checked, "mismatch": mismatch, "errors": 0}
 
 
-def _apply_runtime_diagnostics(result: TaskEvalResult, two) -> None:
+def _apply_runtime_diagnostics(
+    result: TaskEvalResult, two, backend: str = "npu") -> None:
     """W2.4: fold the child-side profiler diagnostics into the run status.
 
     The candidate child profiled one call per shape and shipped up three
@@ -354,10 +360,20 @@ def _apply_runtime_diagnostics(result: TaskEvalResult, two) -> None:
     the warmed-up steady state); the correctness pass is the fallback
     source when a shape has no timing record. A ``None`` signal means
     "not measured on this host" (dev-machine stub) and is ignored — it
-    never flips a status.
+    never flips a status. On the GPU backend, where the profiler parser is
+    not yet implemented, an all-``None`` run adds the non-status
+    ``gpu_antihack_unverified`` provenance flag so the result is marked
+    "anti-hack gate not active" instead of passing as if checked.
     """
     fallback = False
     nondefault = False
+    # GPU anti-hack gate provenance: the GPU profiler trace parser is not yet
+    # implemented (its diagnostics are all-None until the H200 parser lands),
+    # so a GPU run's anti-hack gate is inactive. A shape is "verified" only
+    # when the profiler emitted ALL THREE signals; a partial parser leaving any
+    # signal None still counts as unverified (future-proof).
+    gpu_all_verified = True
+    gpu_saw_shape = False
     for r in result.shape_results:
         sid = r.shape_id
         tscr = two.timing.per_shape.get(sid)
@@ -372,6 +388,13 @@ def _apply_runtime_diagnostics(result: TaskEvalResult, two) -> None:
             diag = cscr if (cscr is not None
                             and (cscr.fallback_signal is not None
                                  or cscr.stream_nondefault is not None)) else tscr
+        if backend == "gpu":
+            gpu_saw_shape = True
+            src = tscr if tscr is not None else cscr
+            if (src is None or src.kernel_event_present is None
+                    or src.stream_nondefault is None
+                    or src.fallback_signal is None):
+                gpu_all_verified = False
         if diag is None:
             continue
         if diag.fallback_signal is True:
@@ -383,6 +406,9 @@ def _apply_runtime_diagnostics(result: TaskEvalResult, two) -> None:
         result.fallback_detected = True
         if "torch_fallback" not in result.performance_flags:
             result.performance_flags.append("torch_fallback")
+    if backend == "gpu" and (not gpu_saw_shape or not gpu_all_verified):
+        if "gpu_antihack_unverified" not in result.performance_flags:
+            result.performance_flags.append("gpu_antihack_unverified")
     if nondefault:
         if "invalid_stream" not in result.performance_flags:
             result.performance_flags.append("invalid_stream")
@@ -448,6 +474,7 @@ def _run_task_metamorphic(
     shapes_doc: dict | None = None,
     rep_shape_id: str | None = None,
     tol_cls=None,
+    backend: str = "npu",
 ) -> list:
     """W2.4 / R7-3: run the task's declared metamorphic checks for real.
 
@@ -483,7 +510,7 @@ def _run_task_metamorphic(
     if (solution_path is not None and shapes_doc is not None
             and rep_shape_id is not None and tol_cls is not None):
         ctx = _build_metamorphic_context(
-            solution_path, shapes_doc, rep_shape_id, tol_cls)
+            solution_path, shapes_doc, rep_shape_id, tol_cls, backend=backend)
         if ctx is not None:
             transformations = adversarial.build_metamorphic_transformations(
                 norm, ctx)
@@ -497,6 +524,7 @@ def _build_metamorphic_context(
     shapes_doc: dict,
     rep_shape_id: str,
     tol_cls,
+    backend: str = "npu",
 ):
     """Build the :class:`adversarial.MetamorphicContext` for a task (R7-3).
 
@@ -523,7 +551,7 @@ def _build_metamorphic_context(
         try:
             res = process_isolation.run_candidate_isolated(
                 solution_path, {rep_shape_id: inp},
-                pass_kind="correctness")
+                pass_kind="correctness", backend=backend)
         except Exception as e:                          # noqa: BLE001
             logger.warning("metamorphic: candidate run failed: %s", e)
             return None
@@ -611,6 +639,7 @@ def _apply_roofline(
     result: TaskEvalResult,
     task,
     shapes_doc: dict,
+    peak_table_path: Path | str | None = None,
 ) -> None:
     """W1.4: fill each shape's Roofline ``t_ref`` / ``W_c`` / ``M_r`` /
     ``efficiency`` and aggregate the task-level ``s_t``.
@@ -654,7 +683,7 @@ def _apply_roofline(
         # would reject any task the moment an unrelated peak is an
         # [unverified] placeholder. Per-task verification is applied
         # below against only the keys this cost model references.
-        compute_peaks, resource_peaks = peak_table.load_peak_table()
+        compute_peaks, resource_peaks = peak_table.load_peak_table(peak_table_path)
     except peak_table.PeakTableError as e:
         # The table itself is missing / unparseable / omits a required
         # key — a real benchmark-data fault, fail-closed for every shape.
@@ -686,15 +715,27 @@ def _apply_roofline(
             unverified_refs.append(f"resource.{resource}")
     if unverified_refs:
         msg = (
-            f"cost_model references peak(s) still unverified / missing: "
+            f"cost_model references peak(s) with no positive value: "
             f"{sorted(unverified_refs)} — Roofline data not yet complete "
-            f"for this task (910B peak-table backfill pending)"
+            f"for this task (peak still 0.0; fill it to rank)"
         )
         logger.warning("Roofline disabled for %s: %s", result.task_id, msg)
         for r in result.shape_results:
             r.roofline_error = msg
         result.roofline_data_complete = False
         return
+
+    # Peaks rank above; absolute efficiency claims also need every referenced
+    # peak absolute_verified (official / measured).
+    compute_prov, resource_prov = peak_table.load_peak_provenance(peak_table_path)
+    result.absolute_verified = (
+        all(peak_table.is_absolute_verified(
+                compute_peaks[c], compute_prov.get(c, "unspecified"))
+            for c in cost_model.flops)
+        and all(peak_table.is_absolute_verified(
+                    resource_peaks[r], resource_prov.get(r, "unspecified"))
+                for r in cost_model.bytes)
+    )
 
     # R2-3: derive the representative element size from the task's inputs
     # dtype so a non-2-byte task (float32 / int64 / …) feeds the right
@@ -725,14 +766,17 @@ def _apply_roofline(
         except (scoring.RooflineError, scoring.CostModelError) as e:
             r.roofline_error = str(e)
             continue
-        # DESIGN §9 provenance: baseline_ns = t_ref, measured_ns = t_npu.
-        r.baseline_ns = r.t_ref
-        r.measured_ns = r.t_npu
+        # compute_t_ref() returns seconds; baseline_ns and
+        # shape_efficiency expect ns. Dividing s by ns was a 1e9 bug -> e≈1e-9.
+        t_ref_ns = r.t_ref * 1e9
         if r.t_npu is None or r.t_npu <= 0:
-            # No usable timing — no per-shape efficiency for this shape.
+            # No timing: leave the baseline_ns/measured_ns provenance pair
+            # None (DESIGN §9 — both set together or not at all).
             continue
+        r.baseline_ns = t_ref_ns
+        r.measured_ns = r.t_npu
         try:
-            r.efficiency = scoring.shape_efficiency(r.t_ref, r.t_npu)
+            r.efficiency = scoring.shape_efficiency(t_ref_ns, r.t_npu)
         except ValueError as e:
             r.roofline_error = f"efficiency: {e}"
             continue
@@ -916,6 +960,7 @@ def evaluate(
     backend: str = "npu",
     task_def: TaskDef | None = None,
     mode: str = "self-reported",
+    peak_table_path: Path | str | None = None,
 ) -> TaskEvalResult:
     """Top-level entrypoint. Phase 2.A is skeleton — runner orchestration
     completes in Phase 2.B.
@@ -1119,7 +1164,7 @@ def evaluate(
             two = process_isolation.run_two_pass(
                 solution_path, correctness_inputs, timing_inputs,
                 n_warmup=n_warmup,
-                golden_fixed_inputs=golden_fixed_inputs)
+                golden_fixed_inputs=golden_fixed_inputs, backend=backend)
             cand = two.correctness
 
             # W2.4 / R7-3: metamorphic checks for this real task. The
@@ -1134,7 +1179,7 @@ def evaluate(
                 solution_path=solution_path,
                 shapes_doc=shapes_doc,
                 rep_shape_id=eval_shape_ids[0] if eval_shape_ids else None,
-                tol_cls=tol_cls)
+                tol_cls=tol_cls, backend=backend)
 
             # R6-3: a sampled-output mismatch on ANY shape escalates the
             # task-level `performance_status` to `suspicious` — but only
@@ -1396,7 +1441,7 @@ def evaluate(
                 # flag; a non-default stream sets invalid_stream +
                 # suspicious. Done before Roofline so a fallback/
                 # quarantined task is already marked.
-                _apply_runtime_diagnostics(result, two)
+                _apply_runtime_diagnostics(result, two, backend=backend)
 
                 # --- W2.2: fallback → correctness-fail normalisation ---
                 # A detected torch-fallback (fallback_detected, set just
@@ -1412,7 +1457,7 @@ def evaluate(
                 # (geomean of the per-shape e, DESIGN §9). The per-shape
                 # efficiency math lives in `scoring`; the e → s_t geomean
                 # is aggregated here. Fail-closed on unverified peaks.
-                _apply_roofline(result, task, shapes_doc)
+                _apply_roofline(result, task, shapes_doc, peak_table_path)
     except Exception as e:
         # E1 fix: phase-2b grading 的编排/harness 级错误(import 缺失、yaml
         # 解析失败、oracle 模块加载失败等)绝不静默 `logger.debug` 吞掉 ——

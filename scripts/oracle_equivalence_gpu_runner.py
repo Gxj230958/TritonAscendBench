@@ -150,6 +150,10 @@ logging.basicConfig(
 )
 log = logging.getLogger("oracle_equivalence_gpu_runner")
 
+# Opt-in per-shape kernel timing for the ranking path (gpu-rank). Off by default
+# so the oracle-equiv correctness path is byte-identical to before.
+_RANK_TIMING = os.environ.get("TAB_RANK_TIMING") == "1"
+
 
 @dataclass
 class ShapeVerdict:
@@ -176,6 +180,18 @@ class ShapeVerdict:
     blocker_reason: str = ""
     output_keys_ref: list[str] = field(default_factory=list)
     output_keys_kernel: list[str] = field(default_factory=list)
+    # Per-shape measured latency (median ns) when ranking timing is enabled
+    # (env TAB_RANK_TIMING=1): a same-stream CUDA-event interval — host-overhead
+    # free, but for a launcher it also covers helper GPU kernels, and for a
+    # sub-microsecond kernel it can include launch-queue gaps. NOT a guaranteed
+    # isolated core-kernel time. None on the default oracle-equiv path.
+    t_npu_ns: float | None = None
+    # Spread of the timing samples (ns) to expose bimodality (e.g. autotune).
+    t_npu_min_ns: float | None = None
+    t_npu_max_ns: float | None = None
+    # Which timer produced t_npu: "do_bench" (primary) or "event_fallback"
+    # (do_bench raised; a bounded CUDA-event estimate kept the task ranked).
+    timing_method: str | None = None
 
 
 @dataclass
@@ -184,6 +200,23 @@ class TaskVerdict:
     overall: str = ""  # VERIFIED | FAILED | MIXED | LAUNCH_BLOCKED | SKIPPED
     shapes: list[ShapeVerdict] = field(default_factory=list)
     elapsed_s: float = 0.0
+
+
+_RANK_ONLY_SHAPE_FIELDS = (
+    "t_npu_ns", "t_npu_min_ns", "t_npu_max_ns", "timing_method")
+
+
+def serialize_verdict(v: TaskVerdict) -> dict:
+    """``asdict(v)`` for the oracle-equiv writers, dropping the ranking-only
+    shape fields when unused (TAB_RANK_TIMING off) so the default oracle-equiv
+    JSON schema stays stable. The ranking path reads ShapeVerdict fields
+    directly and never goes through this writer."""
+    d = asdict(v)
+    for sh in d.get("shapes", []):
+        if sh.get("timing_method") is None:
+            for k in _RANK_ONLY_SHAPE_FIELDS:
+                sh.pop(k, None)
+    return d
 
 
 def _kernel_has_function(kernel_path: Path, fn_name: str) -> bool:
@@ -744,6 +777,69 @@ def _verify_one_task(
             log.warning("  %s/%s: kernel launch fail: %s", task_id, sid, e)
             continue
 
+        # Ranking timing (opt-in, env TAB_RANK_TIMING=1): re-run the SAME trusted
+        # call N times to measure a per-shape t_npu. The reference operator is
+        # stateless, so re-running for timing is safe (the R5-2 stateful-candidate
+        # concern is candidate-only). Best-effort: never fails the verdict.
+        if _RANK_TIMING:
+            try:
+                # Time on a CLONE so an in-place operator's repeated re-runs
+                # cannot corrupt the graded `kernel_out` / `inputs_gpu` used by
+                # the correctness compare below.
+                _ti = {k: (v.clone() if isinstance(v, torch.Tensor) else v)
+                       for k, v in (inputs_gpu if is_launcher
+                                    else inputs_for_kernel).items()}
+
+                # _ti is fully consumed below, so the closure-over-loop-var
+                # warning does not apply.
+                def _timed_call():
+                    return kernel_fn(_ti) if is_launcher else kernel_fn(**_ti)  # noqa: B023
+                # Industry-standard device timing (Triton do_bench): back-to-
+                # back launches with NO per-iteration sync, so the GPU pipelines
+                # and host dispatch overhead is amortized, plus an L2-cache
+                # flush between runs. This is the device-side companion to
+                # t_ref's Roofline floor, so e = t_ref/t_npu is well-posed. A
+                # per-iteration-synced CUDA event instead re-measures host
+                # dispatch for launch-bound kernels (== host wall time). See
+                # docs/reviews/2026-06-06-device-timing-methodology.md.
+                import triton.testing as _tt
+                _med, _mn, _mx = _tt.do_bench(
+                    _timed_call, warmup=25, rep=100,
+                    quantiles=[0.5, 0.0, 1.0])
+                sv.t_npu_ns = float(_med) * 1e6   # ms -> ns
+                sv.t_npu_min_ns = float(_mn) * 1e6
+                sv.t_npu_max_ns = float(_mx) * 1e6
+                sv.timing_method = "do_bench"
+            except Exception as _terr:
+                # do_bench raised; fall back to a bounded CUDA-event estimate so
+                # the task still ranks (the all-101-must-rank bottom line). This
+                # is a degraded host-dispatch-inclusive number, flagged via
+                # timing_method so it is never silently treated as do_bench.
+                log.warning("  %s/%s: do_bench failed (%s); CUDA-event fallback",
+                            task_id, sid, _terr)
+                try:
+                    _es = torch.cuda.Event(enable_timing=True)
+                    _ee = torch.cuda.Event(enable_timing=True)
+                    torch.cuda.synchronize()
+                    for _ in range(5):
+                        _timed_call()
+                    torch.cuda.synchronize()
+                    _fb = []
+                    for _ in range(20):
+                        _es.record()
+                        _timed_call()
+                        _ee.record()
+                        _ee.synchronize()
+                        _fb.append(_es.elapsed_time(_ee) * 1e6)
+                    _fb.sort()
+                    sv.t_npu_ns = float(_fb[len(_fb) // 2])
+                    sv.t_npu_min_ns = float(_fb[0])
+                    sv.t_npu_max_ns = float(_fb[-1])
+                    sv.timing_method = "event_fallback"
+                except Exception as _ferr:
+                    log.warning("  %s/%s: fallback timing also failed: %s",
+                                task_id, sid, _ferr)
+
         # Project a superset tuple return to the graded indices (fail-closed:
         # tuple/list, pinned arity, in-range unique indices) before normalising.
         if oproj_b and isinstance(kernel_out, (tuple, list)):
@@ -1153,7 +1249,8 @@ def main(argv: list[str] | None = None) -> int:
     for td in sorted(task_dirs):
         v = _verify_one_task(td, args.infer_root, args.gpu)
         verdict_path = args.output_dir / f"{td.name}.json"
-        verdict_path.write_text(json.dumps(asdict(v), indent=2, default=str))
+        verdict_path.write_text(
+            json.dumps(serialize_verdict(v), indent=2, default=str))
 
         key = {
             "VERIFIED": "verified",

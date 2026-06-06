@@ -48,6 +48,9 @@ def main() -> int:
     # grades the task's sealed `shapes.yaml.hidden_shapes` section.
     p_run.add_argument("--mode", default="self-reported",
                        choices=["self-reported", "verified"])
+    p_run.add_argument("--peak-table", default=None,
+                       help="peak table TOML (default 910B; H200 self-check "
+                            "passes infra/peak_table_h200.toml)")
     p_run.add_argument("--out", default="round_result.json")
 
     p_suite = sub.add_parser("run-suite", help="evaluate many tasks")
@@ -68,6 +71,9 @@ def main() -> int:
     # do not hard-error on an unknown argument — any value is ignored.
     p_suite.add_argument("--shapes-overlay",
                          help=argparse.SUPPRESS)
+    p_suite.add_argument("--peak-table", default=None,
+                         help="peak table TOML (default 910B; H200 self-check "
+                              "passes infra/peak_table_h200.toml)")
     p_suite.add_argument("--out", default="suite_results.json")
 
     p_pkg = sub.add_parser("package")
@@ -95,6 +101,9 @@ def main() -> int:
     p_an.add_argument("--verified-results", required=True)
     p_an.add_argument("--hidden-results")
     p_an.add_argument("--submitter")
+    p_an.add_argument("--peak-table", default=None,
+                      help="peak table TOML for authoritative roofline/absolute "
+                           "checks (default 910B)")
     p_an.add_argument("--out", required=True)
 
     # V9 plan M-CLI: provenance pipeline subcommands. Each is a thin
@@ -295,8 +304,9 @@ def _shape_result_json(r) -> dict:
         "shape_id": r.shape_id,
         "correctness_passed": r.correctness_passed,
         "correctness_reason": r.correctness_reason,
-        # DESIGN §9 provenance: baseline_ns = t_ref, measured_ns = t_npu.
-        "baseline_ns": r.t_ref,
+        # baseline_ns/measured_ns are ns. baseline_ns = t_ref(s)->ns
+        # (set in _apply_roofline); the raw t_ref disclosure stays in seconds.
+        "baseline_ns": r.baseline_ns,
         "measured_ns": r.t_npu,
         "t_ref": r.t_ref,
         "t_npu": r.t_npu,
@@ -348,6 +358,9 @@ def _round_result_json(result, canary_findings=None) -> dict:
         # complete for this task. `analyze` recomputes this authoritatively
         # from repo metadata, so the emitted value is informational only.
         "roofline_data_complete": result.roofline_data_complete,
+        # Whether every referenced peak is absolute_verified (gates absolute
+        # efficiency claims). Recomputed authoritatively by `analyze`.
+        "absolute_verified": result.absolute_verified,
         "shape_results": [_shape_result_json(r) for r in result.shape_results],
         # W2.4: canary findings — their OWN schema, never folded into the
         # per-shape metamorphic_results.
@@ -368,7 +381,8 @@ def _cmd_run(args) -> int:
     # hidden shapes alongside the public ones; self-reported grades public
     # only.
     result = evaluate(args.task_id, Path(args.solution),
-                      backend=args.backend, mode=args.mode)
+                      backend=args.backend, mode=args.mode,
+                      peak_table_path=args.peak_table)
     out = _round_result_json(result)
     Path(args.out).write_text(json.dumps(out, indent=2))
     s_t_str = f"{result.s_t:.4f}" if result.s_t is not None else "n/a"
@@ -440,7 +454,7 @@ def _cmd_run_suite(args) -> int:
             try:
                 # W2.1: `--mode` decides whether hidden shapes are graded.
                 r = evaluate(task.task_id, sol_py, backend=args.backend,
-                             mode=args.mode)
+                             mode=args.mode, peak_table_path=args.peak_table)
                 # W1.4: same round_result schema as `tab run` — task-level
                 # s_t + baseline_ns/measured_ns provenance + per-shape detail.
                 per_task.append(_round_result_json(r))
@@ -460,7 +474,8 @@ def _cmd_run_suite(args) -> int:
         from .adversarial import canary_finding_json, run_canary_suite
 
         try:
-            suite_canary_findings = run_canary_suite(sol_root)
+            suite_canary_findings = run_canary_suite(
+                sol_root, backend=args.backend)
         except Exception as exc:
             logger.warning("canary suite error: %s: %s",
                            type(exc).__name__, exc)
@@ -1074,13 +1089,18 @@ def _cmd_analyze(args) -> int:
     # be loaded, no task is scorable — every task is data-incomplete.
     task_by_id = {t.task_id: t for t in all_tasks}
     try:
-        from .peak_table import load_peak_table
+        from .peak_table import load_peak_provenance, load_peak_table
 
-        _compute_peaks, _resource_peaks = load_peak_table()
+        # Optional flag (default None → built-in table); tolerate an args object
+        # that predates it rather than failing the whole peak load.
+        _peak_table_path = getattr(args, "peak_table", None)
+        _compute_peaks, _resource_peaks = load_peak_table(_peak_table_path)
+        _compute_prov, _resource_prov = load_peak_provenance(_peak_table_path)
         _peak_table_ok = True
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.warning("peak table unloadable — perf data incomplete: %s", e)
         _compute_peaks, _resource_peaks = {}, {}
+        _compute_prov, _resource_prov = {}, {}
         _peak_table_ok = False
 
     def _authoritative_roofline_data_complete(tid: str) -> bool:
@@ -1100,6 +1120,28 @@ def _cmd_analyze(args) -> int:
         for resource in cost_model.bytes:
             beta = _resource_peaks.get(resource)
             if beta is None or not math.isfinite(beta) or beta <= 0:
+                return False
+        return True
+
+    def _authoritative_absolute_verified(tid: str) -> bool:
+        """True iff every peak `tid` references is absolute_verified (vendor-
+        official / on-device-measured). Gates absolute efficiency claims, not
+        ranking. Mirrors `eval._apply_roofline`, repo-derived."""
+        from .peak_table import is_absolute_verified
+        if not _peak_table_ok:
+            return False
+        task = task_by_id.get(tid)
+        cost_model = getattr(task, "cost_model", None) if task else None
+        if cost_model is None:
+            return False
+        for c in cost_model.flops:
+            if not is_absolute_verified(
+                    _compute_peaks.get(c, 0.0), _compute_prov.get(c, "unspecified")):
+                return False
+        for res in cost_model.bytes:
+            if not is_absolute_verified(
+                    _resource_peaks.get(res, 0.0),
+                    _resource_prov.get(res, "unspecified")):
                 return False
         return True
 
@@ -1277,6 +1319,9 @@ def _cmd_analyze(args) -> int:
             # Roofline data is incomplete is honestly excluded from the
             # perf geomean by `aggregate_perf`, not ε-collapsed.
             roofline_data_complete=_authoritative_roofline_data_complete(tid),
+            # Repo-authoritative absolute_verified (gates absolute efficiency
+            # claims, not ranking).
+            absolute_verified=_authoritative_absolute_verified(tid),
         ))
 
     # R2-4: denominator = the mode-aware scored set, frozen from repo
@@ -1374,6 +1419,11 @@ def _cmd_analyze(args) -> int:
         # — NOT ε-collapsed against the candidate's score.
         "roofline_data_incomplete_count": perf.get(
             "roofline_data_incomplete_count", 0),
+        # How many ranked tasks have an absolute_verified Roofline (vendor-
+        # official / measured peaks). The rest rank but their "% of Roofline"
+        # is pending verified peaks (academic-spec / estimate).
+        "absolute_verified_count": sum(
+            1 for m in task_measurements if m.absolute_verified),
         "native_coverage": native_coverage(
             task_measurements, s_native_size=effective_denom
         ),

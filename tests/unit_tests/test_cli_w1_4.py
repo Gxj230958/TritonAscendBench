@@ -61,6 +61,24 @@ def test_run_shape_results_disclose_timing_stats(tmp_path):
         assert isinstance(sr["trials"], int)
 
 
+def test_shape_result_json_baseline_ns_is_ns_not_seconds():
+    """per-shape baseline_ns is ns (t_ref*1e9), not raw seconds t_ref."""
+    from types import SimpleNamespace
+
+    from triton_ascend_bench.cli import _shape_result_json
+    r = SimpleNamespace(
+        shape_id="P1", correctness_passed=True, correctness_reason=None,
+        t_ref=1e-6, baseline_ns=1000.0, t_npu=2000.0,
+        efficiency=0.5, w_per_class={}, m_per_resource={},
+        median=2000.0, p99=2000.0, cv=0.0, trials=1,
+        roofline_error=None, metamorphic_results=[],
+    )
+    j = _shape_result_json(r)
+    assert j["baseline_ns"] == 1000.0   # ns (= t_ref * 1e9), not 1e-6 seconds
+    assert j["t_ref"] == 1e-6           # raw t_ref disclosure stays seconds
+    assert j["measured_ns"] == 2000.0
+
+
 def test_validate_result_accepts_w1_4_schema(tmp_path):
     """validate-result accepts a round_result.json with the full W1.4
     producer schema for an evaluated task."""

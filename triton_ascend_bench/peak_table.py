@@ -15,8 +15,8 @@ a ``tomli`` fallback) and stdlib ``logging``.
 from __future__ import annotations
 
 import logging
+import math
 from pathlib import Path
-from typing import Dict
 
 try:
     import tomllib
@@ -40,6 +40,13 @@ _TERA = 1e12
 # Per-resource bandwidth is declared in GB/s; normalise to byte/s.
 _GIGA = 1e9
 
+# Provenance trusted for absolute "% of Roofline" claims. Ranking accepts any
+# positive peak (t_ref cancels across candidates); academic-spec / estimate /
+# unspecified are ranking-only.
+ABSOLUTE_VERIFIED_PROVENANCES = frozenset(
+    {"nvidia-official", "huawei-official", "on-device-measured"}
+)
+
 
 class PeakTableError(RuntimeError):
     """Raised when the 910B peak table is missing keys or holds an
@@ -57,7 +64,7 @@ def _load_toml(path: Path) -> dict:
 
 def load_compute_peaks(
     path: Path | str | None = None, *, require_verified: bool = False
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Return ``{compute_class: π_c}`` in FLOP/s (resp. OP/s for int8).
 
     Args:
@@ -77,7 +84,7 @@ def load_compute_peaks(
     if not isinstance(classes, dict):
         raise PeakTableError(f"{p}: [compute_class] is not a table")
 
-    peaks: Dict[str, float] = {}
+    peaks: dict[str, float] = {}
     for name in REQUIRED_COMPUTE_CLASSES:
         entry = classes.get(name)
         if not isinstance(entry, dict):
@@ -101,7 +108,7 @@ def load_compute_peaks(
 
 def load_resource_peaks(
     path: Path | str | None = None, *, require_verified: bool = False
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Return ``{resource: β_r}`` in byte/s.
 
     Args:
@@ -118,7 +125,7 @@ def load_resource_peaks(
     if not isinstance(resources, dict):
         raise PeakTableError(f"{p}: [resource] is not a table")
 
-    peaks: Dict[str, float] = {}
+    peaks: dict[str, float] = {}
     for name in REQUIRED_RESOURCES:
         entry = resources.get(name)
         if not isinstance(entry, dict):
@@ -136,7 +143,7 @@ def load_resource_peaks(
 
 
 def _check_verified(
-    path: Path, peaks: Dict[str, float], kind: str, require_verified: bool
+    path: Path, peaks: dict[str, float], kind: str, require_verified: bool
 ) -> None:
     """Warn (or raise) on non-positive [unverified] placeholder peaks."""
     unverified = sorted(k for k, v in peaks.items() if v <= 0.0)
@@ -154,7 +161,7 @@ def _check_verified(
 
 def load_peak_table(
     path: Path | str | None = None, *, require_verified: bool = False
-) -> tuple[Dict[str, float], Dict[str, float]]:
+) -> tuple[dict[str, float], dict[str, float]]:
     """Convenience: return ``(compute_peaks, resource_peaks)`` together.
 
     See :func:`load_compute_peaks` / :func:`load_resource_peaks`.
@@ -163,3 +170,41 @@ def load_peak_table(
         load_compute_peaks(path, require_verified=require_verified),
         load_resource_peaks(path, require_verified=require_verified),
     )
+
+
+def _load_provenance(
+    data: dict, section: str, names: tuple[str, ...]
+) -> dict[str, str]:
+    """Per-key ``provenance`` string for ``[section.<name>]``; a key that is
+    absent or carries no ``provenance`` field maps to ``"unspecified"``."""
+    sect = data.get(section, {})
+    out: dict[str, str] = {}
+    for name in names:
+        entry = sect.get(name) if isinstance(sect, dict) else None
+        prov = entry.get("provenance") if isinstance(entry, dict) else None
+        out[name] = str(prov) if prov else "unspecified"
+    return out
+
+
+def load_peak_provenance(
+    path: Path | str | None = None,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """``(compute_provenance, resource_provenance)`` per-key provenance strings;
+    an absent / no-provenance key maps to ``"unspecified"``."""
+    p = Path(path) if path is not None else DEFAULT_PEAK_TABLE_PATH
+    data = _load_toml(p)
+    return (
+        _load_provenance(data, "compute_class", REQUIRED_COMPUTE_CLASSES),
+        _load_provenance(data, "resource", REQUIRED_RESOURCES),
+    )
+
+
+def is_ranking_usable(value: float) -> bool:
+    """Positive-finite peak — enough to rank (peak scale cancels across candidates)."""
+    return math.isfinite(value) and value > 0.0
+
+
+def is_absolute_verified(value: float, provenance: str) -> bool:
+    """Positive-finite and vendor-official / on-device-measured — needed for
+    absolute efficiency claims, not just ranking."""
+    return is_ranking_usable(value) and provenance in ABSOLUTE_VERIFIED_PROVENANCES

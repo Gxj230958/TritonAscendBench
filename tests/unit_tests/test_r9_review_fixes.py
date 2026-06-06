@@ -202,17 +202,16 @@ def test_r9_2_fp16_task_unaffected_by_unrelated_placeholder(monkeypatch):
 
 
 def test_r9_2_vector_task_flagged_data_incomplete(monkeypatch):
-    """A task that genuinely references the unverified `vector` π is a
-    real Roofline-data gap — it gets a `roofline_error`, no `s_t`, and
-    `roofline_data_complete=False` (the expected W1.1 data limitation,
-    NOT a candidate failure)."""
+    """A task referencing a 0.0 (unfilled) `vector` π is a Roofline-data gap —
+    `roofline_error`, no `s_t`, `roofline_data_complete=False`. Not a candidate
+    failure. (The default table now fills vector; this mocks a 0.0 vector.)"""
     monkeypatch.setattr(peak_table, "load_peak_table", _mixed_peaks)
     task = SimpleNamespace(cost_model=CostModel(
         flops={"vector": "B*N"}, bytes={"hbm": "B*N"}))
     result = _make_result([16.0])
     _eval._apply_roofline(result, task, _SHAPES_DOC)
     assert result.shape_results[0].roofline_error is not None
-    assert "unverified" in result.shape_results[0].roofline_error
+    assert "no positive value" in result.shape_results[0].roofline_error
     assert result.s_t is None
     assert result.roofline_data_complete is False
 

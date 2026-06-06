@@ -28,6 +28,7 @@ time.
 """
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -656,13 +657,15 @@ def aggregate_canary_findings(
 # to `check_canaries`. Canaries are a behaviour probe — never a scored task.
 
 
-def _evaluate_canary_pass(canary: Any, solution_path: Path) -> bool:
+def _evaluate_canary_pass(
+    canary: Any, solution_path: Path, backend: str = "npu") -> bool:
     """Default canary grader: True iff `solution_path` PASSES `canary`'s trap.
 
     Grades the submission's bound solution against the canary's (trap) oracle
     via `eval.evaluate(task_def=...)` — "passing the canary" means clearing
     its correctness gate. A harness error grading the canary counts as "did
-    not pass" so an honest canary is never spuriously flagged.
+    not pass" so an honest canary is never spuriously flagged. `backend`
+    routes the trap run to the same device as the scored tasks.
 
     Imported lazily: `eval` pulls in heavy modules (torch, process_isolation)
     that the lightweight canary discovery / judgement path does not need.
@@ -671,7 +674,8 @@ def _evaluate_canary_pass(canary: Any, solution_path: Path) -> bool:
 
     try:
         result = evaluate(
-            canary.canary_id, solution_path, task_def=canary.as_task_def())
+            canary.canary_id, solution_path, task_def=canary.as_task_def(),
+            backend=backend)
         return result.correctness_status == "ok"
     except Exception as exc:
         logger.warning(
@@ -683,6 +687,7 @@ def _evaluate_canary_pass(canary: Any, solution_path: Path) -> bool:
 def run_canary_suite(
     solutions_root: Path,
     grader: Callable[[Any, Path], bool] | None = None,
+    backend: str = "npu",
 ) -> list[CanaryFinding]:
     """Run every discovered canary against a submission and judge it.
 
@@ -708,7 +713,8 @@ def run_canary_suite(
     """
     from .dataset import iter_canary_tasks
 
-    grade = grader if grader is not None else _evaluate_canary_pass
+    grade = grader if grader is not None else functools.partial(
+        _evaluate_canary_pass, backend=backend)
     canaries = iter_canary_tasks()
     submitted: dict[str, bool] = {}
     truth: dict[str, bool] = {}

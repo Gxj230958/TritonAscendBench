@@ -149,8 +149,9 @@ def test_child_args_never_carry_repo_root_or_shapes(tmp_path, monkeypatch):
     real_popen = pi.subprocess.Popen
 
     def _spy(cmd, **kw):
-        # cmd = [python, child_py, json_args]
-        captured["args"] = json.loads(cmd[2])
+        # cmd = [python, child_py, args_json_path] — args travel via a file
+        # (the per-trial payload overflows ARG_MAX on argv).
+        captured["args"] = json.loads(Path(cmd[2]).read_text())
         return real_popen(cmd, **kw)
 
     monkeypatch.setattr(pi.subprocess, "Popen", _spy)

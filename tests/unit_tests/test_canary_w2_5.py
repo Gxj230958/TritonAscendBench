@@ -186,6 +186,29 @@ def test_run_canary_suite_default_grader_path_runs(tmp_path):
     assert {f.canary_id for f in findings} == {CANARY_ID}
 
 
+def test_run_canary_suite_default_grader_threads_backend(tmp_path, monkeypatch):
+    """`run_canary_suite(backend=...)` routes the trap run to that backend.
+
+    Regression: `tab run-suite --backend gpu` must grade canaries on the same
+    device as the scored tasks, not silently fall back to npu.
+    """
+    from types import SimpleNamespace
+
+    import triton_ascend_bench.eval as _eval
+    canary = load_canary_task(CANARY_ID)
+    root = _make_solutions_root(tmp_path, canary.source_task_id)
+    seen: dict[str, str] = {}
+
+    def fake_evaluate(task_id, solution_path, *, task_def=None,
+                      backend="npu", **kw):
+        seen["backend"] = backend
+        return SimpleNamespace(correctness_status="error")
+
+    monkeypatch.setattr(_eval, "evaluate", fake_evaluate)
+    run_canary_suite(root, backend="gpu")
+    assert seen["backend"] == "gpu"
+
+
 def test_check_canaries_flags_identity_cheat_directly():
     """`check_canaries` itself: an observed pass on C1 (whose honest expected
     is False) is a triggered finding."""

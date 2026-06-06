@@ -24,7 +24,6 @@ import json
 import shutil
 import subprocess
 import sys
-from dataclasses import asdict
 from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parent.parent
@@ -36,6 +35,7 @@ from oracle_equivalence_gpu_runner import (  # noqa: E402
     ShapeVerdict,
     TaskVerdict,
     _verify_one_task,
+    serialize_verdict,
 )
 from oracle_pyref_precompute import _audit_task  # noqa: E402
 
@@ -88,7 +88,8 @@ def main(argv: list[str] | None = None) -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     v = run_one(task_dir, args.gpu, args.infer_root)
     verdict_path = args.output_dir / f"{args.task}.json"
-    verdict_path.write_text(json.dumps(asdict(v), indent=2, default=str))
+    verdict_path.write_text(
+        json.dumps(serialize_verdict(v), indent=2, default=str))
     print(f"oracle-equiv {args.task}: {v.overall}")
 
     # Daemon-side auto-apply: persist the verdict into meta.provenance.golden HERE,

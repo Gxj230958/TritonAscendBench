@@ -133,6 +133,7 @@ def cmd_sync_code(args: argparse.Namespace) -> int:
         "tasks/",
         "pyproject.toml",
         "triton_ascend_bench/",
+        "infra/",          # peak tables (cost-model Roofline needs these on GPU A)
     ]
     rc_total = 0
     for p in paths:
@@ -491,6 +492,74 @@ def cmd_run_oracle(args: argparse.Namespace) -> int:
     return wait_rc
 
 
+def cmd_gpu_grade(args: argparse.Namespace) -> int:
+    """submit a batch with spec.action='gpu-grade' (candidate-grade GPU smoke).
+
+    The daemon runs a real triton kernel through the process_isolation sandbox
+    per task on the CUDA host, writing a verdict JSON to
+    results/<batch>/gpu_grade/<task>.json. Validates the GPU-backend sandbox
+    path (CUDA pre-init, warmup-before-hook JIT, save-path warm, event timer).
+    """
+    args.action = "gpu-grade"
+    if not hasattr(args, "require_smoke"):
+        args.require_smoke = False
+    return cmd_submit(args)
+
+
+def cmd_run_gpu_grade(args: argparse.Namespace) -> int:
+    """sync-code + gpu-grade + wait + collect, one shot."""
+    rc = cmd_sync_code(args)
+    if rc != 0:
+        return rc
+    batch_id = args.batch_id or _new_batch_id()
+    args.batch_id = batch_id
+    rc = cmd_gpu_grade(args)
+    if rc != 0:
+        return rc
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        return cmd_collect(args)
+    if wait_rc == 3:
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        return 3
+    return wait_rc
+
+
+def cmd_gpu_rank(args: argparse.Namespace) -> int:
+    """submit a batch with spec.action='gpu-rank' (full GPU ranking per task).
+
+    The daemon constructs a clean triton candidate from each task's severed
+    kernel.py and grades it through the GPU sandbox + cost-model, writing a
+    verdict JSON (correctness + s_t + per-shape e) to
+    results/<batch>/gpu_rank/<task>.json — i.e. whether each task RANKS on H200.
+    """
+    args.action = "gpu-rank"
+    if not hasattr(args, "require_smoke"):
+        args.require_smoke = False
+    return cmd_submit(args)
+
+
+def cmd_run_gpu_rank(args: argparse.Namespace) -> int:
+    """sync-code + gpu-rank + wait + collect, one shot."""
+    rc = cmd_sync_code(args)
+    if rc != 0:
+        return rc
+    batch_id = args.batch_id or _new_batch_id()
+    args.batch_id = batch_id
+    rc = cmd_gpu_rank(args)
+    if rc != 0:
+        return rc
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        return cmd_collect(args)
+    if wait_rc == 3:
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        return 3
+    return wait_rc
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     loop = shlex.quote(REMOTE_LOOP)
     # Single-quote the section markers: the remote login shell may be zsh,
@@ -616,6 +685,43 @@ def main() -> int:
     s.add_argument("--interval", type=int, default=10)
     s.add_argument("--stale-after", type=int, default=300)
     s.set_defaults(func=cmd_run_oracle)
+
+    s = sub.add_parser("gpu-grade",
+                       help="submit a batch that runs the candidate-grade GPU "
+                            "sandbox smoke per task")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.set_defaults(func=cmd_gpu_grade)
+
+    s = sub.add_parser("run-gpu-grade",
+                       help="sync-code + gpu-grade + wait + collect")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.add_argument("--timeout", type=int, default=3600)
+    s.add_argument("--interval", type=int, default=10)
+    s.add_argument("--stale-after", type=int, default=300)
+    s.set_defaults(func=cmd_run_gpu_grade)
+
+    s = sub.add_parser("gpu-rank",
+                       help="submit a batch that runs each task's reference "
+                            "triton kernel with device-only CUDA-event timing "
+                            "and folds it into the cost-model ranking on H200")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.set_defaults(func=cmd_gpu_rank)
+
+    s = sub.add_parser("run-gpu-rank",
+                       help="sync-code + gpu-rank + wait + collect")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.add_argument("--timeout", type=int, default=3600)
+    s.add_argument("--interval", type=int, default=10)
+    s.add_argument("--stale-after", type=int, default=300)
+    s.set_defaults(func=cmd_run_gpu_rank)
 
     args = ap.parse_args()
     return args.func(args)
