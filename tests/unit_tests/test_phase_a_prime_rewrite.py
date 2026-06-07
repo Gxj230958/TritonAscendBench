@@ -225,7 +225,7 @@ def test_rewrite_severs_batch_invariant_shim_imports():
         "from vllm.utils.torch_utils import is_torch_equal_or_newer\n"
         "def bmm_batch_invariant(a, b):\n    return a @ b\n"
     )
-    cls = pap.TaskClassification(task_id="L2_13_bmm", symbols=[])
+    cls = pap.TaskClassification(task_id="L2_20_bmm", symbols=[])
     out = pap.rewrite_imports_to_standalone(src, cls, task_dir=None)
     assert not [l for l in out.splitlines()
                 if re.search(r"^\s*(from|import)\s+vllm", l)], out
@@ -267,10 +267,10 @@ def test_envs_shim_exposes_only_verified_inert_flag():
 
 def test_rewrite_severs_real_l2_13_and_l2_14_kernels():
     """Real-kernel evidence (not synthetic): rewriting the actual
-    L2_13_bmm / L2_14 kernel.py leaves ZERO direct vllm imports."""
+    L2_20_bmm / L2_14 kernel.py leaves ZERO direct vllm imports."""
     import re
     REPO = Path(__file__).resolve().parent.parent.parent
-    for tid in ("L2_13_bmm", "L2_14_matmul_kernel_persistent"):
+    for tid in ("L2_20_bmm", "L2_21_matmul_kernel_persistent"):
         kps = list(REPO.glob(f"tasks/level*/{tid}/kernel.py"))
         if not kps:
             continue  # corpus task absent in this checkout

@@ -57,7 +57,7 @@ genuinely executed on the GPU (``ncu`` profiled at least one kernel launch),
 which proves the cost-model formulas describe a real, running kernel -- but
 the FLOPs figure itself is recorded as analytic-only, not GPU-verified.
 
-**L1_21 (and any non-score-eligible task).** ``L1_21_gumbel_sample`` carries a
+**L1_21 (and any non-score-eligible task).** ``L2_08_gumbel_sample`` carries a
 constant placeholder ``cost_model`` (``flops: '1'`` / ``bytes: '1'``) because
 its oracle is an unimplemented stub and its ``shapes.yaml`` has no size
 knobs. It is NOT score-eligible (``eligibility.is_score_eligible`` is False --
@@ -765,7 +765,7 @@ def cross_check_task(task: TaskDef, *, dry_run: bool) -> TaskXCheck:
 
     Returns:
         A :class:`TaskXCheck` verdict. A non-score-eligible task (stub oracle
-        / PHASE-C-MANUAL shapes -- e.g. ``L1_21_gumbel_sample``) is recorded
+        / PHASE-C-MANUAL shapes -- e.g. ``L2_08_gumbel_sample``) is recorded
         :data:`STATUS_SKIPPED` and never cross-checked.
     """
     run_id = f"xcheck-{datetime.date.today().isoformat()}-{uuid.uuid4().hex[:8]}"

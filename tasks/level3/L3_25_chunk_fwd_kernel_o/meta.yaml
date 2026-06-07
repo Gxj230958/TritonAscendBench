@@ -1,0 +1,225 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_25_chunk_fwd_kernel_o
+level: L3
+idx: 25
+name: chunk_fwd_kernel_o
+repo: vLLM
+dtype_class: CV
+category: ssm
+npu_difficulty: high
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/fla/ops/chunk.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 96117b5ec099254db0af016cac7a7c61b064c06644eda8e52ed93fde337810d9
+  function_hash: 96117b5ec099254db0af016cac7a7c61b064c06644eda8e52ed93fde337810d9
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_25_chunk_fwd_kernel_o_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::chunk_fwd_o
+tolerance_class: recurrent_chunk
+cost_model:
+  flops:
+    fp16_cube: 2*B*H*T*K*V + 2*B*H*T*64*K + 2*B*H*T*64*V
+    vector: 2*B*H*T*V + B*H*T*64
+  bytes:
+    hbm: 2*(2*B*T*Hg*K) + 2*B*T*H*V + 2*B*ceil(T/64)*H*V*K + 4*B*T*H
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 1 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-5e6cca1b
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 117248.0
+    measured_bytes: 141568.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.1717902350813743
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1718 > tol 0.0500 (analytic=117248 measured=141568) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=141568 < 0.5xmax=25671168); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 1984512.0
+    measured_bytes: 2010112.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.01273560876209883
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0127 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P3
+    analytic_bytes_total: 25264128.0
+    measured_bytes: 25671168.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.01585592054089631
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0159 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 8421376.0
+    measured_bytes: 8445696.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.0028795732169379527
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0029 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 1460352.0
+    measured_bytes: 1480448.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.013574269410340654
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0136 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-16
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:17:52Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      H1:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 0.056179776787757874
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=0.0562 (max_abs=0.125,
+          max_rel=0.056179776787757874, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P1:
+        status: VERIFIED
+        max_abs: 3.814697265625e-06
+        max_rel: 0.007042253389954567
+      P2:
+        status: VERIFIED
+        max_abs: 0.03125
+        max_rel: 0.03658536449074745
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 3.6666667461395264
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=3.67 (max_abs=0.125, max_rel=3.6666667461395264,
+          tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0625
+        max_rel: 0.942626953125
+        blocker: 'output: atol/rtol: max_abs=0.0625, max_rel=0.943 (max_abs=0.0625,
+          max_rel=0.942626953125, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.0078125
+        max_rel: 0.009345794096589088
+    golden_source: dtype_ceiling_accepted
+    notes: 'oracle_pytorch.py re-authored to the upstream headed chunk-output contract
+      of the frozen wrapper `chunk_fwd_o` (q/k:[B,T,Hg,K], v:[B,T,H,V], h:[B,NT,H,V,K]
+      per-chunk state snapshots, g:[B,T,H] -> o:[B,T,H,V], BT=FLA_CHUNK_SIZE=64).
+      shapes.yaml + param_constraints aligned to that layout; the wrapper binds by
+      name (no _pa_launcher needed). Three load-bearing inputs are pinned to be DISCRIMINATING
+      on the committed seeded fixture: (1) h''s chunk index -- all rows span NT>=2
+      (T>=65) so chunk i_t reads its OWN h[:, i_t]; a shared-state kernel diverges
+      (P1 rel ~0.26). (2) head grouping i_h // (H//Hg) -- all rows pin Hg<H (group>=2)
+      so an identity head map mis-reads q/k (P1 rel ~1.45). (3) the within-chunk causal+g-decay
+      mask on A (drop causal rel ~1.33, drop g-decay rel ~0.41). Oracle cross-checked
+      against a literal make_block_ptr transcription of the kernel body (rel err ~2e-8,
+      float32 round-off). Numeric oracle-vs-kernel equivalence requires a GPU/NPU
+      run to populate (the FLA chunk kernels do not execute under TRITON_INTERPRET
+      on a driverless host).'
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - T >= 65
+  - H >= 1
+  - Hg >= 1
+  - K >= 1
+  - V >= 1
+  - H % Hg == 0
+  - Hg < H
+  dtypes:
+    q: bfloat16
+    k: bfloat16
+    v: bfloat16
+    h: bfloat16
+    g: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    h:
+      kind: randn
+    g:
+      kind: logsigmoid
+  scalars:
+    scale:
+      derive: 1/sqrt(K)
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_25_chunk_fwd_kernel_o-20260604T181514
+  classified_at: '2026-06-04'
+  standalone_sha256: 67106ceee3ed0ffea1ed2bf5a3f1470f22b5f890b8e10fb53fcbe9d2d85989ad
+  kernel_sha256: 67106ceee3ed0ffea1ed2bf5a3f1470f22b5f890b8e10fb53fcbe9d2d85989ad
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols: []
+reference_path: native

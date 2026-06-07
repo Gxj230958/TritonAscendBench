@@ -3572,9 +3572,9 @@ def test_required_op_cube_missing():
 @pytest.mark.parametrize("task_id", [
     "L1_01_bias",
     "L1_12_rms_norm",
-    "L1_16_silu_and_mul",
-    "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd",
+    "L2_04_silu_and_mul",
+    "L2_17_w8a8_block_int8_matmul",
+    "L3_16_fwd",
 ])
 def test_real_poc_kernels_pass_static(task_id):
     """Every PoC task's reference kernel.py must pass static checks."""
@@ -3589,7 +3589,16 @@ def test_real_poc_kernels_pass_static(task_id):
         "cube_arithmetic_present",
         "online_softmax_present",
     }]
-    report = check_solution(task.kernel_py, required_checks=enforced)
+    # The Phase A' synthesised entrypoint (HOLE B) appended below the
+    # marker is bench-generated scaffolding (reflection / dict-comp
+    # helpers), not candidate-authored kernel code -- production static-
+    # checks the candidate solution.py, never this vendored reference.
+    # Check only the kernel body the candidate actually writes.
+    kernel_src = task.kernel_py
+    idx = kernel_src.find("# ── Phase A' synthesised standalone entrypoint")
+    if idx != -1:
+        kernel_src = kernel_src[:idx]
+    report = check_solution(kernel_src, required_checks=enforced)
     assert not report.blocked, (
         f"{task_id} kernel.py blocked: "
         + ", ".join(f"{f.layer}:{f.message}" for f in report.findings)

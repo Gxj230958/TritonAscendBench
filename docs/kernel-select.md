@@ -2,12 +2,12 @@
 
 ## 1. 概览
 
-题库收录 **100** 个 kernel，分三级：**L1 40 · L2 38 · L3 22**。全部取自 **vLLM / SGLang 现网生产推理路径**中的真实 `@triton.jit` kernel —— 迁移基准的源对象是生产算子本身，而非为基准构造的合成算子。
+题库收录 **101** 个 kernel，分三级：**L1 36 · L2 35 · L3 30**。全部取自 **vLLM / SGLang 现网生产推理路径**中的真实 `@triton.jit` kernel —— 迁移基准的源对象是生产算子本身，而非为基准构造的合成算子。
 
 | 维度 | 构成 |
 |------|------|
 | 来源仓 | vLLM 61 · SGLang 39 |
-| 计算类型 | VV（向量 / 逐元素）65 · CV（含 cube matmul）35 |
+| 计算类型 | VV（向量 / 逐元素）66 · CV（含 cube matmul）35 |
 | 迁移难度 | medium 70 · high 24 · low 6 |
 
 ## 2. 选型原则
@@ -74,119 +74,120 @@
 
 ## 7. 完整题目清单
 
-> 字段取自各题 `tasks/level*/<id>/meta.yaml`（`task_id` / 来源仓 / VV·CV / 类别 / 迁移难度 / 上游路径）。
+> 字段取自各题 `tasks/level*/<id>/meta.yaml`（task_id / 仓 / VV·CV / 类别 / 迁移难度 / 上游路径）。
 
 ### L1
 
 | task_id | 仓 | 类型 | 类别 | 迁移难度 | 上游路径 |
 |---------|----|------|------|---------|----------|
-| `L1_01_bias_kernel` | vLLM | VV | sampling | medium | `vllm/v1/worker/gpu/sample/logit_bias.py` |
-| `L1_02_compute_slot_mappings_kernel` | vLLM | VV | attention | medium | `vllm/v1/worker/utils.py` |
-| `L1_03_convert_req_index_to_global_index_kernel` | vLLM | VV | convolution | medium | `vllm/v1/worker/` |
-| `L1_04_copy_page_indices_kernel` | vLLM | VV | attention | low | `vLLM v1 attention` |
-| `L1_05_gather_block_tables_kernel` | vLLM | VV | moe | medium | `vllm/v1/attention/ops/` |
-| `L1_06_reshape_and_cache_kernel_flash` | vLLM | VV | attention | medium | `vllm/v1/attention/ops/triton_reshape_and_cache_flash.py` |
-| `L1_07_dequantize_k_cache_fast_kernel` | SGLang | VV | quantization | medium | `sglang/srt/layers/attention/` |
-| `L1_08_dequantize_k_cache_paged_kernel` | SGLang | VV | attention | medium | `sglang/srt/layers/attention/` |
-| `L1_09_quantize_k_cache_fast_kernel` | SGLang | VV | quantization | medium | `sglang/srt/layers/attention/` |
-| `L1_10_per_token_group_quant_int8` | vLLM | VV | quantization | medium | `vllm/model_executor/layers/quantization/utils/int8_utils` |
-| `L1_11_awq_dequantize_kernel` | vLLM | VV | quantization | medium | `vllm/model_executor/layers/quantization/awq_triton.py` |
-| `L1_12_rms_norm_kernel` | vLLM | VV | norm | medium | `vllm/model_executor/layers/batch_invariant.py` |
-| `L1_13_layer_norm_fwd_kernel` | vLLM | VV | normalization | medium | `vLLM` |
-| `L1_14_layer_norm_fwd_1pass_kernel` | vLLM | VV | normalization | medium | `vllm/model_executor/layers/fla/` |
-| `L1_15_act_and_mul_kernel` | SGLang | VV | elementwise | low | `sglang/srt/layers/activation.py` |
-| `L1_16_silu_and_mul` | SGLang | VV | elementwise | low | `python/sglang/srt/layers/elementwise.py` |
-| `L1_17_gelu_and_mul_kernel` | SGLang | VV | elementwise | medium | `sglang/srt/layers/activation.py` |
-| `L1_18_fused_softcap_kernel` | SGLang | VV | elementwise | low | `sglang/srt/layers/logits_processor.py` |
-| `L1_19_topk_log_softmax_kernel` | vLLM | VV | sampling | medium | `vLLM sample` |
-| `L1_20_log_softmax_kernel` | vLLM | VV | sampling | medium | `vLLM sample` |
-| `L1_21_gumbel_sample_kernel` | vLLM | VV | sampling | medium | `vllm/v1/worker/gpu/sample/gumbel.py` |
-| `L1_22_min_p_kernel` | vLLM | VV | sampling | medium | `vLLM sample` |
-| `L1_23_penalties_and_temperature_kernel` | vLLM | VV | sampling | low | `vllm/v1/worker/gpu/sample/penalties.py` |
-| `L1_24_rejection_sample_kernel` | vLLM | VV | sampling | medium | `vllm/v1/sample/rejection_sampler.py` |
-| `L1_25_merge_attn_states_kernel` | vLLM | VV | attention | medium | `vllm/v1/attention/ops/triton_merge_attn_states.py` |
-| `L1_26_merge_state_kernel` | SGLang | VV | elementwise | medium | `sglang/srt/layers/attention/triton_ops/merge_state.py` |
-| `L1_27_apply_grammar_bitmask_kernel` | vLLM | VV | sampling | medium | `vllm/v1/worker/gpu/structured_outputs.py` |
-| `L1_28_pack_bitmatrix` | vLLM | VV | other | medium | `vllm/v1/worker/gpu/structured_outputs.py` |
-| `L1_29_prepare_eagle_inputs_kernel` | vLLM | VV | spec_decode | medium | `vLLM spec_decode` |
-| `L1_30_act_quant_kernel` | SGLang | VV | quantization | low | `python/sglang/srt/layers/attention/nsa/triton_kernel.py` |
-| `L1_31_triton_mrope_forward` | vLLM | VV | attention | medium | `vLLM mrope` |
-| `L1_32_create_flashinfer_kv_indices_triton` | SGLang | VV | attention | medium | `sglang/srt/layers/attention/` |
-| `L1_33_create_flashmla_kv_indices_triton` | SGLang | VV | attention | medium | `sglang/srt/layers/attention/` |
-| `L1_34_transform_index_page_table_decode_kernel` | SGLang | VV | attention | medium | `sglang/srt/mem_cache/` |
-| `L1_35_compute_src2dst_triton_kernel` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/ep_moe/kernels.py` |
-| `L1_36_compute_seg_indptr_triton_kernel` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/ep_moe/kernels.py` |
-| `L1_37_compute_problem_sizes_w4a8_kernel` | SGLang | VV | quantization | medium | `sglang/srt/layers/moe/cutlass_w4a8_moe.py` |
-| `L1_38_silu_mul_fp8_quant_deep_gemm` | vLLM | VV | moe | medium | `vllm/model_executor/layers/quantization/utils/fp8_utils.` |
-| `L1_39_state_passing_fwd_kernel` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/mamba/ops/` |
-| `L1_40_chunk_cumsum_fwd_kernel` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/fla/ops/` |
+| `L1_01_bias` | vLLM | VV | sampling | medium | `vllm/v1/worker/gpu/sample/logit_bias.py` |
+| `L1_02_compute_slot_mappings` | vLLM | VV | attention | medium | ``vllm/v1/worker/utils.py`` |
+| `L1_03_convert_req_index_to_global_index` | vLLM | VV | convolution | medium | ``vllm/v1/worker/`` |
+| `L1_04_copy_page_indices` | vLLM | VV | attention | low | `vLLM v1 attention` |
+| `L1_05_gather_block_tables` | vLLM | VV | moe | medium | ``vllm/v1/attention/ops/`` |
+| `L1_06_reshape_and_cache_kernel_flash` | vLLM | VV | attention | medium | ``vllm/v1/attention/ops/triton_reshape_and_cache_flash.py`` |
+| `L1_07_dequantize_k_cache_fast` | SGLang | VV | quantization | medium | ``sglang/srt/layers/attention/`` |
+| `L1_08_dequantize_k_cache_paged` | SGLang | VV | attention | medium | ``sglang/srt/layers/attention/`` |
+| `L1_09_quantize_k_cache_fast` | SGLang | VV | quantization | medium | ``sglang/srt/layers/attention/`` |
+| `L1_10_per_token_group_quant_int8` | vLLM | VV | quantization | medium | ``vllm/model_executor/layers/quantization/utils/int8_utils.py`` |
+| `L1_11_awq_dequantize` | vLLM | VV | quantization | medium | ``vllm/model_executor/layers/quantization/awq_triton.py`` |
+| `L1_12_rms_norm` | vLLM | VV | norm | medium | `vllm/model_executor/layers/batch_invariant.py` |
+| `L1_13_fused_softcap` | SGLang | VV | elementwise | low | ``sglang/srt/layers/logits_processor.py`` |
+| `L1_14_merge_attn_states` | vLLM | VV | attention | medium | ``vllm/v1/attention/ops/triton_merge_attn_states.py`` |
+| `L1_15_merge_state` | SGLang | VV | elementwise | medium | ``sglang/srt/layers/attention/triton_ops/merge_state.py`` |
+| `L1_16_apply_grammar_bitmask` | vLLM | VV | sampling | medium | ``vllm/v1/worker/gpu/structured_outputs.py`` |
+| `L1_17_prepare_eagle_inputs` | vLLM | VV | spec_decode | medium | `vLLM spec_decode` |
+| `L1_18_act_quant` | SGLang | VV | quantization | low | `python/sglang/srt/layers/attention/nsa/triton_kernel.py` |
+| `L1_19_triton_mrope_forward` | vLLM | VV | attention | medium | `vLLM mrope` |
+| `L1_20_create_flashinfer_kv_indices_triton` | SGLang | VV | attention | medium | ``sglang/srt/layers/attention/`` |
+| `L1_21_create_flashmla_kv_indices_triton` | SGLang | VV | attention | medium | ``sglang/srt/layers/attention/`` |
+| `L1_22_transform_index_page_table_decode` | SGLang | VV | attention | medium | ``sglang/srt/mem_cache/`` |
+| `L1_23_compute_src2dst_triton` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L1_24_compute_seg_indptr_triton` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L1_25_compute_problem_sizes_w4a8` | SGLang | VV | quantization | medium | ``sglang/srt/layers/moe/cutlass_w4a8_moe.py`` |
+| `L1_26_state_passing_fwd` | vLLM | VV | ssm | medium | ``vllm/model_executor/layers/mamba/ops/`` |
+| `L1_27_chunk_cumsum_fwd` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py` |
+| `L1_28_fused_rmsnorm` | SGLang | VV | normalization | medium | ``sglang/srt/layers/elementwise.py`` |
+| `L1_29_fused_gdn_gating` | vLLM | VV | ssm | medium | ``vllm/model_executor/layers/fla/ops/`` |
+| `L1_30_deepep_permute_triton` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L1_31_deepep_post_reorder_triton` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L1_32_experts_combine` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/`` |
+| `L1_33_pre_reorder_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/cutlass_w4a8_moe.py`` |
+| `L1_34_post_reorder_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/cutlass_w4a8_moe.py`` |
+| `L1_35_concat_and_cast_mha_k` | SGLang | VV | elementwise | medium | ``sglang/srt/mem_cache/`` |
+| `L1_36_gemma_qkv_rmsnorm` | SGLang | VV | normalization | medium | ``sglang/srt/layers/gemma4_fused_ops.py`` |
 
 ### L2
 
 | task_id | 仓 | 类型 | 类别 | 迁移难度 | 上游路径 |
 |---------|----|------|------|---------|----------|
-| `L2_01_bmm_chunk_fwd_kernel` | vLLM | CV | gemm | medium | `vllm/model_executor/layers/mamba/ops/` |
-| `L2_02_chunk_scan_fwd_kernel` | vLLM | CV | ssm | medium | `vllm/model_executor/layers/mamba/ops/ssd_chunk_scan.py` |
-| `L2_03_chunk_state_fwd_kernel` | vLLM | CV | ssm | medium | `vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py` |
-| `L2_04_chunked_lora_expand_kernel` | SGLang | CV | gemm | medium | `sglang/srt/lora/` |
-| `L2_05_chunked_lora_shrink_kernel` | SGLang | CV | gemm | medium | `sglang/srt/lora/` |
-| `L2_06_qkv_lora_b_kernel` | SGLang | CV | attention | medium | `sglang/srt/lora/` |
-| `L2_07_gate_up_lora_b_kernel` | SGLang | CV | gemm | medium | `sglang/srt/lora/` |
-| `L2_08_sgemm_lora_a_kernel` | SGLang | CV | gemm | medium | `sglang/srt/lora/` |
-| `L2_09_sgemm_lora_b_kernel` | SGLang | CV | gemm | medium | `sglang/srt/lora/` |
-| `L2_10_w8a8_block_int8_matmul` | vLLM | CV | moe | high | `vllm/model_executor/layers/quantization/utils/int8_utils` |
-| `L2_11_w8a8_triton_block_scaled_mm` | vLLM | CV | quantization | medium | `vllm/model_executor/layers/quantization/compressed_tenso` |
-| `L2_12_awq_gemm_kernel` | vLLM | CV | gemm | medium | `vllm/model_executor/layers/quantization/awq_triton.py` |
-| `L2_13_bmm_kernel` | vLLM | CV | gemm | medium | `vLLM` |
-| `L2_14_matmul_kernel_persistent` | vLLM | CV | gemm | medium | `vllm/model_executor/layers/batch_invariant.py` |
-| `L2_15_fused_dual_residual_rmsnorm_kernel` | SGLang | VV | normalization | medium | `sglang/srt/layers/elementwise.py` |
-| `L2_16_fused_rmsnorm_kernel` | SGLang | VV | normalization | medium | `sglang/srt/layers/elementwise.py` |
-| `L2_17_layer_norm_gated_fwd_kernel` | vLLM | VV | normalization | medium | `vllm/model_executor/layers/fla/ops/` |
-| `L2_18_fused_gdn_gating_kernel` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/fla/ops/` |
-| `L2_19_fused_sigmoid_gating_delta_rule_update_kernel` | SGLang | VV | ssm | medium | `sglang/srt/layers/attention/fla/` |
-| `L2_20_causal_conv1d_update_kernel` | vLLM | VV | convolution | medium | `vllm/model_executor/layers/mamba/ops/causal_conv1d.py` |
-| `L2_21_causal_conv1d_fwd_kernel` | vLLM | VV | convolution | medium | `（同 L2_20 上游）` |
-| `L2_22_linear_attn_decode_kernel` | vLLM | VV | attention | medium | `vllm/model_executor/layers/lightning_attn.py` |
-| `L2_23_fwd_kv_parallel` | vLLM | CV | attention | medium | `vllm/model_executor/layers/lightning_attn.py` |
-| `L2_24_fwd_kv_reduce` | vLLM | VV | attention | medium | `（同 L2_23 上游）` |
-| `L2_25_fwd_kernel_ep_gather` | vLLM | VV | moe | medium | `sglang/srt/layers/moe/ep_moe/kernels.py` |
-| `L2_26_fwd_kernel_ep_scatter_1` | vLLM | VV | moe | medium | `（同 ep_moe/kernels.py）` |
-| `L2_27_deepep_permute_triton_kernel` | SGLang | VV | moe | medium | `（同 ep_moe/kernels.py）` |
-| `L2_28_deepep_post_reorder_triton_kernel` | SGLang | VV | moe | medium | `（同 ep_moe/kernels.py）` |
-| `L2_29_fused_moe_router_cudacore_kernel` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/router.py` |
-| `L2_30_fused_moe_router_tensorcore_kernel` | SGLang | CV | moe | high | `sglang/srt/layers/moe/router.py` |
-| `L2_31_moe_align_block_size_stage2` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/ep_moe/kernels.py` |
-| `L2_32_experts_combine_kernel` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/` |
-| `L2_33_fwd_grouped_kernel_stage1_rope` | SGLang | CV | attention | high | `sglang/srt/layers/attention/triton_ops/rocm_mla_decode_r` |
-| `L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/cutlass_w4a8_moe.py` |
-| `L2_35_pre_reorder_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/cutlass_w4a8_moe.py` |
-| `L2_36_post_reorder_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | `sglang/srt/layers/moe/cutlass_w4a8_moe.py` |
-| `L2_37_silu_and_mul_post_quant_kernel` | SGLang | VV | quantization | medium | `sglang/srt/layers/activation.py` |
-| `L2_38_concat_and_cast_mha_k_kernel` | SGLang | VV | elementwise | medium | `sglang/srt/mem_cache/` |
+| `L2_01_layer_norm_fwd` | vLLM | VV | normalization | medium | `vLLM` |
+| `L2_02_layer_norm_fwd_1pass` | vLLM | VV | normalization | medium | ``vllm/model_executor/layers/fla/`` |
+| `L2_03_act_and_mul` | SGLang | VV | elementwise | low | ``sglang/srt/layers/activation.py`` |
+| `L2_04_silu_and_mul` | SGLang | VV | elementwise | low | `python/sglang/srt/layers/elementwise.py` |
+| `L2_05_gelu_and_mul` | SGLang | VV | elementwise | medium | ``sglang/srt/layers/activation.py`` |
+| `L2_06_topk_log_softmax` | vLLM | VV | sampling | medium | `vLLM sample` |
+| `L2_07_log_softmax` | vLLM | VV | sampling | medium | `vLLM sample` |
+| `L2_08_gumbel_sample` | vLLM | VV | sampling | medium | ``vllm/v1/worker/gpu/sample/gumbel.py`` |
+| `L2_09_min_p` | vLLM | VV | sampling | medium | `vLLM sample` |
+| `L2_10_penalties_and_temperature` | vLLM | VV | sampling | low | `vllm/v1/worker/gpu/sample/penalties.py` |
+| `L2_11_rejection_sample` | vLLM | VV | sampling | medium | `vllm/v1/sample/rejection_sampler.py` |
+| `L2_12_pack_bitmatrix` | vLLM | VV | other | medium | ``vllm/v1/worker/gpu/structured_outputs.py`` |
+| `L2_13_silu_mul_fp8_quant_deep_gemm` | vLLM | VV | moe | medium | ``vllm/model_executor/layers/fused_moe/experts/batched_deep_gemm_moe.py`` |
+| `L2_14_bmm_chunk_fwd` | vLLM | CV | gemm | medium | ``vllm/model_executor/layers/mamba/ops/`` |
+| `L2_15_chunked_lora_shrink` | SGLang | CV | gemm | medium | ``sglang/srt/lora/`` |
+| `L2_16_sgemm_lora_a` | SGLang | CV | gemm | medium | ``sglang/srt/lora/`` |
+| `L2_17_w8a8_block_int8_matmul` | vLLM | CV | moe | high | `vllm/model_executor/layers/quantization/utils/int8_utils.py` |
+| `L2_18_w8a8_triton_block_scaled_mm` | vLLM | CV | quantization | medium | ``vllm/model_executor/layers/quantization/compressed_tensors/triton_scaled_mm.py`` |
+| `L2_19_awq_gemm` | vLLM | CV | gemm | medium | ``vllm/model_executor/layers/quantization/awq_triton.py`` |
+| `L2_20_bmm` | vLLM | CV | gemm | medium | `vLLM` |
+| `L2_21_matmul_kernel_persistent` | vLLM | CV | gemm | medium | ``vllm/model_executor/layers/batch_invariant.py`` |
+| `L2_22_fused_dual_residual_rmsnorm` | SGLang | VV | normalization | medium | ``sglang/srt/layers/elementwise.py`` |
+| `L2_23_layer_norm_gated_fwd` | vLLM | VV | normalization | medium | ``vllm/model_executor/layers/fla/ops/`` |
+| `L2_24_linear_attn_decode` | vLLM | VV | attention | medium | ``vllm/model_executor/layers/lightning_attn.py`` |
+| `L2_25_fwd_kernel_ep_gather` | vLLM | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L2_26_fwd_kernel_ep_scatter_1` | vLLM | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L2_27_fused_moe_router_cudacore` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/router.py`` |
+| `L2_28_moe_align_block_size_stage2` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/ep_moe/kernels.py`` |
+| `L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe` | SGLang | VV | moe | medium | ``sglang/srt/layers/moe/cutlass_w4a8_moe.py`` |
+| `L2_30_silu_and_mul_post_quant` | SGLang | VV | quantization | medium | ``sglang/srt/layers/activation.py`` |
+| `L2_31_scaled_mm` | vLLM | CV | quantization | medium | ``vllm/model_executor/layers/quantization/compressed_tensors/triton_scaled_mm.py`` |
+| `L2_32_correct_attn_cp_out` | vLLM | VV | attention | high | `vllm/v1/attention/ops/common.py` |
+| `L2_33_moe_mmk` | vLLM | CV | moe | high | ``vllm/model_executor/layers/fused_moe/`` |
+| `L2_34_solve_tril_16x16` | vLLM | VV | ssm | medium | ``vllm/model_executor/layers/fla/ops/solve_tril.py`` |
+| `L2_35_chunk_local_cumsum_vector` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/`` |
 
 ### L3
 
 | task_id | 仓 | 类型 | 类别 | 迁移难度 | 上游路径 |
 |---------|----|------|------|---------|----------|
-| `L3_01_kernel_unified_attention_3d` | vLLM | CV | attention | high | `vllm/v1/attention/ops/triton_unified_attention.py` |
-| `L3_02_kernel_paged_attention_2d` | vLLM | CV | attention | high | `vllm/v1/attention/ops/triton_unified_attention.py` |
-| `L3_03_chunk_state_varlen_kernel` | SGLang | CV | ssm | high | `python/sglang/srt/layers/attention/mamba/ops/ssd_chunk_state` |
-| `L3_04_fwd_kernel` | SGLang | CV | attention | high | `python/sglang/srt/layers/attention/triton_ops/prefill_attn` |
-| `L3_05_fwd_kernel_alibi` | vLLM | CV | other | high | `（同 prefill attention 上游）` |
-| `L3_06_fwd_grouped_kernel_stage1` | vLLM | CV | other | high | `sglang/srt/layers/attention/triton_ops/decode_attention.py` |
-| `L3_07_correct_attn_cp_out_kernel` | vLLM | VV | attention | high | `vllm/v1/attention/ops/common.py` |
-| `L3_09_fused_moe_kernel` | vLLM | CV | moe | high | `vllm/model_executor/layers/fused_moe/fused_moe.py` |
-| `L3_10_fused_moe_kernel_gptq_awq` | vLLM | CV | moe | high | `vllm/model_executor/layers/fused_moe/fused_moe.py` |
-| `L3_11_expert_triton_kernel` | vLLM | CV | moe | high | `vllm/model_executor/layers/fused_moe/` |
-| `L3_12_moe_mmk` | vLLM | CV | moe | high | `vllm/model_executor/layers/fused_moe/` |
-| `L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/chunk.py` |
-| `L3_14_fused_recurrent_gated_delta_rule_fwd_kernel` | vLLM | VV | ssm | high | `vllm/model_executor/layers/fla/ops/fused_recurrent.py` |
-| `L3_15_fused_recurrent_gated_delta_rule_update_fwd_kernel` | SGLang | VV | ssm | high | `sglang/srt/layers/attention/fla/` |
-| `L3_16_chunk_fwd_kernel_o` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/chunk.py` |
-| `L3_17_chunk_gla_fwd_kernel_o` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/` |
-| `L3_18_chunk_scaled_dot_kkt_fwd_kernel` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/kda.py` |
-| `L3_19_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/kda.py` |
-| `L3_20_recompute_w_u_fwd_kernel` | vLLM | CV | other | high | `vllm/model_executor/layers/fla/ops/kda.py` |
-| `L3_21_solve_tril_16x16_kernel` | vLLM | VV | ssm | medium | `vllm/model_executor/layers/fla/ops/solve_tril.py` |
-| `L3_22_chunk_local_cumsum_vector_kernel` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/` |
-| `L3_23_merge_16x16_to_32x32_inverse_kernel` | vLLM | CV | ssm | high | `vllm/model_executor/layers/fla/ops/` |
+| `L3_01_chunk_scan_fwd` | vLLM | CV | ssm | medium | ``vllm/model_executor/layers/mamba/ops/ssd_chunk_scan.py`` |
+| `L3_02_chunk_state_fwd` | vLLM | CV | ssm | medium | ``vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py`` |
+| `L3_03_chunked_lora_expand` | SGLang | CV | gemm | medium | ``sglang/srt/lora/`` |
+| `L3_04_qkv_lora_b` | SGLang | CV | attention | medium | ``sglang/srt/lora/`` |
+| `L3_05_gate_up_lora_b` | SGLang | CV | gemm | medium | ``sglang/srt/lora/`` |
+| `L3_06_sgemm_lora_b` | SGLang | CV | gemm | medium | ``sglang/srt/lora/`` |
+| `L3_07_fused_sigmoid_gating_delta_rule_update` | SGLang | VV | ssm | medium | ``sglang/srt/layers/attention/fla/`` |
+| `L3_08_causal_conv1d_update` | vLLM | VV | convolution | medium | ``vllm/model_executor/layers/mamba/ops/causal_conv1d.py`` |
+| `L3_09_causal_conv1d_fwd` | vLLM | VV | convolution | medium | ``vllm/model_executor/layers/mamba/ops/causal_conv1d.py`` |
+| `L3_10_fused_moe_router_tensorcore` | SGLang | CV | moe | high | ``sglang/srt/layers/moe/router.py`` |
+| `L3_11_fwd_grouped_kernel_stage1_rope` | SGLang | CV | attention | high | ``sglang/srt/layers/attention/triton_ops/rocm_mla_decode_rope.py`` |
+| `L3_12_selective_state_update` | vLLM | VV | ssm | medium | ``vllm/model_executor/layers/mamba/ops/mamba_ssm.py`` |
+| `L3_13_kernel_unified_attention_3d` | vLLM | CV | attention | high | `vllm/v1/attention/ops/triton_unified_attention.py` |
+| `L3_14_kernel_paged_attention_2d` | vLLM | CV | attention | high | `vllm/v1/attention/ops/triton_unified_attention.py` |
+| `L3_15_chunk_state_varlen` | SGLang | CV | ssm | high | `python/sglang/srt/layers/attention/mamba/ops/ssd_chunk_state.py` |
+| `L3_16_fwd` | SGLang | CV | attention | high | `python/sglang/srt/layers/attention/triton_ops/prefill_attention.py` |
+| `L3_17_fwd_kernel_alibi` | vLLM | CV | other | high | `python/sglang/srt/layers/attention/triton_ops/prefill_attention.py` |
+| `L3_18_fwd_grouped_kernel_stage1` | vLLM | CV | other | high | ``sglang/srt/layers/attention/triton_ops/decode_attention.py`` |
+| `L3_19_fused_moe` | vLLM | CV | moe | high | ``vllm/model_executor/layers/fused_moe/fused_moe.py`` |
+| `L3_20_fused_moe_kernel_gptq_awq` | vLLM | CV | moe | high | ``vllm/model_executor/layers/fused_moe/fused_moe.py`` |
+| `L3_21_expert_triton` | vLLM | CV | moe | high | ``vllm/model_executor/layers/fused_moe/`` |
+| `L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/chunk.py`` |
+| `L3_23_fused_recurrent_gated_delta_rule_fwd` | vLLM | VV | ssm | high | ``vllm/model_executor/layers/fla/ops/fused_recurrent.py`` |
+| `L3_24_fused_recurrent_gated_delta_rule_update_fwd` | SGLang | VV | ssm | high | ``sglang/srt/layers/attention/fla/`` |
+| `L3_25_chunk_fwd_kernel_o` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/chunk.py`` |
+| `L3_26_chunk_gla_fwd_kernel_o` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/`` |
+| `L3_27_chunk_scaled_dot_kkt_fwd` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/kda.py`` |
+| `L3_28_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/kda.py`` |
+| `L3_29_recompute_w_u_fwd` | vLLM | CV | other | high | ``vllm/model_executor/layers/fla/ops/kda.py`` |
+| `L3_30_merge_16x16_to_32x32_inverse` | vLLM | CV | ssm | high | ``vllm/model_executor/layers/fla/ops/` + `sglang/srt/layers/attention/fla/`` |

@@ -460,7 +460,7 @@ def test_r2_4_self_reported_denominator_excludes_upstream_oracle(tmp_path):
              "aggregate_score": 1.0, "s_t": 1.0, "task_status": "evaluated"},
             # upstream_oracle_required — has no provider golden in
             # self-reported mode; excluded by the fixed formula.
-            {"task_id": "L1_15_act_and_mul",
+            {"task_id": "L2_03_act_and_mul",
              "static_checks_passed": True, "correctness_status": "fail",
              "runtime_status": "error", "performance_status": "error",
              "performance_flags": [], "fallback_detected": False,
@@ -500,7 +500,7 @@ def test_r2_4_bad_result_cannot_drop_failing_task_via_unsupported(tmp_path):
             # false`, semantically clean) so the repo-authoritative status
             # is genuinely "evaluated" — a scaffold task would itself be
             # "blocked" by the WA.4 gate, which is a different code path.
-            {"task_id": "L1_16_silu_and_mul",
+            {"task_id": "L2_04_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "fail",
              "runtime_status": "error", "performance_status": "error",
              "performance_flags": [], "fallback_detected": False,
@@ -534,7 +534,7 @@ def test_r2_4_verified_mode_denominator_is_full_eligible_set(tmp_path):
     verified = {
         "mode": "verified",
         "results": [
-            {"task_id": "L1_15_act_and_mul",
+            {"task_id": "L2_03_act_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,

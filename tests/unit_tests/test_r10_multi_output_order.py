@@ -34,7 +34,7 @@ def test_r10a_writes_output_key_order_metadata():
     """Run the precompute script for a multi-output corpus task and
     assert the safetensors metadata pins the oracle dict insertion
     order (not safetensors' alphabetical load order)."""
-    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_36_compute_seg_indptr_triton"
+    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_24_compute_seg_indptr_triton"
     if not task_dir.is_dir():
         pytest.skip("L1_36 missing")
 
@@ -48,7 +48,7 @@ def test_r10a_writes_output_key_order_metadata():
         [
             sys.executable,
             str(REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"),
-            "--task", "L1_36_compute_seg_indptr_triton",
+            "--task", "L1_24_compute_seg_indptr_triton",
             "--json-out", "/tmp/_test_l1_36.json",
             "--report", "/tmp/_test_l1_36.md",
         ],
@@ -147,7 +147,7 @@ def test_l1_36_oracle_handles_minus_one_padding():
     the math with an explicit input that mixes -1 padding entries
     with real expert ids so any future refactor of the oracle that
     drops the offset / slice trips this test."""
-    sys.path.insert(0, str(REPO_ROOT / "tasks/level1/L1_36_compute_seg_indptr_triton"))
+    sys.path.insert(0, str(REPO_ROOT / "tasks/level1/L1_24_compute_seg_indptr_triton"))
     import oracle_pytorch as orc
 
     # Input: 2 entries of -1 padding, then expert ids 0/1/2 interleaved.
@@ -180,7 +180,7 @@ def test_l1_36_full_pipeline_with_kernel_tuple(tmp_path):
     """End-to-end on L1_36 ref artifacts: simulate kernel returning
     a 3-tuple in wrapper order and confirm the dict mapping pairs
     each kernel output with its correct ref tensor by name."""
-    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_36_compute_seg_indptr_triton"
+    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_24_compute_seg_indptr_triton"
     ref_file = task_dir / "r10_pyref" / "ref_P1.safetensors"
     if not ref_file.is_file():
         pytest.skip("L1_36 r10_pyref not built; run R10.a first")

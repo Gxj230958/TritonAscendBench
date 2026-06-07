@@ -27,7 +27,7 @@ This script is the missing producer of those artifacts. It:
      :func:`eligibility.is_score_eligible`. The score-eligible filter is
      the SAME policy ``gpu_pipeline`` step 20
      (``phase_a_cost_xcheck.py``) applies: a non-score-eligible task
-     (stub oracle / ``PHASE-C-MANUAL`` shapes -- ``L1_21_gumbel_sample``
+     (stub oracle / ``PHASE-C-MANUAL`` shapes -- ``L2_08_gumbel_sample``
      today) has no offline golden to capture (its kernel is a
      placeholder and its oracle is an unimplemented stub, so it can
      never reach ``phase_a_prime.status == PASS``), and is an

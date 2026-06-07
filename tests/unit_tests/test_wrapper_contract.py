@@ -256,7 +256,7 @@ def test_l3_13_oracle_helper_exposes_k_rank_3():
     an empty accepted_ranks and the GPU runner can't classify L3_13
     as ORACLE_KERNEL_LAYOUT_MISMATCH."""
     oracle = Path(
-        "tasks/level3/L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64/oracle_pytorch.py"
+        "tasks/level3/L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64/oracle_pytorch.py"
     )
     if not oracle.is_file():
         pytest.skip("L3_13 oracle missing in this checkout")
@@ -278,12 +278,12 @@ REAL_CORPUS_CASES = [
     # cumsum + shapes.yaml.g.dims aligned to [B,H,L,D]); it now
     # returns ALIGNED_READY and no longer belongs in the
     # rank-mismatch list.
-    ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4, 3),
-    ("L3_16_chunk_fwd_kernel_o", "q", 4, 3),
-    ("L3_17_chunk_gla_fwd_kernel_o", "q", 4, 3),
-    ("L3_18_chunk_scaled_dot_kkt_fwd", "k", 4, 3),
-    ("L3_20_recompute_w_u_fwd", "k", 4, 3),
-    ("L3_23_merge_16x16_to_32x32_inverse", "A", 4, 3),
+    ("L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4, 3),
+    ("L3_25_chunk_fwd_kernel_o", "q", 4, 3),
+    ("L3_26_chunk_gla_fwd_kernel_o", "q", 4, 3),
+    ("L3_27_chunk_scaled_dot_kkt_fwd", "k", 4, 3),
+    ("L3_29_recompute_w_u_fwd", "k", 4, 3),
+    ("L3_30_merge_16x16_to_32x32_inverse", "A", 4, 3),
 ]
 
 

@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, "scripts")
 import oracle_equivalence_gpu_runner as R
 
-MODEB = "L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64"  # the ONLY Mode-B task
+MODEB = "L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64"  # the ONLY Mode-B task
 
 def mk(tu=None, mabs=None, mref=None, fk=None, bad=None, blocker="", cerr=False):
     sv = R.ShapeVerdict(shape_id="P4")
@@ -27,8 +27,8 @@ def ck(name, sv_or_acc, exp, task="L1_12_rms_norm"):
 
 # Allowlist membership locks: Mode-B holds exactly L3_13; the rest are Mode-A.
 ck("config: physical_tasks is exactly {L3_13}", set(cfg["physical_tasks"]) == {MODEB}, True)
-ck("config: L2_03 is Mode-A (in tol_units_tasks)", "L2_03_chunk_state_fwd" in cfg["tol_units_tasks"], True)
-ck("config: L2_03 NOT Mode-B", "L2_03_chunk_state_fwd" not in cfg["physical_tasks"], True)
+ck("config: L2_03 is Mode-A (in tol_units_tasks)", "L3_02_chunk_state_fwd" in cfg["tol_units_tasks"], True)
+ck("config: L2_03 NOT Mode-B", "L3_02_chunk_state_fwd" not in cfg["physical_tasks"], True)
 ck("config: 18 Mode-A + 1 Mode-B = 19", len(cfg["tol_units_tasks"]) == 18 and len(cfg["physical_tasks"]) == 1, True)
 
 # Mode-A
@@ -41,7 +41,7 @@ ck("modeA dtype mismatch -> fail-closed", mk(tu={"o":6.0}, fk=["o"], bad=["o"]),
 ck("modeA nonfinite tol_units -> fail-closed", mk(tu={"o":float('inf')}, fk=["o"]), False)
 # L2_03 lock: its real failing profile (tol_units 2.19, but max_abs 0.1454 / max|ref| 15 would
 # FAIL the Mode-B physical bound 2*15*ulpB=0.117). Mode-A must ACCEPT on tol_units alone.
-ck("L2_03 accepts via tol_units despite physical-failing max_abs", mk(tu={"states":2.19}, mabs={"states":0.1454}, mref={"states":15.0}, fk=["states"]), True, "L2_03_chunk_state_fwd")
+ck("L2_03 accepts via tol_units despite physical-failing max_abs", mk(tu={"states":2.19}, mabs={"states":0.1454}, mref={"states":15.0}, fk=["states"]), True, "L3_02_chunk_state_fwd")
 
 # Mode-B (L3_13): bound = fac*mref*ulpB; tol_units cap does NOT apply.
 ck("modeB within bound accept", mk(mabs={"output":0.2}, mref={"output":50.0}, fk=["output"]), True, MODEB)

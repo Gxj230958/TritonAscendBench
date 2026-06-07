@@ -20,7 +20,7 @@ ones (which it actually needs to think about). Run between
 
     python3 scripts/auto_shapes_filler.py             # dry-run
     python3 scripts/auto_shapes_filler.py --apply     # write changes
-    python3 scripts/auto_shapes_filler.py --task L1_15_act_and_mul --apply
+    python3 scripts/auto_shapes_filler.py --task L2_03_act_and_mul --apply
 
 The tool is idempotent: it never overwrites an existing ``inputs[name]``
 entry, only appends missing ones. Writes are atomic (temp + rename) so a
@@ -237,7 +237,7 @@ def _intended_entrypoint_candidates(task_id: str) -> list[str]:
 
     Task IDs follow ``L<level>_<idx>_<intended_name>[_kernel]``.
     Stripping the prefix yields the conceptual intended entrypoint
-    (e.g. ``L1_32_create_flashinfer_kv_indices_triton`` ->
+    (e.g. ``L1_20_create_flashinfer_kv_indices_triton`` ->
     ``create_flashinfer_kv_indices_triton``). Some vendored kernels
     keep a ``_kernel`` suffix on the actual @triton.jit function;
     we generate both the stripped form and the with-suffix form.

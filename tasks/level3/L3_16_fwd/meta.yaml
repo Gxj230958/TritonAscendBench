@@ -1,0 +1,276 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-poc
+task_id: L3_16_fwd
+level: L3
+idx: 16
+name: _fwd_kernel
+repo: SGLang
+dtype_class: CV
+category: attention
+npu_difficulty: high
+upstream:
+  repo: sgl-project/sglang
+  path: python/sglang/srt/layers/attention/triton_ops/prefill_attention.py
+  commit_sha: snapshot-no-git
+  file_sha256: 1caf20af6c51c77d2fe01b73f9cd726625ae8e63aab09ca99682986c306f8bc0
+  function_hash: 1caf20af6c51c77d2fe01b73f9cd726625ae8e63aab09ca99682986c306f8bc0
+  license: Apache-2.0
+  hand_curated_poc: true
+  origin_note: 'sglang implementation adapted from ModelTC/lightllm. Both upstreams
+
+    of this task.
+
+    '
+interface:
+  alias_map:
+    q: ro
+    k: ro
+    v: ro
+    o: wo_runner_allocated
+    b_start_loc: ro
+    b_seq_len: ro
+    max_input_len: ro
+    is_causal: ro
+    sm_scale: ro
+  mutability: in_place_output_buffer
+  inplace_outputs:
+  - o
+  stride_layout: q/k/v/o contiguous [total_tokens, head, head_dim]
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::context_attention_fwd
+tolerance_class: attention_flash
+cost_model:
+  flops:
+    fp16_cube: 4*B*H*D*(L*L - CAUSAL*L*(L-1)/2)
+    vector: 8*B*H*(L*L - CAUSAL*L*(L-1)/2)
+  bytes:
+    hbm: (2*B*L*H*D + 2*B*L*(H//2)*D)*dtype_size + (2*B + 1)*8
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.7140 > tol 0.0500
+    (analytic=805306632 measured=2815935232)'
+  xcheck_run_id: xcheck-2026-06-05-0b1e5e44
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 98344.0
+    measured_bytes: 81152.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.2118493690851735
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2118 > tol 0.0500 (analytic=98344 measured=81152) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=81152 < 0.5xmax=2815935232); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 3145800.0
+    measured_bytes: 2118400.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.48498867069486407
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4850 > tol 0.0500 (analytic=3145800 measured=2118400)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2118400 < 0.5xmax=2815935232);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 50331784.0
+    measured_bytes: 44504832.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.13092852479479083
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1309 > tol 0.0500 (analytic=50331784 measured=44504832)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=44504832 < 0.5xmax=2815935232);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 805306632.0
+    measured_bytes: 2815935232.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7140180559380138
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.7140 > tol 0.0500 (analytic=805306632 measured=2815935232)
+  - shape_id: P5
+    analytic_bytes_total: 12582952.0
+    measured_bytes: 8409344.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.4963060138817011
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4963 > tol 0.0500 (analytic=12582952 measured=8409344)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=8409344 < 0.5xmax=2815935232);
+      non-blocking per asymptotic_hbm_xcheck]'
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 1
+  min_dram_bytes: 524288
+  min_flops: 33554432
+  output_format: safetensors
+  output_allocation: runner_allocated
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  - cube_arithmetic_present
+  - online_softmax_present
+  metamorphic_checks:
+  - name: qk_scale_inverse
+    description: 'Replacing (Q, K) with (αQ, K/α) for scalar α>0 leaves output
+
+      unchanged (q·k product preserved exactly in fp32, modulo the
+
+      final cast).
+
+      '
+  - name: zero_v_yields_zero
+    description: v = 0 ⇒ o = 0 regardless of q, k.
+  - name: single_token_per_seq_equals_v
+    description: 'Every b_seq_len[i] = 1 ⇒ softmax over a single logit = 1 ⇒
+
+      output equals v exactly.
+
+      '
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 180
+  fp8_required: false
+  notes: 'head_dim ≤ 128 at v0.1. Larger head_dim (DeepSeek MLA) belongs to a
+
+    separate task variant.
+
+    '
+provenance:
+  added_in: v0.1
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-14'
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:15:05Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.005859375
+        max_rel: 666.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.00244140625
+        max_rel: 1.2306835651397705
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 124692920.0
+        blocker: 'o: atol/rtol: max_abs=0.00781, max_rel=1.25e+08 (max_abs=0.0078125,
+          max_rel=124692920.0, tol=attention_flash atol=0.005 rtol=0.001)'
+      H4:
+        status: VERIFIED
+        max_abs: 0.00390625
+        max_rel: 760.5
+      P1:
+        status: VERIFIED
+        max_abs: 0.00244140625
+        max_rel: 15.993006706237793
+      P2:
+        status: VERIFIED
+        max_abs: 0.005859375
+        max_rel: 2179.0
+      P3:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 103294848.0
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 412464128.0
+        blocker: 'o: atol/rtol: max_abs=0.00781, max_rel=4.12e+08 (max_abs=0.0078125,
+          max_rel=412464128.0, tol=attention_flash atol=0.005 rtol=0.001)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.0048828125
+        max_rel: 3231.0
+    golden_source: dtype_ceiling_accepted
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    q: bfloat16
+    k: bfloat16
+    v: bfloat16
+    b_start_loc: int64
+    b_seq_len: int64
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    b_start_loc:
+      kind: offsets
+      args:
+        to: B*L
+    b_seq_len:
+      kind: full
+      args:
+        value: L
+  scalars:
+    sm_scale:
+      derive: 1/sqrt(D)
+    is_causal: is_causal in [0, 1]
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: b_start_loc
+  - type: first_eq
+    args:
+      input: b_start_loc
+      value: 0
+  - type: last_eq
+    args:
+      input: b_start_loc
+      value: B*L
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_16_fwd-20260604T181355
+  classified_at: '2026-06-04'
+  standalone_sha256: 0d0a1b711c0a51b34c57d9d0767f4d3c181b3aa576cde9af086940cb09978859
+  kernel_sha256: 0d0a1b711c0a51b34c57d9d0767f4d3c181b3aa576cde9af086940cb09978859
+frozen_deps: []
+classB_symbols: []
+reference_path: native
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-05T01:15:58Z'
+  upstream_callable:
+    module: sglang.srt.layers.attention.triton_ops.prefill_attention
+    function: _fwd_kernel

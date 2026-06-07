@@ -12,7 +12,7 @@ The script is standalone so it can be run in CI or by operators before
 GPU verify:
 
     python3 scripts/lint_shapes_against_kernel.py
-    python3 scripts/lint_shapes_against_kernel.py --task L2_10_w8a8_block_int8_matmul
+    python3 scripts/lint_shapes_against_kernel.py --task L2_17_w8a8_block_int8_matmul
 """
 from __future__ import annotations
 

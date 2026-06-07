@@ -15,14 +15,14 @@
 # formula omits the m_indices int32 store + per-expert count load + launcher fill
 # (~150KB real traffic), so it is a formula-audit failure, NOT a floor.
 floor_dominated_tasks:
-  - L1_28_pack_bitmatrix              # bit-pack; logical 32-640 B vs ~121KB burst (189x); formula faithful
-  - L1_35_compute_src2dst_triton      # src->dst index map; formula matches closely
-  - L1_37_compute_problem_sizes_w4a8  # problem-size metadata; formula matches closely
+  - L2_12_pack_bitmatrix              # bit-pack; logical 32-640 B vs ~121KB burst (189x); formula faithful
+  - L1_23_compute_src2dst_triton      # src->dst index map; formula matches closely
+  - L1_25_compute_problem_sizes_w4a8  # problem-size metadata; formula matches closely
   - L1_04_copy_page_indices           # page-index copy; metadata/index kernel, formula faithful
-  - L1_24_rejection_sample            # rejection-sample index kernel; sub-burst
-  - L1_29_prepare_eagle_inputs        # eagle input prep; metadata/index kernel, sub-burst
+  - L2_11_rejection_sample            # rejection-sample index kernel; sub-burst
+  - L1_17_prepare_eagle_inputs        # eagle input prep; metadata/index kernel, sub-burst
 # NOT included (stay BLOCKED):
 #   L2_26_fwd_kernel_ep_scatter_1 -- formula omits m_indices store + per-expert
 #     count load + launcher fill (real ~150KB), a formula-audit failure not a floor.
-#   L1_32_create_flashinfer_kv_indices_triton -- not decoupled (a shape's analytic
+#   L1_20_create_flashinfer_kv_indices_triton -- not decoupled (a shape's analytic
 #     131712 exceeds the min measured 70400).

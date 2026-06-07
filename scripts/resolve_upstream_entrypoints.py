@@ -1121,7 +1121,7 @@ def _shapes_input_names(task_dir: Path) -> set[str]:
 
 
 def _name_core(task_id: str) -> str:
-    """``L2_01_bmm_chunk_fwd`` -> ``bmm_chunk_fwd_kernel``."""
+    """``L2_14_bmm_chunk_fwd`` -> ``bmm_chunk_fwd_kernel``."""
     return re.sub(r"^[LT]\d+_\d+_", "", task_id)
 
 

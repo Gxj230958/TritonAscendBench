@@ -1,0 +1,233 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_08_causal_conv1d_update
+level: L3
+idx: 8
+name: _causal_conv1d_update_kernel
+repo: vLLM
+dtype_class: VV
+category: convolution
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/mamba/ops/causal_conv1d.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
+  function_hash: b14308c046e5b76a5168a1125cd1022f4422797f1a5b1355e049f1fe7e792733
+  license: Apache-2.0
+  notes: Graded entrypoint is the host wrapper `causal_conv1d_update`, which launches
+    the frozen `_causal_conv1d_update_kernel` and rolls conv_state in place. Fixture
+    re-authored to the wrapper's contract (see provenance.golden).
+  vendored_snapshot: tasks/_vendored/L3_08_causal_conv1d_update_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+  return_plus_inplace:
+    return_name: output
+    inplace:
+    - conv_state
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: vector_reduce
+cost_model:
+  flops: B*D*(2*KW + 6)
+  flops_class: vector
+  bytes: ((2*B*D + B*D*(KW-1) + D*KW + D) * 2) + (B * 4)
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.1789 > tol 0.0500
+    (analytic=174144 measured=147712)'
+  xcheck_run_id: xcheck-2026-06-05-a456a517
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 1160.0
+    measured_bytes: 5376.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7842261904761905
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7842 > tol 0.0500 (analytic=1160 measured=5376) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=5376 < 0.5xmax=147712); non-blocking per
+      asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 10256.0
+    measured_bytes: 13568.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.24410377358490565
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2441 > tol 0.0500 (analytic=10256 measured=13568) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=13568 < 0.5xmax=147712); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 46112.0
+    measured_bytes: 44288.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.041184971098265896
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0412 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 174144.0
+    measured_bytes: 147712.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.1789428076256499
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.1789 > tol 0.0500 (analytic=174144 measured=147712)
+  - shape_id: P5
+    analytic_bytes_total: 49160.0
+    measured_bytes: 46080.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.06684027777777778
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.0668 > tol 0.0500 (analytic=49160 measured=46080) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=46080 < 0.5xmax=147712); non-blocking
+      per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-20
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_source: oracle_pytorch_verified
+    notes: 'Fixture re-authored: weight [D,KW] (KW in {2,3,4}, not D), conv_state
+      [B,D,KW-1], bias [D], load-bearing conv_state_indices (cyclic_perm), null_block_id
+      null. Oracle gathers/rolls/scatters per index. Needs GPU golden re-capture before
+      baseline eligibility.'
+    verified_at: '2026-06-05T01:08:48Z'
+    golden_sha256: 1164d4f43dce5c6751d6c3e282c5eff20fa5be0decc09a5276c1e1a83450e8f0
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  - KW >= 2
+  - KW <= 6
+  dtypes:
+    x: bfloat16
+    conv_state: bfloat16
+    weight: bfloat16
+    bias: bfloat16
+    conv_state_indices: int32
+  dists:
+    x:
+      kind: randn
+    conv_state:
+      kind: randn
+    weight:
+      kind: randn
+    bias:
+      kind: randn
+    conv_state_indices:
+      kind: cyclic_perm
+  scalars:
+    activation: activation in ['silu', 'swish', 'none']
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_08_causal_conv1d_update-20260602T203024
+  classified_at: '2026-06-02'
+  standalone_sha256: 066fb1668d6172e2106dff92cf6755434cc1e755a6dd1b343641212e8c7bae09
+  kernel_sha256: 066fb1668d6172e2106dff92cf6755434cc1e755a6dd1b343641212e8c7bae09
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

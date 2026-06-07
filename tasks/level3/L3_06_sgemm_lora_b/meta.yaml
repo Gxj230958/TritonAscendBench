@@ -1,0 +1,234 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_06_sgemm_lora_b
+level: L3
+idx: 6
+name: _sgemm_lora_b_kernel
+repo: SGLang
+dtype_class: CV
+category: gemm
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/lora/`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: 6c86d0e356522b9cd88d536df060cf91d9b03bf307f4eaf51c0e31c632a49dba
+  function_hash: 6c86d0e356522b9cd88d536df060cf91d9b03bf307f4eaf51c0e31c632a49dba
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_06_sgemm_lora_b_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: cube_matmul_fp16
+cost_model:
+  flops: 2*B*G*N
+  flops_class: fp16_cube
+  bytes: B*G*2 + E*(1-(1-1/E)**E)*N*G*2 + B*N*2 + (E+1)*8 + E*8 + E*8 + E*2
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 4 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-80b75c64
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 2924.0
+    measured_bytes: 155648.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.981214021381579
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.9812 > tol 0.0500 (analytic=2924 measured=155648) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=155648 < 0.5xmax=2851584); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 44250.3115234375
+    measured_bytes: 195840.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7740486543942121
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7740 > tol 0.0500 (analytic=44250 measured=195840) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=195840 < 0.5xmax=2851584); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 697609.3031468452
+    measured_bytes: 861440.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.19018236540345793
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1902 > tol 0.0500 (analytic=697609 measured=861440) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=861440 < 0.5xmax=2851584); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 2775117.5130127687
+    measured_bytes: 2851584.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.026815442570596308
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0268 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 29980.623046875
+    measured_bytes: 177152.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8307632821143707
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.8308 > tol 0.0500 (analytic=29981 measured=177152) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=177152 < 0.5xmax=2851584); non-blocking
+      per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-09
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T01:59:51Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P3:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 3da640a9b369b63bafb8a9f6b6f45b4fb5c492ee28eec6295d281d92e3e58d61
+    golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - E >= 1
+  - G >= 1
+  - N >= 1
+  dtypes:
+    x: bfloat16
+    weights: bfloat16
+    seg_indptr: int64
+    weight_indices: int64
+    lora_ranks: int64
+    scalings: bfloat16
+  dists:
+    x:
+      kind: randn
+    weights:
+      kind: randn
+    seg_indptr:
+      kind: offsets
+      args:
+        to: B
+    weight_indices:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+    lora_ranks:
+      kind: randint
+      args:
+        lo: '1'
+        hi: G
+    scalings:
+      kind: rand
+  scalars: {}
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: seg_indptr
+  - type: index_in_range
+    args:
+      input: weight_indices
+      value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_06_sgemm_lora_b-20260604T181224
+  classified_at: '2026-06-04'
+  standalone_sha256: 07a41057b2d2cbb62a465ab2d2084d42635b908ca024ede6a0d285c840b226ec
+  kernel_sha256: 07a41057b2d2cbb62a465ab2d2084d42635b908ca024ede6a0d285c840b226ec
+frozen_deps:
+- tasks._frozen_deps_pool.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+reference_path: triton_fallback

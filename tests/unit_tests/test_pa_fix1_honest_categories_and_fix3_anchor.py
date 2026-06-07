@@ -806,17 +806,17 @@ def _run_anchor_full(td: Path, entrypoint: str = "cand") -> dict:
 
 
 def test_fp8_interpreter_skew_sets_rescue_marker():
-    """The real L1_30_act_quant task: under TRITON_INTERPRET=1 the
+    """The real L1_18_act_quant task: under TRITON_INTERPRET=1 the
     interpreter's fp32->float8 store mis-rounds, so the CORRECT oracle
     'mismatches' the kernel on ``q`` (float8) while ``scale`` (fp32)
     matches bit-exact. The anchor must set ``narrow_float_output`` so
     the caller can re-run on GPU. FAILS ON REVERT (the float8 skew would
     be reported as a plain oracle-mismatch with no rescue)."""
-    td = REPO / "tasks" / "level1" / "L1_30_act_quant"
+    td = REPO / "tasks" / "level1" / "L1_18_act_quant"
     if not (td / "kernel.py").is_file():
         import pytest
 
-        pytest.skip("L1_30_act_quant task not present")
+        pytest.skip("L1_18_act_quant task not present")
     res = _run_anchor_full(td, entrypoint="act_quant")
     assert res.get("consistent") is False, res.get("detail")
     assert res.get("narrow_float_output") is True, res.get("detail")

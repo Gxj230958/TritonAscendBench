@@ -1,0 +1,254 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_20_fused_moe_kernel_gptq_awq
+level: L3
+idx: 20
+name: fused_moe_kernel_gptq_awq
+repo: vLLM
+dtype_class: CV
+category: moe
+npu_difficulty: high
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/fused_moe/fused_moe.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 3ea31c2bbc8b439b257e5d307807275b9efceb73686f4b89cde469b5b9536122
+  function_hash: 3ea31c2bbc8b439b257e5d307807275b9efceb73686f4b89cde469b5b9536122
+  license: Apache-2.0
+  notes: frozen upstream; graded jit fused_moe_kernel_gptq_awq driven by authored
+    _pa_launcher.py.
+  vendored_snapshot: tasks/_vendored/L3_20_fused_moe_kernel_gptq_awq_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: row-major contiguous; b [E,N,K//2] int32, b_scale [E,N,K//GS], b_zp
+    [E,N//2,K//GS] int32
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: int4_w4a8
+cost_model:
+  flops:
+    fp16_cube: 8*E*N*D
+    vector: 2*E*N*D + APPW*4*E*N
+  bytes:
+    hbm: min(B,4*E)*D*2 + min(B,4*E)*N*4 + (E*4 + E)*8 + APPW*min(B,4*E)*4 + E*(1-(1-1/E)**E)*(N*(D//2)*4
+      + N*(D//GS)*4 + (N//2)*(D//GS)*4)
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-04998601
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 27732.0
+    measured_bytes: 51968.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.46636391625615764
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4664 > tol 0.0500 (analytic=27732 measured=51968) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=51968 < 0.5xmax=5486848); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 205158.71801757812
+    measured_bytes: 267520.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.23310885908501
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2331 > tol 0.0500 (analytic=205159 measured=267520) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=267520 < 0.5xmax=5486848); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 753879.4047851562
+    measured_bytes: 739328.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.019681933844188575
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0197 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 5725746.678059181
+    measured_bytes: 5486848.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.043540239871631435
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0435 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 1390983.2844480106
+    measured_bytes: 1253632.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.10956268222892412
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1096 > tol 0.0500 (analytic=1390983 measured=1253632)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1253632 < 0.5xmax=5486848);
+      non-blocking per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-10
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T02:01:39Z'
+    tolerance_class_used: int4_w4a8
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.46429443359375
+        max_rel: 0.0038693551905453205
+      H2:
+        status: VERIFIED
+        max_abs: 0.212677001953125
+        max_rel: 0.003504258580505848
+      H3:
+        status: VERIFIED
+        max_abs: 0.994140625
+        max_rel: 0.003848092630505562
+      H4:
+        status: VERIFIED
+        max_abs: 0.496124267578125
+        max_rel: 0.003851613961160183
+      P1:
+        status: VERIFIED
+        max_abs: 0.406097412109375
+        max_rel: 0.0037871869280934334
+      P2:
+        status: VERIFIED
+        max_abs: 0.4956207275390625
+        max_rel: 0.003839240176603198
+      P3:
+        status: VERIFIED
+        max_abs: 0.97528076171875
+        max_rel: 0.003835063660517335
+      P4:
+        status: VERIFIED
+        max_abs: 0.942138671875
+        max_rel: 0.008384231477975845
+      P5:
+        status: VERIFIED
+        max_abs: 0.4843902587890625
+        max_rel: 0.003798909019678831
+    golden_sha256: 047b57e8e79bfb3eaad86b3a1595767a5f9aeb902f0f435bad17a234f5f7cc4e
+    golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  - E >= 1
+  - N >= 1
+  - GS >= 1
+  dtypes:
+    a: bf16
+    b: int32
+    b_scale: float32
+    b_zp: int32
+    topk_weights: float32
+    sorted_token_ids: int64
+    expert_ids: int64
+  dists:
+    a:
+      kind: randn
+    b:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '256'
+    b_scale:
+      kind: rand
+    b_zp:
+      kind: randint
+      args:
+        lo: '0'
+        hi: '256'
+    topk_weights:
+      kind: rand
+    sorted_token_ids:
+      kind: moe_sorted_ids
+      args:
+        B: B
+    expert_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+  scalars:
+    block_size: block_size >= 1
+    group_size: group_size >= 1
+    apply_weight: apply_weight in [0, 1]
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: sorted_token_ids
+      value: B+1
+  - type: index_in_range
+    args:
+      input: expert_ids
+      value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_20_fused_moe_kernel_gptq_awq-20260604T214650
+  classified_at: '2026-06-04'
+  standalone_sha256: 620f5fb7bdeaa79b8ef777c0db9dcefb8ca6a4d65d2cfb2dd620084dc3ab66b0
+  kernel_sha256: 620f5fb7bdeaa79b8ef777c0db9dcefb8ca6a4d65d2cfb2dd620084dc3ab66b0
+frozen_deps: []
+classB_symbols:
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native

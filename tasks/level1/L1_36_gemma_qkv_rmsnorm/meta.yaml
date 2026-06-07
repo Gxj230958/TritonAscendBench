@@ -1,0 +1,222 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L1_36_gemma_qkv_rmsnorm
+level: L1
+idx: 36
+name: _gemma_qkv_rmsnorm_kernel
+repo: SGLang
+dtype_class: VV
+category: normalization
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/gemma4_fused_ops.py`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  license: Apache-2.0
+  notes: freeze upstream before grading; per-head QKV RMSNorm (Gemma3 QK-norm).
+  file_sha256: 55062642b26bb35246116d14045668848c0746a3836ae66b3235ab88e448a7a3
+  function_hash: 55062642b26bb35246116d14045668848c0746a3836ae66b3235ab88e448a7a3
+  vendored_snapshot: tasks/_vendored/L1_36_gemma_qkv_rmsnorm_409d350.py
+interface:
+  alias_map: {}
+  mutability: 'q,k,v: inplace'
+  stride_layout: row_major
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: vector_reduce
+cost_model:
+  flops: 4*M*(QH+2*KVH)*D
+  flops_class: vector
+  bytes: (QH+2*KVH)*M*D*2 + 2*D*4
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.02
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.02; 3 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-14f3c36a
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 2304.0
+    measured_bytes: 6912.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6666666666666666
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.6667 > tol 0.0200 (analytic=2304 measured=6912) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=6912 < 0.5xmax=6308864); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 66048.0
+    measured_bytes: 73472.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.10104529616724739
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1010 > tol 0.0200 (analytic=66048 measured=73472) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=73472 < 0.5xmax=6308864); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 787456.0
+    measured_bytes: 797184.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.012202954399486191
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0122 <= tol 0.0200 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 6292480.0
+    measured_bytes: 6308864.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.0025969810095763674
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0026 <= tol 0.0200 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 788480.0
+    measured_bytes: 820480.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.0390015600624025
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.0390 > tol 0.0200 (analytic=788480 measured=820480) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=820480 < 0.5xmax=6308864); non-blocking
+      per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-06-01'
+  source_md_id: L2-40
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:14:00Z'
+    tolerance_class_used: vector_reduce
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.007751937955617905
+        blocker: 'q: atol/rtol: max_abs=0.0156, max_rel=0.00775 (max_abs=0.015625,
+          max_rel=0.007751937955617905, tol=vector_reduce atol=0.001 rtol=0.001)'
+      H4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.006896551698446274
+        blocker: 'k: atol/rtol: max_abs=0.00781, max_rel=0.00602 (max_abs=0.0078125,
+          max_rel=0.0060240961611270905, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007246376946568489
+        blocker: 'q: atol/rtol: max_abs=0.00781, max_rel=0.00725 (max_abs=0.0078125,
+          max_rel=0.007246376946568489, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.007751937955617905
+        blocker: 'k: atol/rtol: max_abs=0.00391, max_rel=0.00775 (max_abs=0.00390625,
+          max_rel=0.007751937955617905, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.0156, max_rel=0.00775 (max_abs=0.015'
+      P5:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007194244768470526
+        blocker: 'k: atol/rtol: max_abs=0.00391, max_rel=0.00481 (max_abs=0.00390625,
+          max_rel=0.004807692486792803, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.00781, max_rel=0.00719 (max_abs=0.00'
+    golden_source: dtype_ceiling_accepted
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - M >= 1
+  - QH >= 1
+  - KVH >= 1
+  - D >= 1
+  - QH % KVH == 0
+  dtypes:
+    q: bf16
+    k: bf16
+    v: bf16
+    q_weight: float32
+    k_weight: float32
+  dists:
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    q_weight:
+      kind: randn
+    k_weight:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L1_36_gemma_qkv_rmsnorm-20260602T203142
+  classified_at: '2026-06-02'
+  standalone_sha256: 05d28b73158cfc014b17abac09b626a78ca2da8f02441ec16b216bfc599bab43
+  kernel_sha256: 05d28b73158cfc014b17abac09b626a78ca2da8f02441ec16b216bfc599bab43
+frozen_deps: []
+classB_symbols: []
+reference_path: native

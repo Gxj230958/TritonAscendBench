@@ -427,7 +427,7 @@ def test_scaffold_true_block_exempt_from_schema_closure():
 # end-to-end: the WA.1 sample tasks pass the schema-shape check
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("task_id", ["L1_12_rms_norm", "L1_16_silu_and_mul"])
+@pytest.mark.parametrize("task_id", ["L1_12_rms_norm", "L2_04_silu_and_mul"])
 def test_sample_tasks_param_constraints_pass_schema_shape(task_id):
     # The two hand-reconciled WA.1 sample tasks carry a `scaffold: false`
     # block that passes the WA.1 schema-shape validator layer cleanly.

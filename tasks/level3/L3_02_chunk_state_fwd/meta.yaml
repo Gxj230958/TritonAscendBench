@@ -1,0 +1,213 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_02_chunk_state_fwd
+level: L3
+idx: 2
+name: _chunk_state_fwd_kernel
+repo: vLLM
+dtype_class: CV
+category: ssm
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: bf88061b850b779d2ad64355c23b803ae1fe8791a9a55a343f6f6b3ca0e4f57f
+  function_hash: bf88061b850b779d2ad64355c23b803ae1fe8791a9a55a343f6f6b3ca0e4f57f
+  license: Apache-2.0
+  notes: graded via _pa_launcher.py::run driving the in-module _chunk_state_fwd host
+    wrapper.
+  vendored_snapshot: tasks/_vendored/L3_02_chunk_state_fwd_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: recurrent_chunk
+cost_model:
+  flops:
+    fp16_cube: 2*C*L*N*D
+    vector: 3*C*L + C*L*N
+  bytes:
+    hbm: ceil(N/64)*C*L*D*2 + ceil(D/64)*C*L*N*2 + 2*ceil(D/64)*ceil(N/64)*C*L*4 +
+      C*N*D*4 + ceil(D/64)*ceil(N/64)*C*(2*4 + 4)
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.0750 > tol 0.0500
+    (analytic=21498880 measured=23242752)'
+  xcheck_run_id: xcheck-2026-06-05-5a43a708
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 14896.0
+    measured_bytes: 118528.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8743250539956804
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.8743 > tol 0.0500 (analytic=14896 measured=118528) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=118528 < 0.5xmax=23242752); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 168032.0
+    measured_bytes: 454912.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6306274620146314
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.6306 > tol 0.0500 (analytic=168032 measured=454912) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=454912 < 0.5xmax=23242752); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 1606016.0
+    measured_bytes: 2990592.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.46297722992638246
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4630 > tol 0.0500 (analytic=1606016 measured=2990592)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2990592 < 0.5xmax=23242752);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 21498880.0
+    measured_bytes: 23242752.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.07502863688430698
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.0750 > tol 0.0500 (analytic=21498880 measured=23242752)
+  - shape_id: P5
+    analytic_bytes_total: 532672.0
+    measured_bytes: 946432.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.4371787936164458
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4372 > tol 0.0500 (analytic=532672 measured=946432) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=946432 < 0.5xmax=23242752); non-blocking
+      per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-03
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T06:01:48Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 1.33514404296875e-05
+        max_rel: 0.04926108196377754
+      H2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 4.055413228343241e-06
+      H3:
+        status: VERIFIED
+        max_abs: 0.0036420822143554688
+        max_rel: 1.3902438879013062
+      H4:
+        status: VERIFIED
+        max_abs: 2.86102294921875e-06
+        max_rel: 0.001072386046871543
+      P1:
+        status: VERIFIED
+        max_abs: 1.430511474609375e-06
+        max_rel: 2.7695461540133692e-05
+      P2:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-06
+        max_rel: 0.0026702270843088627
+      P3:
+        status: VERIFIED
+        max_abs: 7.82310962677002e-05
+        max_rel: 0.006172839552164078
+      P4:
+        status: VERIFIED
+        max_abs: 0.00305938720703125
+        max_rel: 0.6607142686843872
+      P5:
+        status: VERIFIED
+        max_abs: 7.62939453125e-06
+        max_rel: 0.002152562839910388
+    golden_source: oracle_pytorch_verified
+    cross_check: S2_FRESH
+    golden_sha256: 0398dc4fe2fa5bbded9eec02019e711d0f863fb3ea192c6c2fd21027bc6be6fd
+param_constraints:
+  scaffold: false
+  dims:
+  - C >= 1
+  - L >= 1
+  - N >= 1
+  - D >= 1
+  dtypes:
+    B: bfloat16
+    x: bfloat16
+    dt: float32
+    dA_cumsum: float32
+  dists:
+    B:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: rand
+    dA_cumsum:
+      kind: rand
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_02_chunk_state_fwd-20260604T214650
+  classified_at: '2026-06-04'
+  standalone_sha256: 7fab67badba4aac6ad7686f0a584f4f54047ea1566512d0bfc8a060357c38765
+  kernel_sha256: 7fab67badba4aac6ad7686f0a584f4f54047ea1566512d0bfc8a060357c38765
+frozen_deps:
+- tasks._frozen_deps_pool.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers
+classB_symbols: []
+reference_path: native

@@ -632,7 +632,7 @@ _SCAFFOLD_BLOCK = {
 def test_scaffold_not_reported_for_non_score_eligible_task(tmp_path):
     # A non-score-eligible task (stub oracle -- `raise NotImplementedError`)
     # with `param_constraints.scaffold: true` is an acknowledged special
-    # case (L1_21_gumbel_sample). The
+    # case (L2_08_gumbel_sample). The
     # `_validate_param_constraints_semantic` scaffold gate must exempt it --
     # SAME `is_score_eligible` predicate as the golden exemption -- so
     # the task keeps `scaffold: true` honestly (genuinely un-reconciled)

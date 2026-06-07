@@ -80,7 +80,7 @@ syncs new code in *before* submitting a batch.
 # from dev
 cd /data1/code/agentic-rl/kernel/triton-ascend-bench
 python3 scripts/loop/orchestrator.py run \
-    --tasks L1_22_min_p L1_06_reshape_and_cache_kernel_flash L1_03_convert_req_index_to_global_index
+    --tasks L2_09_min_p L1_06_reshape_and_cache_kernel_flash L1_03_convert_req_index_to_global_index
 # sync-code + submit + wait + collect; prints verdict summary
 ```
 
@@ -88,7 +88,7 @@ Individual steps:
 
 ```bash
 python3 scripts/loop/orchestrator.py sync-code                       # push latest scripts/ tasks/ to gpfs
-python3 scripts/loop/orchestrator.py submit --tasks L1_22_min_p      # writes spec + rsyncs to gpfs
+python3 scripts/loop/orchestrator.py submit --tasks L2_09_min_p      # writes spec + rsyncs to gpfs
 python3 scripts/loop/orchestrator.py wait b20260527T030245-abc123    # poll done flag + heartbeat
 python3 scripts/loop/orchestrator.py collect b20260527T030245-abc123 # rsync results back, print summary
 python3 scripts/loop/orchestrator.py status                          # ls everything on gpfs
@@ -98,13 +98,13 @@ python3 scripts/loop/orchestrator.py status                          # ls everyt
 
 ```json
 {
-  "task_id": "L1_22_min_p",
+  "task_id": "L2_09_min_p",
   "batch_id": "b20260527T030245-abc123",
   "started": "2026-05-27T03:02:51Z",
   "completed": "2026-05-27T03:03:18Z",
   "rc": 0,
   "verdict_status": "PASS",
-  "verdict_line": "verify L1_22_min_p: PASS (s2-L1_22_min_p-...) -- bit-exact (values + alias + mutated-input)",
+  "verdict_line": "verify L2_09_min_p: PASS (s2-L2_09_min_p-...) -- bit-exact (values + alias + mutated-input)",
   "stdout_tail": "...",
   "stderr_tail": "...",
   "error": null

@@ -34,7 +34,7 @@
 # fabricated measurement.
 #
 # A non-score-eligible task (stub oracle / PHASE-C-MANUAL shapes, e.g.
-# L1_21_gumbel_sample) carries only a placeholder cost_model and is
+# L2_08_gumbel_sample) carries only a placeholder cost_model and is
 # skipped -- it never enters the scored denominator, so it must not be
 # able to BLOCK the gate.
 #

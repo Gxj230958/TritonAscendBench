@@ -51,7 +51,7 @@ class ExpertTokensMetadata:
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# Off-graded-path modular_kernel symbols for L1_28_pack_bitmatrix. The frozen
+# Off-graded-path modular_kernel symbols for L2_12_pack_bitmatrix. The frozen
 # kernel.py is upstream's whole gpt_oss_triton_kernels_moe.py; the graded op is
 # the tiny @triton.jit ``pack_bitmatrix`` driven by _pa_launcher.py::run. The
 # MoE expert classes below it (BaseOAITritonExperts(mk.FusedMoEExpertsModular),

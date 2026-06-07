@@ -17,7 +17,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 # WA.4: use a RECONCILED task (`param_constraints.scaffold: false`,
 # semantically clean) so its repo-authoritative `task_status` is genuinely
 # "evaluated" — a `scaffold: true` corpus task is "blocked" by the WA.4 gate.
-_TASK = "L1_16_silu_and_mul"
+_TASK = "L2_04_silu_and_mul"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 
@@ -191,7 +191,7 @@ def test_analyze_consumes_real_s_t(tmp_path):
     verified = {
         "mode": "verified",
         "results": [
-            {"task_id": "L1_16_silu_and_mul",
+            {"task_id": "L2_04_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
@@ -222,7 +222,7 @@ def test_analyze_skips_non_evaluated_tasks(tmp_path):
     formula — NOT counted as a failure, NOT influenced by the result's own
     reported `task_status`.
 
-    `L1_15_act_and_mul` is an `upstream_oracle_required` task; in
+    `L2_03_act_and_mul` is an `upstream_oracle_required` task; in
     self-reported mode it has no provider golden, so its result is dropped
     from `task_measurements` and the denominator regardless of what the
     result claims.
@@ -231,12 +231,12 @@ def test_analyze_skips_non_evaluated_tasks(tmp_path):
         "mode": "self-reported",
         "results": [
             # WA.4: a RECONCILED non-upstream task — genuinely "evaluated".
-            {"task_id": "L1_16_silu_and_mul",
+            {"task_id": "L2_04_silu_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,
              "aggregate_score": 1.0, "s_t": 1.0, "task_status": "evaluated"},
-            {"task_id": "L1_15_act_and_mul",
+            {"task_id": "L2_03_act_and_mul",
              "static_checks_passed": True, "correctness_status": "ok",
              "runtime_status": "ok", "performance_status": "ok",
              "performance_flags": [], "fallback_detected": False,

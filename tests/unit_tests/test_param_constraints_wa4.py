@@ -878,7 +878,7 @@ def _run_tab(*args: str) -> subprocess.CompletedProcess:
 
 @pytest.mark.parametrize("task_id,expected", [
     # A reconciled corpus task — both `evaluated`.
-    ("L1_16_silu_and_mul", "evaluated"),
+    ("L2_04_silu_and_mul", "evaluated"),
 ])
 def test_eval_and_cli_analyze_agree_on_task_status(
         tmp_path, task_id, expected):

@@ -54,9 +54,9 @@ FBGEMM_COMMIT = "bf6dce360a4fe133bc779e2fd036277678509f95"
 SKIP_TASKS = {
     "L1_01_bias",
     "L1_12_rms_norm",
-    "L1_16_silu_and_mul",
-    "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd",
+    "L2_04_silu_and_mul",
+    "L2_17_w8a8_block_int8_matmul",
+    "L3_16_fwd",
 }
 
 AMBIGUOUS_PATH_MARKERS = ("通用", "同上", "TODO", "<")

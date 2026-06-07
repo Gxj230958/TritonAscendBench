@@ -1,0 +1,214 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_21_matmul_kernel_persistent
+level: L2
+idx: 21
+name: matmul_kernel_persistent
+repo: vLLM
+dtype_class: CV
+category: gemm
+npu_difficulty: medium
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/batch_invariant.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 3851b649c045e7964a77ec8a9bb53873a05721bb5b56bdaa0de4322cbb84bdd6
+  function_hash: 3851b649c045e7964a77ec8a9bb53873a05721bb5b56bdaa0de4322cbb84bdd6
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_21_matmul_kernel_persistent_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::matmul_persistent
+tolerance_class: cube_matmul_fp16
+cost_model:
+  flops:
+    fp16_cube: 2*B*D*N
+    vector: B*N
+  bytes: (B*D + D*N + N) * dtype_size
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 2 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-d92570b0
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 10496.0
+    measured_bytes: 38656.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7284768211920529
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7285 > tol 0.0500 (analytic=10496 measured=38656) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=38656 < 0.5xmax=10521856); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 164864.0
+    measured_bytes: 192768.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.14475431606905712
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1448 > tol 0.0500 (analytic=164864 measured=192768) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=192768 < 0.5xmax=10521856); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 2625536.0
+    measured_bytes: 2653440.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.010516160154365654
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0105 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 10493952.0
+    measured_bytes: 10521856.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.0026520036008856234
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0027 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 4261888.0
+    measured_bytes: 4289536.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.00644545237526856
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0064 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+oracle_simplified: simple_pytorch_ok
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-14
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T01:07:14Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-05
+        max_rel: 0.0035022569354623556
+      H2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.7171291233353259e-07
+      H3:
+        status: VERIFIED
+        max_abs: 0.0030517578125
+        max_rel: 0.5384876728057861
+      H4:
+        status: VERIFIED
+        max_abs: 4.57763671875e-05
+        max_rel: 0.015943313017487526
+      P1:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-06
+        max_rel: 3.211999865015969e-05
+      P2:
+        status: VERIFIED
+        max_abs: 3.0517578125e-05
+        max_rel: 0.0014303564094007015
+      P3:
+        status: VERIFIED
+        max_abs: 0.00018310546875
+        max_rel: 0.24023275077342987
+      P4:
+        status: VERIFIED
+        max_abs: 0.000518798828125
+        max_rel: 0.8822054862976074
+      P5:
+        status: VERIFIED
+        max_abs: 0.0009002685546875
+        max_rel: 0.003600901924073696
+    golden_source: oracle_pytorch_verified
+    golden_sha256: fe386f62e42bea8a299fadd71568643f1250df5314592f36c433cd74297f9fe9
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  - N >= 1
+  dtypes:
+    a: float32
+    b: float32
+    bias: float32
+  dists:
+    a:
+      kind: randn
+    b:
+      kind: randn
+    bias:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_21_matmul_kernel_persistent-20260602T202930
+  classified_at: '2026-06-02'
+  standalone_sha256: d0088ff85aa4cd9803fab201814b56470270ef89b9cdb4ff6c47c6f3354c9965
+  kernel_sha256: d0088ff85aa4cd9803fab201814b56470270ef89b9cdb4ff6c47c6f3354c9965
+frozen_deps: []
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback

@@ -18,23 +18,23 @@
 tol_units_cap: 8.0
 tol_units_tasks:
   - L1_12_rms_norm
-  - L1_26_merge_state
-  - L2_01_bmm_chunk_fwd
-  - L2_02_chunk_scan_fwd  # bf16 tl.dot MMA ceiling (fast_exp fixed the exp gap; P4 residual ~1 ULP)
-  - L2_03_chunk_state_fwd
-  - L2_07_gate_up_lora_b
-  - L2_15_fused_dual_residual_rmsnorm
-  - L2_17_layer_norm_gated_fwd
-  - L2_19_fused_sigmoid_gating_delta_rule_update
-  - L2_21_causal_conv1d_fwd
-  - L2_40_gemma_qkv_rmsnorm
-  - L3_03_chunk_state_varlen
-  - L3_04_fwd
-  - L3_09_fused_moe
-  - L3_14_fused_recurrent_gated_delta_rule_fwd
-  - L3_15_fused_recurrent_gated_delta_rule_update_fwd
-  - L3_16_chunk_fwd_kernel_o
-  - L3_20_recompute_w_u_fwd
+  - L1_15_merge_state
+  - L2_14_bmm_chunk_fwd
+  - L3_01_chunk_scan_fwd  # bf16 tl.dot MMA ceiling (fast_exp fixed the exp gap; P4 residual ~1 ULP)
+  - L3_02_chunk_state_fwd
+  - L3_05_gate_up_lora_b
+  - L2_22_fused_dual_residual_rmsnorm
+  - L2_23_layer_norm_gated_fwd
+  - L3_07_fused_sigmoid_gating_delta_rule_update
+  - L3_09_causal_conv1d_fwd
+  - L1_36_gemma_qkv_rmsnorm
+  - L3_15_chunk_state_varlen
+  - L3_16_fwd
+  - L3_19_fused_moe
+  - L3_23_fused_recurrent_gated_delta_rule_fwd
+  - L3_24_fused_recurrent_gated_delta_rule_update_fwd
+  - L3_25_chunk_fwd_kernel_o
+  - L3_29_recompute_w_u_fwd
 #
 # MODE B -- per-output-key physical-scale bound. ONLY for a task whose co-located
 # max_tol_units legitimately EXCEEDS the cap because its worst element is a near-cancellation
@@ -47,4 +47,4 @@ tol_units_tasks:
 # max_abs and max|ref| INDEPENDENT maxima) can false-reject a clean ceiling (the L2_03 lesson).
 physical_factor: 2.0
 physical_tasks:
-  L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64: {ulp_rel: 0.00390625}  # bf16 2^-8
+  L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64: {ulp_rel: 0.00390625}  # bf16 2^-8

@@ -173,18 +173,18 @@ def test_select_all_finds_exactly_the_score_eligible_uor_set():
 
 
 def test_select_all_includes_resolved_gumbel_sample_uor():
-    """L1_21_gumbel_sample is a resolved upstream_oracle_required task
+    """L2_08_gumbel_sample is a resolved upstream_oracle_required task
     (real oracle + executable shapes), so it is score-eligible and MUST
     appear in the capture sweep. (It was the corpus's last stub-oracle UOR
     before resolution; this guards against a regression back to a stub.)"""
     from triton_ascend_bench import eligibility
     from triton_ascend_bench.dataset import load_task
 
-    gumbel = load_task("L1_21_gumbel_sample")
+    gumbel = load_task("L2_08_gumbel_sample")
     assert eligibility.is_upstream_oracle_required(gumbel)
     assert eligibility.is_score_eligible(gumbel)
     selected_ids = {t.task_id for t in pbgc._select_tasks(None)}
-    assert "L1_21_gumbel_sample" in selected_ids
+    assert "L2_08_gumbel_sample" in selected_ids
 
 
 def test_select_task_rejects_non_score_eligible_uor(monkeypatch, tmp_path):

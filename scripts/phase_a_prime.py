@@ -4651,7 +4651,7 @@ def rewrite_imports_to_standalone(
 
     # Collapse the parenthesised multi-line ``from sglang.srt.<mod> import
     # (...)`` forms carried by the frozen sglang logits_processor file
-    # (L1_18_fused_softcap) to one line so the single-line subset-allowlist
+    # (L1_13_fused_softcap) to one line so the single-line subset-allowlist
     # redirects below see the full symbol set. Without this the allowlist
     # check is not actually fail-closed (it cannot read continuation lines).
     # Only the exact L1_18 sibling-surface modules are collapsed; any other
@@ -4678,7 +4678,7 @@ def rewrite_imports_to_standalone(
 
     # Collapse the parenthesised multi-line ``from vllm.model_executor.layers
     # .fused_moe.<mod> import (...)`` forms carried by the frozen
-    # gpt_oss_triton_kernels_moe.py file (L1_28_pack_bitmatrix) to one line so
+    # gpt_oss_triton_kernels_moe.py file (L2_12_pack_bitmatrix) to one line so
     # the single-line subset-allowlist redirects below see the full symbol set.
     # Without this the allowlist check is not actually fail-closed (it cannot
     # read continuation lines). Only the exact L1_28 sibling-surface fused_moe
@@ -4723,7 +4723,7 @@ def rewrite_imports_to_standalone(
     )
 
     # Collapse the parenthesised multi-line ``from vllm.utils.deep_gemm import
-    # (...)`` form (L1_38_silu_mul_fp8_quant_deep_gemm) to one line so the
+    # (...)`` form (L2_13_silu_mul_fp8_quant_deep_gemm) to one line so the
     # subset-allowlist deep_gemm redirect below sees the full symbol set
     # (otherwise its allowlist check cannot read continuation lines and the
     # rule is not actually fail-closed).
@@ -4792,7 +4792,7 @@ def rewrite_imports_to_standalone(
     # Collapse the parenthesised multi-line ``from sglang.srt.layers
     # .quantization.int8_kernel import (...)`` and ``from sglang.srt.utils import
     # (...)`` forms carried by the frozen SGLang fused_moe_triton_kernels file
-    # (L1_15_act_and_mul) to one line so the single-line subset-allowlist
+    # (L2_03_act_and_mul) to one line so the single-line subset-allowlist
     # redirects below see the full symbol set (otherwise the allowlist check
     # cannot read continuation lines -> not fail-closed). Only these exact
     # L1_15 sibling-surface modules are collapsed; any other parenthesised
@@ -5088,7 +5088,7 @@ def rewrite_imports_to_standalone(
                 out.append(f"{indent}triton = _pa_make_triton_clone()\n")
                 _autotune_clone_emitted = True
             continue
-        # ── L1_15_act_and_mul severance (SGLang fused_moe_triton_kernels) ──
+        # ── L2_03_act_and_mul severance (SGLang fused_moe_triton_kernels) ──
         # (The sglang.srt.utils platform/env predicates this file reads at
         # module scope -- is_cpu / cpu_has_amx_support / get_bool_env_var /
         # is_sm90_supported, alongside is_cuda / is_hip -- are handled by the
@@ -5574,7 +5574,7 @@ def rewrite_imports_to_standalone(
             )
             continue
         # B-inert-shim: sglang logits_processor sibling surface
-        # (task L1_18_fused_softcap). The frozen kernel is upstream's whole
+        # (task L1_13_fused_softcap). The frozen kernel is upstream's whole
         # ``sglang/srt/layers/logits_processor.py``; the graded entrypoint is the
         # free function ``fused_softcap`` (cap*tanh(x/cap)), which references NONE
         # of these symbols. They are imported only for the sibling
@@ -5877,7 +5877,7 @@ def rewrite_imports_to_standalone(
                     )
                     continue
         # U2 pool vendoring: vllm.v1.attention.ops.triton_attention_helpers
-        # (L3_01_kernel_unified_attention_3d) is a tiny single-purpose module
+        # (L3_13_kernel_unified_attention_3d) is a tiny single-purpose module
         # whose exports are pure @triton.jit attention device helpers on the
         # graded path; its only non-stdlib external import is
         # ``from vllm.triton_utils import tl, triton`` (the same re-export
@@ -5943,7 +5943,7 @@ def rewrite_imports_to_standalone(
                     )
                     continue
         # ────────────────────────────────────────────────────────────────
-        # L1_28_pack_bitmatrix off-graded-path fused_moe surface. The frozen
+        # L2_12_pack_bitmatrix off-graded-path fused_moe surface. The frozen
         # kernel.py is upstream's whole gpt_oss_triton_kernels_moe.py; the
         # graded op is the tiny @triton.jit ``pack_bitmatrix`` driven by
         # _pa_launcher.py::run. The imports below feed ONLY the MoE expert
@@ -6102,7 +6102,7 @@ def rewrite_imports_to_standalone(
             )
             continue
         # B-inert-shim: vllm.forward_context.{get_forward_context,
-        # is_forward_context_available} (L1_38_silu_mul_fp8_quant_deep_gemm). Read
+        # is_forward_context_available} (L2_13_silu_mul_fp8_quant_deep_gemm). Read
         # ONLY inside the off-path BatchedDeepGemmExperts.estimate_expected_m to
         # consult DP metadata; the graded @triton.jit kernel (driven by
         # _pa_launcher.py) never reaches forward-context state. Subset-allowlist +

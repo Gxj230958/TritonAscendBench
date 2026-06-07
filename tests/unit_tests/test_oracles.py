@@ -52,7 +52,7 @@ def test_l1_12_rms_norm_metamorphic_weight_one():
 
 def test_l1_16_silu_and_mul_oracle_zero_x1():
     """If x1 = 0, silu(0)=0 → output is zero everywhere."""
-    task = load_task("L1_16_silu_and_mul")
+    task = load_task("L2_04_silu_and_mul")
     mod = _load_oracle_module(task)
     h = torch.zeros(8, 4096, dtype=torch.float32)
     h[:, 2048:] = 1.0   # x3 = 1, x1 = 0
@@ -62,7 +62,7 @@ def test_l1_16_silu_and_mul_oracle_zero_x1():
 
 def test_l3_04_fwd_attention_single_token_per_seq():
     """Each sequence has length 1 ⇒ output == v."""
-    task = load_task("L3_04_fwd")
+    task = load_task("L3_16_fwd")
     mod = _load_oracle_module(task)
     batch, h, d = 4, 8, 64
     total = batch  # 1 token per seq

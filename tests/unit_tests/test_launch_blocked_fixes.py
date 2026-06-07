@@ -380,7 +380,7 @@ def test_l2_10_shape_lint_passes_after_block_k_fix():
         "scripts/lint_shapes_against_kernel.py",
         "lint_shapes_against_kernel_test",
     )
-    td = REPO / "tasks" / "level2" / "L2_10_w8a8_block_int8_matmul"
+    td = REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
     assert lint.lint_task(td) == []
 
 
@@ -419,7 +419,7 @@ def test_shape_lint_flags_small_int8_tl_dot_block_k(tmp_path):
 def test_l2_34_shapes_and_oracle_follow_wrapper_contract():
     td = (
         REPO / "tasks" / "level2"
-        / "L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe"
+        / "L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe"
     )
     shapes = yaml.safe_load((td / "shapes.yaml").read_text())
     inputs = build_inputs(shapes, "P1", seed=0)

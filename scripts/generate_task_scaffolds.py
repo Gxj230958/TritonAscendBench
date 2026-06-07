@@ -45,9 +45,9 @@ REPO_MAP = {
 KNOWN_POC_DIRS = {
     "L1-01": "L1_01_bias",
     "L1-12": "L1_12_rms_norm",
-    "L1-16": "L1_16_silu_and_mul",
-    "L2-10": "L2_10_w8a8_block_int8_matmul",
-    "L3-04": "L3_04_fwd",
+    "L1-16": "L2_04_silu_and_mul",
+    "L2-10": "L2_17_w8a8_block_int8_matmul",
+    "L3-04": "L3_16_fwd",
 }
 
 # Category heuristic: substring → category enum.

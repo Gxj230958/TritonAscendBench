@@ -345,7 +345,7 @@ def _validate_param_constraints_semantic(
         # Missing / non-mapping: reported elsewhere — do not double-report.
         return []
     # A non-score-eligible task (stub oracle / PHASE-C-MANUAL, e.g.
-    # L1_21_gumbel_sample) is an acknowledged special case excluded from the
+    # L2_08_gumbel_sample) is an acknowledged special case excluded from the
     # scored denominator. Exempt it from the scaffold / semantic gate — the
     # SAME `is_score_eligible` predicate `_validate_golden`, `eval`, and
     # `eligibility` consult. L1_21 keeps `param_constraints.scaffold: true`
@@ -680,7 +680,7 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
 
     The golden requirement applies ONLY to **score-eligible**
     `upstream_oracle_required` tasks. A non-score-eligible task (stub
-    oracle / `PHASE-C-MANUAL` shapes — `L1_21_gumbel_sample` today) has a
+    oracle / `PHASE-C-MANUAL` shapes — `L2_08_gumbel_sample` today) has a
     placeholder kernel and an unimplemented oracle stub: it can never
     reach a promoted state, so an offline golden can never be captured
     for it. Enforcing the golden gate on such a task would keep

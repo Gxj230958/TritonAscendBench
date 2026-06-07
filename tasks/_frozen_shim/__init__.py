@@ -578,7 +578,7 @@ def async_tensor_h2d(*args, **kwargs):
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# sglang logits_processor sibling surface (task L1_18_fused_softcap).
+# sglang logits_processor sibling surface (task L1_13_fused_softcap).
 #
 # The frozen kernel.py for L1_18 is upstream's whole
 # ``sglang/srt/layers/logits_processor.py``; the GRADED entrypoint is the free
@@ -766,7 +766,7 @@ envs = _SglangEnvsShim()
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# vllm fused_moe sibling surface (task L1_28_pack_bitmatrix).
+# vllm fused_moe sibling surface (task L2_12_pack_bitmatrix).
 #
 # The frozen kernel.py for L1_28 is upstream's whole
 # ``vllm/.../fused_moe/experts/gpt_oss_triton_kernels_moe.py``. The GRADED op is
@@ -944,7 +944,7 @@ def has_triton_kernels() -> bool:
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# L1_38_silu_mul_fp8_quant_deep_gemm off-path stand-ins. The frozen file is the
+# L2_13_silu_mul_fp8_quant_deep_gemm off-path stand-ins. The frozen file is the
 # whole vLLM batched_deep_gemm_moe.py; the graded unit is the @triton.jit
 # _silu_mul_fp8_quant_deep_gemm driven by _pa_launcher.py::run (which
 # reimplements the host-wrapper body verbatim). Every symbol below is imported
@@ -1028,7 +1028,7 @@ is_deep_gemm_e8m0_used = _l1_28_sibling_only_call("is_deep_gemm_e8m0_used")
 is_deep_gemm_supported = _l1_28_sibling_only_call("is_deep_gemm_supported")
 
 # vllm.utils.deep_gemm.{get_tma_aligned_size, transform_sf_into_required_layout}
-# (task L2_11_w8a8_triton_block_scaled_mm). DeepGEMM scale-layout helpers reached
+# (task L2_18_w8a8_triton_block_scaled_mm). DeepGEMM scale-layout helpers reached
 # only inside the off-path fp8 weight-prep / requant functions (get_tma_aligned_size
 # at kernel.py:556, transform_sf_into_required_layout at :1041,:1063); the graded
 # launcher drives _w8a8_triton_block_scaled_mm directly and never touches them.
@@ -1074,7 +1074,7 @@ class DeepGemmQuantScaleFMT(enum.Enum):
         )
 
 
-# ── L2_11_w8a8_triton_block_scaled_mm off-path weight-management surface ──────
+# ── L2_18_w8a8_triton_block_scaled_mm off-path weight-management surface ──────
 # The frozen kernel.py copies the whole vLLM block-fp8 utils module; the graded
 # unit is the @triton.jit _w8a8_triton_block_scaled_mm, driven directly by
 # _pa_launcher.py. The symbols below are imported at module scope but referenced
@@ -1123,7 +1123,7 @@ per_tensor_dequantize = _l1_28_sibling_only_call("per_tensor_dequantize")
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# L1_15_act_and_mul off-path stand-ins. The frozen kernel.py is the whole
+# L2_03_act_and_mul off-path stand-ins. The frozen kernel.py is the whole
 # SGLang fused_moe_triton_kernels.py; the graded unit is the @triton.jit
 # `act_and_mul_kernel`, driven by `_pa_launcher.py::run`. Every symbol below is
 # imported at module scope, but each is referenced ONLY by module-scope setup

@@ -12,9 +12,9 @@ from triton_ascend_bench.dataset import iter_all_tasks, load_task
 POC_TASK_IDS = [
     "L1_01_bias",
     "L1_12_rms_norm",
-    "L1_16_silu_and_mul",
-    "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd",
+    "L2_04_silu_and_mul",
+    "L2_17_w8a8_block_int8_matmul",
+    "L3_16_fwd",
 ]
 
 
@@ -66,9 +66,9 @@ def test_cost_model_missing_is_none(tmp_path, monkeypatch):
     # corpus task now carries a cost_model, so this loader contract is
     # exercised against a synthetic task dir (a real task dir copied with
     # its `cost_model` block stripped) rather than a live task.
-    src = dataset_mod.TASKS_ROOT / "level1" / "L1_16_silu_and_mul"
+    src = dataset_mod.TASKS_ROOT / "level2" / "L2_04_silu_and_mul"
     fake_root = tmp_path / "tasks"
-    dst = fake_root / "level1" / "L1_16_silu_and_mul"
+    dst = fake_root / "level2" / "L2_04_silu_and_mul"
     dst.parent.mkdir(parents=True)
     shutil.copytree(src, dst)
     meta = yaml.safe_load((dst / "meta.yaml").read_text())
@@ -76,7 +76,7 @@ def test_cost_model_missing_is_none(tmp_path, monkeypatch):
     (dst / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
     monkeypatch.setattr(dataset_mod, "TASKS_ROOT", fake_root)
 
-    task = load_task("L1_16_silu_and_mul")
+    task = load_task("L2_04_silu_and_mul")
     assert task.cost_model is None
 
 

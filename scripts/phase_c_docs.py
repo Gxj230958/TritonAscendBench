@@ -47,8 +47,8 @@ REPO = Path(__file__).resolve().parent.parent
 TASKS = REPO / "tasks"
 
 SKIP_POC = {
-    "L1_01_bias", "L1_12_rms_norm", "L1_16_silu_and_mul",
-    "L2_10_w8a8_block_int8_matmul", "L3_04_fwd",
+    "L1_01_bias", "L1_12_rms_norm", "L2_04_silu_and_mul",
+    "L2_17_w8a8_block_int8_matmul", "L3_16_fwd",
 }
 
 # Canonical size knobs. Symbolic dims in oracle docstrings are mapped
@@ -264,28 +264,28 @@ _RECURRENT_GDR = {
 
 SHAPE_OVERRIDES: dict[str, dict] = {
     # v3.2 errata substitutes
-    "L1_30_act_quant": {
+    "L1_18_act_quant": {
         "x": _T(["B", "D"]), "block_size": _S(8),
     },
     # ngroups == nheads (rep=1) — a valid Mamba2 config that keeps the
     # H % G constraint trivially satisfied across the knob grid.
-    "L3_03_chunk_state_varlen": {
+    "L3_15_chunk_state_varlen": {
         "B": _T(["B*L", "H", "N"]), "x": _T(["B*L", "H", "Dv"]),
         "dt": _T(["B*L", "H"], "rand"),
         "dA_cumsum": _T(["B*L", "H"], "rand"),
         "cu_seqlens": _I(["B+1"], "offsets:to=B*L"),
     },
-    "L3_07_correct_attn_cp_out": {
+    "L2_32_correct_attn_cp_out": {
         "out": _T(["B", "H", "D"]), "lses": _T(["E", "B", "H"]),
         "cp_rank": _S(0), "is_lse_base_on_e": _S(True),
     },
     # sampling
-    "L1_22_min_p": {
+    "L2_09_min_p": {
         "logits": _T(["B", "N"]),
         "expanded_idx_mapping": _I(["B"], "randint:0:E"),
         "min_p": _T(["E"], "rand"),
     },
-    "L1_23_penalties_and_temperature": {
+    "L2_10_penalties_and_temperature": {
         "logits": _T(["B", "N"]),
         "expanded_idx_mapping": _I(["B"], "randint:0:E"),
         "output_token_counts": _T(["E", "N"], "rand"),
@@ -296,7 +296,7 @@ SHAPE_OVERRIDES: dict[str, dict] = {
     },
     # total draft tokens = cu_num_draft_tokens[-1] = E*2; draft arrays
     # are sized by that total, per-request arrays by E.
-    "L1_24_rejection_sample": {
+    "L2_11_rejection_sample": {
         "draft_token_ids": _I(["E*2"], "randint:0:N"),
         "cu_num_draft_tokens": _I(["E"], "offsets:to=E*2"),
         "draft_probs": _T(["E*2", "N"], "softmax_rows"),
@@ -307,7 +307,7 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "is_greedy": _I(["E"], "randint:0:1"),
         "max_spec_len": _S(2),
     },
-    "L1_27_apply_grammar_bitmask": {
+    "L1_16_apply_grammar_bitmask": {
         "logits": _T(["B", "N"]),
         "logits_indices": _I(["B"], "randint:0:E"),
         "bitmask": _I(["E", "N//32+1"], "randint:0:1024"),
@@ -331,18 +331,18 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "zeros": _I(["N//8", "E"], "randint:0:65535"),
         "group_size": _S(8),
     },
-    "L1_37_compute_problem_sizes_w4a8": {
+    "L1_25_compute_problem_sizes_w4a8": {
         "masked_m": _I(["E"], "randint:0:T"), "n": _S(16),
         "k": _S(16), "num_experts": _SK("E"),
     },
-    "L2_11_w8a8_triton_block_scaled_mm": {
+    "L2_18_w8a8_triton_block_scaled_mm": {
         "A": _I(["B", "D"], "randint:0:8"),
         "B": _I(["D", "N"], "randint:0:8"),
         "As": _T(["B", "D//8"], "rand"),
         "Bs": _T(["D//8", "N//8"], "rand"),
         "group_n": _S(8), "group_k": _S(8),
     },
-    "L2_37_silu_and_mul_post_quant": {
+    "L2_30_silu_and_mul_post_quant": {
         "input": _T(["E", "T", "2*D"]),
         "masked_m": _I(["E"], "randint:0:T"),
         "quant_group_size": _S(8), "fp8_max": _S(448.0),
@@ -362,15 +362,15 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "block_table": _I(["E", "N"], "randint:0:N"),
         "idx_mapping": _I(["B"], "randint:0:E"),
     },
-    "L2_06_qkv_lora_b": _LORA_EXPAND,
-    "L3_09_fused_moe": {
+    "L3_04_qkv_lora_b": _LORA_EXPAND,
+    "L3_19_fused_moe": {
         "a": _T(["B", "D"]), "b": _T(["E", "N", "D"]),
         "topk_weights": _T(["B", "1"], "rand"),
         "sorted_token_ids": _I(["E*4"], "randint:0:B"),
         "expert_ids": _I(["E"], "randint:0:E"),
         "block_size": _S(4), "apply_weight": _S(True),
     },
-    "L3_10_fused_moe_kernel_gptq_awq": {
+    "L3_20_fused_moe_kernel_gptq_awq": {
         "a": _T(["B", "D"]), "b": _T(["E", "N", "D"]),
         "topk_weights": _T(["B", "1"], "rand"),
         "sorted_token_ids": _I(["E*4"], "randint:0:B"),
@@ -387,47 +387,47 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "value_cache": _T(["C", "T", "H", "D"]),
         "slot_mapping": _I(["B"], "randint:0:C"),
     },
-    "L1_25_merge_attn_states": _MERGE,
-    "L1_26_merge_state": _MERGE,
+    "L1_14_merge_attn_states": _MERGE,
+    "L1_15_merge_state": _MERGE,
     # head_size=16 → rotary_dim=16 → half=8 → mrope_section must sum to 8.
-    "L1_31_triton_mrope_forward": {
+    "L1_19_triton_mrope_forward": {
         "q": _T(["B", "H*16"]), "k": _T(["B", "16"]),
         "cos": _T(["3", "B", "8"]), "sin": _T(["3", "B", "8"]),
         "mrope_section": _S([3, 3, 2]), "head_size": _S(16),
         "rotary_dim": _S(16),
     },
-    "L1_32_create_flashinfer_kv_indices_triton": {
+    "L1_20_create_flashinfer_kv_indices_triton": {
         "seq_lens": _I(["E"], "randint:1:N"),
         "block_table": _I(["E", "N"], "randint:0:N"), "page_size": _S(4),
     },
-    "L1_33_create_flashmla_kv_indices_triton": {
+    "L1_21_create_flashmla_kv_indices_triton": {
         "seq_lens": _I(["E"], "randint:1:N"),
         "block_table": _I(["E", "N"], "randint:0:N"), "page_size": _S(4),
     },
-    "L2_22_linear_attn_decode": {
+    "L2_24_linear_attn_decode": {
         "q": _T(["B", "H", "D"]), "k": _T(["B", "H", "D"]),
         "v": _T(["B", "H", "D"]), "kv_caches": _T(["B", "H", "D", "D"]),
         "slope_rate": _T(["H"], "rand"),
     },
     "L2_23_fwd_kv_parallel": _LIGHTNING,
     "L2_24_fwd_kv_reduce": _LIGHTNING,
-    "L2_33_fwd_grouped_kernel_stage1_rope": _MLA_STAGE1,
-    "L3_06_fwd_grouped_kernel_stage1": _MLA_STAGE1,
-    "L3_01_kernel_unified_attention_3d": {
+    "L3_11_fwd_grouped_kernel_stage1_rope": _MLA_STAGE1,
+    "L3_18_fwd_grouped_kernel_stage1": _MLA_STAGE1,
+    "L3_13_kernel_unified_attention_3d": {
         "q": _T(["E*L", "H", "D"]), "k": _T(["E*L", "H", "D"]),
         "v": _T(["E*L", "H", "D"]),
         "cu_seqlens_q": _I(["E+1"], "offsets:to=E*L"),
         "seqused_k": _I(["E"], "randint:1:L"), "scale": _S(0.125),
         "causal": _S(True),
     },
-    "L3_02_kernel_paged_attention_2d": {
+    "L3_14_kernel_paged_attention_2d": {
         "query": _T(["B", "H", "D"]),
         "key_cache": _T(["C", "T", "H", "D"]),
         "value_cache": _T(["C", "T", "H", "D"]),
         "block_table": _I(["B", "N"], "randint:0:C"),
         "seq_lens": _I(["B"], "randint:1:T"), "scale": _S(0.125),
     },
-    "L3_05_fwd_kernel_alibi": {
+    "L3_17_fwd_kernel_alibi": {
         "q": _T(["H", "L", "D"]), "k": _T(["H", "L", "D"]),
         "v": _T(["H", "L", "D"]), "alibi_slopes": _T(["H"], "rand"),
         "scale": _S(0.125),
@@ -438,34 +438,34 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "jagged_offsets": _I(["E+1"], "offsets:2"), "scale": _S(0.125),
     },
     # gemm
-    "L2_01_bmm_chunk_fwd": {
+    "L2_14_bmm_chunk_fwd": {
         "a": _T(["C*4", "H", "D"]), "b": _T(["C*4", "H", "D"]),
         "chunk_size": _S(4),
         "cu_chunk_seqlens": _I(["C+1"], "offsets:to=C*4"), "causal": _S(True),
     },
-    "L2_04_chunked_lora_expand": _LORA_EXPAND,
-    "L2_05_chunked_lora_shrink": _LORA_SHRINK,
-    "L2_07_gate_up_lora_b": _LORA_EXPAND,
-    "L2_08_sgemm_lora_a": _LORA_SHRINK,
-    "L2_09_sgemm_lora_b": _LORA_EXPAND,
-    "L2_12_awq_gemm": {
+    "L3_03_chunked_lora_expand": _LORA_EXPAND,
+    "L2_15_chunked_lora_shrink": _LORA_SHRINK,
+    "L3_05_gate_up_lora_b": _LORA_EXPAND,
+    "L2_16_sgemm_lora_a": _LORA_SHRINK,
+    "L3_06_sgemm_lora_b": _LORA_EXPAND,
+    "L2_19_awq_gemm": {
         "input": _T(["B", "N"]),
         "qweight": _I(["N", "E"], "randint:0:65535"),
         "scales": _T(["N//8", "E*8"], "rand"),
         "qzeros": _I(["N//8", "E"], "randint:0:65535"),
         "group_size": _S(8),
     },
-    "L2_13_bmm": {"a": _T(["B", "L", "D"]), "b": _T(["B", "D", "N"])},
-    "L2_14_matmul_kernel_persistent": {
+    "L2_20_bmm": {"a": _T(["B", "L", "D"]), "b": _T(["B", "D", "N"])},
+    "L2_21_matmul_kernel_persistent": {
         "a": _T(["B", "D"]), "b": _T(["D", "N"]), "bias": _T(["N"], "rand"),
     },
-    "L3_11_expert_triton": _BATCHED_EXPERT,
-    "L3_12_moe_mmk": _BATCHED_EXPERT,
+    "L3_21_expert_triton": _BATCHED_EXPERT,
+    "L2_33_moe_mmk": _BATCHED_EXPERT,
     # moe
-    "L1_35_compute_src2dst_triton": {
+    "L1_23_compute_src2dst_triton": {
         "reorder_ids": _I(["B"], "arange"), "num_toks": _SK("B"),
     },
-    "L1_38_silu_mul_fp8_quant_deep_gemm": {
+    "L2_13_silu_mul_fp8_quant_deep_gemm": {
         "y": _T(["E", "T", "2*D"]),
         "tokens_per_expert": _I(["E"], "randint:0:T"),
         "group_size": _S(8), "fp8_max": _S(448.0),
@@ -478,70 +478,70 @@ SHAPE_OVERRIDES: dict[str, dict] = {
         "recv_x": _T(["B", "D"]),
         "dst_index": _I(["B"], "arange"), "out_rows": _SK("B"),
     },
-    "L2_27_deepep_permute_triton": {
+    "L1_30_deepep_permute_triton": {
         "x": _T(["B", "D"]), "src2dst": _I(["B*2"], "arange"), "topk": _S(2),
     },
-    "L2_28_deepep_post_reorder_triton": {
+    "L1_31_deepep_post_reorder_triton": {
         "x": _T(["B*2", "D"]), "src2dst": _I(["B*2"], "arange"),
         "topk_weights": _T(["B", "2"], "rand"), "topk": _S(2),
     },
-    "L2_29_fused_moe_router_cudacore": _MOE_ROUTER,
-    "L2_30_fused_moe_router_tensorcore": _MOE_ROUTER,
-    "L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe": {
+    "L2_27_fused_moe_router_cudacore": _MOE_ROUTER,
+    "L3_10_fused_moe_router_tensorcore": _MOE_ROUTER,
+    "L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe": {
         "input": _T(["B", "D"]), "scale": _T(["1"], "rand"),
     },
-    "L2_35_pre_reorder_triton_kernel_for_cutlass_moe": {
+    "L1_33_pre_reorder_triton_kernel_for_cutlass_moe": {
         "input": _T(["B", "D"]), "src2dst": _I(["B*2"], "arange"),
         "topk": _S(2),
     },
-    "L2_36_post_reorder_triton_kernel_for_cutlass_moe": {
+    "L1_34_post_reorder_triton_kernel_for_cutlass_moe": {
         "down_output": _T(["B*2", "D"]), "src2dst": _I(["B*2"], "arange"),
         "topk_weights": _T(["B", "2"], "rand"), "topk": _S(2),
     },
     # other
-    "L3_20_recompute_w_u_fwd": {
+    "L3_29_recompute_w_u_fwd": {
         "k": _T(["B", "L", "D"]), "v": _T(["B", "L", "D"]),
         "beta": _T(["B", "L"], "rand"), "g_cumsum": _T(["B", "L"], "rand"),
         "A": _T(["B", "L", "L"]),
     },
-    "L3_23_merge_16x16_to_32x32_inverse": {
+    "L3_30_merge_16x16_to_32x32_inverse": {
         "A": _T(["B", "D", "D"], "tril"),
     },
     # ssm
-    "L1_39_state_passing_fwd": {
+    "L1_26_state_passing_fwd": {
         "states": _T(["C", "D", "D"]), "dA_cumsum": _T(["C"], "rand"),
     },
-    "L1_40_chunk_cumsum_fwd": {
+    "L1_27_chunk_cumsum_fwd": {
         "dt": _T(["B", "L"], "rand"), "A": _T(["B"], "rand"),
         "dt_softplus": _S(True),
     },
-    "L2_03_chunk_state_fwd": {
+    "L3_02_chunk_state_fwd": {
         "B": _T(["C", "L", "N"]), "x": _T(["C", "L", "D"]),
         "dt": _T(["C", "L"], "rand"),
         "dA_cumsum": _T(["C", "L"], "rand"),
     },
-    "L2_19_fused_sigmoid_gating_delta_rule_update": {
+    "L3_07_fused_sigmoid_gating_delta_rule_update": {
         "A_log": _T(["B", "H"]), "a": _T(["B", "H"]),
         "dt_bias": _T(["H"], "rand"), "q": _T(["B", "H", "D"]),
         "k": _T(["B", "H", "D"]), "v": _T(["B", "H", "D"]),
         "beta": _T(["B", "H"], "rand"), "state": _T(["B", "H", "D", "D"]),
     },
-    "L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64": {
+    "L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64": {
         "k": _T(["B", "T", "D"]), "w": _T(["B", "T", "D"]),
         "u": _T(["B", "T", "D"]), "g": _T(["B", "T"], "rand"),
     },
-    "L3_14_fused_recurrent_gated_delta_rule_fwd": _RECURRENT_GDR,
-    "L3_15_fused_recurrent_gated_delta_rule_update_fwd": _RECURRENT_GDR,
-    "L3_16_chunk_fwd_kernel_o": {
+    "L3_23_fused_recurrent_gated_delta_rule_fwd": _RECURRENT_GDR,
+    "L3_24_fused_recurrent_gated_delta_rule_update_fwd": _RECURRENT_GDR,
+    "L3_25_chunk_fwd_kernel_o": {
         "q": _T(["C", "L", "D"]), "k": _T(["C", "L", "D"]),
         "v": _T(["C", "L", "D"]), "h": _T(["C", "D", "D"]),
         "g": _T(["C", "L"], "rand"), "scale": _S(0.125),
     },
-    "L3_18_chunk_scaled_dot_kkt_fwd": {
+    "L3_27_chunk_scaled_dot_kkt_fwd": {
         "k": _T(["C", "L", "D"]), "g": _T(["C", "L"], "rand"),
         "beta": _T(["C", "L"], "rand"),
     },
-    "L3_19_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter": {
+    "L3_28_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter": {
         "q": _T(["C", "L", "D"]), "k": _T(["C", "L", "D"]),
         "gk": _T(["C", "L"], "rand"), "beta": _T(["C", "L"], "rand"),
         "scale": _S(0.125),
@@ -942,7 +942,7 @@ def process_body(task_dir: Path, dry: bool) -> str:
     # non-indptr cumulative convention (cu[0]=count of req0, no leading
     # 0), which the generic `offsets` dist cannot produce; a bespoke
     # one-task dist is past the point of diminishing returns.
-    _MANUAL = {"L1_24_rejection_sample"}
+    _MANUAL = {"L2_11_rejection_sample"}
     manual_note = (
         "\n# PHASE-C-MANUAL: cu_num_draft_tokens uses a non-indptr "
         "cumulative\n# convention; build_inputs cannot auto-generate a "

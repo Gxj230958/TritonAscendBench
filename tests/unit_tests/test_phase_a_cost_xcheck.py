@@ -468,14 +468,14 @@ def test_l1_21_non_score_eligible_is_skipped(tmp_path, monkeypatch):
 
 
 def test_real_l1_21_task_is_score_eligible_not_skipped():
-    """L1_21_gumbel_sample is now resolved (real oracle + executable
+    """L2_08_gumbel_sample is now resolved (real oracle + executable
     shapes), so it is score-eligible and must NOT be skipped as a
     non-eligible stub. It enters the real cost-xcheck path (BLOCKED in a
     GPU-free dry-run, never SKIPPED_NON_ELIGIBLE). Guards against a
     regression back to a stub-oracle scaffold."""
     from triton_ascend_bench import eligibility
 
-    task = load_task("L1_21_gumbel_sample")
+    task = load_task("L2_08_gumbel_sample")
     assert eligibility.is_score_eligible(task)
     v = xc.cross_check_task(task, dry_run=True)
     assert v.status != xc.STATUS_SKIPPED

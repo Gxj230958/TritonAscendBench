@@ -642,7 +642,7 @@ def test_write_resolver_cache_embeds_per_task_input_fp(tmp_path):
     """
     import json
 
-    real_task = "L1_26_merge_state"
+    real_task = "L1_15_merge_state"
     td = rue._task_dir_for(real_task)
     assert td is not None and td.is_dir(), td
 
@@ -699,7 +699,7 @@ def test_write_resolver_cache_embeds_upstream_fp_and_infer_state(
                 self.__dict__["upstream_fp"] = ufp
 
     cache = tmp_path / "resolve_all.json"
-    real = "L1_26_merge_state"
+    real = "L1_15_merge_state"
     real_ufp = "sha256:" + ("a" * 64)
     rue.write_resolver_cache(
         cache, [_R(real, real_ufp), _R("L9_99_no_fp_field")]

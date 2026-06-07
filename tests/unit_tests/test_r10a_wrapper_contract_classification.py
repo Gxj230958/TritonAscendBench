@@ -34,12 +34,12 @@ CLASSIFICATION_CASES = [
     # cumsum + shapes.yaml aligned to [B,H,L,D]); it now returns
     # ALIGNED_READY and is no longer expected in this rank-mismatch
     # bucket.
-    ("L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
+    ("L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
         "ORACLE_KERNEL_LAYOUT_MISMATCH"),
-    ("L3_16_chunk_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_17_chunk_gla_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_18_chunk_scaled_dot_kkt_fwd", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_20_recompute_w_u_fwd", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_25_chunk_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_26_chunk_gla_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_27_chunk_scaled_dot_kkt_fwd", "WRAPPER_CONTRACT_MISMATCH"),
+    ("L3_29_recompute_w_u_fwd", "WRAPPER_CONTRACT_MISMATCH"),
 ]
 
 
@@ -49,9 +49,9 @@ CLASSIFICATION_CASES = [
         # Patched 2026-05-27: oracle rewritten + shapes.yaml aligned to
         # wrapper-required layouts. Spot-check guards against regression
         # that reintroduces a rank-mismatch verdict.
-        "L3_22_chunk_local_cumsum_vector",
-        "L3_21_solve_tril_16x16",
-        "L3_23_merge_16x16_to_32x32_inverse",
+        "L2_35_chunk_local_cumsum_vector",
+        "L2_34_solve_tril_16x16",
+        "L3_30_merge_16x16_to_32x32_inverse",
     ],
 )
 def test_recovered_tasks_now_aligned(task_id):

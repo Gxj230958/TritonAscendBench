@@ -88,9 +88,9 @@ def test_S_scalar_seq_for_list():
     assert pcd._S((1, 2)) == {"scalar_seq": [1, 2]}
     # The shape overrides for L1_31 / L2_10 route their list literals through
     # _S, so the generated shapes.yaml carries scalar_seq.
-    block_size = pcd.SHAPE_OVERRIDES["L2_11_w8a8_triton_block_scaled_mm"]
+    block_size = pcd.SHAPE_OVERRIDES["L2_18_w8a8_triton_block_scaled_mm"]
     assert "scalar_seq" not in str(block_size)  # no list literal there
-    mrope = pcd.SHAPE_OVERRIDES["L1_31_triton_mrope_forward"]["mrope_section"]
+    mrope = pcd.SHAPE_OVERRIDES["L1_19_triton_mrope_forward"]["mrope_section"]
     assert mrope == {"scalar_seq": [3, 3, 2]}
 
 

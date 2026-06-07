@@ -1,0 +1,224 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_07_fused_sigmoid_gating_delta_rule_update
+level: L3
+idx: 7
+name: fused_sigmoid_gating_delta_rule_update_kernel
+repo: SGLang
+dtype_class: VV
+category: ssm
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/attention/fla/`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: 707df20d4443a61ce490ab3bea9d77e67bfe189b6fdb454536e7d0f106493c81
+  function_hash: 707df20d4443a61ce490ab3bea9d77e67bfe189b6fdb454536e7d0f106493c81
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_07_fused_sigmoid_gating_delta_rule_update_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: recurrent_chunk
+cost_model:
+  flops: B*H*(7*D*D + 2*D + 10)
+  flops_class: vector
+  bytes: 12*B*H*D*D + 24*B*H*D + 44*B*H
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 2 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-1944b35e
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 104800.0
+    measured_bytes: 241408.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.565880169671262
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.5659 > tol 0.0500 (analytic=104800 measured=241408) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=241408 < 0.5xmax=405758976); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 1623424.0
+    measured_bytes: 1914880.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.15220588235294116
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1522 > tol 0.0500 (analytic=1623424 measured=1914880)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1914880 < 0.5xmax=405758976);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 25564672.0
+    measured_bytes: 26047488.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.018535990879427606
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0185 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P4
+    analytic_bytes_total: 405821440.0
+    measured_bytes: 405758976.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.00015394360616682943
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0002 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 3195584.0
+    measured_bytes: 3353856.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.04719105411800626
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0472 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-19
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:08:05Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 1.33514404296875e-05
+        max_rel: 0.00589622650295496
+      H2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 5.9078614867758006e-05
+      H3:
+        status: VERIFIED
+        max_abs: 6.866455078125e-05
+        max_rel: 8.72569465637207
+      H4:
+        status: VERIFIED
+        max_abs: 0.03125
+        max_rel: 0.36647728085517883
+      P1:
+        status: VERIFIED
+        max_abs: 3.814697265625e-06
+        max_rel: 0.00019120458455290645
+      P2:
+        status: VERIFIED
+        max_abs: 1.52587890625e-05
+        max_rel: 0.33281248807907104
+      P3:
+        status: VERIFIED
+        max_abs: 3.814697265625e-05
+        max_rel: 0.484375
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 2.0
+        max_rel: 1.71484375
+        blocker: 'output: atol/rtol: max_abs=2, max_rel=0.0265 (max_abs=2.0, max_rel=0.02654867246747017,
+          tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P5:
+        status: VERIFIED
+        max_abs: 1.52587890625e-05
+        max_rel: 0.008077544160187244
+    golden_source: dtype_ceiling_accepted
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - H >= 1
+  - D >= 1
+  dtypes:
+    A_log: float32
+    a: float32
+    dt_bias: float32
+    q: bfloat16
+    k: bfloat16
+    v: bfloat16
+    beta: float32
+    state: float32
+  dists:
+    A_log:
+      kind: randn
+    a:
+      kind: randn
+    dt_bias:
+      kind: rand
+    q:
+      kind: randn
+    k:
+      kind: randn
+    v:
+      kind: randn
+    beta:
+      kind: rand
+    state:
+      kind: randn
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_07_fused_sigmoid_gating_delta_rule_update-20260604T181246
+  classified_at: '2026-06-04'
+  standalone_sha256: 871d5fad24837b3a4f8ffa50c4520b1b542b33d8a81644bccfe7521510ba97a3
+  kernel_sha256: 871d5fad24837b3a4f8ffa50c4520b1b542b33d8a81644bccfe7521510ba97a3
+frozen_deps: []
+classB_symbols: []
+reference_path: native
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-05T01:09:06Z'
+  upstream_callable:
+    module: sglang.srt.layers.attention.fla.fused_sigmoid_gating_recurrent
+    function: fused_sigmoid_gating_delta_rule_update_kernel

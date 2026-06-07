@@ -1,0 +1,227 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe
+level: L2
+idx: 29
+name: silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe
+repo: SGLang
+dtype_class: VV
+category: moe
+npu_difficulty: medium
+upstream:
+  repo: sgl-project/sglang
+  path: '`sglang/srt/layers/moe/cutlass_w4a8_moe.py`'
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: d1be43ccfc1969c95894830bc26bc0907c817ee094bae39656a3d1290d0e2a14
+  function_hash: d1be43ccfc1969c95894830bc26bc0907c817ee094bae39656a3d1290d0e2a14
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: fp8_software_emulated
+cost_model:
+  flops: 9*E*T*D
+  flops_class: vector
+  bytes: E*T*D*4 + E*T*D/2 + E*T*D/4 + E*8
+  bytes_resource: hbm
+  gpu_xcheck_tol: 0.05
+  status: PASS
+  status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
+    FLOOR_OBSERVED (non-blocking)
+  xcheck_run_id: xcheck-2026-06-05-b4c177af
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 38944.0
+    measured_bytes: 54272.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.2824292452830189
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2824 > tol 0.0500 (analytic=38944 measured=54272) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=54272 < 0.5xmax=76997376); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 622656.0
+    measured_bytes: 367360.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6949477351916377
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.6949 > tol 0.0500 (analytic=622656 measured=367360) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=367360 < 0.5xmax=76997376); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 9961600.0
+    measured_bytes: 7755008.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.284537681972733
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2845 > tol 0.0500 (analytic=9961600 measured=7755008)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=7755008 < 0.5xmax=76997376);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 79692032.0
+    measured_bytes: 76997376.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.03499672508320283
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0350 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 4980800.0
+    measured_bytes: 4883968.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.019826501729741063
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0198 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L2-34
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    gpu_kernel_capture_status: PENDING
+    verified_at: '2026-06-05T01:12:17Z'
+    tolerance_class_used: fp8_software_emulated
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 2.7939677238464355e-09
+        max_rel: 3.8500689925058396e-07
+      H2:
+        status: VERIFIED
+        max_abs: 1.3969838619232178e-09
+        max_rel: 2.7958904524894024e-07
+      H3:
+        status: VERIFIED
+        max_abs: 8.0
+        max_rel: 0.10000000149011612
+      H4:
+        status: VERIFIED
+        max_abs: 1.3969838619232178e-09
+        max_rel: 2.7958904524894024e-07
+      P1:
+        status: VERIFIED
+        max_abs: 1.862645149230957e-09
+        max_rel: 2.7958904524894024e-07
+      P2:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.10000000149011612
+      P3:
+        status: VERIFIED
+        max_abs: 16.0
+        max_rel: 0.07692307978868484
+      P4:
+        status: VERIFIED
+        max_abs: 16.0
+        max_rel: 0.125
+      P5:
+        status: VERIFIED
+        max_abs: 2.7939677238464355e-09
+        max_rel: 3.640867589638219e-07
+    golden_source: oracle_pytorch_verified
+    notes: Fixture re-targeted from the bare scatter jit kernel to the GRADED host
+      wrapper silu_and_mul_masked_post_quant_fwd (3D masked silu+mul + FP8 group-quant).
+      Kernel body is byte-identical to L2_37 (same upstream commit 409d350); the launcher
+      reproduces the wrapper invocation verbatim. GPU bit-exact re-verification pending
+      on the daemon.
+    cross_check: S2_FRESH
+    golden_sha256: ea318ba29e4fe08afee0134d84b4c983e1b9bbaeb7140e7e040ea165194f5ad1
+param_constraints:
+  scaffold: false
+  dims:
+  - E >= 1
+  - T >= 1
+  - D >= G
+  - D % G == 0
+  dtypes:
+    input: float32
+    masked_m: int64
+    output: float8_e4m3fn
+    output_scale: float32
+  dists:
+    input:
+      kind: randn
+    masked_m:
+      kind: randint
+      args:
+        lo: '0'
+        hi: T
+  scalars:
+    quant_group_size: quant_group_size >= 1
+    fp8_max: 0 < fp8_max <= 1e4
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe-20260602T200935
+  classified_at: '2026-06-02'
+  standalone_sha256: 6fc8febb7ff26c3e11f83957b6bb9c8ec8ddc5f71ba8aa3127bd7e70c4cd5313
+  kernel_sha256: 6fc8febb7ff26c3e11f83957b6bb9c8ec8ddc5f71ba8aa3127bd7e70c4cd5313
+frozen_deps: []
+classB_symbols:
+- sym: vllm.logger.logger
+  proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
+    `vllm_default_logger`)
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+reference_path: triton_fallback
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-05T01:13:03Z'
+  upstream_callable:
+    module: sglang.srt.layers.moe.ep_moe.kernels
+    function: silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe

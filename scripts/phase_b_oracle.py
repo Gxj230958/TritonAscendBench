@@ -39,9 +39,9 @@ TASKS_ROOT = REPO_ROOT / "tasks"
 SKIP_TASKS = {
     "L1_01_bias",
     "L1_12_rms_norm",
-    "L1_16_silu_and_mul",
-    "L2_10_w8a8_block_int8_matmul",
-    "L3_04_fwd",
+    "L2_04_silu_and_mul",
+    "L2_17_w8a8_block_int8_matmul",
+    "L3_16_fwd",
 }
 
 # Triton-only argument heuristics: not real inputs to the PyTorch oracle.
@@ -2653,115 +2653,115 @@ def run(inputs: dict) -> dict:
 # (task_dir_basename → (oracle body, tier label)).
 WORKING_REFS: dict[str, tuple[str, str]] = {
     # v3.2 errata substitutes (replaced non-freezable placeholders)
-    "L1_30_act_quant":                 (_ACT_QUANT_BODY,            "formula_exact_manual"),
-    "L3_03_chunk_state_varlen":        (_CHUNK_STATE_VARLEN_BODY,   "formula_exact_manual"),
-    "L3_07_correct_attn_cp_out":       (_CORRECT_ATTN_CP_BODY,      "formula_exact_manual"),
+    "L1_18_act_quant":                 (_ACT_QUANT_BODY,            "formula_exact_manual"),
+    "L3_15_chunk_state_varlen":        (_CHUNK_STATE_VARLEN_BODY,   "formula_exact_manual"),
+    "L2_32_correct_attn_cp_out":       (_CORRECT_ATTN_CP_BODY,      "formula_exact_manual"),
     # index / metadata / copy
     "L1_02_compute_slot_mappings":     (_COMPUTE_SLOT_MAPPINGS_BODY,  "formula_exact_manual"),
     "L1_04_copy_page_indices":         (_COPY_PAGE_INDICES_BODY,      "formula_exact_manual"),
     "L1_05_gather_block_tables":       (_GATHER_BLOCK_TABLES_BODY,    "formula_exact_manual"),
-    "L1_32_create_flashinfer_kv_indices_triton": (_KV_INDICES_BODY,         "formula_exact_manual"),
-    "L1_33_create_flashmla_kv_indices_triton": (_KV_INDICES_BODY,           "formula_exact_manual"),
-    "L1_34_transform_index_page_table_decode": (_TRANSFORM_PAGE_TABLE_BODY, "formula_exact_manual"),
-    "L1_35_compute_src2dst_triton":    (_COMPUTE_SRC2DST_BODY,        "formula_exact_manual"),
-    "L1_36_compute_seg_indptr_triton": (_COMPUTE_SEG_INDPTR_BODY,     "formula_exact_manual"),
-    "L2_31_moe_align_block_size_stage2":      (_MOE_ALIGN_STAGE2_BODY,       "formula_exact_manual"),
-    "L1_28_pack_bitmatrix":                   (_PACK_BITMATRIX_BODY,         "formula_exact_manual"),
-    "L1_29_prepare_eagle_inputs":      (_PREPARE_EAGLE_BODY,          "formula_exact_manual"),
-    "L3_21_solve_tril_16x16":          (_SOLVE_TRIL_BODY,             "formula_exact_manual"),
-    "L3_23_merge_16x16_to_32x32_inverse": (_MERGE_16x16_BODY,         "formula_exact_manual"),
+    "L1_20_create_flashinfer_kv_indices_triton": (_KV_INDICES_BODY,         "formula_exact_manual"),
+    "L1_21_create_flashmla_kv_indices_triton": (_KV_INDICES_BODY,           "formula_exact_manual"),
+    "L1_22_transform_index_page_table_decode": (_TRANSFORM_PAGE_TABLE_BODY, "formula_exact_manual"),
+    "L1_23_compute_src2dst_triton":    (_COMPUTE_SRC2DST_BODY,        "formula_exact_manual"),
+    "L1_24_compute_seg_indptr_triton": (_COMPUTE_SEG_INDPTR_BODY,     "formula_exact_manual"),
+    "L2_28_moe_align_block_size_stage2":      (_MOE_ALIGN_STAGE2_BODY,       "formula_exact_manual"),
+    "L2_12_pack_bitmatrix":                   (_PACK_BITMATRIX_BODY,         "formula_exact_manual"),
+    "L1_17_prepare_eagle_inputs":      (_PREPARE_EAGLE_BODY,          "formula_exact_manual"),
+    "L2_34_solve_tril_16x16":          (_SOLVE_TRIL_BODY,             "formula_exact_manual"),
+    "L3_30_merge_16x16_to_32x32_inverse": (_MERGE_16x16_BODY,         "formula_exact_manual"),
     # cache reshape / dequant
     "L1_06_reshape_and_cache_kernel_flash":   (_RESHAPE_AND_CACHE_BODY,      "formula_exact_manual"),
     "L1_08_dequantize_k_cache_paged":  (_DEQUANT_K_CACHE_PAGED_BODY,  "formula_exact_manual"),
-    "L2_38_concat_and_cast_mha_k":     (_CONCAT_CAST_MHA_K_BODY,      "formula_exact_manual"),
+    "L1_35_concat_and_cast_mha_k":     (_CONCAT_CAST_MHA_K_BODY,      "formula_exact_manual"),
     # LoRA
-    "L2_06_qkv_lora_b":                (_QKV_LORA_B_BODY,             "formula_exact_manual"),
+    "L3_04_qkv_lora_b":                (_QKV_LORA_B_BODY,             "formula_exact_manual"),
     # MoE reorder / gather / scatter / combine / quant
     "L2_25_fwd_kernel_ep_gather":             (_EP_GATHER_BODY,              "formula_exact_manual"),
     "L2_26_fwd_kernel_ep_scatter_1":          (_EP_SCATTER_BODY,             "formula_exact_manual"),
-    "L2_27_deepep_permute_triton":     (_DEEPEP_PERMUTE_BODY,         "formula_exact_manual"),
-    "L2_28_deepep_post_reorder_triton": (_DEEPEP_POST_REORDER_BODY,   "formula_exact_manual"),
-    "L2_32_experts_combine":           (_EXPERTS_COMBINE_BODY,        "simple_pytorch_ok"),
-    "L2_34_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe": (_SILU_MUL_STATIC_QUANT_BODY, "formula_exact_manual"),
-    "L2_35_pre_reorder_triton_kernel_for_cutlass_moe": (_CUTLASS_PRE_REORDER_BODY, "formula_exact_manual"),
-    "L2_36_post_reorder_triton_kernel_for_cutlass_moe": (_CUTLASS_POST_REORDER_BODY, "formula_exact_manual"),
-    "L1_38_silu_mul_fp8_quant_deep_gemm":     (_SILU_MUL_FP8_DEEP_GEMM_BODY, "formula_exact_manual"),
+    "L1_30_deepep_permute_triton":     (_DEEPEP_PERMUTE_BODY,         "formula_exact_manual"),
+    "L1_31_deepep_post_reorder_triton": (_DEEPEP_POST_REORDER_BODY,   "formula_exact_manual"),
+    "L1_32_experts_combine":           (_EXPERTS_COMBINE_BODY,        "simple_pytorch_ok"),
+    "L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe": (_SILU_MUL_STATIC_QUANT_BODY, "formula_exact_manual"),
+    "L1_33_pre_reorder_triton_kernel_for_cutlass_moe": (_CUTLASS_PRE_REORDER_BODY, "formula_exact_manual"),
+    "L1_34_post_reorder_triton_kernel_for_cutlass_moe": (_CUTLASS_POST_REORDER_BODY, "formula_exact_manual"),
+    "L2_13_silu_mul_fp8_quant_deep_gemm":     (_SILU_MUL_FP8_DEEP_GEMM_BODY, "formula_exact_manual"),
     # MoE router
-    "L2_29_fused_moe_router_cudacore": (_MOE_ROUTER_BODY,             "formula_exact_manual"),
-    "L2_30_fused_moe_router_tensorcore": (_MOE_ROUTER_BODY,           "formula_exact_manual"),
+    "L2_27_fused_moe_router_cudacore": (_MOE_ROUTER_BODY,             "formula_exact_manual"),
+    "L3_10_fused_moe_router_tensorcore": (_MOE_ROUTER_BODY,           "formula_exact_manual"),
     # MoE grouped GEMM
-    "L3_09_fused_moe":                 (_FUSED_MOE_GEMM_BODY,         "formula_exact_manual"),
-    "L3_10_fused_moe_kernel_gptq_awq":        (_FUSED_MOE_GEMM_BODY,         "formula_exact_manual"),
-    "L3_11_expert_triton":             (_BATCHED_EXPERT_GEMM_BODY,    "formula_exact_manual"),
-    "L3_12_moe_mmk":                          (_BATCHED_EXPERT_GEMM_BODY,    "formula_exact_manual"),
+    "L3_19_fused_moe":                 (_FUSED_MOE_GEMM_BODY,         "formula_exact_manual"),
+    "L3_20_fused_moe_kernel_gptq_awq":        (_FUSED_MOE_GEMM_BODY,         "formula_exact_manual"),
+    "L3_21_expert_triton":             (_BATCHED_EXPERT_GEMM_BODY,    "formula_exact_manual"),
+    "L2_33_moe_mmk":                          (_BATCHED_EXPERT_GEMM_BODY,    "formula_exact_manual"),
     # linear / lightning attention
-    "L2_22_linear_attn_decode":        (_LINEAR_ATTN_DECODE_BODY,     "formula_exact_manual"),
+    "L2_24_linear_attn_decode":        (_LINEAR_ATTN_DECODE_BODY,     "formula_exact_manual"),
     "L2_23_fwd_kv_parallel":                  (_LIGHTNING_KV_PARALLEL_BODY,  "formula_exact_manual"),
     "L2_24_fwd_kv_reduce":                    (_LIGHTNING_KV_PARALLEL_BODY,  "formula_exact_manual"),
     # flash / grouped attention
-    "L3_01_kernel_unified_attention_3d":      (_UNIFIED_ATTENTION_BODY,      "formula_exact_manual"),
-    "L3_05_fwd_kernel_alibi":                 (_ALIBI_ATTENTION_BODY,        "formula_exact_manual"),
-    "L3_06_fwd_grouped_kernel_stage1":        (_GROUPED_MLA_STAGE1_BODY,     "formula_exact_manual"),
-    "L2_33_fwd_grouped_kernel_stage1_rope":   (_GROUPED_MLA_STAGE1_BODY,     "formula_exact_manual"),
+    "L3_13_kernel_unified_attention_3d":      (_UNIFIED_ATTENTION_BODY,      "formula_exact_manual"),
+    "L3_17_fwd_kernel_alibi":                 (_ALIBI_ATTENTION_BODY,        "formula_exact_manual"),
+    "L3_18_fwd_grouped_kernel_stage1":        (_GROUPED_MLA_STAGE1_BODY,     "formula_exact_manual"),
+    "L3_11_fwd_grouped_kernel_stage1_rope":   (_GROUPED_MLA_STAGE1_BODY,     "formula_exact_manual"),
     "L3_08_jagged_dense_flash_attention_fwd": (_JAGGED_FLASH_ATTENTION_BODY, "formula_exact_manual"),
     # gating / gated norm
-    "L2_17_layer_norm_gated_fwd":      (_LAYER_NORM_GATED_BODY,       "formula_exact_manual"),
-    "L2_18_fused_gdn_gating":          (_GDN_GATING_BODY,             "formula_exact_manual"),
-    "L2_19_fused_sigmoid_gating_delta_rule_update": (_SIGMOID_GATING_DELTA_BODY, "formula_exact_manual"),
+    "L2_23_layer_norm_gated_fwd":      (_LAYER_NORM_GATED_BODY,       "formula_exact_manual"),
+    "L1_29_fused_gdn_gating":          (_GDN_GATING_BODY,             "formula_exact_manual"),
+    "L3_07_fused_sigmoid_gating_delta_rule_update": (_SIGMOID_GATING_DELTA_BODY, "formula_exact_manual"),
     # SSM / Mamba / FLA chunk
-    "L1_39_state_passing_fwd":         (_STATE_PASSING_BODY,          "formula_exact_manual"),
-    "L1_40_chunk_cumsum_fwd":          (_CHUNK_CUMSUM_BODY,           "formula_exact_manual"),
-    "L2_02_chunk_scan_fwd":            (_CHUNK_SCAN_BODY,             "formula_exact_manual"),
-    "L2_03_chunk_state_fwd":           (_CHUNK_STATE_BODY,            "formula_exact_manual"),
-    "L3_13_chunk_gated_delta_rule_fwd_kernel_h_blockdim64": (_GATED_DELTA_CHUNK_BODY, "formula_exact_manual"),
-    "L3_14_fused_recurrent_gated_delta_rule_fwd": (_RECURRENT_GATED_DELTA_BODY, "formula_exact_manual"),
-    "L3_15_fused_recurrent_gated_delta_rule_update_fwd": (_RECURRENT_GATED_DELTA_BODY, "formula_exact_manual"),
-    "L3_16_chunk_fwd_kernel_o":               (_CHUNK_FWD_O_BODY,            "formula_exact_manual"),
-    "L3_17_chunk_gla_fwd_kernel_o":           (_CHUNK_GLA_FWD_O_BODY,        "formula_exact_manual"),
-    "L3_18_chunk_scaled_dot_kkt_fwd":  (_SCALED_DOT_KKT_BODY,         "formula_exact_manual"),
-    "L3_19_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter": (_KDA_SCALED_DOT_KKT_BODY, "formula_exact_manual"),
-    "L3_22_chunk_local_cumsum_vector": (_CHUNK_LOCAL_CUMSUM_BODY,     "formula_exact_manual"),
-    "L3_20_recompute_w_u_fwd":         (_RECOMPUTE_WU_BODY,           "formula_exact_manual"),
+    "L1_26_state_passing_fwd":         (_STATE_PASSING_BODY,          "formula_exact_manual"),
+    "L1_27_chunk_cumsum_fwd":          (_CHUNK_CUMSUM_BODY,           "formula_exact_manual"),
+    "L3_01_chunk_scan_fwd":            (_CHUNK_SCAN_BODY,             "formula_exact_manual"),
+    "L3_02_chunk_state_fwd":           (_CHUNK_STATE_BODY,            "formula_exact_manual"),
+    "L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64": (_GATED_DELTA_CHUNK_BODY, "formula_exact_manual"),
+    "L3_23_fused_recurrent_gated_delta_rule_fwd": (_RECURRENT_GATED_DELTA_BODY, "formula_exact_manual"),
+    "L3_24_fused_recurrent_gated_delta_rule_update_fwd": (_RECURRENT_GATED_DELTA_BODY, "formula_exact_manual"),
+    "L3_25_chunk_fwd_kernel_o":               (_CHUNK_FWD_O_BODY,            "formula_exact_manual"),
+    "L3_26_chunk_gla_fwd_kernel_o":           (_CHUNK_GLA_FWD_O_BODY,        "formula_exact_manual"),
+    "L3_27_chunk_scaled_dot_kkt_fwd":  (_SCALED_DOT_KKT_BODY,         "formula_exact_manual"),
+    "L3_28_chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter": (_KDA_SCALED_DOT_KKT_BODY, "formula_exact_manual"),
+    "L2_35_chunk_local_cumsum_vector": (_CHUNK_LOCAL_CUMSUM_BODY,     "formula_exact_manual"),
+    "L3_29_recompute_w_u_fwd":         (_RECOMPUTE_WU_BODY,           "formula_exact_manual"),
     # attention batch (deep, per-kernel)
-    "L1_25_merge_attn_states":         (_MERGE_ATTN_STATES_BODY,      "formula_exact_manual"),
-    "L1_26_merge_state":               (_MERGE_ATTN_STATES_BODY,      "formula_exact_manual"),
-    "L1_31_triton_mrope_forward":             (_MROPE_BODY,                  "formula_exact_manual"),
-    "L3_02_kernel_paged_attention_2d":        (_PAGED_ATTENTION_2D_BODY,     "formula_exact_manual"),
+    "L1_14_merge_attn_states":         (_MERGE_ATTN_STATES_BODY,      "formula_exact_manual"),
+    "L1_15_merge_state":               (_MERGE_ATTN_STATES_BODY,      "formula_exact_manual"),
+    "L1_19_triton_mrope_forward":             (_MROPE_BODY,                  "formula_exact_manual"),
+    "L3_14_kernel_paged_attention_2d":        (_PAGED_ATTENTION_2D_BODY,     "formula_exact_manual"),
     # gemm + convolution batch
-    "L2_13_bmm":                       (_BMM_BODY,                    "simple_pytorch_ok"),
-    "L2_14_matmul_kernel_persistent":         (_MATMUL_PERSISTENT_BODY,      "simple_pytorch_ok"),
-    "L2_01_bmm_chunk_fwd":             (_BMM_CHUNK_BODY,              "formula_exact_manual"),
-    "L2_12_awq_gemm":                  (_AWQ_GEMM_BODY,               "formula_exact_manual"),
-    "L2_05_chunked_lora_shrink":       (_LORA_SHRINK_BODY,            "formula_exact_manual"),
-    "L2_08_sgemm_lora_a":              (_LORA_SHRINK_BODY,            "formula_exact_manual"),
-    "L2_04_chunked_lora_expand":       (_LORA_EXPAND_BODY,            "formula_exact_manual"),
-    "L2_07_gate_up_lora_b":            (_LORA_EXPAND_BODY,            "formula_exact_manual"),
-    "L2_09_sgemm_lora_b":              (_LORA_EXPAND_BODY,            "formula_exact_manual"),
+    "L2_20_bmm":                       (_BMM_BODY,                    "simple_pytorch_ok"),
+    "L2_21_matmul_kernel_persistent":         (_MATMUL_PERSISTENT_BODY,      "simple_pytorch_ok"),
+    "L2_14_bmm_chunk_fwd":             (_BMM_CHUNK_BODY,              "formula_exact_manual"),
+    "L2_19_awq_gemm":                  (_AWQ_GEMM_BODY,               "formula_exact_manual"),
+    "L2_15_chunked_lora_shrink":       (_LORA_SHRINK_BODY,            "formula_exact_manual"),
+    "L2_16_sgemm_lora_a":              (_LORA_SHRINK_BODY,            "formula_exact_manual"),
+    "L3_03_chunked_lora_expand":       (_LORA_EXPAND_BODY,            "formula_exact_manual"),
+    "L3_05_gate_up_lora_b":            (_LORA_EXPAND_BODY,            "formula_exact_manual"),
+    "L3_06_sgemm_lora_b":              (_LORA_EXPAND_BODY,            "formula_exact_manual"),
     "L1_03_convert_req_index_to_global_index": (_CONVERT_REQ_INDEX_BODY, "formula_exact_manual"),
-    "L2_21_causal_conv1d_fwd":         (_CAUSAL_CONV1D_FWD_BODY,      "formula_exact_manual"),
-    "L2_20_causal_conv1d_update":      (_CAUSAL_CONV1D_UPDATE_BODY,   "formula_exact_manual"),
+    "L3_09_causal_conv1d_fwd":         (_CAUSAL_CONV1D_FWD_BODY,      "formula_exact_manual"),
+    "L3_08_causal_conv1d_update":      (_CAUSAL_CONV1D_UPDATE_BODY,   "formula_exact_manual"),
     # quantization batch
     "L1_07_dequantize_k_cache_fast":   (_DEQUANT_K_CACHE_BODY,        "formula_exact_manual"),
     "L1_09_quantize_k_cache_fast":     (_QUANT_K_CACHE_BODY,          "formula_exact_manual"),
     "L1_10_per_token_group_quant_int8":       (_PER_TOKEN_GROUP_QUANT_INT8_BODY, "formula_exact_manual"),
     "L1_11_awq_dequantize":            (_AWQ_DEQUANT_BODY,            "formula_exact_manual"),
-    "L1_37_compute_problem_sizes_w4a8": (_W4A8_PROBLEM_SIZES_BODY,    "formula_exact_manual"),
-    "L2_11_w8a8_triton_block_scaled_mm":      (_W8A8_BLOCK_SCALED_MM_BODY,   "formula_exact_manual"),
-    "L2_37_silu_and_mul_post_quant":   (_SILU_MUL_POST_QUANT_BODY,    "formula_exact_manual"),
+    "L1_25_compute_problem_sizes_w4a8": (_W4A8_PROBLEM_SIZES_BODY,    "formula_exact_manual"),
+    "L2_18_w8a8_triton_block_scaled_mm":      (_W8A8_BLOCK_SCALED_MM_BODY,   "formula_exact_manual"),
+    "L2_30_silu_and_mul_post_quant":   (_SILU_MUL_POST_QUANT_BODY,    "formula_exact_manual"),
     # sampling batch
-    "L1_19_topk_log_softmax":          (_TOPK_LOGPROB_BODY,           "formula_exact_manual"),
-    "L1_20_log_softmax":               (_LOG_SOFTMAX_BODY,            "simple_pytorch_ok"),
-    "L1_22_min_p":                     (_MIN_P_BODY,                  "formula_exact_manual"),
-    "L1_23_penalties_and_temperature": (_PENALTIES_BODY,              "formula_exact_manual"),
-    "L1_24_rejection_sample":          (_REJECTION_SAMPLE_BODY,       "formula_exact_manual"),
-    "L1_27_apply_grammar_bitmask":     (_GRAMMAR_BITMASK_BODY,        "formula_exact_manual"),
-    "L1_15_act_and_mul":               (_ACT_AND_MUL_BODY,            "simple_pytorch_ok"),
-    "L1_17_gelu_and_mul":              (_GELU_AND_MUL_BODY,           "simple_pytorch_ok"),
-    "L1_18_fused_softcap":             (_SOFTCAP_BODY,                "simple_pytorch_ok"),
-    "L1_13_layer_norm_fwd":            (_LAYER_NORM_BODY,             "formula_exact_manual"),
-    "L1_14_layer_norm_fwd_1pass":      (_LAYER_NORM_1PASS_BODY,       "formula_exact_manual"),
-    "L2_15_fused_dual_residual_rmsnorm": (_FUSED_DUAL_RES_RMS_BODY,   "formula_exact_manual"),
-    "L2_16_fused_rmsnorm":             (_FUSED_RMS_BODY,              "formula_exact_manual"),
+    "L2_06_topk_log_softmax":          (_TOPK_LOGPROB_BODY,           "formula_exact_manual"),
+    "L2_07_log_softmax":               (_LOG_SOFTMAX_BODY,            "simple_pytorch_ok"),
+    "L2_09_min_p":                     (_MIN_P_BODY,                  "formula_exact_manual"),
+    "L2_10_penalties_and_temperature": (_PENALTIES_BODY,              "formula_exact_manual"),
+    "L2_11_rejection_sample":          (_REJECTION_SAMPLE_BODY,       "formula_exact_manual"),
+    "L1_16_apply_grammar_bitmask":     (_GRAMMAR_BITMASK_BODY,        "formula_exact_manual"),
+    "L2_03_act_and_mul":               (_ACT_AND_MUL_BODY,            "simple_pytorch_ok"),
+    "L2_05_gelu_and_mul":              (_GELU_AND_MUL_BODY,           "simple_pytorch_ok"),
+    "L1_13_fused_softcap":             (_SOFTCAP_BODY,                "simple_pytorch_ok"),
+    "L2_01_layer_norm_fwd":            (_LAYER_NORM_BODY,             "formula_exact_manual"),
+    "L2_02_layer_norm_fwd_1pass":      (_LAYER_NORM_1PASS_BODY,       "formula_exact_manual"),
+    "L2_22_fused_dual_residual_rmsnorm": (_FUSED_DUAL_RES_RMS_BODY,   "formula_exact_manual"),
+    "L1_28_fused_rmsnorm":             (_FUSED_RMS_BODY,              "formula_exact_manual"),
 }
 
 
@@ -2775,48 +2775,48 @@ WORKING_REFS: dict[str, tuple[str, str]] = {
 # (HAS_NULL_BLOCK) and test-only (SYNTHETIC_MODE) toggles are NOT
 # downgraded — they do not change the reference math.
 ORACLE_SCOPE_DOWNGRADE: dict[str, str] = {
-    "L3_03_chunk_state_varlen":
+    "L3_15_chunk_state_varlen":
         "covers varlen intra-chunk SSD state (no-initial-states path "
         "exact); HAS_INITSTATES carried-state decay uses the standard "
         "Mamba2 form but the exact varlen dA_cumsum-reset boundary is "
         "upstream-convention-dependent (not bit-exact)",
-    "L3_01_kernel_unified_attention_3d":
+    "L3_13_kernel_unified_attention_3d":
         "covers causal + GQA + ALiBi + softcap; NOT covered: "
         "USE_SINKS, USE_FP8/KV_QUANT_MODE, USE_QQ_BIAS, USE_MM_PREFIX",
-    "L3_02_kernel_paged_attention_2d":
+    "L3_14_kernel_paged_attention_2d":
         "covers paged GQA + ALiBi + sliding-window; NOT covered: "
         "USE_SINKS, USE_FP8 KV dequant",
-    "L1_13_layer_norm_fwd":
+    "L2_01_layer_norm_fwd":
         "covers plain LayerNorm; NOT covered: HAS_Z output gating",
-    "L1_14_layer_norm_fwd_1pass":
+    "L2_02_layer_norm_fwd_1pass":
         "covers LN + pre-residual; NOT covered: HAS_Z output gating",
-    "L2_17_layer_norm_gated_fwd":
+    "L2_23_layer_norm_gated_fwd":
         "covers weighted+gated path; NOT covered: HAS_WEIGHT=0 / "
         "HAS_BIAS=0 optionality",
-    "L2_19_fused_sigmoid_gating_delta_rule_update":
+    "L3_07_fused_sigmoid_gating_delta_rule_update":
         "covers core gated-delta update; NOT covered: "
         "USE_QK_L2NORM_IN_KERNEL, USE_INITIAL_STATE, "
         "HAS_EAGLE_TREE_CUSTOM_ATTN_MASK",
-    "L3_14_fused_recurrent_gated_delta_rule_fwd":
+    "L3_23_fused_recurrent_gated_delta_rule_fwd":
         "covers recurrent gated-delta; NOT covered: "
         "USE_QK_L2NORM_IN_KERNEL",
-    "L3_15_fused_recurrent_gated_delta_rule_update_fwd":
+    "L3_24_fused_recurrent_gated_delta_rule_update_fwd":
         "covers recurrent update; NOT covered: USE_QK_L2NORM_IN_KERNEL, "
         "HAS_EAGLE_TREE_CUSTOM_ATTN_MASK",
     "L2_25_fwd_kernel_ep_gather":
         "covers plain gather; NOT covered: HAS_EXPERT_MAP remap",
-    "L2_33_fwd_grouped_kernel_stage1_rope":
+    "L3_11_fwd_grouped_kernel_stage1_rope":
         "covers MLA stage1 + q-side RoPE; k_buffer RoPE position "
         "mapping is contract-dependent (USE_ROPE) and not bit-exact",
-    "L2_37_silu_and_mul_post_quant":
+    "L2_30_silu_and_mul_post_quant":
         "covers E4M3 group quant; NOT covered: SCALE_UE8M0 scale format",
-    "L1_25_merge_attn_states":
+    "L1_14_merge_attn_states":
         "covers fp32 LSE merge; NOT covered: USE_FP8 output quant",
-    "L1_26_merge_state":
+    "L1_15_merge_state":
         "covers fp32 LSE merge; NOT covered: USE_FP8 output quant",
-    "L3_09_fused_moe":
+    "L3_19_fused_moe":
         "covers grouped GEMM + topk weight; NOT covered: HAS_BIAS",
-    "L1_15_act_and_mul":
+    "L2_03_act_and_mul":
         "covers silu/gelu/relu act·mul; NOT covered: HAS_SWIGLU_LIMIT "
         "clamp variant",
 }
@@ -2824,10 +2824,10 @@ ORACLE_SCOPE_DOWNGRADE: dict[str, str] = {
 # Tasks whose math-changing optional paths were FIXED in this pass —
 # keep their formula tier but record what is now covered.
 ORACLE_SCOPE_NOTE: dict[str, str] = {
-    "L2_02_chunk_scan_fwd":
+    "L3_01_chunk_scan_fwd":
         "covers intra+inter+D skip+Z gating; initial_states folded via "
         "the state-passing stage's `states` input",
-    "L3_05_fwd_kernel_alibi":
+    "L3_17_fwd_kernel_alibi":
         "covers ALiBi causal SDPA; BLOCK_DMODEL* are tiling-only "
         "(no math effect)",
 }

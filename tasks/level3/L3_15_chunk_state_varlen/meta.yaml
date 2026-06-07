@@ -1,0 +1,244 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_15_chunk_state_varlen
+level: L3
+idx: 15
+name: _chunk_state_varlen_kernel
+repo: SGLang
+dtype_class: CV
+category: ssm
+npu_difficulty: high
+upstream:
+  repo: sgl-project/sglang
+  path: python/sglang/srt/layers/attention/mamba/ops/ssd_chunk_state.py
+  commit_sha: 409d350fb6f6a1e7c7546e39028f811092a8e489
+  file_sha256: b86113ec9ff8b4f304c00b401a07366ba2eea0d6cc13fee587889c3aca9ef548
+  function_hash: b86113ec9ff8b4f304c00b401a07366ba2eea0d6cc13fee587889c3aca9ef548
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_15_chunk_state_varlen_kernel_409d350.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: attention_flash
+cost_model:
+  flops:
+    fp16_cube: 2*B*H*L*Dv*N
+    vector: 3*B*L*H
+  bytes:
+    hbm: 3*B*L*H*Dv + 3*B*L*G*N + 12*B*L*H + 16*B*H*Dv*N + 8*(B + 1)
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.4520 > tol 0.0500
+    (analytic=383254664 measured=699351040)'
+  xcheck_run_id: xcheck-2026-06-05-44c0afd5
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 82456.0
+    measured_bytes: 238848.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6547762593783494
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.6548 > tol 0.0500 (analytic=82456 measured=238848) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=238848 < 0.5xmax=699351040); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 1564712.0
+    measured_bytes: 1929472.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.18904653708372032
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1890 > tol 0.0500 (analytic=1564712 measured=1929472)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1929472 < 0.5xmax=699351040);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 24838216.0
+    measured_bytes: 27069184.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.0824172608971146
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.0824 > tol 0.0500 (analytic=24838216 measured=27069184)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=27069184 < 0.5xmax=699351040);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 383254664.0
+    measured_bytes: 699351040.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.45198528052521375
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.4520 > tol 0.0500 (analytic=383254664 measured=699351040)
+  - shape_id: P5
+    analytic_bytes_total: 2600984.0
+    measured_bytes: 2872832.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.09462718321154874
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.0946 > tol 0.0500 (analytic=2600984 measured=2872832)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2872832 < 0.5xmax=699351040);
+      non-blocking per asymptotic_hbm_xcheck]'
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-03
+  errata_note: 'v3.2 errata: original slot (L3_03_kernel_unified_attention_2d) had
+    no freezable upstream (non-existent/merged/no-public-source); re-tasked to CSV
+    operator _chunk_state_varlen_kernel. docs/npu/benchmark_select.md (root-owned)
+    pending sync.'
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:14:43Z'
+    tolerance_class_used: attention_flash
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 7.62939453125e-06
+        max_rel: 0.0017482517287135124
+      H2:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 8.04278806754155e-06
+      H3:
+        status: VERIFIED
+        max_abs: 0.00274658203125
+        max_rel: 0.13565891981124878
+      H4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.02001953125
+        max_rel: 0.1087099090218544
+        blocker: 'states: atol/rtol: max_abs=0.02, max_rel=0.109 (max_abs=0.02001953125,
+          max_rel=0.1087099090218544, tol=attention_flash atol=0.005 rtol=0.001)'
+      P1:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 0.00012221203360240906
+      P2:
+        status: VERIFIED
+        max_abs: 5.7220458984375e-06
+        max_rel: 0.0066006602719426155
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.018798828125
+        max_rel: 0.14935864508152008
+        blocker: 'states: atol/rtol: max_abs=0.0188, max_rel=0.149 (max_abs=0.018798828125,
+          max_rel=0.14935864508152008, tol=attention_flash atol=0.005 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.04541206359863281
+        max_rel: 4.412047863006592
+        blocker: 'states: atol/rtol: max_abs=0.0454, max_rel=4.41 (max_abs=0.04541206359863281,
+          max_rel=4.412047863006592, tol=attention_flash atol=0.005 rtol=0.001)'
+      P5:
+        status: CEILING_ACCEPTED
+        max_abs: 0.00897216796875
+        max_rel: 0.3604529798030853
+        blocker: 'states: atol/rtol: max_abs=0.00897, max_rel=0.36 (max_abs=0.00897216796875,
+          max_rel=0.3604529798030853, tol=attention_flash atol=0.005 rtol=0.001)'
+    golden_source: dtype_ceiling_accepted
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - L >= 1
+  - H >= 1
+  - N >= 1
+  - Dv >= 1
+  dtypes:
+    B: bf16
+    x: bf16
+    dt: float32
+    dA_cumsum: float32
+    cu_seqlens: int64
+  dists:
+    B:
+      kind: randn
+    x:
+      kind: randn
+    dt:
+      kind: rand
+    dA_cumsum:
+      kind: rand
+    cu_seqlens:
+      kind: offsets
+      args:
+        to: B*L
+  scalars: {}
+  tensor_invariants:
+  - type: monotonic_nondecreasing
+    args:
+      input: cu_seqlens
+  - type: first_eq
+    args:
+      input: cu_seqlens
+      value: 0
+  - type: last_eq
+    args:
+      input: cu_seqlens
+      value: B*L
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_15_chunk_state_varlen-20260602T203206
+  classified_at: '2026-06-02'
+  standalone_sha256: b8d8595809ebc5c14e03c28c6082acfd3f093f94fe1ebc976e8537d6bd23b577
+  kernel_sha256: b8d8595809ebc5c14e03c28c6082acfd3f093f94fe1ebc976e8537d6bd23b577
+frozen_deps: []
+classB_symbols: []
+reference_path: native
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-05T01:15:38Z'
+  upstream_callable:
+    module: sglang.srt.layers.attention.mamba.ops.ssd_chunk_state
+    function: _chunk_state_varlen_kernel

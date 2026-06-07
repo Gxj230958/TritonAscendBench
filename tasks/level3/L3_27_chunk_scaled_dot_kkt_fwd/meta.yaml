@@ -1,0 +1,236 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_27_chunk_scaled_dot_kkt_fwd
+level: L3
+idx: 27
+name: chunk_scaled_dot_kkt_fwd_kernel
+repo: vLLM
+dtype_class: CV
+category: ssm
+npu_difficulty: high
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/fla/ops/kda.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 898dd55970b13d069cd98c69165f30c89e7af08826ee1d610cf15f6be325e362
+  function_hash: 898dd55970b13d069cd98c69165f30c89e7af08826ee1d610cf15f6be325e362
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_27_chunk_scaled_dot_kkt_fwd_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: kernel.py::chunk_scaled_dot_kkt_fwd
+tolerance_class: recurrent_chunk
+cost_model:
+  flops:
+    fp16_cube: 2*H*T*64*K
+    vector: 5*H*T*64
+  bytes:
+    hbm: T*Hg*K*2 + 8*T*H
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/2 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.0662 > tol 0.0500
+    (analytic=844800 measured=904704)'
+  xcheck_run_id: xcheck-2026-06-05-32305e3b
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 23040.0
+    measured_bytes: 78592.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7068403908794788
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.7068 > tol 0.0500 (analytic=23040 measured=78592) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=78592 < 0.5xmax=1659392); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 141440.0
+    measured_bytes: 197632.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.28432642487046633
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2843 > tol 0.0500 (analytic=141440 measured=197632) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=197632 < 0.5xmax=1659392); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 844800.0
+    measured_bytes: 904704.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.06621392190152801
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.0662 > tol 0.0500 (analytic=844800 measured=904704)
+  - shape_id: P4
+    analytic_bytes_total: 1597440.0
+    measured_bytes: 1659392.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.037334156124652886
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0373 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P5
+    analytic_bytes_total: 211200.0
+    measured_bytes: 270592.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.2194891201513718
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.2195 > tol 0.0500 (analytic=211200 measured=270592) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=270592 < 0.5xmax=1659392); non-blocking
+      per asymptotic_hbm_xcheck]'
+oracle_simplified: formula_exact_manual
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 1
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-18
+  golden:
+    oracle_kernel_equivalence: VERIFIED
+    verified_at: '2026-06-05T01:17:58Z'
+    tolerance_class_used: recurrent_chunk
+    equivalence_per_shape:
+      H1:
+        status: VERIFIED
+        max_abs: 2.288818359375e-05
+        max_rel: 0.0074946703389286995
+      P1:
+        status: VERIFIED
+        max_abs: 3.814697265625e-06
+        max_rel: 0.00011280818580416963
+      P2:
+        status: VERIFIED
+        max_abs: 1.52587890625e-05
+        max_rel: 0.0008036674116738141
+      P3:
+        status: VERIFIED
+        max_abs: 3.4332275390625e-05
+        max_rel: 0.0071394480764865875
+      P4:
+        status: VERIFIED
+        max_abs: 9.1552734375e-05
+        max_rel: 0.018606094643473625
+      P5:
+        status: VERIFIED
+        max_abs: 3.0517578125e-05
+        max_rel: 0.011282614432275295
+    golden_source: oracle_pytorch_verified
+    notes: 'oracle_pytorch.py re-authored to the upstream chunked headed contract
+      (k:[B,T,Hg,K], beta/g:[B,T,H] -> A:[B,T,H,BT], BT=FLA_CHUNK_SIZE=64). The prior
+      dense [C,L,D] -> [C,L,L] oracle computed cross-chunk lower-triangular products
+      the frozen kernel never emits (it masks strictly within each BT chunk via o_t
+      = i_t*BT + arange(BT)); it was only faithful for L <= 64. shapes.yaml + param_constraints
+      aligned to the rank-4 layout. The fixture supplies cu_seqlens (packed B=1 layout,
+      k:[1,T,Hg,K]), flipping the kernel''s IS_VARLEN heuristic on so a GPU run exercises
+      the varlen branch (bos/eos from cu_seqlens, per-segment chunk reset). The oracle
+      has a matching _chunk_scaled_dot_kkt_fwd_varlen path sharing the same per-chunk
+      math helper as the fixed-length path. PRECISION: kernel.py line 100 accumulates
+      the KKT block with tl.dot(b_kb, trans(b_k)) and pins NO precision (no allow_tf32=False
+      / input_precision="ieee", unlike sibling fp32 fla kernels L3_20 / L3_22 / L3_05),
+      so on Ampere+ the float32 dot runs on TF32 tensor cores. The oracle''s _chunk_block
+      now mirrors that TF32 truncation (_to_tf32 drops the low 13 float32 mantissa
+      bits on both dot operands, beta folded into the left operand exactly as the
+      kernel does) so it computes the kernel''s real arithmetic, not the ideal full-float32
+      dot. An ideal-fp32 oracle mismatched the kernel by max_abs=2.461e-2 / max_rel=21.4
+      on P1 (the prior BLOCKED verdict). Truncated-TF32 emulation reproduces that
+      hardware magnitude (2.460e-2 / 21.4) and the residual oracle-vs-kernel diff
+      is then only float32 accumulation-order noise: <= 5.4e-5 across all six shapes
+      and every autotuned BK tile (32/64/128), well inside recurrent_chunk (atol/rtol=5e-3).
+      Tolerance, fixture and kernel.py are unchanged. Numeric oracle-vs-kernel equivalence
+      on real hardware requires a GPU/NPU run to populate.'
+    golden_sha256: 554ad538090a1dae6975953bcb6aabce113a6772611427ee22fc675d247c87fa
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - T >= 1
+  - Hg >= 1
+  - H >= 1
+  - K >= 1
+  - H % Hg == 0
+  - NSEG >= 1
+  - T >= NSEG
+  dtypes:
+    k: bfloat16
+    g: float32
+    beta: float32
+    cu_seqlens: int64
+  dists:
+    k:
+      kind: randn
+    g:
+      kind: rand
+    beta:
+      kind: rand
+    cu_seqlens:
+      kind: offsets
+      args:
+        to: T
+  scalars: {}
+  tensor_invariants: []
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_27_chunk_scaled_dot_kkt_fwd-20260604T181535
+  classified_at: '2026-06-04'
+  standalone_sha256: 36ccaa6d0400cc27fdc5e8369a29c36cda14f0af727210d0a92785b62ab6c8c4
+  kernel_sha256: 36ccaa6d0400cc27fdc5e8369a29c36cda14f0af727210d0a92785b62ab6c8c4
+frozen_deps:
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+classB_symbols:
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: native

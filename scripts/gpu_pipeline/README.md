@@ -102,7 +102,7 @@ requires `ncu` to have profiled a real kernel launch).
 CLI: `--task <id>` / `--all`, `--apply` (write meta.yaml), `--dry-run`
 (analytic-only, no-GPU/no-`ncu` dev machine, writes nothing). A
 non-score-eligible task (stub oracle / `PHASE-C-MANUAL` shapes, e.g.
-`L1_21_gumbel_sample`) is recorded `SKIPPED_NON_ELIGIBLE` and never
+`L2_08_gumbel_sample`) is recorded `SKIPPED_NON_ELIGIBLE` and never
 cross-checked.
 
 ### offline golden capture (`scripts/phase_b_golden_capture.py`)

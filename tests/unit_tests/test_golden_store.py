@@ -114,7 +114,7 @@ def test_locate_pyref_returns_none_for_unknown_task():
 
 def test_has_pyref_true_when_artifacts_present():
     """Spot-check the dev tree: L1_13 has refs in r10_pyref/."""
-    assert GoldenStore.has_pyref("L1_13_layer_norm_fwd") is True
+    assert GoldenStore.has_pyref("L2_01_layer_norm_fwd") is True
 
 
 def test_has_pyref_false_when_artifacts_absent():

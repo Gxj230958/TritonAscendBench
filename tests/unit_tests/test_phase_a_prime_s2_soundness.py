@@ -817,7 +817,7 @@ def test_L2_10_w8a8_inputs_are_int8_per_contract():
     import yaml as _yaml
 
     sh = _yaml.safe_load(
-        (REPO / "tasks" / "level2" / "L2_10_w8a8_block_int8_matmul"
+        (REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
          / "shapes.yaml").read_text()
     )
     assert sh["inputs"]["A"]["dtype"] == "int8", sh["inputs"]["A"]
@@ -825,7 +825,7 @@ def test_L2_10_w8a8_inputs_are_int8_per_contract():
 
     # The contract really does mandate INT8 (anchor the expectation).
     contract = (
-        REPO / "tasks" / "level2" / "L2_10_w8a8_block_int8_matmul"
+        REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
         / "contract.md"
     ).read_text()
     assert "INT8 GEMM" in contract
@@ -949,14 +949,14 @@ def test_writeback_fresh_verdict_updates_only_that_task(
     monkeypatch.setattr(pap, "_RESOLVER_CACHE_MEM", None)
 
     # Seed a cache with two tasks; one ("KEEPME") must be preserved
-    # untouched, the other ("L1_26_merge_state", a REAL task so
+    # untouched, the other ("L1_15_merge_state", a REAL task so
     # input_fp resolves) carries a STALE upstream_fp/input_fp.
     keep = {
         "task_id": "KEEPME", "resolved": False, "status": "S",
         "reason": "R", "input_fp": "keep-ip", "upstream_fp": "keep-up",
     }
     stale = {
-        "task_id": "L1_26_merge_state", "resolved": False,
+        "task_id": "L1_15_merge_state", "resolved": False,
         "status": "OLD", "reason": "stale-reason",
         "input_fp": "STALE", "upstream_fp": "STALE-UP",
     }
@@ -968,7 +968,7 @@ def test_writeback_fresh_verdict_updates_only_that_task(
     class _Fresh:
         def __init__(self):
             self.__dict__ = {
-                "task_id": "L1_26_merge_state",
+                "task_id": "L1_15_merge_state",
                 "resolved": True, "entrypoint": "merge_state",
                 "status": "UNRUN(needs-gpu)", "reason": "fresh!",
                 "tried": ["merge_state"],
@@ -982,15 +982,15 @@ def test_writeback_fresh_verdict_updates_only_that_task(
     by = {v["task_id"]: v for v in out["verdicts"]}
     # The stale task's entry is REPLACED with the fresh verdict +
     # freshly re-derived input_fp + the fresh upstream_fp.
-    assert by["L1_26_merge_state"]["status"] == (
+    assert by["L1_15_merge_state"]["status"] == (
         "UNRUN(needs-gpu)"
     ), "write-back did NOT persist the fresh verdict (reverted -- "
     "the task would be re-resolved on every run forever)"
-    td = rue._task_dir_for("L1_26_merge_state")
-    assert by["L1_26_merge_state"]["input_fp"] == (
+    td = rue._task_dir_for("L1_15_merge_state")
+    assert by["L1_15_merge_state"]["input_fp"] == (
         rue.task_input_fingerprint(td)
     ), "fresh input_fp not re-derived on write-back"
-    assert by["L1_26_merge_state"]["upstream_fp"] == (
+    assert by["L1_15_merge_state"]["upstream_fp"] == (
         "sha256:" + ("c" * 64)
     ), "fresh upstream_fp not persisted on write-back"
     # The OTHER task is preserved byte-for-byte.
@@ -1025,7 +1025,7 @@ def test_writeback_honors_pa_no_cache_regen(tmp_path, monkeypatch):
     seed = {
         "_provenance": rue.build_provenance_stamp(),
         "verdicts": [{
-            "task_id": "L1_26_merge_state", "resolved": False,
+            "task_id": "L1_15_merge_state", "resolved": False,
             "status": "OLD", "reason": "r", "input_fp": "x",
             "upstream_fp": "y",
         }],
@@ -1036,7 +1036,7 @@ def test_writeback_honors_pa_no_cache_regen(tmp_path, monkeypatch):
     class _Fresh:
         def __init__(self):
             self.__dict__ = {
-                "task_id": "L1_26_merge_state", "resolved": True,
+                "task_id": "L1_15_merge_state", "resolved": True,
                 "status": "UNRUN(needs-gpu)", "reason": "fresh",
                 "upstream_fp": "sha256:" + ("d" * 64),
             }

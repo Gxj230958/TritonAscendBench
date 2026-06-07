@@ -1,0 +1,253 @@
+schema_version: '1.0'
+benchmark_version: 0.1.0-frozen
+task_id: L3_19_fused_moe
+level: L3
+idx: 19
+name: fused_moe_kernel
+repo: vLLM
+dtype_class: CV
+category: moe
+npu_difficulty: high
+upstream:
+  repo: vllm-project/vllm
+  path: '`vllm/model_executor/layers/fused_moe/fused_moe.py`'
+  commit_sha: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
+  file_sha256: 0d202384717cc80542723a4c0d88bca36eb1581ea3b216f20ea3d242ec30136c
+  function_hash: 0d202384717cc80542723a4c0d88bca36eb1581ea3b216f20ea3d242ec30136c
+  license: Apache-2.0
+  notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
+  vendored_snapshot: tasks/_vendored/L3_19_fused_moe_kernel_18f6bf5.py
+interface:
+  alias_map: {}
+  mutability: unspecified
+  stride_layout: TODO(scaffold)
+  workspace_policy: none
+  stream_sync_policy: runner-managed
+  rng_state_policy: deterministic
+oracle:
+  pytorch: oracle_pytorch.py::run
+  gpu_triton: _pa_launcher.py::run
+tolerance_class: cube_matmul_fp16
+cost_model:
+  flops:
+    fp16_cube: 8*E*N*D
+    vector: APPW*4*E*N
+  bytes:
+    hbm: E*(1-(1-1/E)**E)*N*D*2 + B*D*2 + B*N*4 + APPW*B*4 + (E*4 + E)*8
+  gpu_xcheck_tol: 0.05
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error -- see docs/reviews/2026-06-05-costmodel-nonpass-analysis.md). 1/1 gate
+    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.2043 > tol 0.0500
+    (analytic=344069576 measured=432417536)'
+  xcheck_run_id: xcheck-2026-06-05-3e0c27f7
+  xchecked_at: '2026-06-05'
+  xcheck_evidence:
+  - shape_id: P1
+    analytic_bytes_total: 25632.0
+    measured_bytes: 47616.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.46169354838709675
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.4617 > tol 0.0500 (analytic=25632 measured=47616) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=47616 < 0.5xmax=432417536); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P2
+    analytic_bytes_total: 737875.9375
+    measured_bytes: 856064.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.1380598442406175
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1381 > tol 0.0500 (analytic=737876 measured=856064) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=856064 < 0.5xmax=432417536); non-blocking
+      per asymptotic_hbm_xcheck]'
+  - shape_id: P3
+    analytic_bytes_total: 43599456.83281719
+    measured_bytes: 38577152.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.13018858501574168
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: 'bytes deviation 0.1302 > tol 0.0500 (analytic=43599457 measured=38577152)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=38577152 < 0.5xmax=432417536);
+      non-blocking per asymptotic_hbm_xcheck]'
+  - shape_id: P4
+    analytic_bytes_total: 344069575.8614633
+    measured_bytes: 432417536.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.20431169594966817
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.2043 > tol 0.0500 (analytic=344069576 measured=432417536)
+  - shape_id: P5
+    analytic_bytes_total: 42547341.15771736
+    measured_bytes: 40979968.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.03824730067425534
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0382 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+oracle_simplified: upstream_oracle_required
+runner_checks:
+  expected_kernel_count_range:
+  - 1
+  - 4
+  min_dram_bytes: 0
+  min_flops: 0
+  output_format: safetensors
+  output_allocation: candidate_inplace
+  static_checks:
+  - ast_denylist
+  - import_allowlist
+  - constexpr_match
+  metamorphic_checks: []
+  shape_coverage:
+    public: 5
+    hidden: 4
+is_canary: false
+is_hidden_only: false
+is_appendix: false
+hardware:
+  npu: 910b
+  ub_budget_kb: 192
+  fp8_required: false
+provenance:
+  added_in: v0.1-scaffold
+  authors:
+  - triton-ascend-bench team
+  last_modified: '2026-05-15'
+  source_md_id: L3-09
+  golden:
+    oracle_kernel_equivalence: CEILING_ACCEPTED
+    verified_at: '2026-06-05T01:16:10Z'
+    tolerance_class_used: cube_matmul_fp16
+    equivalence_per_shape:
+      H1:
+        status: CEILING_ACCEPTED
+        max_abs: 0.125
+        max_rel: 0.006410256493836641
+        blocker: 'output: atol/rtol: max_abs=0.125, max_rel=0.00641 (max_abs=0.125,
+          max_rel=0.006410256493836641, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      H2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.5
+        max_rel: 0.19889502227306366
+        blocker: 'output: atol/rtol: max_abs=0.5, max_rel=0.199 (max_abs=0.5, max_rel=0.19889502227306366,
+          tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      H4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.0078125
+        blocker: 'output: atol/rtol: max_abs=0.0156, max_rel=0.00781 (max_abs=0.015625,
+          max_rel=0.0078125, tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P2:
+        status: VERIFIED
+        max_abs: 0.0001220703125
+        max_rel: 0.005050505045801401
+      P3:
+        status: CEILING_ACCEPTED
+        max_abs: 0.5
+        max_rel: 0.03105590119957924
+        blocker: 'output: atol/rtol: max_abs=0.5, max_rel=0.0311 (max_abs=0.5, max_rel=0.03105590119957924,
+          tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P4:
+        status: CEILING_ACCEPTED
+        max_abs: 0.5
+        max_rel: 0.9887763857841492
+        blocker: 'output: atol/rtol: max_abs=0.5, max_rel=0.989 (max_abs=0.5, max_rel=0.9887763857841492,
+          tol=cube_matmul_fp16 atol=0.005 rtol=0.001)'
+      P5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_source: dtype_ceiling_accepted
+    cross_check: S2_FRESH
+param_constraints:
+  scaffold: false
+  dims:
+  - B >= 1
+  - D >= 1
+  - E >= 1
+  - N >= 1
+  dtypes:
+    a: bfloat16
+    b: bfloat16
+    topk_weights: float32
+    sorted_token_ids: int64
+    expert_ids: int64
+  dists:
+    a:
+      kind: randn
+    b:
+      kind: randn
+    topk_weights:
+      kind: rand
+    sorted_token_ids:
+      kind: moe_sorted_ids
+      args:
+        B: B
+    expert_ids:
+      kind: randint
+      args:
+        lo: '0'
+        hi: E
+  scalars:
+    block_size: block_size >= 1
+    apply_weight: apply_weight in [0, 1]
+  tensor_invariants:
+  - type: index_in_range
+    args:
+      input: sorted_token_ids
+      value: B+1
+  - type: index_in_range
+    args:
+      input: expert_ids
+      value: E
+phase_a_prime:
+  status: PASS
+  reason: bit-exact (values + alias + mutated-input)
+  s2_gpu_run_id: s2-L3_19_fused_moe-20260602T203231
+  classified_at: '2026-06-02'
+  standalone_sha256: 9b4a192609b1b5e8477a4fa6d8f17869bc65ccf0e590a40471c84180eeb54d23
+  kernel_sha256: 9b4a192609b1b5e8477a4fa6d8f17869bc65ccf0e590a40471c84180eeb54d23
+frozen_deps: []
+classB_symbols:
+- sym: vllm.logger.init_logger
+  proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
+    deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
+- sym: vllm.triton_utils.tl
+  proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+- sym: vllm.triton_utils.triton
+  proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
+    rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
+    shimmed)
+reference_path: triton_fallback
+phase_b_capture:
+  status: DONE
+  captured_at: '2026-06-05T01:16:59Z'
+  upstream_callable:
+    module: vllm.model_executor.layers.fused_moe.fused_moe
+    function: fused_moe_kernel
