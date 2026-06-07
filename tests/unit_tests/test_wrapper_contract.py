@@ -249,52 +249,55 @@ def test_lhs_starred_unpack_records_min_rank(tmp_path):
     assert "A" not in c.accepted_ranks
 
 
-def test_l3_13_oracle_helper_exposes_k_rank_3():
-    """End-to-end on real corpus: L3_13 oracle helper's alias chain
-    must surface k.ndim==3. This is the failure mode codex flagged
-    on 2026-05-27 -- if alias tracking is missing the helper returns
-    an empty accepted_ranks and the GPU runner can't classify L3_13
-    as ORACLE_KERNEL_LAYOUT_MISMATCH."""
+def test_l3_22_oracle_helper_exposes_k_rank_4():
+    """End-to-end on real corpus: the L3_22 oracle helper's alias chain
+    must surface its k rank. The oracle was re-authored to a 4-D layout
+    ([B, H, L, D]) so the alias-tracked unpack now exposes k.ndim==4.
+    This still exercises the alias-tracking path codex flagged on
+    2026-05-27 -- if alias tracking were missing the helper would return
+    an empty accepted_ranks."""
     oracle = Path(
         "tasks/level3/L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64/oracle_pytorch.py"
     )
     if not oracle.is_file():
-        pytest.skip("L3_13 oracle missing in this checkout")
+        pytest.skip("L3_22 oracle missing in this checkout")
     c = extract_wrapper_contract(oracle, "_chunk_gated_delta_rule_fwd_h")
     assert c is not None
-    assert c.accepted_ranks.get("k") == {3}, (
-        f"L3_13 oracle should expose k={{3}}, got {dict(c.accepted_ranks)}"
+    assert c.accepted_ranks.get("k") == {4}, (
+        f"L3_22 oracle should expose k={{4}}, got {dict(c.accepted_ranks)}"
     )
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Corpus integration -- 7 ValueError task classify correctly
+# Corpus integration -- re-authored L3 tasks now align with the wrapper
 # ─────────────────────────────────────────────────────────────────────
 
 
-REAL_CORPUS_CASES = [
-    # (task_id, key, wrapper_expected_rank, actual_rank)
-    # L3_22 was patched 2026-05-27 (oracle rewritten as per-chunk
-    # cumsum + shapes.yaml.g.dims aligned to [B,H,L,D]); it now
-    # returns ALIGNED_READY and no longer belongs in the
-    # rank-mismatch list.
-    ("L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4, 3),
-    ("L3_25_chunk_fwd_kernel_o", "q", 4, 3),
-    ("L3_26_chunk_gla_fwd_kernel_o", "q", 4, 3),
-    ("L3_27_chunk_scaled_dot_kkt_fwd", "k", 4, 3),
-    ("L3_29_recompute_w_u_fwd", "k", 4, 3),
-    ("L3_30_merge_16x16_to_32x32_inverse", "A", 4, 3),
+# These 6 L3 tasks once LAUNCH_BLOCKED with `not enough values to unpack`
+# because their oracle/inputs were 3-D while the kernel wrapper unpacked a
+# 4-D shape. They were re-authored (oracle rewritten + shapes.yaml aligned
+# to the wrapper's [B, H, L, D] layout) and now return ALIGNED_READY. The
+# static wrapper_contract checker must agree: the input rank matches the
+# wrapper contract, so it reports NO violation. The mismatch-detection
+# path itself is still covered by the synthetic unit tests above.
+REAL_CORPUS_ALIGNED_CASES = [
+    # (task_id, key, expected_input_rank)
+    ("L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64", "k", 4),
+    ("L3_25_chunk_fwd_kernel_o", "q", 4),
+    ("L3_26_chunk_gla_fwd_kernel_o", "q", 4),
+    ("L3_27_chunk_scaled_dot_kkt_fwd", "k", 4),
+    ("L3_29_recompute_w_u_fwd", "k", 4),
+    ("L3_30_merge_16x16_to_32x32_inverse", "A", 4),
 ]
 
 
 @pytest.mark.parametrize(
-    "task_id,key,expected_rank,actual_rank", REAL_CORPUS_CASES
+    "task_id,key,expected_rank", REAL_CORPUS_ALIGNED_CASES
 )
-def test_real_corpus_value_error_tasks_detect_rank_mismatch(
-    task_id, key, expected_rank, actual_rank
-):
-    """All 7 L3 tasks that LAUNCH_BLOCKED with `not enough values to
-    unpack` get statically flagged with the correct mismatch shape."""
+def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
+    """The re-authored L3 tasks expose a 4-D input that matches their
+    4-D wrapper contract, so the static checker reports no rank
+    mismatch."""
     import sys
     import re
     import yaml
@@ -321,17 +324,14 @@ def test_real_corpus_value_error_tasks_detect_rank_mismatch(
     shapes = yaml.safe_load((td / "shapes.yaml").read_text())
     inputs = build_inputs(shapes, "P1", seed=0)
     input_ranks = {k: v.ndim for k, v in inputs.items() if hasattr(v, "ndim")}
+    # The re-authored input is 4-D ...
+    assert input_ranks.get(key) == expected_rank, (
+        f"{task_id}: {key!r} input rank {input_ranks.get(key)} "
+        f"!= {expected_rank}"
+    )
+    # ... and the wrapper contract no longer flags it.
     violations = check_against_inputs(c, input_ranks)
-
-    assert violations, (
-        f"{task_id}: expected wrapper_contract to detect rank mismatch"
+    assert violations == [], (
+        f"{task_id}: expected no rank mismatch, got "
+        f"{[(v.input_name, v.actual_rank) for v in violations]}"
     )
-    bad = next((v for v in violations if v.input_name == key), None)
-    assert bad is not None, (
-        f"{task_id}: violation on {key!r} not found "
-        f"(got {[v.input_name for v in violations]})"
-    )
-    assert bad.actual_rank == actual_rank, (
-        f"{task_id}: actual_rank {bad.actual_rank} != {actual_rank}"
-    )
-    assert expected_rank in (bad.expected_ranks or {bad.expected_min_rank})

@@ -71,8 +71,14 @@ def test_l3_04_fwd_attention_single_token_per_seq():
     v = torch.randn(total, h, d, dtype=torch.float32)
     b_start = torch.arange(batch, dtype=torch.int32)
     b_seqlen = torch.ones(batch, dtype=torch.int32)
+    # L3_16_fwd is an in-place / runner-allocated output kernel: the runner
+    # allocates ``o`` and binds it as an input (interface.alias_map o:
+    # wo_runner_allocated). The oracle mirrors that contract and writes into the
+    # supplied buffer, so the test must provide ``o`` just like the harness does.
+    # fp32 buffer keeps the single-token identity exact (out == v).
+    o = torch.zeros_like(q)
     out = mod.run({
-        "q": q, "k": k, "v": v,
+        "q": q, "k": k, "v": v, "o": o,
         "b_start_loc": b_start, "b_seq_len": b_seqlen,
         "is_causal": True,
     })["o"]

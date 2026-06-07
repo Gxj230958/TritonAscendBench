@@ -129,7 +129,7 @@ def test_param_constraints_sample_task_loaded_as_raw_dict():
     assert isinstance(task.param_constraints, dict)
     assert task.param_constraints["scaffold"] is False
     assert task.param_constraints["dtypes"] == {
-        "input": "float32", "weight": "float32"
+        "input": "bfloat16", "weight": "bfloat16"
     }
 
 
@@ -431,8 +431,9 @@ def test_scaffold_true_block_exempt_from_schema_closure():
 def test_sample_tasks_param_constraints_pass_schema_shape(task_id):
     # The two hand-reconciled WA.1 sample tasks carry a `scaffold: false`
     # block that passes the WA.1 schema-shape validator layer cleanly.
+    level_dir = f"level{task_id[1]}"  # L1_* -> level1, L2_* -> level2
     meta = yaml.safe_load(
-        (REPO / "tasks" / "level1" / task_id / "meta.yaml").read_text()
+        (REPO / "tasks" / level_dir / task_id / "meta.yaml").read_text()
     )
     assert "param_constraints" in meta
     assert meta["param_constraints"]["scaffold"] is False

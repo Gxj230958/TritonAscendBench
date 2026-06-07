@@ -30,13 +30,24 @@ from safetensors.torch import save_file
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+# A multi-output corpus task whose oracle returns tensors in a
+# non-alphabetical insertion order, used to exercise the R10.a metadata
+# stamping. L2_28 moe_align_block_size_stage2 returns
+# (sorted_token_ids, expert_ids, num_tokens_post_pad); alphabetical load
+# order would be (expert_ids, num_tokens_post_pad, sorted_token_ids), so
+# the gap is real.
+MULTI_OUTPUT_TASK = "L2_28_moe_align_block_size_stage2"
+MULTI_OUTPUT_TASK_DIR = REPO_ROOT / "tasks" / "level2" / MULTI_OUTPUT_TASK
+MULTI_OUTPUT_ORDER = ["sorted_token_ids", "expert_ids", "num_tokens_post_pad"]
+
+
 def test_r10a_writes_output_key_order_metadata():
     """Run the precompute script for a multi-output corpus task and
     assert the safetensors metadata pins the oracle dict insertion
     order (not safetensors' alphabetical load order)."""
-    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_24_compute_seg_indptr_triton"
+    task_dir = MULTI_OUTPUT_TASK_DIR
     if not task_dir.is_dir():
-        pytest.skip("L1_36 missing")
+        pytest.skip(f"{MULTI_OUTPUT_TASK} missing")
 
     # Force a fresh precompute so we know the metadata was just written.
     pyref = task_dir / "r10_pyref"
@@ -48,9 +59,9 @@ def test_r10a_writes_output_key_order_metadata():
         [
             sys.executable,
             str(REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"),
-            "--task", "L1_24_compute_seg_indptr_triton",
-            "--json-out", "/tmp/_test_l1_36.json",
-            "--report", "/tmp/_test_l1_36.md",
+            "--task", MULTI_OUTPUT_TASK,
+            "--json-out", "/tmp/_test_r10a.json",
+            "--report", "/tmp/_test_r10a.md",
         ],
         capture_output=True, text=True, cwd=REPO_ROOT, timeout=60,
     )
@@ -65,11 +76,11 @@ def test_r10a_writes_output_key_order_metadata():
         f"R10.a must stamp output_key_order in safetensors metadata; got {meta}"
     )
     order = json.loads(meta["output_key_order"])
-    # L1_36 oracle returns (reorder_topk_ids, src2dst, seg_indptr) --
-    # neither alphabetical nor reverse-alphabetical; pin the exact
+    # The oracle returns (sorted_token_ids, expert_ids, num_tokens_post_pad)
+    # -- neither alphabetical nor reverse-alphabetical; pin the exact
     # wrapper return order so a future refactor that flips the dict
     # insertion order regresses loudly.
-    assert order == ["reorder_topk_ids", "src2dst", "seg_indptr"]
+    assert order == MULTI_OUTPUT_ORDER
     # And we expect the alphabetical-load order to be DIFFERENT
     # (otherwise this metadata wouldn't be needed and the test would
     # silently pass even if the implementation was wrong).
@@ -140,50 +151,57 @@ def test_r10b_runner_falls_back_to_alphabetical_when_no_metadata(tmp_path):
     assert order == []  # no metadata -> empty fallback list
 
 
-def test_l1_36_oracle_handles_minus_one_padding():
-    """Codex r2 flagged that the L1_36 oracle's `num_minus_one > 0`
-    path (step 4 src2dst offset scatter + step 5 reorder slice) was
-    never exercised by existing shapes (`topk_ids in [0, 1]`). Pin
-    the math with an explicit input that mixes -1 padding entries
-    with real expert ids so any future refactor of the oracle that
-    drops the offset / slice trips this test."""
+def test_l1_24_seg_indptr_handles_minus_one_padding():
+    """The L1_24 deepgemm seg_indptr oracle consumes the RAW segment
+    indptr (no `num_minus_one` subtraction), so -1 padding tokens count
+    into seg_indptr[0]. This edge case is never exercised by the public
+    shapes (`topk_ids in [0, num_experts)`); pin it explicitly so a
+    refactor that drops the searchsorted-over-padding behaviour trips."""
     sys.path.insert(0, str(REPO_ROOT / "tasks/level1/L1_24_compute_seg_indptr_triton"))
+    sys.modules.pop("oracle_pytorch", None)
     import oracle_pytorch as orc
 
     # Input: 2 entries of -1 padding, then expert ids 0/1/2 interleaved.
-    # num_minus_one = 2 after stable sort.
     topk_ids = torch.tensor([-1, 1, 0, -1, 2, 1], dtype=torch.int64)
     num_experts = 3
 
-    reorder_topk_ids, src2dst, seg_indptr = orc._deepep_run_moe_deep_preprocess(
-        topk_ids, num_experts
-    )
+    seg_indptr = orc._compute_seg_indptr(topk_ids, num_experts)
 
-    # Expected (worked out by hand from the wrapper math):
+    # Expected (worked out by hand from the kernel's binary search =
+    # searchsorted left over the sorted ids):
     # - stable sort of [-1, 1, 0, -1, 2, 1] -> [-1, -1, 0, 1, 1, 2]
-    # - reorder_ids: positions of each sorted entry in the original
-    #   stable-sort -> [0, 3, 2, 1, 5, 4]
-    # - num_minus_one = 2 (entries < 0)
-    # - seg_indptr_raw via searchsorted on [0, 1, 2, 3]
-    #   = [2, 3, 5, 6]  (counts of <0, <1, <2, <3 in sorted)
-    # - seg_indptr = seg_indptr_raw - 2 = [0, 1, 3, 4]
-    # - reorder_topk_ids (after slice [2:]) = [0, 1, 1, 2]
-    # - src2dst[reorder_ids[i]] = i - 2 for each i in [0..6)
-    #   src2dst initialised empty; fill at indices 0,3,2,1,5,4 with -2,-1,0,1,2,3
-    #   -> src2dst = [-2, 1, 0, -1, 3, 2]
-    assert reorder_topk_ids.tolist() == [0, 1, 1, 2]
-    assert seg_indptr.tolist() == [0, 1, 3, 4]
-    assert src2dst.tolist() == [-2, 1, 0, -1, 3, 2]
+    # - seg_indptr[e] = #{sorted < e} for e in [0, 1, 2, 3]
+    #   = [#{<0}, #{<1}, #{<2}, #{<3}] = [2, 3, 5, 6]  (RAW, incl. padding)
+    assert seg_indptr.tolist() == [2, 3, 5, 6]
+
+    # run() surfaces the same value under the single contract key.
+    out = orc.run({"topk_ids": topk_ids, "num_local_experts": num_experts})
+    assert list(out.keys()) == ["seg_indptr"]
+    assert out["seg_indptr"].tolist() == [2, 3, 5, 6]
 
 
-def test_l1_36_full_pipeline_with_kernel_tuple(tmp_path):
-    """End-to-end on L1_36 ref artifacts: simulate kernel returning
-    a 3-tuple in wrapper order and confirm the dict mapping pairs
-    each kernel output with its correct ref tensor by name."""
-    task_dir = REPO_ROOT / "tasks" / "level1" / "L1_24_compute_seg_indptr_triton"
+def test_multi_output_full_pipeline_with_kernel_tuple(tmp_path):
+    """End-to-end on a multi-output task's ref artifacts: simulate a
+    kernel returning a tuple in wrapper order and confirm the dict
+    mapping pairs each kernel output with its correct ref tensor by
+    name (recovered from the stamped metadata order)."""
+    task_dir = MULTI_OUTPUT_TASK_DIR
     ref_file = task_dir / "r10_pyref" / "ref_P1.safetensors"
     if not ref_file.is_file():
-        pytest.skip("L1_36 r10_pyref not built; run R10.a first")
+        # Build it (no skips): the metadata test usually runs first and
+        # produces this, but make the test self-sufficient in isolation.
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"),
+                "--task", MULTI_OUTPUT_TASK,
+                "--json-out", "/tmp/_test_r10_pipeline.json",
+                "--report", "/tmp/_test_r10_pipeline.md",
+            ],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=60,
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert ref_file.is_file(), f"expected {ref_file} after R10.a run"
 
     ref_tensors = {}
     with safe_open(str(ref_file), framework="pt") as f:

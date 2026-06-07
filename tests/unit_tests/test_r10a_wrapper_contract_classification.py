@@ -1,20 +1,15 @@
-"""Integration tests for V9 P3 -- R10.a wrapper-contract classification.
+"""Integration tests for the R10.a wrapper-contract classification.
 
-Verifies that the 7 GPU-host L3 tasks that previously LAUNCH_BLOCKED
-with ``not enough values to unpack`` get the right new R10.a status:
+A set of L3 tasks once LAUNCH_BLOCKED with ``not enough values to
+unpack`` because their oracle/inputs were 3-D while the kernel wrapper
+unpacked a 4-D shape. They have since been re-authored (oracle rewritten
++ shapes.yaml aligned to the wrapper's 4-D [B, H, L, D] layout) and now
+return ALIGNED_READY.
 
-* L3_13 -> ORACLE_KERNEL_LAYOUT_MISMATCH (oracle is 3-D, wrapper 4-D)
-* L3_16 / L3_17 / L3_18 / L3_20 -> WRAPPER_CONTRACT_MISMATCH
-
-L3_22 (2026-05-27) and L3_21 / L3_23 (2026-05-27) were patched out
-of the rank-mismatch bucket; spot-check tests below guard against
-regression.
-
-The L3_16/17 case is a known partial false positive (their oracle uses
-einsum subscripts that hard-code 3-D; the static checker doesn't parse
-einsum so credits them as rank-agnostic). The status's ``suggested_fix``
-text instructs the operator to re-run R10.a after patching shapes and
-reclassify if the oracle then RUNTIME_ERROR's.
+The spot-check tests below run the real R10.a precompute script and
+assert these recovered tasks stay ALIGNED_READY -- a regression here
+means an oracle/shapes patch was reverted or a new wrapper-contract
+heuristic mis-classifies them.
 """
 from __future__ import annotations
 
@@ -29,29 +24,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PRECOMPUTE = REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"
 
 
-CLASSIFICATION_CASES = [
-    # L3_22 was patched 2026-05-27 (oracle rewritten as per-chunk
-    # cumsum + shapes.yaml aligned to [B,H,L,D]); it now returns
-    # ALIGNED_READY and is no longer expected in this rank-mismatch
-    # bucket.
-    ("L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
-        "ORACLE_KERNEL_LAYOUT_MISMATCH"),
-    ("L3_25_chunk_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_26_chunk_gla_fwd_kernel_o", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_27_chunk_scaled_dot_kkt_fwd", "WRAPPER_CONTRACT_MISMATCH"),
-    ("L3_29_recompute_w_u_fwd", "WRAPPER_CONTRACT_MISMATCH"),
-]
-
-
 @pytest.mark.parametrize(
     "task_id",
     [
-        # Patched 2026-05-27: oracle rewritten + shapes.yaml aligned to
-        # wrapper-required layouts. Spot-check guards against regression
-        # that reintroduces a rank-mismatch verdict.
+        # Re-authored: oracle rewritten + shapes.yaml aligned to the
+        # wrapper-required 4-D layouts. Spot-check guards against a
+        # regression that reintroduces a rank-mismatch verdict.
         "L2_35_chunk_local_cumsum_vector",
         "L2_34_solve_tril_16x16",
         "L3_30_merge_16x16_to_32x32_inverse",
+        # Previously classified WRAPPER_CONTRACT_MISMATCH /
+        # ORACLE_KERNEL_LAYOUT_MISMATCH; their oracles + inputs were
+        # re-authored to 4-D and they now return ALIGNED_READY.
+        "L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
+        "L3_25_chunk_fwd_kernel_o",
+        "L3_26_chunk_gla_fwd_kernel_o",
+        "L3_27_chunk_scaled_dot_kkt_fwd",
+        "L3_29_recompute_w_u_fwd",
     ],
 )
 def test_recovered_tasks_now_aligned(task_id):
@@ -59,7 +48,9 @@ def test_recovered_tasks_now_aligned(task_id):
     WRAPPER_CONTRACT_MISMATCH / ORACLE_KERNEL_LAYOUT_MISMATCH buckets.
     A regression here means the oracle/shapes patch was reverted or a
     new wrapper-contract heuristic mis-classifies them."""
-    td = REPO_ROOT / "tasks" / "level3" / task_id
+    # task_id prefix encodes the level (``L2_...`` -> level2).
+    level = f"level{task_id.split('_', 1)[0][1:]}"
+    td = REPO_ROOT / "tasks" / level / task_id
     if not td.is_dir():
         pytest.skip(f"{task_id} missing")
     proc = subprocess.run(
@@ -73,7 +64,8 @@ def test_recovered_tasks_now_aligned(task_id):
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
-        timeout=60,
+        # L3_29 reference precompute runs ~75s; keep generous headroom.
+        timeout=180,
     )
     assert proc.returncode == 0
     combined = proc.stdout + proc.stderr
@@ -82,40 +74,6 @@ def test_recovered_tasks_now_aligned(task_id):
     )
     assert "WRAPPER_CONTRACT_MISMATCH" not in combined
     assert "ORACLE_KERNEL_LAYOUT_MISMATCH" not in combined
-
-
-@pytest.mark.parametrize("task_id,expected_status", CLASSIFICATION_CASES)
-def test_value_error_tasks_get_new_r10a_status(
-    task_id, expected_status, tmp_path
-):
-    """Run the real R10.a precompute script for each task and assert
-    the new wrapper-contract classifier picks the right bucket."""
-    td = REPO_ROOT / "tasks" / "level3" / task_id
-    if not td.is_dir():
-        pytest.skip(f"corpus task {task_id} missing")
-    json_out = tmp_path / "audit.json"
-    report = tmp_path / "report.md"
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(PRECOMPUTE),
-            "--task", task_id,
-            "--json-out", str(json_out),
-            "--report", str(report),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-        timeout=60,
-    )
-    assert proc.returncode == 0, (
-        f"precompute exited {proc.returncode}: {proc.stderr}"
-    )
-    # The single-task INFO line carries the verdict.
-    assert expected_status in proc.stdout or expected_status in proc.stderr, (
-        f"expected status {expected_status} not found in output:\n"
-        f"--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
-    )
 
 
 def test_wrapper_contract_classifier_does_not_regress_aligned_tasks():

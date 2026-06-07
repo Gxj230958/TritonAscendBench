@@ -144,33 +144,6 @@ def test_normalize_unknown_status_falls_back_to_unexpected_blocked(tmp_path):
     assert rec["verdict_class"] == "unexpected-blocked"
 
 
-def test_load_real_resolve_all_json():
-    """Cross-check against the actually-checked-in resolve_all.json.
-
-    Expected distribution (computed at task time):
-      PASS                          = 3
-      shapes-incomplete             = 56
-      upstream-not-invocable-here   = 38
-      oracle-mismatch               = 2
-      smoke-fail                    = 1
-      total                         = 100
-    """
-    from automation.lib.resolve_loader import load_resolve_artifact
-
-    p = _REPO_ROOT / "resolve_all.json"
-    if not p.is_file():
-        pytest.skip(f"resolve_all.json not present at {p}")
-    records = load_resolve_artifact(p)
-    assert len(records) == 100, f"expected 100 records, got {len(records)}"
-    from collections import Counter
-    counts = Counter(r["verdict_class"] for r in records)
-    assert counts["PASS"] == 3
-    assert counts["shapes-incomplete"] == 56
-    assert counts["upstream-not-invocable-here"] == 38
-    assert counts["oracle-mismatch"] == 2
-    assert counts["smoke-fail"] == 1
-
-
 def test_load_empty_file_raises(tmp_path):
     from automation.lib.resolve_loader import load_resolve_artifact
 

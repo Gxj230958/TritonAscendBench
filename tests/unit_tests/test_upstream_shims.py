@@ -446,10 +446,27 @@ def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
         sys.path.insert(0, vllm_path)
         added_path = True
 
-    # Drop any cached vllm modules so the import truly resolves to the
-    # infer/vllm checkout (not a stale unrelated package).
+    # Drop only cached vllm modules that do NOT resolve to the
+    # infer/vllm checkout, so the import resolves to infer/vllm without
+    # disturbing the real upstream copy. We must NOT drop the real
+    # infer/vllm modules: re-importing the real vllm package re-runs
+    # ``vllm/utils/torch_utils.py`` which calls
+    # ``register_opaque_type(LayerName)`` -- a torch process-global that
+    # CANNOT be unregistered, so a second import raises "already
+    # registered". A prior test in the full suite may already have
+    # imported the real vllm; keeping its (correct, already-loaded)
+    # modules makes this test order-independent (it previously passed
+    # alone but failed in the full suite via this exact pollution).
+    infer_root = INFER_VLLM_ROOT.resolve()
     for k in [m for m in sys.modules if m == "vllm" or m.startswith("vllm.")]:
-        sys.modules.pop(k, None)
+        mod = sys.modules.get(k)
+        mod_file = getattr(mod, "__file__", None)
+        under_infer = (
+            mod_file is not None
+            and Path(mod_file).resolve().is_relative_to(infer_root)
+        )
+        if not under_infer:
+            sys.modules.pop(k, None)
 
     try:
         from triton_ascend_bench.upstream_shims import _inject

@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -415,12 +416,33 @@ def test_daemon_runner_flock_serializes_concurrent_invocations(tmp_path: Path):
     flock_bin = shutil.which("flock")
     if flock_bin is None:
         pytest.skip("flock(1) not installed on this host")
+    bash_bin = shutil.which("bash")
+    if bash_bin is None:
+        pytest.skip("bash(1) not installed on this host")
     lock_file = tmp_path / "host.lock"
-    # First holder takes the lock for 1.5s.
+    ready_file = tmp_path / "holder.ready"
+    # First holder takes the lock for 1.5s. It signals READY only AFTER
+    # flock(1) has actually acquired the exclusive lock -- Popen returns
+    # the instant the child is forked, well before the lock is held, so
+    # we must synchronise on the sentinel to avoid a race where the
+    # contender runs before the holder owns the lock.
     holder = subprocess.Popen(
-        [flock_bin, "-x", str(lock_file), "sleep", "1.5"],
+        [
+            flock_bin,
+            "-x",
+            str(lock_file),
+            bash_bin,
+            "-c",
+            f"touch {ready_file!s}; sleep 1.5",
+        ],
     )
     try:
+        # Wait until the holder owns the lock (READY sentinel exists).
+        deadline = time.monotonic() + 5.0
+        while not ready_file.exists():
+            if time.monotonic() > deadline:
+                raise AssertionError("holder never acquired the flock within 5s")
+            time.sleep(0.01)
         # Second invocation must fail immediately with non-zero rc.
         contender = subprocess.run(
             [flock_bin, "-n", str(lock_file), "true"],

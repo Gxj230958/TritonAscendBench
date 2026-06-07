@@ -211,9 +211,12 @@ def test_l1_17_meta_pattern_requires_positive_overlap():
 
 
 def test_l3_07_zero_overlap_cache_still_falls_through_to_ast(tmp_path):
-    """L3_07's historical cache points at ``pack_seq_triton``. The cache
-    gate should reject that zero-overlap wrapper so AST scoring can still
-    recover ``correct_attn_out``."""
+    """L2_32's historical cache points at ``pack_seq_triton``. The task
+    is now GPU-verified and promoted: meta pins ``kernel.py::run`` and the
+    sliced kernel exposes that single host ``run`` entrypoint (the former
+    ``correct_attn_out`` wrapper was promoted into it). The resolver must
+    return the meta-pinned ``run`` and never let the stale zero-overlap
+    ``pack_seq_triton`` cache override it."""
     td = Path("tasks/level2/L2_32_correct_attn_cp_out")
     meta = yaml.safe_load((td / "meta.yaml").read_text())
 
@@ -237,4 +240,4 @@ def test_l3_07_zero_overlap_cache_still_falls_through_to_ast(tmp_path):
         td.name,
         ["out", "lses", "cp_rank", "is_lse_base_on_e"],
         resolve_cache_path=stale_cache,
-    ) == "correct_attn_out"
+    ) == "run"

@@ -136,17 +136,24 @@ def test_s2_non_circular_equivalent_smoke_passes_then_unrun(monkeypatch):
 
 
 def test_no_real_task_kernel_has_run_without_gpu_pass():
-    """Hard invariant: NO real task kernel.py exposes top-level run()
-    -- we never rewrite a real task without a genuine GPU S2-PASS
-    (staging is temp only)."""
+    """Hard invariant: a real task kernel.py may expose a top-level run()
+    ONLY when it is backed by a genuine GPU S2-PASS. The whole corpus is
+    now promoted (every kernel carries run() and meta.phase_a_prime.status
+    == PASS), so the soundness property is "run() implies a PASS verdict",
+    not the obsolete blanket "no kernel has run()" (staging used to be
+    temp-only). An offender = a kernel with run() whose meta is missing /
+    not PASS, i.e. a rewrite without a genuine GPU S2-PASS."""
     import re
 
     pat = re.compile(r"^def run\(", re.M)
-    offenders = [
-        p
-        for p in (REPO / "tasks").glob("level*/*/kernel.py")
-        if pat.search(p.read_text(encoding="utf-8", errors="replace"))
-    ]
+    offenders = []
+    for kp in (REPO / "tasks").glob("level*/*/kernel.py"):
+        if not pat.search(kp.read_text(encoding="utf-8", errors="replace")):
+            continue
+        meta = yaml.safe_load((kp.parent / "meta.yaml").read_text())
+        status = (meta.get("phase_a_prime") or {}).get("status")
+        if status != "PASS":
+            offenders.append((kp, status))
     assert offenders == [], offenders
 
 

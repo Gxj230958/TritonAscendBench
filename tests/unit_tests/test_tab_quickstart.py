@@ -124,7 +124,13 @@ def harness(tmp_path: Path) -> dict:
     conf_dir = tmp_path / "conf"
     log_dir = tmp_path / "log"
     home_dir = tmp_path / "home"
-    for d in (runners, bin_dir, gpfs, conf_dir, log_dir, home_dir):
+    # Hermetic bench repo: the run-gate (_run_phase) reads the structured
+    # resolve cache from $TAB_BENCH_REPO/results/resolve_all.json. Without
+    # an explicit TAB_BENCH_REPO the wrapper derives it from SCRIPT_DIR
+    # (../../..), which lands outside tmp_path and breaks hermeticity.
+    bench_repo = tmp_path / "bench_repo"
+    results_dir = bench_repo / "results"
+    for d in (runners, bin_dir, gpfs, conf_dir, log_dir, home_dir, results_dir):
         d.mkdir(parents=True, exist_ok=True)
 
     shutil.copy(_REAL_SCRIPT, runners / "tab_quickstart.sh")
@@ -161,6 +167,7 @@ def harness(tmp_path: Path) -> dict:
         "runner_log": runner_log,
         "ssh_log": ssh_log,
         "home_dir": home_dir,
+        "bench_repo": bench_repo,
     }
 
 
@@ -382,9 +389,37 @@ def test_tab_quickstart_resolve_force_skips_prompt(harness, tmp_path):
 # 6. smoke / full
 # ---------------------------------------------------------------------------
 def _seed_resolve_log(harness) -> Path:
+    """Seed both resolve artefacts the run-gate inspects.
+
+    cmd_smoke / cmd_full guard on the human-readable text log
+    (``$TAB_GPFS_ROOT/pa_resolve.log``), while ``_run_phase`` additionally
+    requires the structured JSON cache at
+    ``$TAB_BENCH_REPO/results/resolve_all.json`` to be present and
+    non-empty. Seed a minimal-but-valid aggregate (the
+    ``{"_provenance": ..., "verdicts": [...]}`` shape the resolve_loader
+    recognises) so smoke/full clear the gate without a real resolve run.
+    """
     rl = harness["gpfs"] / "pa_resolve.log"
     rl.parent.mkdir(parents=True, exist_ok=True)
     rl.write_text("task=a shapes-incomplete\n", encoding="utf-8")
+
+    cache = harness["bench_repo"] / "results" / "resolve_all.json"
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(
+        json.dumps(
+            {
+                "_provenance": {"seeded_by": "test_tab_quickstart"},
+                "verdicts": [
+                    {
+                        "task_id": "a",
+                        "status": "shapes-incomplete",
+                        "reason": "seeded",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     return rl
 
 
@@ -396,7 +431,7 @@ def test_tab_quickstart_smoke_fails_when_resolve_log_missing(harness):
 
 def test_tab_quickstart_smoke_passes_phase_1_to_run_gate(harness):
     _seed_resolve_log(harness)
-    proc = _run(harness, "smoke")
+    proc = _run(harness, "smoke", env_extra={"TAB_BENCH_REPO": str(harness["bench_repo"])})
     assert proc.returncode == 0, (proc.stderr, proc.stdout)
     rows = _read_argv_log(harness["runner_log"])
     assert len(rows) == 1
@@ -412,7 +447,7 @@ def test_tab_quickstart_smoke_passes_phase_1_to_run_gate(harness):
 
 def test_tab_quickstart_full_passes_phase_all(harness):
     _seed_resolve_log(harness)
-    proc = _run(harness, "full")
+    proc = _run(harness, "full", env_extra={"TAB_BENCH_REPO": str(harness["bench_repo"])})
     assert proc.returncode == 0, (proc.stderr, proc.stdout)
     rows = _read_argv_log(harness["runner_log"])
     assert len(rows) == 1
