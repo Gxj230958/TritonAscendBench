@@ -64,21 +64,27 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `C >= 1`
-- `L >= 1`
-- `D >= 1`
+- `T >= 1`
+- `Hg >= 1`
+- `H >= 1`
+- `K >= 1`
+- `H % Hg == 0`
+- `NSEG >= 1`
+- `T >= NSEG`
 
 ### Input dtypes (`dtypes`)
 
-- `k`: `float32`
+- `k`: `bfloat16`
 - `g`: `float32`
 - `beta`: `float32`
+- `cu_seqlens`: `int64`
 
 ### Input distributions (`dists`)
 
 - `k`: `randn`
 - `g`: `rand`
 - `beta`: `rand`
+- `cu_seqlens`: `offsets` — args `{'to': 'T'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

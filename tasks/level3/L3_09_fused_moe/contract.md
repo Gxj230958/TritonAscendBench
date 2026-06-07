@@ -90,8 +90,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `a`: `float32`
-- `b`: `float32`
+- `a`: `bfloat16`
+- `b`: `bfloat16`
 - `topk_weights`: `float32`
 - `sorted_token_ids`: `int64`
 - `expert_ids`: `int64`

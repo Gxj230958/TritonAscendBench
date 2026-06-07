@@ -73,17 +73,17 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `residual_a`: `float32`
-- `residual_b`: `float32`
-- `weight`: `float32`
+- `x`: `bfloat16`
+- `residual`: `bfloat16`
+- `weight1`: `bfloat16`
+- `weight2`: `bfloat16`
 
 ### Input distributions (`dists`)
 
 - `x`: `randn`
-- `residual_a`: `randn`
-- `residual_b`: `randn`
-- `weight`: `randn`
+- `residual`: `randn`
+- `weight1`: `randn`
+- `weight2`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

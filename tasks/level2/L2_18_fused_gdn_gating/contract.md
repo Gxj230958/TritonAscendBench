@@ -71,13 +71,15 @@ Knob grid in `shapes.yaml`.
 ### Input dtypes (`dtypes`)
 
 - `A_log`: `float32`
-- `a`: `float32`
+- `a`: `bfloat16`
+- `b`: `bfloat16`
 - `dt_bias`: `float32`
 
 ### Input distributions (`dists`)
 
 - `A_log`: `randn`
 - `a`: `randn`
+- `b`: `randn`
 - `dt_bias`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)

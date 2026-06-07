@@ -80,8 +80,8 @@ H/Dn/Dr are powers of two (the kernel's unmasked `tl.arange`).
 
 ### Input dtypes (`dtypes`)
 
-- `k_nope`: `float32`
-- `k_rope`: `float32`
+- `k_nope`: `bfloat16`
+- `k_rope`: `bfloat16`
 
 ### Input distributions (`dists`)
 

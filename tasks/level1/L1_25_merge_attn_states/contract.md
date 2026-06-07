@@ -82,10 +82,12 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `prefix_output`: `float32`
+- `prefix_output`: `bfloat16`
 - `prefix_lse`: `float32`
-- `suffix_output`: `float32`
+- `suffix_output`: `bfloat16`
 - `suffix_lse`: `float32`
+- `output`: `bfloat16`
+- `output_lse`: `float32`
 
 ### Input distributions (`dists`)
 

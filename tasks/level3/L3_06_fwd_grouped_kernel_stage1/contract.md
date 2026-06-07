@@ -75,24 +75,34 @@ Knob grid in `shapes.yaml`.
 
 - `B >= 1`
 - `H >= 1`
+- `E >= 1`
+- `H % E == 0`
+- `H / E >= 2`
 - `D >= 1`
+- `Dv >= 1`
 - `C >= 1`
+- `G >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k_buffer`: `float32`
-- `v_buffer`: `float32`
+- `q`: `bfloat16`
+- `k_buffer`: `bfloat16`
+- `v_buffer`: `bfloat16`
+- `req_to_tokens`: `int64`
+- `b_seqlen`: `int64`
 
 ### Input distributions (`dists`)
 
 - `q`: `randn`
 - `k_buffer`: `randn`
 - `v_buffer`: `randn`
+- `req_to_tokens`: `randperm`
+- `b_seqlen`: `randint` — args `{'lo': '1', 'hi': 'C+1'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `scale`: derive `1/sqrt(D)`
+- `num_kv_splits`: `num_kv_splits == 4`
 
 ### Tensor invariants (`tensor_invariants`)
 

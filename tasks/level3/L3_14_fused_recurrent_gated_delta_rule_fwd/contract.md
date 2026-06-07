@@ -97,12 +97,12 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
-- `g`: `float32`
-- `beta`: `float32`
-- `initial_state`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
+- `g`: `bfloat16`
+- `beta`: `bfloat16`
+- `initial_state`: `bfloat16`
 
 ### Input distributions (`dists`)
 

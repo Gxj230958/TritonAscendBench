@@ -70,7 +70,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `reorder_ids`: `arange`
+- `reorder_ids`: `randperm`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

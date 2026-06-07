@@ -88,7 +88,7 @@ Knob grid in `shapes.yaml`.
 - `v`: `randn`
 - `kv_caches`: `randn`
 - `slope_rate`: `rand`
-- `slot_idx`: `arange`
+- `slot_idx`: `randperm`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

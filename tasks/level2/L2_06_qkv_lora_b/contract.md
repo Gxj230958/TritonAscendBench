@@ -74,8 +74,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `weights`: `float32`
+- `x`: `bfloat16`
+- `qkv_lora_b`: `bfloat16`
 - `seg_indptr`: `int64`
 - `weight_indices`: `int64`
 - `lora_ranks`: `int64`
@@ -84,8 +84,8 @@ Knob grid in `shapes.yaml`.
 ### Input distributions (`dists`)
 
 - `x`: `randn`
-- `weights`: `randn`
-- `seg_indptr`: `offsets` — args `{'step': '2'}`
+- `qkv_lora_b`: `randn`
+- `seg_indptr`: `offsets` — args `{'to': 'B'}`
 - `weight_indices`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 - `lora_ranks`: `randint` — args `{'lo': '1', 'hi': 'G'}`
 - `scalings`: `rand`

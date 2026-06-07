@@ -69,6 +69,11 @@ Knob grid in `shapes.yaml`.
 - `B >= 1`
 - `L >= 1`
 - `D >= 1`
+- `Dv >= 1`
+- `H >= 2`
+- `C in [16, 32, 64]`
+- `L % C == 0`
+- `H % 2 == 0`
 
 ### Input dtypes (`dtypes`)
 

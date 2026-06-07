@@ -79,24 +79,28 @@ Knob grid in `shapes.yaml`.
 - `H >= 1`
 - `L >= 16`
 - `D >= 1`
-- `L % chunk_size == 0`
 
 ### Input dtypes (`dtypes`)
 
 - `g`: `float32`
+- `cu_seqlens`: `int64`
 
 ### Input distributions (`dists`)
 
 - `g`: `randn`
+- `cu_seqlens`: `offsets` — args `{'to': 'B*L+1'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `reverse`: `reverse in [0, 1]`
-- `chunk_size`: `chunk_size in {16, 32, 64, 128, 256, 512}`
-- `head_first`: `head_first == True`
+- `chunk_size`: `chunk_size in [16, 32, 64, 128, 256, 512]`
+- `head_first`: `head_first == False`
 
 ### Tensor invariants (`tensor_invariants`)
 
-_(none)_
+- `monotonic_nondecreasing` — args `{'input': 'cu_seqlens'}`
+- `first_eq` — args `{'input': 'cu_seqlens', 'value': 0}`
+- `last_eq` — args `{'input': 'cu_seqlens', 'value': 'B*L+1'}`
+- `length_eq` — args `{'input': 'cu_seqlens', 'value': 'B+1'}`
 
 <!-- /param_constraints mirror -->

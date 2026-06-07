@@ -71,8 +71,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `a`: `float32`
-- `b`: `float32`
+- `a`: `bf16`
+- `b`: `bf16`
 - `expert_num_tokens`: `int64`
 
 ### Input distributions (`dists`)

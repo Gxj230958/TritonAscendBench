@@ -70,14 +70,17 @@ Knob grid in `shapes.yaml`.
 - `D % 2 == 0`
 - `D >= 2`
 - `B >= 1`
+- `E >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
+- `gateup_output`: `bfloat16`
+- `topk_ids`: `int64`
 
 ### Input distributions (`dists`)
 
-- `x`: `randn`
+- `gateup_output`: `randn`
+- `topk_ids`: `routing_ids` — args `{'E': 'E'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

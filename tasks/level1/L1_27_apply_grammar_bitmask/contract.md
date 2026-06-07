@@ -69,17 +69,18 @@ Knob grid in `shapes.yaml`.
 - `B >= 1`
 - `N >= 2`
 - `E >= 1`
+- `E <= B`
 
 ### Input dtypes (`dtypes`)
 
-- `logits`: `float32`
-- `logits_indices`: `int64`
-- `bitmask`: `int64`
+- `logits`: `bfloat16`
+- `logits_indices`: `int32`
+- `bitmask`: `int32`
 
 ### Input distributions (`dists`)
 
 - `logits`: `randn`
-- `logits_indices`: `randint` — args `{'lo': '0', 'hi': 'E'}`
+- `logits_indices`: `randperm`
 - `bitmask`: `randint` — args `{'lo': '0', 'hi': '1024'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)

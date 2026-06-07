@@ -87,9 +87,9 @@ Knob grid in `shapes.yaml`.
 - `A_log`: `float32`
 - `a`: `float32`
 - `dt_bias`: `float32`
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
 - `beta`: `float32`
 - `state`: `float32`
 

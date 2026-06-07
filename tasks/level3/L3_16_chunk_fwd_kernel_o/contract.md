@@ -89,9 +89,6 @@ the per-chunk h index and the GQA head grouping are load-bearing.
 - `h`: `bfloat16`
 - `g`: `float32`
 
-(Activations are bf16, the production / GPU-verified dtype — the bf16 oracle matches the
-kernel at the anchors; fp32+TF32 was GPU-refuted. `g` decay/cumsum stays fp32.)
-
 ### Input distributions (`dists`)
 
 - `q`: `randn`

@@ -81,10 +81,10 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `conv_state`: `float32`
-- `weight`: `float32`
-- `bias`: `float32`
+- `x`: `bfloat16`
+- `conv_state`: `bfloat16`
+- `weight`: `bfloat16`
+- `bias`: `bfloat16`
 - `conv_state_indices`: `int32`
 
 ### Input distributions (`dists`)

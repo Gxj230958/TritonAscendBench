@@ -85,11 +85,11 @@ Knob grid in `shapes.yaml`.
 
 - `req_id`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 - `block_table`: `randint` — args `{'lo': '0', 'hi': 'N'}`
-- `token_indices`: `randint` — args `{'lo': '0', 'hi': 'N'}`
+- `token_indices`: `randint` — args `{'lo': '-1', 'hi': 'N'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `block_size`: `block_size >= 1`
+_(none)_
 
 ### Tensor invariants (`tensor_invariants`)
 

@@ -70,27 +70,27 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `B >= 1`
+- `C >= 1`
 - `E >= 1`
 - `G >= 1`
 - `N >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `weights`: `float32`
+- `x`: `bfloat16`
+- `gate_up_lora_b`: `bfloat16`
 - `seg_indptr`: `int64`
 - `weight_indices`: `int64`
 - `lora_ranks`: `int64`
-- `scalings`: `float32`
+- `scalings`: `bfloat16`
 
 ### Input distributions (`dists`)
 
 - `x`: `randn`
-- `weights`: `randn`
-- `seg_indptr`: `offsets` — args `{'step': '2'}`
-- `weight_indices`: `randint` — args `{'lo': '0', 'hi': 'E'}`
-- `lora_ranks`: `randint` — args `{'lo': '1', 'hi': 'G'}`
+- `gate_up_lora_b`: `randn`
+- `seg_indptr`: `offsets` — args `{'to': 'E*C'}`
+- `weight_indices`: `arange`
+- `lora_ranks`: `randint` — args `{'lo': '1', 'hi': 'G+1'}`
 - `scalings`: `rand`
 
 ### Scalar / scalar_seq constraints (`scalars`)

@@ -72,7 +72,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
+- `x`: `bfloat16`
 - `router_weight`: `float32`
 - `correction_bias`: `float32`
 

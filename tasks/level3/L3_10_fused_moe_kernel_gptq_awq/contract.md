@@ -74,11 +74,14 @@ Knob grid in `shapes.yaml`.
 - `D >= 1`
 - `E >= 1`
 - `N >= 1`
+- `GS >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `a`: `float32`
-- `b`: `float32`
+- `a`: `bf16`
+- `b`: `int32`
+- `b_scale`: `float32`
+- `b_zp`: `int32`
 - `topk_weights`: `float32`
 - `sorted_token_ids`: `int64`
 - `expert_ids`: `int64`
@@ -86,19 +89,22 @@ Knob grid in `shapes.yaml`.
 ### Input distributions (`dists`)
 
 - `a`: `randn`
-- `b`: `randn`
+- `b`: `randint` — args `{'lo': '0', 'hi': '256'}`
+- `b_scale`: `rand`
+- `b_zp`: `randint` — args `{'lo': '0', 'hi': '256'}`
 - `topk_weights`: `rand`
-- `sorted_token_ids`: `randint` — args `{'lo': '0', 'hi': 'B'}`
+- `sorted_token_ids`: `moe_sorted_ids` — args `{'B': 'B'}`
 - `expert_ids`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `block_size`: `block_size >= 1`
+- `group_size`: `group_size >= 1`
 - `apply_weight`: `apply_weight in [0, 1]`
 
 ### Tensor invariants (`tensor_invariants`)
 
-- `index_in_range` — args `{'input': 'sorted_token_ids', 'value': 'B'}`
+- `index_in_range` — args `{'input': 'sorted_token_ids', 'value': 'B+1'}`
 - `index_in_range` — args `{'input': 'expert_ids', 'value': 'E'}`
 
 <!-- /param_constraints mirror -->

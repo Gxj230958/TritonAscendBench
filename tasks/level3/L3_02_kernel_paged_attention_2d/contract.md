@@ -83,7 +83,7 @@ Knob grid in `shapes.yaml`.
 - `H >= 1`
 - `D >= 1`
 - `C >= 1`
-- `T >= 1`
+- `T >= 16`
 - `N >= 1`
 
 ### Input dtypes (`dtypes`)

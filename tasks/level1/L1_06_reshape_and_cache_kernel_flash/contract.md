@@ -77,10 +77,10 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `key`: `float32`
-- `value`: `float32`
-- `key_cache`: `float32`
-- `value_cache`: `float32`
+- `key`: `bfloat16`
+- `value`: `bfloat16`
+- `key_cache`: `bfloat16`
+- `value_cache`: `bfloat16`
 - `slot_mapping`: `int64`
 
 ### Input distributions (`dists`)

@@ -89,9 +89,9 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
 - `cu_seqlens_q`: `int64`
 - `seqused_k`: `int64`
 
@@ -101,11 +101,11 @@ Knob grid in `shapes.yaml`.
 - `k`: `randn`
 - `v`: `randn`
 - `cu_seqlens_q`: `offsets` — args `{'to': 'E*L'}`
-- `seqused_k`: `randint` — args `{'lo': '1', 'hi': 'L'}`
+- `seqused_k`: `full` — args `{'value': 'L'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `scale`: derive `1/sqrt(D)`
+- `softmax_scale`: derive `1/sqrt(D)`
 - `causal`: `causal in [0, 1]`
 
 ### Tensor invariants (`tensor_invariants`)

@@ -84,14 +84,17 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `C >= 1`
-- `L >= 1`
-- `D >= 1`
+- `B >= 1`
+- `T >= 1`
+- `H >= 1`
+- `K >= 1`
+- `K <= 256`
+- `T > 16`
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
 - `gk`: `float32`
 - `beta`: `float32`
 
@@ -104,7 +107,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `scale`: derive `1/sqrt(D)`
+- `scale`: derive `1/sqrt(K)`
 
 ### Tensor invariants (`tensor_invariants`)
 

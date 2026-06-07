@@ -71,13 +71,13 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `logits`: `float32`
+- `logits`: `bf16`
 - `token_ids`: `int64`
 
 ### Input distributions (`dists`)
 
 - `logits`: `randn`
-- `token_ids`: `randint` — args `{'lo': '0', 'hi': '2'}`
+- `token_ids`: `randint` — args `{'lo': '0', 'hi': 'N'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

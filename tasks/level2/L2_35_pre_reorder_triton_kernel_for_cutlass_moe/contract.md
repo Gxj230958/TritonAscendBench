@@ -69,13 +69,13 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `input`: `float32`
+- `input`: `bfloat16`
 - `src2dst`: `int64`
 
 ### Input distributions (`dists`)
 
 - `input`: `randn`
-- `src2dst`: `arange`
+- `src2dst`: `randperm`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

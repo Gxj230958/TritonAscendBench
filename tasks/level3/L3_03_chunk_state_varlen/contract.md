@@ -84,8 +84,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `B`: `float32`
-- `x`: `float32`
+- `B`: `bf16`
+- `x`: `bf16`
 - `dt`: `float32`
 - `dA_cumsum`: `float32`
 - `cu_seqlens`: `int64`

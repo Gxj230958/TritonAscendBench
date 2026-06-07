@@ -81,9 +81,9 @@ Hidden: 5 (sealed, including some > 1024 sequences for streaming pressure).
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
 - `b_start_loc`: `int64`
 - `b_seq_len`: `int64`
 

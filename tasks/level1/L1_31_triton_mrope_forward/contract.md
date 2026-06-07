@@ -80,8 +80,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
 - `cos`: `float32`
 - `sin`: `float32`
 

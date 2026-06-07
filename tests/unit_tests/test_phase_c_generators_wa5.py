@@ -399,7 +399,7 @@ def test_scaffold_contract_mirror_is_rewritable_by_phase_c(tmp_path):
 # ------------------ corpus-level mirror/meta consistency ------------------
 
 def _corpus_task_dirs() -> list[Path]:
-    """All 100 real corpus task directories (canary tasks excluded).
+    """All 101 real corpus task directories (canary tasks excluded).
 
     ``tasks/_canary/`` is skipped via the underscore-prefix rule — canary
     tasks are exempt from ``param_constraints`` (WA.1) and therefore from the
@@ -425,10 +425,11 @@ def _extract_mirror_section(contract_text: str) -> str:
     return contract_text[begin:end + len(pcd._MIRROR_END)]
 
 
-def test_corpus_count_is_one_hundred():
+def test_corpus_count():
     """Guards the corpus-consistency test below from silently degrading to a
-    no-op if task discovery breaks."""
-    assert len(_corpus_task_dirs()) == 100
+    no-op if task discovery breaks. Corpus is 101 scored tasks (canary
+    excluded); update this if the corpus intentionally changes."""
+    assert len(_corpus_task_dirs()) == 101
 
 
 @pytest.mark.parametrize(

@@ -78,7 +78,7 @@ Knob grid in `shapes.yaml`.
 
 - `a`: `randn`
 - `b`: `randn`
-- `bias`: `rand`
+- `bias`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

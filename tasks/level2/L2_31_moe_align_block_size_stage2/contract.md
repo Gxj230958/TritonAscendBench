@@ -74,7 +74,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `topk_ids`: `randint` — args `{'lo': '0', 'hi': '2'}`
+- `topk_ids`: `randint` — args `{'lo': '0', 'hi': '4'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

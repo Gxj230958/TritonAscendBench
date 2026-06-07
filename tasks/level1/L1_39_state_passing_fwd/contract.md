@@ -80,7 +80,7 @@ Knob grid in `shapes.yaml`.
 
 - `states`: `randn`
 - `dA_cumsum`: `rand`
-- `last_chunk_indices`: `full` — args `{'value': 'C-1'}`
+- `last_chunk_indices`: `cumcount` — args `{'to': 'C-1'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

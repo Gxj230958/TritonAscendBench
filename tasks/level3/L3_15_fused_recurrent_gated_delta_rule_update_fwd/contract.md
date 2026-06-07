@@ -82,23 +82,25 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `q`: `float32`
-- `k`: `float32`
-- `v`: `float32`
+- `q`: `bfloat16`
+- `k`: `bfloat16`
+- `v`: `bfloat16`
 - `g`: `float32`
-- `beta`: `float32`
+- `beta`: `bfloat16`
+- `initial_state`: `float32`
 
 ### Input distributions (`dists`)
 
 - `q`: `randn`
-- `k`: `randn`
+- `k`: `l2norm_rows`
 - `v`: `randn`
-- `g`: `rand`
+- `g`: `logsigmoid`
 - `beta`: `rand`
+- `initial_state`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `scale`: derive `1/sqrt(D)`
+- `scale`: derive `2/sqrt(D)`
 
 ### Tensor invariants (`tensor_invariants`)
 

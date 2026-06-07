@@ -76,8 +76,8 @@ reported as raw NPU latency when 910B hardware is available.
 
 ### Input dtypes (`dtypes`)
 
-- `input`: `float32`
-- `weight`: `float32`
+- `input`: `bfloat16`
+- `weight`: `bfloat16`
 
 ### Input distributions (`dists`)
 

@@ -69,9 +69,13 @@ Knob grid in `shapes.yaml`.
 ### Knob predicates (`dims`)
 
 - `B >= 1`
-- `T >= 1`
-- `D >= 1`
-- `D <= 256`
+- `T >= 129`
+- `H >= 1`
+- `K >= 1`
+- `V >= 1`
+- `K <= 256`
+- `V <= 256`
+- `K % 64 == 0`
 
 ### Input dtypes (`dtypes`)
 
@@ -79,6 +83,7 @@ Knob grid in `shapes.yaml`.
 - `w`: `float32`
 - `u`: `float32`
 - `g`: `float32`
+- `gk`: `float32`
 
 ### Input distributions (`dists`)
 

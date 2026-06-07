@@ -74,9 +74,9 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `weight`: `float32`
-- `bias`: `float32`
+- `x`: `bfloat16`
+- `weight`: `bfloat16`
+- `bias`: `bfloat16`
 
 ### Input distributions (`dists`)
 

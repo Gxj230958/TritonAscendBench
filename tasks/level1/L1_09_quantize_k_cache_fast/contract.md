@@ -66,14 +66,13 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `D % 8 == 0`
-- `D >= 8`
+- `D == 512`
 - `B >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `k_nope`: `float32`
-- `k_rope`: `float32`
+- `k_nope`: `bfloat16`
+- `k_rope`: `bfloat16`
 
 ### Input distributions (`dists`)
 
@@ -82,7 +81,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `group_size`: `group_size == 8`
+- `group_size`: `group_size == 128`
 - `fp8_max`: `0 < fp8_max <= 1e4`
 
 ### Tensor invariants (`tensor_invariants`)

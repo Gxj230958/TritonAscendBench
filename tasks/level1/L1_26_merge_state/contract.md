@@ -82,17 +82,17 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `prefix_output`: `float32`
+- `prefix_output`: `bfloat16`
 - `prefix_lse`: `float32`
-- `suffix_output`: `float32`
+- `suffix_output`: `bfloat16`
 - `suffix_lse`: `float32`
 
 ### Input distributions (`dists`)
 
 - `prefix_output`: `randn`
-- `prefix_lse`: `randn`
+- `prefix_lse`: `randn_inf`
 - `suffix_output`: `randn`
-- `suffix_lse`: `randn`
+- `suffix_lse`: `randn_inf_excl` — args `{'ref': 'prefix_lse'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

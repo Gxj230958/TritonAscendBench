@@ -75,15 +75,15 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `a`: `float32`
-- `b`: `float32`
+- `a`: `bfloat16`
+- `b`: `bfloat16`
 - `cu_chunk_seqlens`: `int64`
 
 ### Input distributions (`dists`)
 
 - `a`: `randn`
 - `b`: `randn`
-- `cu_chunk_seqlens`: `offsets` — args `{'to': 'C*4'}`
+- `cu_chunk_seqlens`: `offsets` — args `{'step': '4'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

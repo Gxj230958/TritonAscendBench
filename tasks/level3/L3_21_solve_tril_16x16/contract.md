@@ -64,8 +64,11 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `T >= 1`
-- `T <= 16`
+- `B >= 1`
+- `T >= 16`
+- `T % 16 == 0`
+- `H >= 1`
+- `BT == 16`
 
 ### Input dtypes (`dtypes`)
 
@@ -73,7 +76,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `A`: `tril`
+- `A`: `tril_chunk`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

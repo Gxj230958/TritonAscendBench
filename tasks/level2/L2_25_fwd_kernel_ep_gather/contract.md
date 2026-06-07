@@ -71,16 +71,22 @@ Knob grid in `shapes.yaml`.
 ### Knob predicates (`dims`)
 
 - `B >= 1`
+- `T >= 1`
+- `K >= 1`
 - `D >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `input_tensor`: `float32`
-- `input_index`: `int64`
+- `input_tensor`: `bfloat16`
+- `recv_topk_ids`: `int32`
+- `recv_topk_weight`: `bfloat16`
+- `input_index`: `int32`
 
 ### Input distributions (`dists`)
 
 - `input_tensor`: `randn`
+- `recv_topk_ids`: `randint` — args `{'lo': '-1', 'hi': 'E'}`
+- `recv_topk_weight`: `randn`
 - `input_index`: `randint` — args `{'lo': '0', 'hi': 'B'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)

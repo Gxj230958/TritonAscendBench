@@ -93,7 +93,7 @@ Hidden: 4 (sealed).
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `block_size`: `len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 8`
+- `block_size`: `len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 32`
 
 ### Tensor invariants (`tensor_invariants`)
 

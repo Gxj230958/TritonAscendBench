@@ -65,7 +65,8 @@ Knob grid in `shapes.yaml`.
 ### Knob predicates (`dims`)
 
 - `B >= 1`
-- `D >= 1`
+- `G >= 1`
+- `G <= 32`
 
 ### Input dtypes (`dtypes`)
 
@@ -73,7 +74,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `topk_ids`: `randint` — args `{'lo': '0', 'hi': '2'}`
+- `topk_ids`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 

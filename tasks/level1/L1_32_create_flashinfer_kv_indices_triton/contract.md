@@ -71,20 +71,23 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
+- `req_to_token`: `int32`
+- `req_pool_indices`: `int64`
 - `seq_lens`: `int64`
-- `block_table`: `int64`
 
 ### Input distributions (`dists`)
 
+- `req_to_token`: `randint` — args `{'lo': '0', 'hi': 'N'}`
+- `req_pool_indices`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 - `seq_lens`: `randint` — args `{'lo': '1', 'hi': 'N'}`
-- `block_table`: `randint` — args `{'lo': '0', 'hi': 'N'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `page_size`: `page_size >= 1`
+_(none)_
 
 ### Tensor invariants (`tensor_invariants`)
 
-- `index_in_range` — args `{'input': 'block_table', 'value': 'N'}`
+- `index_in_range` — args `{'input': 'req_pool_indices', 'value': 'E'}`
+- `index_in_range` — args `{'input': 'seq_lens', 'value': 'N'}`
 
 <!-- /param_constraints mirror -->

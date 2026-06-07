@@ -83,35 +83,32 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `B >= 1`
-- `L >= 1`
-- `Dv >= 1`
+- `S >= 1`
+- `H >= 1`
+- `G >= 1`
+- `P >= 1`
+- `N >= 1`
+- `CS >= 1`
+- `H % G == 0`
+- `S > CS`
 
 ### Input dtypes (`dtypes`)
 
-- `cb`: `float32`
-- `x`: `float32`
-- `dt`: `float32`
-- `dA_cumsum`: `float32`
-- `C`: `float32`
-- `states`: `float32`
+- `x`: `bf16`
+- `C`: `bf16`
+- `z`: `bf16`
 - `D`: `float32`
-- `z`: `float32`
 
 ### Input distributions (`dists`)
 
-- `cb`: `tril`
 - `x`: `randn`
-- `dt`: `randn`
-- `dA_cumsum`: `randn`
 - `C`: `randn`
-- `states`: `randn`
-- `D`: `randn`
 - `z`: `randn`
+- `D`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-_(none)_
+- `chunk_size`: `chunk_size in [16, 32, 64]`
 
 ### Tensor invariants (`tensor_invariants`)
 

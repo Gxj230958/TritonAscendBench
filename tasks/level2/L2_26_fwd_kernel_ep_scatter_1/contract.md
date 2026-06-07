@@ -63,25 +63,22 @@ Knob grid in `shapes.yaml`.
 
 ### Knob predicates (`dims`)
 
-- `B >= 1`
-- `D >= 1`
+- `E >= 1`
 
 ### Input dtypes (`dtypes`)
 
-- `recv_x`: `float32`
-- `dst_index`: `int64`
+- `num_recv_tokens_per_expert`: `int32`
 
 ### Input distributions (`dists`)
 
-- `recv_x`: `randn`
-- `dst_index`: `arange`
+- `num_recv_tokens_per_expert`: `randint` — args `{'lo': '0', 'hi': 'T'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `out_rows`: `out_rows >= 1`
+_(none)_
 
 ### Tensor invariants (`tensor_invariants`)
 
-- `index_in_range` — args `{'input': 'dst_index', 'value': 'B'}`
+_(none)_
 
 <!-- /param_constraints mirror -->

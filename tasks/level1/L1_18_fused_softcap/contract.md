@@ -67,15 +67,15 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
+- `full_logits`: `float32`
 
 ### Input distributions (`dists`)
 
-- `x`: `randn`
+- `full_logits`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `cap`: `0 < cap <= 1e3`
+- `final_logit_softcapping`: `0 < final_logit_softcapping <= 1e3`
 
 ### Tensor invariants (`tensor_invariants`)
 

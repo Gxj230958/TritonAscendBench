@@ -56,7 +56,7 @@ Hidden: 3.
 
 ### Input dtypes (`dtypes`)
 
-- `hidden_states`: `float32`
+- `hidden_states`: `bfloat16`
 
 ### Input distributions (`dists`)
 

@@ -69,7 +69,7 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
+- `x`: `bfloat16`
 - `src2dst`: `int64`
 
 ### Input distributions (`dists`)

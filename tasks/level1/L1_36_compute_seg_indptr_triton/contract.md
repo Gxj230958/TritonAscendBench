@@ -71,11 +71,11 @@ Knob grid in `shapes.yaml`.
 
 ### Input distributions (`dists`)
 
-- `topk_ids`: `randint` — args `{'lo': '0', 'hi': '2'}`
+- `topk_ids`: `randint` — args `{'lo': '0', 'hi': 'E'}`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `num_experts`: `num_experts >= 1`
+- `num_local_experts`: `num_local_experts >= 1`
 
 ### Tensor invariants (`tensor_invariants`)
 

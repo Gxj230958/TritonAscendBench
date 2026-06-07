@@ -77,23 +77,20 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `x`: `float32`
-- `g`: `float32`
-- `w`: `float32`
-- `b`: `float32`
-- `residual`: `float32`
+- `x`: `bfloat16`
+- `g`: `bfloat16`
+- `residual`: `bfloat16`
 
 ### Input distributions (`dists`)
 
 - `x`: `randn`
 - `g`: `randn`
-- `w`: `randn`
-- `b`: `randn`
 - `residual`: `randn`
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
 - `eps`: `0 < eps <= 1e-2`
+- `is_rms_norm`: `is_rms_norm == True`
 
 ### Tensor invariants (`tensor_invariants`)
 

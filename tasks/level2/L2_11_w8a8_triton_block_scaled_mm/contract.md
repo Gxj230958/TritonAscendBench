@@ -79,8 +79,8 @@ Knob grid in `shapes.yaml`.
 
 ### Input dtypes (`dtypes`)
 
-- `A`: `int64`
-- `B`: `int64`
+- `A`: `int8`
+- `B`: `int8`
 - `As`: `float32`
 - `Bs`: `float32`
 
@@ -93,8 +93,7 @@ Knob grid in `shapes.yaml`.
 
 ### Scalar / scalar_seq constraints (`scalars`)
 
-- `group_n`: `group_n == 8`
-- `group_k`: `group_k == 8`
+- `block_size`: `len(block_size) == 2 and block_size[0] == 8 and block_size[1] == 32`
 
 ### Tensor invariants (`tensor_invariants`)
 
