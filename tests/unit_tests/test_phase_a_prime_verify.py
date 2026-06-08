@@ -182,6 +182,41 @@ def test_c1_non_determinism_backdoor_rejected():
     assert 's_side="severed"' in src and 'o_side="severed"' in src
 
 
+def test_s3_autotune_pin_is_scoped_to_fresh_severed_runs():
+    """S3 determinism pins autotuned kernels to configs[0]
+    (PA_PIN_AUTOTUNE_FIRST) so the real autotuner's timing-noise config
+    choice cannot flake the strict bit-exact check. The pin MUST be scoped to
+    the S3 severed re-runs (a fresh pinned baseline + reruns), NEVER the S2
+    equivalence pair, and the baseline MUST be the fresh pinned run -- not the
+    unpinned S2-gpu ``g_out`` manifest."""
+    src = (REPO / "scripts" / "phase_a_prime.py").read_text()
+
+    # Exactly the two S3 spawns (baseline + reruns) pin the autotune config;
+    # the S2 equivalence pair keeps the real autotuner.
+    assert src.count("pin_autotune=True") == 2, (
+        "expected exactly the S3 baseline + rerun spawns to pin autotune"
+    )
+    # The pin env is set only inside _spawn_side when pin_autotune is True.
+    assert 'env["PA_PIN_AUTOTUNE_FIRST"] = "1"' in src
+
+    # The S3 baseline is a FRESH pinned severed run, not the g_out manifest;
+    # reruns compare against that fresh baseline (s3_base). These tokens are
+    # unique to the S3 block.
+    assert 'mkdtemp(prefix="pa_s3_base_")' in src
+    assert "sm_first = json.loads((s3_base" in src, (
+        "S3 baseline must read the fresh pinned run, not g_out"
+    )
+    assert '{**sm_first, "_dir": str(s3_base)}' in src, (
+        "S3 reruns must compare against the pinned s3_base baseline"
+    )
+    # The OLD unpinned baseline (sm_first from g_out) must be gone.
+    assert 'json.loads((g_out / "severed_manifest.json")' not in src, (
+        "S3 must not reuse the unpinned S2-gpu g_out manifest as baseline"
+    )
+    # Still strict severed-vs-severed (no tolerance backdoor).
+    assert 'o_side="severed"' in src and 's_side="severed"' in src
+
+
 def test_severed_runtime_import_of_vllm_is_caught(tmp_path):
     """Strengthened import-audit: a severed module that imports vllm
     AT RUNTIME (inside run(), AFTER the pre-scan) must STILL be caught

@@ -433,6 +433,43 @@ def test_autotune_active_driver_uses_real(shim_clean) -> None:
         assert result is sentinel
 
 
+def test_autotune_pin_env_forces_first_config_on_active_driver(
+    shim_clean,
+) -> None:
+    """With an active driver (the S3 GPU run) AND ``PA_PIN_AUTOTUNE_FIRST``
+    set, the wrapper must pin to the first config (return ``_AutotunedKernel``)
+    instead of delegating to the real autotuner -- so S3 determinism reruns
+    pick the SAME specialization. Dual of
+    ``test_autotune_active_driver_uses_real`` (same active driver, no pin env
+    -> real autotuner)."""
+    os.environ.pop("TRITON_INTERPRET", None)
+    os.environ["PA_PIN_AUTOTUNE_FIRST"] = "1"
+    try:
+        from triton_ascend_bench.upstream_shims import (
+            triton_autotune_interp as m,
+        )
+
+        with mock.patch.object(
+            m, "_has_active_triton_driver", return_value=True,
+        ), mock.patch("triton.autotune") as real_autotune:
+            real_autotune.return_value = object()
+
+            def fake_jit(*_a, **_k):
+                return None
+
+            configs = [m._real_triton.Config({"BLOCK": 64}, num_warps=4)]
+            kernel = m.autotune(configs=configs, key=["n"])(fake_jit)
+
+            real_autotune.assert_not_called()
+            assert isinstance(kernel, m._AutotunedKernel), (
+                f"expected first-config pin under PA_PIN_AUTOTUNE_FIRST + "
+                f"active driver, got {type(kernel).__name__}"
+            )
+            assert kernel._first_kwargs["BLOCK"] == 64
+    finally:
+        os.environ.pop("PA_PIN_AUTOTUNE_FIRST", None)
+
+
 def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
     """Installing the ``vllm.triton_utils`` shim must NOT block access
     to the rest of the ``vllm.*`` namespace. We use

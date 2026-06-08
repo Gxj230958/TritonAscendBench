@@ -2171,6 +2171,7 @@ def _spawn_side(
     pinned_config: dict | None,
     entrypoint: str | None = None,
     interpret: bool = False,
+    pin_autotune: bool = False,
 ) -> tuple[int, dict]:
     """Spawn ``_pa_subproc_runner.py`` for one S2 side in a fresh
     subprocess and return ``(returncode, status_dict)``.
@@ -2240,6 +2241,12 @@ def _spawn_side(
         # S2-smoke (HOLE A): CPU / GPU-FREE triton interpret. This runs
         # on THIS box; it is a real pre-filter, not a flag. NEVER PASS.
         env["TRITON_INTERPRET"] = "1"
+    if pin_autotune:
+        # S3 determinism only: pin autotuned kernels to configs[0] on GPU so
+        # every re-run picks the same specialization. The real autotuner's
+        # min-timing choice varies run-to-run (in-tolerance but bit-different),
+        # which would otherwise fail S3's strict bit-exact check spuriously.
+        env["PA_PIN_AUTOTUNE_FIRST"] = "1"
     if accel_disabled:
         # Force the triton reference path on BOTH sides (plan Class-C:
         # original side MUST run accel-disabled too, else invalid).
@@ -2549,13 +2556,40 @@ def s2_verify_task(td: Path) -> S2Result:
     import json
     import tempfile
 
-    sm_first = json.loads((g_out / "severed_manifest.json").read_text())
+    # S3 baseline: a FRESH pinned severed run is the run-0 reference (NOT the
+    # prior unpinned S2-gpu manifest at g_out). Autotuned kernels are pinned
+    # to configs[0] on GPU via pin_autotune so every S3 run picks the SAME
+    # specialization -- the real autotuner's min-timing config choice varies
+    # run-to-run and is in-tolerance but bit-different, which would otherwise
+    # masquerade as genuine nondeterminism. The pin is scoped to these S3
+    # subprocesses; c2 / S2-gpu / gpu-rank keep the real autotuner. A
+    # non-autotuned kernel ignores the env, so its baseline equals its S2-gpu
+    # output.
+    #
+    # Known limitation: this proves configs[0] reproducibility, not the
+    # production autotune-selected config's. A genuine nondeterminism that
+    # fires ONLY under a non-first config would be missed -- but races / uninit
+    # reads are config-independent (they surface under configs[0] too), and S2
+    # still checks correctness once under the real autotuner. configs[0] is a
+    # documented fixed reference; pinning the timing-noise-selected config
+    # instead would make the determinism gate itself nondeterministic.
+    s3_base = Path(tempfile.mkdtemp(prefix="pa_s3_base_"))
+    rc0, st0 = _spawn_side(
+        "severed", staged, shapes_doc, shape_ids, seed,
+        s3_base, accel_disabled, pinned_config,
+        entrypoint=None, interpret=False, pin_autotune=True,
+    )
+    if rc0 != 0 or not st0.get("ran"):
+        res.status = "BLOCKED"
+        res.reason = f"S3 determinism baseline run failed (rc={rc0})"
+        return res
+    sm_first = json.loads((s3_base / "severed_manifest.json").read_text())
     for i in range(5):
         s3_dir = Path(tempfile.mkdtemp(prefix=f"pa_s3_{i}_"))
         rc_d, st_d = _spawn_side(
             "severed", staged, shapes_doc, shape_ids, seed,
             s3_dir, accel_disabled, pinned_config,
-            entrypoint=None, interpret=False,
+            entrypoint=None, interpret=False, pin_autotune=True,
         )
         if rc_d != 0 or not st_d.get("ran"):
             res.status = "BLOCKED"
@@ -2563,7 +2597,7 @@ def s2_verify_task(td: Path) -> S2Result:
             return res
         rerun_m = json.loads((s3_dir / "severed_manifest.json").read_text())
         det_ok, det_why = compare_s2_manifests(
-            {**sm_first, "_dir": str(g_out)},
+            {**sm_first, "_dir": str(s3_base)},
             {**rerun_m, "_dir": str(s3_dir)},
             o_side="severed",
             s_side="severed",

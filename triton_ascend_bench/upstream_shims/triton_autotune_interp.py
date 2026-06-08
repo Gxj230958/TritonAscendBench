@@ -61,6 +61,19 @@ def _interpreter_mode_active() -> bool:
     return not _has_active_triton_driver()
 
 
+def _pin_first_config_active() -> bool:
+    """``True`` when ``PA_PIN_AUTOTUNE_FIRST`` is set -- forces the
+    first-config fallback even on a live GPU with an active driver. Used ONLY
+    by the Phase A' S3 determinism re-runs: the real autotuner picks a config
+    by min-timing, which varies run-to-run and is in-tolerance but
+    bit-different (a different ``BK`` changes the ``tl.dot`` accumulation
+    order), so an autotuned kernel fails S3's strict bit-exact check
+    non-deterministically. Pinning configs[0] makes every S3 run pick the
+    SAME specialization. The env is set only around the S3 subprocesses;
+    c2 / S2-gpu / gpu-rank keep the real autotuner."""
+    return os.environ.get("PA_PIN_AUTOTUNE_FIRST", "").strip() not in ("", "0")
+
+
 class _AutotunedKernel:
     """The object returned by the shim's ``autotune`` decorator under
     interpreter / no-driver mode. It mimics the small slice of
@@ -167,7 +180,7 @@ def autotune(
     extra keyword argument (``prune_configs_by``, ``reset_to_zero``,
     ``restore_value``, ``warmup``, etc.) is forwarded verbatim to the real
     autotuner so the GPU path stays bit-identical to upstream."""
-    if not _interpreter_mode_active():
+    if not _interpreter_mode_active() and not _pin_first_config_active():
         return _real_triton.autotune(configs=configs, key=key, **kwargs)
 
     if not configs:
