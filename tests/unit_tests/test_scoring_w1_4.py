@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from triton_ascend_bench.cost_model import CostModel
-from triton_ascend_bench.scoring import (
+from ascendbench.perf.cost_model import CostModel
+from ascendbench.perf.scoring import (
     P_CAP,
     TASK_STATUS_EVALUATED,
     VALID_TASK_STATUS,
@@ -248,7 +248,7 @@ class TestTaskStatus:
     def test_blocked_fastp_threshold_not_met(self):
         # W4.3 ④ / R8-1: a `blocked` task counts as threshold-not-met and
         # stays in the |S| denominator — FastP@1.0 = 1/2 = 0.5, not 1/1.
-        from triton_ascend_bench.scoring import fastp_at_threshold
+        from ascendbench.perf.scoring import fastp_at_threshold
         ms = [
             TaskMeasurement(task_id="a", s_t=1.0),
             TaskMeasurement(task_id="b", s_t=1.0, task_status="blocked"),

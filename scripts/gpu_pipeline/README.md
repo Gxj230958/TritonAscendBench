@@ -77,7 +77,7 @@ reports a green pipeline while the gate is red.
 ### cost-model GPU cross-check (`scripts/phase_a_cost_xcheck.py`)
 
 Per task it evaluates the analytic `W_c`/`M_r` formulas at each public
-eval shape (reusing `triton_ascend_bench.cost_model` verbatim), runs the
+eval shape (reusing `ascendbench.perf.cost_model` verbatim), runs the
 promoted `kernel.py` on a live CUDA device under **Nsight Compute**
 (`ncu`) to measure HBM traffic via the hardware DRAM counters
 `dram__bytes_read.sum` + `dram__bytes_write.sum`, reconciles

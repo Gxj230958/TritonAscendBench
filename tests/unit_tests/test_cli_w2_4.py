@@ -12,9 +12,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from triton_ascend_bench import cli as _cli
-from triton_ascend_bench.adversarial import MetamorphicResult
-from triton_ascend_bench.eval import ShapeRunResult, TaskEvalResult
+from ascendbench.engine import cli as _cli
+from ascendbench.integrity.adversarial import MetamorphicResult
+from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _TASK = "L1_01_bias"
@@ -23,7 +23,7 @@ _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True,
     )
 
@@ -61,7 +61,7 @@ def test_round_result_json_has_canary_findings_array():
 def test_canary_findings_distinct_from_metamorphic_in_emit():
     """Canary findings serialise at the submission level with their own
     schema, never folded into a shape's metamorphic_results."""
-    from triton_ascend_bench.adversarial import CanaryFinding
+    from ascendbench.integrity.adversarial import CanaryFinding
 
     result = TaskEvalResult(task_id="T", static_checks_passed=True)
     result.shape_results.append(ShapeRunResult("P1", True, None, None, None))

@@ -163,7 +163,7 @@ def _find_wrapper_signature(repo_root: Path, task_id: str) -> str:
     """
     vendored = repo_root / "tasks" / "_vendored"
     if not vendored.is_dir():
-        return "(no vendored sources under triton_ascend_bench/frozen/snapshots)"
+        return "(no vendored sources under ascendbench/frozen/snapshots)"
     candidates = list(vendored.glob(f"{task_id}_*.py"))
     if not candidates:
         return f"(no vendored file matching {task_id}_*.py)"
@@ -262,7 +262,7 @@ def build_prompt(
         f"task_name: {task_name}",
         f"task_dir (FILE path prefix to use): {rel_task}/",
         "",
-        "## wrapper signature (from triton_ascend_bench/frozen/snapshots/, may be empty)",
+        "## wrapper signature (from ascendbench/frozen/snapshots/, may be empty)",
         wrapper_sig,
         "",
         "## current oracle_pytorch.py",

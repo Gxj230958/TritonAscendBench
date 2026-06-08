@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from triton_ascend_bench.golden_store import GoldenStore
+from ascendbench.correctness.golden_store import GoldenStore
 
 
 # ─────────────────────────────────────────────────────────────────────

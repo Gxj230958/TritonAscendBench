@@ -157,20 +157,20 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #     _pa_subproc_runner] -> _honest_category[phase_a_prime]; inputs/
 #     tolerance/tolerance_policy feed the comparator; phase_a_freeze
 #     supplies the pinned roots/helpers).
-#   * triton_ascend_bench/inputs.py    -- build_inputs() materialises
+#   * ascendbench/input_spec/inputs.py    -- build_inputs() materialises
 #     the EXACT tensors fed to BOTH the oracle anchor
 #     (_pa_oracle_check_runner.py:251) AND the S2 runner
 #     (_pa_subproc_runner.py:465). Different inputs -> a candidate can
 #     match/diverge from the oracle differently -> verdict flip.
-#   * triton_ascend_bench/tolerance.py -- compare()/load_policy() ARE
+#   * ascendbench/correctness/tolerance.py -- compare()/load_policy() ARE
 #     the oracle-mismatch decision (tolerance.py:128/34). A looser/
 #     stricter compare flips PASS<->oracle-mismatch.
-#   * triton_ascend_bench/tolerance_policy.yaml -- the per-class
+#   * ascendbench/policies/tolerance_policy.yaml -- the per-class
 #     atol/rtol/bit_exact/inf_nan/sample_fraction VALUES load_policy()
 #     reads. A tolerance edit (config, not code) flips the verdict
 #     identically to a code edit, so its BYTES are hashed too.
 # NOT hashed (audited, genuinely NOT verdict-deciding -- over-hashing
-# them would be a FALSE provenance claim): triton_ascend_bench/
+# them would be a FALSE provenance claim): ascendbench/
 # dataset.py + eligibility.py are imported ONLY by
 # phase_a_prime._score_eligible_count(), which feeds the status.md
 # *score-eligible reporting number*, never a per-task resolver
@@ -245,16 +245,16 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #   precision concern) -- but the live verdict-deciding upstream bytes
 #   ARE now provenance-validated. ``upstream_fp`` is a PER-TASK field on
 #   each cached verdict (NOT part of this static code fingerprint).
-_PACKAGE_DIR = REPO_ROOT / "triton_ascend_bench"
+_PACKAGE_DIR = REPO_ROOT / "ascendbench"
 _PROVENANCE_CODE_FILES = (
     SCRIPTS_DIR / "resolve_upstream_entrypoints.py",
     SCRIPTS_DIR / "_pa_oracle_check_runner.py",
     SCRIPTS_DIR / "_pa_subproc_runner.py",
     SCRIPTS_DIR / "phase_a_prime.py",
     SCRIPTS_DIR / "phase_a_freeze.py",
-    _PACKAGE_DIR / "inputs.py",
-    _PACKAGE_DIR / "tolerance.py",
-    _PACKAGE_DIR / "tolerance_policy.yaml",
+    _PACKAGE_DIR / "input_spec" / "inputs.py",
+    _PACKAGE_DIR / "correctness" / "tolerance.py",
+    _PACKAGE_DIR / "policies" / "tolerance_policy.yaml",
 )
 
 # ADOPT-1 (codex r5 [confirmed]): the per-task verdict-deciding INPUT
@@ -274,7 +274,7 @@ _PROVENANCE_CODE_FILES = (
 #                          a changed oracle flips oracle-mismatch
 # ``contract.md`` is NOT here (audited: never read on the verdict
 # path -- only kernel.py/meta.yaml/shapes.yaml/oracle_pytorch.py are).
-# The per-task ``triton_ascend_bench/frozen/deps/**`` + ``triton_ascend_bench/frozen/shim/**``
+# The per-task ``ascendbench/frozen/deps/**`` + ``ascendbench/frozen/shim/**``
 # closures are populated ONLY by an ``--apply`` run; this resolver runs
 # DRY-RUN (never --apply) so no task's verdict here references them
 # (the dirs do not even exist on a dry-run box) -- per the codex r5

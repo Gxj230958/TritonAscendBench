@@ -41,7 +41,7 @@ Accumulation **must be in float32** regardless of input dtype.
 ## Tolerance class
 
 `vector_reduce` — see `specs/tolerance_policy.md` and
-`triton_ascend_bench/tolerance_policy.yaml` (atol 1e-3, rtol 1e-3).
+`ascendbench/policies/tolerance_policy.yaml` (atol 1e-3, rtol 1e-3).
 
 ## Metamorphic checks (runner-enforced)
 

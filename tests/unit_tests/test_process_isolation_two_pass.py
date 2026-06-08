@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import process_isolation as pi
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.integrity import process_isolation as pi
 
 _SHAPES_DOC = {
     "size_knobs": {"B": 2, "L": 4, "D": 8},

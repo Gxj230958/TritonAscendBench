@@ -10,7 +10,7 @@ import torch
 #   `BlockTables.__init__` constructs `StagedWriteTensor` / `UvaBackedTensor`
 #   (vllm.v1.worker.gpu.buffer_utils) and reaches into the live vllm runtime
 #   to build the pointer-table machinery. Those buffer helpers are the
-#   `triton_ascend_bench.frozen.shim` redirect target (B-inert-shim), not real allocators,
+#   `ascendbench.frozen.shim` redirect target (B-inert-shim), not real allocators,
 #   so the host method cannot be invoked in the severed grading environment.
 #   The only faithful way to grade the kernel is to reproduce the launch:
 #   build the exact pointer / stride / segment tensors the method forwards,
@@ -65,7 +65,7 @@ def run(inputs: dict) -> dict:
     num_groups = 1
 
     # PAD_SLOT_ID is the upstream padding sentinel; the kernel.py rewrite pulls
-    # it from triton_ascend_bench.frozen.shim. Read it from the executing kernel module so
+    # it from ascendbench.frozen.shim. Read it from the executing kernel module so
     # the launcher and kernel agree on the same constant.
     import sys
     _kmod = sys.modules[run.__module__]

@@ -1,6 +1,6 @@
 """WA.2: shared AST-whitelist expression evaluator tests.
 
-Covers the two independent entrypoints of ``triton_ascend_bench.expr``:
+Covers the two independent entrypoints of ``ascendbench.input_spec.expr``:
 
 * :func:`eval_numeric` — numeric size-knob expressions: normal arithmetic,
   the numeric helpers (``min`` / ``max`` / ``ceil`` / ``floor`` / ``sqrt``),
@@ -21,7 +21,7 @@ import math
 
 import pytest
 
-from triton_ascend_bench.expr import (
+from ascendbench.input_spec.expr import (
     ExprError,
     check_expr_syntax,
     eval_numeric,

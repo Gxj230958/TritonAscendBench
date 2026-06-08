@@ -20,8 +20,8 @@ from pathlib import Path
 
 import torch
 
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import process_isolation as pi
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.integrity import process_isolation as pi
 
 # A shapes doc with a mixed inputs block: two tensors + a float scalar +
 # a scalar_knob (resolves to an int from the knobs).

@@ -92,7 +92,7 @@ def test_release_tarball_excludes_internal_test_files(release_tarball):
 # --- Happy path: bench core does not reference orchestrator -----------------
 
 _BENCH_CORE_PATHS = [
-    "triton_ascend_bench",
+    "ascendbench",
     "scripts/validate_tasks.py",
     "scripts/phase_a_prime.py",
     "scripts/phase_b_golden_capture.py",
@@ -238,7 +238,7 @@ def test_ci_bench_core_single_direction_grep_matches_step_logic():
     asserts a clean exit (``grep`` exit code 1 == no matches found).
     """
     paths = [
-        "triton_ascend_bench/",
+        "ascendbench/",
         "scripts/validate_tasks.py",
         "scripts/phase_a_prime.py",
         "scripts/phase_b_golden_capture.py",

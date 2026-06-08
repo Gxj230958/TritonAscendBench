@@ -36,11 +36,12 @@ import pytest
 import yaml
 from safetensors.torch import save_file
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import scoring, static_checker
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eval import _PERFORMANCE_STATUS_PRECEDENCE, evaluate
+from ascendbench.engine import eval as _eval
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.perf import scoring
+from ascendbench.integrity import static_checker
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine.eval import _PERFORMANCE_STATUS_PRECEDENCE, evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -236,7 +237,7 @@ def test_r7_2_validate_golden_uses_shared_predicate():
     `eligibility`, and `_validate_golden` no longer uses a bare
     `is_file()` on the golden artifacts."""
     src = (REPO / "scripts" / "validate_tasks.py").read_text()
-    assert "from triton_ascend_bench.eligibility import" in src
+    assert "from ascendbench.release_gate.eligibility import" in src
     assert "golden_artifact_usable" in src
     # The `_validate_golden` body must call the shared predicate, not
     # `.is_file()` on a `<shape>.safetensors` path.
@@ -316,7 +317,7 @@ def test_r7_4_analyze_counts_duplicate_and_runs_clean(tmp_path):
     }))
     out = tmp_path / "score.json"
     rc = subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", "analyze",
+        [sys.executable, "-m", "ascendbench.engine.cli", "analyze",
          "--verified-results", str(verified), "--out", str(out)],
         cwd=REPO, capture_output=True, text=True,
     )
@@ -330,7 +331,7 @@ def test_r7_4_cli_duplicate_merge_uses_precedence_ladder():
     via `_PERFORMANCE_STATUS_PRECEDENCE`, not the old `ok → non-ok` rule.
     Pinned structurally so a regression to the frozen-at-suspicious bug
     re-surfaces here."""
-    src = (REPO / "triton_ascend_bench" / "cli.py").read_text()
+    src = (REPO / "ascendbench" / "engine" / "cli.py").read_text()
     assert "_PERFORMANCE_STATUS_PRECEDENCE" in src, (
         "cli duplicate-merge must import the shared precedence ladder"
     )

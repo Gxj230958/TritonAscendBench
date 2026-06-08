@@ -1,9 +1,9 @@
-"""Unit tests for triton_ascend_bench.tolerance."""
+"""Unit tests for ascendbench.correctness.tolerance."""
 from __future__ import annotations
 
 import torch
 
-from triton_ascend_bench.tolerance import compare, load_policy
+from ascendbench.correctness.tolerance import compare, load_policy
 
 
 def test_load_policy_has_core_classes():
@@ -76,7 +76,7 @@ def test_int64_dtype_strict_equality():
     by 1, but float32 can only represent 16777216 (24-bit mantissa). With
     a float-cast allclose they would erroneously be 'equal'.
     """
-    from triton_ascend_bench.tolerance import ToleranceClass, compare
+    from ascendbench.correctness.tolerance import ToleranceClass, compare
 
     cls = ToleranceClass(
         name="sampling_rng", atol=0.0, rtol=0.0, bit_exact=True
@@ -89,7 +89,7 @@ def test_int64_dtype_strict_equality():
 
 
 def test_int_dtype_pass_when_equal():
-    from triton_ascend_bench.tolerance import ToleranceClass, compare
+    from ascendbench.correctness.tolerance import ToleranceClass, compare
     cls = ToleranceClass(
         name="sampling_rng", atol=0.0, rtol=0.0, bit_exact=True
     )
@@ -99,7 +99,7 @@ def test_int_dtype_pass_when_equal():
 
 
 def test_bool_dtype_strict_equality():
-    from triton_ascend_bench.tolerance import ToleranceClass, compare
+    from ascendbench.correctness.tolerance import ToleranceClass, compare
     cls = ToleranceClass(name="atomic_scatter", atol=0.0, rtol=0.0)
     a = torch.tensor([True, False, True])
     e = torch.tensor([True, True, True])
@@ -114,7 +114,7 @@ def test_sampled_path_still_runs_full_allclose():
     position; force `sample_fraction` so small that statistically the
     sample likely misses the NaN. The full check must still fail.
     """
-    from triton_ascend_bench.tolerance import ToleranceClass, compare
+    from ascendbench.correctness.tolerance import ToleranceClass, compare
 
     cls = ToleranceClass(
         name="sampled", atol=1e-3, rtol=1e-3,

@@ -1,11 +1,11 @@
-"""Unit tests for triton_ascend_bench.wrapper_contract."""
+"""Unit tests for ascendbench.integrity.wrapper_contract."""
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
 
-from triton_ascend_bench.wrapper_contract import (
+from ascendbench.integrity.wrapper_contract import (
     check_against_inputs,
     extract_wrapper_contract,
 )
@@ -303,7 +303,7 @@ def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
     import yaml
     sys.path.insert(0, "scripts")
     from oracle_equivalence_gpu_runner import _resolve_kernel_entrypoint
-    from triton_ascend_bench.inputs import build_inputs
+    from ascendbench.input_spec.inputs import build_inputs
 
     td = Path(f"tasks/level3/{task_id}")
     if not td.is_dir():

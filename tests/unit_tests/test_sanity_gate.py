@@ -13,7 +13,7 @@ import pytest
 import torch
 import yaml
 
-from triton_ascend_bench.sanity_gate import (
+from ascendbench.release_gate.sanity_gate import (
     DEFAULT_BOUNDS,
     SanityBounds,
     SanityResult,

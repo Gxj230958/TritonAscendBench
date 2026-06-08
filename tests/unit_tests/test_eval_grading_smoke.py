@@ -12,7 +12,7 @@ This test pins the grading chain: it must run to completion (non-empty
 """
 from pathlib import Path
 
-from triton_ascend_bench.eval import evaluate
+from ascendbench.engine.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"

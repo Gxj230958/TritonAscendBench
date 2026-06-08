@@ -36,11 +36,11 @@ so that A_inv @ A = I (forward substitution, fp32).
 - `A`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`recurrent_chunk` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`recurrent_chunk` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

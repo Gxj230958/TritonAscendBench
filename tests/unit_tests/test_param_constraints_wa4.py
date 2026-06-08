@@ -30,11 +30,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from triton_ascend_bench import param_constraints as pc
-from triton_ascend_bench import scoring
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eval import _resolve_eval_task_status, evaluate
-from triton_ascend_bench.inputs import build_inputs
+from ascendbench.input_spec import param_constraints as pc
+from ascendbench.perf import scoring
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine.eval import _resolve_eval_task_status, evaluate
+from ascendbench.input_spec.inputs import build_inputs
 
 REPO = Path(__file__).resolve().parent.parent.parent
 
@@ -632,7 +632,7 @@ def test_build_inputs_known_dtype_materialises():
 
 def test_build_inputs_unknown_dist_fails_loud():
     # WA.3 already made unknown dist fail-loud — confirm it still holds.
-    from triton_ascend_bench.inputs import DistSpecError
+    from ascendbench.input_spec.inputs import DistSpecError
 
     shapes = _shapes(dist_x="gaussian")  # not a known dist kind
     with pytest.raises(DistSpecError):
@@ -780,8 +780,8 @@ _SOLUTION_SRC = (
 @pytest.fixture
 def static_pass(monkeypatch):
     """Make the static checker pass so grading reaches phase-2b."""
-    from triton_ascend_bench import eval as _eval
-    from triton_ascend_bench import static_checker
+    from ascendbench.engine import eval as _eval
+    from ascendbench.integrity import static_checker
     monkeypatch.setattr(_eval.static_checker, "check_solution",
                         lambda *a, **k: static_checker.CheckReport())
 
@@ -819,8 +819,8 @@ def test_eval_scaffold_task_blocked_through_static_early_return(
         tmp_path, monkeypatch):
     # A static-check block is an EARLY return — it must still carry the
     # resolver verdict (`blocked` for a scaffold task).
-    from triton_ascend_bench import eval as _eval
-    from triton_ascend_bench import static_checker
+    from ascendbench.engine import eval as _eval
+    from ascendbench.integrity import static_checker
 
     blocked_report = static_checker.CheckReport()
     # `CheckReport.blocked` is derived from a `block`-severity finding.
@@ -872,7 +872,7 @@ def test_eval_upstream_self_reported_stays_unsupported_not_blocked(
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True)
 
 
@@ -895,7 +895,7 @@ def test_eval_and_cli_analyze_agree_on_task_status(
     resolver tests above (`test_resolver_tier*`,
     `test_eval_resolver_helper_scaffold_is_blocked`) and by the cli-analyze
     mismatch-counter test in `test_cli_w1_4.py`."""
-    from triton_ascend_bench.dataset import load_task
+    from ascendbench.corpus.dataset import load_task
 
     # ── eval side ──────────────────────────────────────────────────────
     task = load_task(task_id)

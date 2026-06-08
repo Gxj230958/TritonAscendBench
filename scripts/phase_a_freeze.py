@@ -39,7 +39,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-VENDORED_ROOT = REPO_ROOT / "triton_ascend_bench" / "frozen" / "snapshots"
+VENDORED_ROOT = REPO_ROOT / "ascendbench" / "frozen" / "snapshots"
 INFER_ROOT = REPO_ROOT.parent / "infer"
 
 VLLM_ROOT = INFER_ROOT / "vllm"

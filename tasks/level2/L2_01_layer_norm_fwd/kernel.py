@@ -34,10 +34,10 @@ from einops import rearrange
 
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import cdiv, next_power_of_2  # Phase A': pure-math shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import num_compute_units  # Phase A': scheduling-only grid sizing (B-inert-shim)
+from ascendbench.frozen.shim import cdiv, next_power_of_2  # Phase A': pure-math shim (B-inert-shim)
+from ascendbench.frozen.shim import num_compute_units  # Phase A': scheduling-only grid sizing (B-inert-shim)
 
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils import input_guard  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.utils import input_guard  # Phase A': U2 FLA-ops package vendoring
 
 
 def rms_norm_ref(

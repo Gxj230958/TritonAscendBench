@@ -13,7 +13,7 @@ the S2 runner uses (``_pa_subproc_runner._map_inputs_by_name`` -- never
 a silent skip+positional-shift), (3) imports the task's
 ``oracle_pytorch.py`` and calls ``run(inputs)`` on the SAME inputs, and
 (4) compares every output tensor within the task's ``tolerance_class``
-(``triton_ascend_bench.tolerance.compare``).
+(``ascendbench.correctness.tolerance.compare``).
 
 FIX 3 (codex finding 6, [adopted]) hardenings:
   (a) the anchor checks **>=2 distinct shapes** (small + median, when
@@ -309,7 +309,7 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
     # _pa_subproc_runner._load_kernel_with_optional_bridge.
     if upstream_roots is not None:
         try:
-            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            from ascendbench.upstream_shims.vllm_runtime_hygiene import (
                 clear_conflicting_vllm_registrations,
             )
 
@@ -324,7 +324,7 @@ def _load(path: Path, name: str, upstream_roots: list[Path] | None = None):
     # Triton-compat: load a device_assert-stripped variant if the frozen kernel's
     # debug-assert won't compile on this Triton (kernel.py on disk is untouched;
     # a no-op for tasks without one). Otherwise the normal exec_module path.
-    from triton_ascend_bench.triton_compat import load_with_compat_strip
+    from ascendbench.triton_compat import load_with_compat_strip
 
     if not load_with_compat_strip(mod, kernel_src, str(path)):
         spec.loader.exec_module(mod)
@@ -733,7 +733,7 @@ def main() -> int:
     entrypoint = spec["entrypoint"]
 
     # infer/ on path FIRST (frozen upstream resolution), then repo root
-    # for triton_ascend_bench.* + scripts for the shared adapter.
+    # for ascendbench.* + scripts for the shared adapter.
     for p in (spec["vllm_root"], spec["sglang_root"], spec["repo_root"],
               str(SCRIPTS_DIR)):
         if p not in sys.path:
@@ -750,7 +750,7 @@ def main() -> int:
     # the GPU fallback (interpret=False), where torch.cuda.device is real.
     if interpret:
         try:
-            from triton_ascend_bench.upstream_shims.torch_cpu_device_interp import (
+            from ascendbench.upstream_shims.torch_cpu_device_interp import (
                 install as _install_cpu_device_shim,
             )
 
@@ -762,7 +762,7 @@ def main() -> int:
                   file=sys.stderr)
 
     try:
-        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+        from ascendbench.upstream_shims.vllm_runtime_hygiene import (
             install_vllm_c_stub,
             install_vllm_capability_probe_stubs,
             install_vllm_num_compute_units_stub,
@@ -796,7 +796,7 @@ def main() -> int:
     # report the placeholder failure as it did before, never a fake
     # PASS.
     try:
-        from triton_ascend_bench.upstream_shims._inject import (
+        from ascendbench.upstream_shims._inject import (
             register as _register_vllm_triton_utils_shim,
         )
 
@@ -809,8 +809,8 @@ def main() -> int:
         import yaml
 
         from _pa_subproc_runner import _map_inputs_by_name
-        from triton_ascend_bench.inputs import build_inputs
-        from triton_ascend_bench.tolerance import compare, load_policy
+        from ascendbench.input_spec.inputs import build_inputs
+        from ascendbench.correctness.tolerance import compare, load_policy
 
         shapes_doc = yaml.safe_load(
             (task_dir / "shapes.yaml").read_text()

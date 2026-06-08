@@ -15,8 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from triton_ascend_bench import eligibility
-from triton_ascend_bench.dataset import iter_all_tasks
+from ascendbench.release_gate import eligibility
+from ascendbench.corpus.dataset import iter_all_tasks
 
 
 @dataclass
@@ -63,7 +63,7 @@ def test_no_import_time_io():
     side-effect-light). Re-importing is a no-op."""
     import importlib
 
-    import triton_ascend_bench.eligibility as e
+    import ascendbench.release_gate.eligibility as e
 
     importlib.reload(e)  # would raise if import did filesystem work badly
     assert callable(e.compute_score_eligible)

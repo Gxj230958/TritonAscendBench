@@ -39,11 +39,11 @@ structure as L2_37 but FP8 (e4m3) output + group scale.
 - `fp8_max`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`fp8_software_emulated` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`fp8_software_emulated` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

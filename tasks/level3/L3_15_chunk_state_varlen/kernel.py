@@ -15,7 +15,7 @@ import math
 import torch
 import triton
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import softplus  # Phase A': off-path mamba softplus (B-inert-shim)
+from ascendbench.frozen.shim import softplus  # Phase A': off-path mamba softplus (B-inert-shim)
 
 @triton.jit
 def _chunk_state_fwd_kernel(x_ptr, b_ptr, states_ptr, dt_ptr, dA_cumsum_ptr, seq_idx_ptr, hdim, dstate, chunk_size, batch, seqlen, nheads_ngroups_ratio, stride_x_batch, stride_x_seqlen, stride_x_head, stride_x_hdim, stride_b_batch, stride_b_seqlen, stride_b_head, stride_b_dstate, stride_states_batch, stride_states_chunk, stride_states_head, stride_states_hdim, stride_states_dstate, stride_dt_batch, stride_dt_chunk, stride_dt_head, stride_dt_csize, stride_dA_cs_batch, stride_dA_cs_chunk, stride_dA_cs_head, stride_dA_cs_csize, stride_seq_idx_batch, stride_seq_idx_seqlen, HAS_SEQ_IDX: tl.constexpr, BLOCK_SIZE_M: tl.constexpr=16, BLOCK_SIZE_N: tl.constexpr=16, BLOCK_SIZE_K: tl.constexpr=16):

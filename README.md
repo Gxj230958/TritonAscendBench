@@ -30,7 +30,7 @@ tab init-solution L1_12_rms_norm_kernel --out my_solutions/L1_12_rms_norm_kernel
 
 # 2. Write your NPU triton implementation in
 #    my_solutions/L1_12_rms_norm_kernel/solution.py
-#    Also drop a manifest.yaml at the root (see triton_ascend_bench.manifest.SolutionManifest).
+#    Also drop a manifest.yaml at the root (see ascendbench.manifest.SolutionManifest).
 
 # 3. Run one task locally (positional task_id).
 tab run L1_12_rms_norm_kernel \
@@ -63,19 +63,19 @@ python scripts/verify_version_matrix.py
 python scripts/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
 
 # Phase A: vendor the upstream GPU triton kernel.py (Apache-2.0/BSD-3
-# attribution preserved; raw snapshot kept in triton_ascend_bench/frozen/snapshots/).
+# attribution preserved; raw snapshot kept in ascendbench/frozen/snapshots/).
 python scripts/phase_a_freeze.py --limit 9999    # 93 frozen
 
 # Phase B: author the PyTorch ground-truth oracle_pytorch.py.
 python scripts/phase_b_oracle.py                 # 96 working refs
 
 # Phase C: emit size-knob shapes.yaml + contract.md; the oracle input
-# bridge is triton_ascend_bench.inputs.build_inputs.
+# bridge is ascendbench.input_spec.inputs.build_inputs.
 python scripts/phase_c_docs.py                   # 92 (+5 PoC migrated)
 ```
 
 The candidate **correctness grader runs without GPU/NPU**:
-`triton_ascend_bench.process_isolation` executes the submitted
+`ascendbench.integrity.process_isolation` executes the submitted
 `npu_triton_impl(inputs)` in an isolated subprocess (safetensors-only
 IPC; candidate never sees oracle output) and `tolerance.compare`
 grades it per shape against the in-process oracle. Timing/performance

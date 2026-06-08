@@ -77,11 +77,11 @@ _REL_IMPORT_RE = re.compile(
 _SEVERED_ALLOWED_TOP = {
     "torch", "triton", "einops", "numpy", "yaml", "safetensors", "_yaml",
     "packaging",
-    # First-party frozen severance runtime (triton_ascend_bench.frozen.*).
+    # First-party frozen severance runtime (ascendbench.frozen.*).
     # In a pip-installed env it resolves from site-packages, so it must be
     # allowlisted here; vllm/sglang stay forbidden via _FORBIDDEN_TOP even
     # when reached through this package.
-    "triton_ascend_bench",
+    "ascendbench",
 }
 _FORBIDDEN_TOP = {"vllm", "sglang"}
 
@@ -568,7 +568,7 @@ def _load_kernel_with_optional_bridge(
     # duplicate registration carried over from a prior load must be
     # cleared. The severed side (upstream_roots is None) is the staged
     # standalone candidate -- it binds the INERT
-    # ``triton_ascend_bench.frozen.shim.CustomOp`` whose ``register`` is a no-op that
+    # ``ascendbench.frozen.shim.CustomOp`` whose ``register`` is a no-op that
     # never touches a real vllm op_registry, so there is nothing to clear.
     # Worse, ``clear_conflicting_vllm_registrations`` does ``from
     # vllm.model_executor.custom_op import ...`` whenever the source text
@@ -580,7 +580,7 @@ def _load_kernel_with_optional_bridge(
     # genuinely severed.
     if upstream_roots is not None:
         try:
-            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            from ascendbench.upstream_shims.vllm_runtime_hygiene import (
                 clear_conflicting_vllm_registrations,
             )
 
@@ -595,7 +595,7 @@ def _load_kernel_with_optional_bridge(
     # Triton-compat: load a device_assert-stripped variant if the frozen kernel's
     # debug-assert won't compile on this Triton (kernel.py on disk is untouched;
     # a no-op for tasks without one). Otherwise the normal exec_module path.
-    from triton_ascend_bench.triton_compat import load_with_compat_strip
+    from ascendbench.triton_compat import load_with_compat_strip
 
     if not load_with_compat_strip(mod, kernel_src, str(kp)):
         spec.loader.exec_module(mod)
@@ -663,7 +663,7 @@ def _run_side(args: argparse.Namespace) -> int:
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
         try:
-            from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+            from ascendbench.upstream_shims.vllm_runtime_hygiene import (
                 install_vllm_c_stub,
                 install_vllm_capability_probe_stubs,
                 install_vllm_num_compute_units_stub,
@@ -694,7 +694,7 @@ def _run_side(args: argparse.Namespace) -> int:
         # the shim: that surface forbids vllm/sglang resolution at all,
         # and the staged candidate has no vllm.triton_utils dependency.
         try:
-            from triton_ascend_bench.upstream_shims._inject import (
+            from ascendbench.upstream_shims._inject import (
                 register as _register_vllm_triton_utils_shim,
             )
 
@@ -709,7 +709,7 @@ def _run_side(args: argparse.Namespace) -> int:
         for p in (str(pool.parent), str(shimp)):
             if p not in sys.path:
                 sys.path.insert(0, p)
-        # Expose REPO_ROOT so the rewriter-emitted ``from triton_ascend_bench.frozen.shim
+        # Expose REPO_ROOT so the rewriter-emitted ``from ascendbench.frozen.shim
         # import ...`` resolves at IMPORT TIME. Without it the severed kernel
         # is loaded before the later REPO_ROOT insertion (around the run()
         # dispatch) and fails with ``ModuleNotFoundError: No module named
@@ -745,7 +745,7 @@ def _run_side(args: argparse.Namespace) -> int:
         # skipped on the CUDA S2-gpu pass where ``torch.cuda.device`` is real.
         if str(spec.get("device", "cpu")) == "cpu":
             try:
-                from triton_ascend_bench.upstream_shims.torch_cpu_device_interp import (  # noqa: E501
+                from ascendbench.upstream_shims.torch_cpu_device_interp import (  # noqa: E501
                     install as _install_cpu_device_shim,
                 )
 
@@ -803,7 +803,7 @@ def _run_side(args: argparse.Namespace) -> int:
             return 2
 
         sys.path.insert(0, str(REPO_ROOT))
-        from triton_ascend_bench.inputs import build_inputs
+        from ascendbench.input_spec.inputs import build_inputs
 
         shapes_doc = json.loads(Path(spec["shapes_json"]).read_text())
         out_dir = Path(spec["out_dir"])

@@ -66,7 +66,7 @@ the scale (a strict subset), so the constraint is honestly `== 1`.
 ## Tolerance class
 
 `sampling_rng` (bit-exact, `atol = rtol = 0`; see
-`triton_ascend_bench/tolerance_policy.yaml`). Valid because the kernel is
+`ascendbench/policies/tolerance_policy.yaml`). Valid because the kernel is
 deterministic given the seed and the oracle reproduces the Philox PRNG exactly.
 
 ## Discrimination

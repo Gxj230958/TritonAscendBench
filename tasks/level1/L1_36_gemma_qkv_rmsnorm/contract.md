@@ -31,11 +31,11 @@ the normalized result.
 `oracle_pytorch.run(inputs: dict) -> dict` returns `{"q": ..., "k": ..., "v": ...}`.
 The graded GPU surface is `_pa_launcher.py::run`, which drives the frozen
 `_gemma_qkv_rmsnorm_kernel` directly (HAS_KV=True). Inputs are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`vector_reduce` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`vector_reduce` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Shape coverage
 

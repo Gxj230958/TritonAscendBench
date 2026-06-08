@@ -1,4 +1,4 @@
-"""Unit tests for triton_ascend_bench.timing (host-side authoritative timer).
+"""Unit tests for ascendbench.perf.timing (host-side authoritative timer).
 
 Covers the W1.3 reshape: `measure` now drives a per-trial input factory
 (fresh input per measured trial) and `arbitrate_timing` applies the
@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import time
 
-from triton_ascend_bench.timing import (
+from ascendbench.perf.timing import (
     QUARANTINE_NS,
     arbitrate_timing,
     measure,

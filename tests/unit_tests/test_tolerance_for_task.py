@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from triton_ascend_bench.tolerance import (
+from ascendbench.correctness.tolerance import (
     ToleranceClass,
     ToleranceSpec,
     for_task,

@@ -50,7 +50,7 @@ TASKS_ROOT = REPO_ROOT / "tasks"
 # Make the package importable when run from anywhere.
 sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench.eligibility import (  # noqa: E402
+from ascendbench.release_gate.eligibility import (  # noqa: E402
     projected_eligible,
 )
 

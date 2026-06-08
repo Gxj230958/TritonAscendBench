@@ -47,11 +47,11 @@ with -1 (the upstream sentinel).
 - `max_spec_len`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`sampling_rng` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`sampling_rng` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

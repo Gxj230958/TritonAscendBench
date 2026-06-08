@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from triton_ascend_bench.peak_table import (
+from ascendbench.perf.peak_table import (
     ABSOLUTE_VERIFIED_PROVENANCES,
     DEFAULT_PEAK_TABLE_PATH,
     REQUIRED_COMPUTE_CLASSES,

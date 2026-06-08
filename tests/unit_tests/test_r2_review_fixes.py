@@ -30,10 +30,10 @@ from unittest import mock
 
 import yaml
 
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eval import evaluate
-from triton_ascend_bench.process_isolation import (
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine.eval import evaluate
+from ascendbench.integrity.process_isolation import (
     CandidateRunResult,
     ShapeCandidateResult,
     TwoPassResult,
@@ -128,7 +128,7 @@ def _two_pass_factory(task: TaskDef, *, timing_kind: str = "clean"):
 
     import torch
 
-    from triton_ascend_bench import inputs as _inputs
+    from ascendbench.input_spec import inputs as _inputs
 
     omod_spec = importlib.util.spec_from_file_location(
         "_r2_oracle", task.task_dir / "oracle_pytorch.py")
@@ -278,7 +278,7 @@ def test_r2_2_event_timer_calls_elapsed_time_on_start_event():
     Dev machine has no NPU, so `torch.npu` and the candidate `fn` are
     mocked.
     """
-    from triton_ascend_bench.backends.npu import NpuBackend
+    from ascendbench.backends.npu import NpuBackend
 
     backend = NpuBackend()
 
@@ -303,7 +303,7 @@ def test_r2_2_event_timer_calls_elapsed_time_on_start_event():
 
     # Force `_NPU_AVAILABLE` so the real timer (not the dev-machine None)
     # is returned, and patch `torch.npu` with the mock.
-    with mock.patch("triton_ascend_bench.backends.npu._NPU_AVAILABLE", True), \
+    with mock.patch("ascendbench.backends.npu._NPU_AVAILABLE", True), \
             mock.patch("torch.npu", fake_npu, create=True):
         timer = backend.event_timer()
         assert timer is not None, "timer must be live when _NPU_AVAILABLE"
@@ -335,7 +335,7 @@ def test_r2_2_event_timer_calls_elapsed_time_on_start_event():
 def test_r2_3_float32_inputs_resolve_dtype_size_4():
     """`_representative_dtype_size` reads the first declared tensor input's
     dtype — a float32 primary operand resolves to 4 bytes."""
-    from triton_ascend_bench.eval import _representative_dtype_size
+    from ascendbench.engine.eval import _representative_dtype_size
 
     doc = {
         "inputs": {
@@ -350,7 +350,7 @@ def test_r2_3_dtype_size_skips_scalars_and_covers_dtypes():
     """The rule skips `scalar` / `scalar_knob` entries and resolves the
     first real tensor input; a scalar-only block yields None (fp16
     default applies)."""
-    from triton_ascend_bench.eval import _representative_dtype_size
+    from ascendbench.engine.eval import _representative_dtype_size
 
     # First entry is a scalar — skipped; the int64 tensor is representative.
     doc = {
@@ -377,9 +377,9 @@ def test_r2_3_roofline_uses_real_dtype_size(tmp_path, monkeypatch):
     default — proof `eval` threaded the real dtype_size into FormulaEnv /
     compute_t_ref.
     """
-    from triton_ascend_bench import eval as _eval
-    from triton_ascend_bench import peak_table as _pt
-    from triton_ascend_bench.cost_model import parse_cost_model
+    from ascendbench.engine import eval as _eval
+    from ascendbench.perf import peak_table as _pt
+    from ascendbench.perf.cost_model import parse_cost_model
 
     task, sol = _make_task(tmp_path, inputs_spec=_TENSOR_INPUTS)
     # A cost model whose bytes formula is purely `... * dtype_size`, so the
@@ -423,7 +423,7 @@ def test_r2_3_roofline_uses_real_dtype_size(tmp_path, monkeypatch):
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         capture_output=True, text=True, cwd=str(REPO))
 
 
@@ -433,8 +433,8 @@ def _n_eligible_upstream_oracle() -> int:
     denominator drops relative to the full score-eligible set. Derived
     from the live repo metadata so the test does not hard-code a number
     that drifts as the corpus changes."""
-    from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import (
+    from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate.eligibility import (
         compute_score_eligible,
         compute_upstream_oracle_required,
     )

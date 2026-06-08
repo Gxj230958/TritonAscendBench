@@ -59,7 +59,7 @@ pap = importlib.util.module_from_spec(_pa_spec)
 sys.modules["phase_a_prime"] = pap
 _pa_spec.loader.exec_module(pap)
 
-from triton_ascend_bench.eligibility import (  # noqa: E402
+from ascendbench.release_gate.eligibility import (  # noqa: E402
     compute_release_blocking,
     compute_release_ready_eligible,
     release_status_pass,
@@ -225,8 +225,8 @@ def test_release_ready_eligible_excludes_c2_failed(tmp_path):
 def _run_cli_analyze(tmp_path, monkeypatch, tasks):
     """Drive `cli._cmd_analyze` with `dataset.iter_all_tasks` patched to
     return `tasks`; return the parsed score_report.json."""
-    from triton_ascend_bench import cli
-    from triton_ascend_bench import dataset as ds
+    from ascendbench.engine import cli
+    from ascendbench.corpus import dataset as ds
 
     monkeypatch.setattr(ds, "iter_all_tasks", lambda: tasks)
 
@@ -452,8 +452,8 @@ def test_phase_a_prime_release_blocker_count_uses_s2(monkeypatch):
         _T("cm_blocked", _meta("PASS", "BLOCKED", c2=True), Path("/x/cm")),
         _T("pap_blocked", _meta("BLOCKED", "PASS", c2=True), Path("/x/pap")),
     ]
-    from triton_ascend_bench import dataset as ds
-    from triton_ascend_bench import eligibility as elig
+    from ascendbench.corpus import dataset as ds
+    from ascendbench.release_gate import eligibility as elig
 
     monkeypatch.setattr(ds, "iter_all_tasks", lambda: tasks)
     # All tasks score-eligible (bypass on-disk file reads);
@@ -485,8 +485,8 @@ def test_phase_a_prime_release_blocker_count_excludes_c2_failed(monkeypatch):
         # C2-aligned, S2 BLOCKED -> the genuine blocker.
         _T("s2_blocked", _meta("BLOCKED", "PASS", c2=True), Path("/x/s2")),
     ]
-    from triton_ascend_bench import dataset as ds
-    from triton_ascend_bench import eligibility as elig
+    from ascendbench.corpus import dataset as ds
+    from ascendbench.release_gate import eligibility as elig
 
     monkeypatch.setattr(ds, "iter_all_tasks", lambda: tasks)
     # All score-eligible (bypass on-disk reads); the C2 intersection is

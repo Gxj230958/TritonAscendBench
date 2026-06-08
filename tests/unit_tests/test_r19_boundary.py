@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 import pytest
 
-from triton_ascend_bench.static_checker import (
+from ascendbench.integrity.static_checker import (
     _DENYLIST_IMPORT_EXACT,
     check_solution,
 )

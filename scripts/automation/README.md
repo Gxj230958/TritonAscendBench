@@ -10,7 +10,7 @@ It is **NOT** part of the bench release artifact:
   output (release tarball) does not include it.
 * `.dockerignore` excludes it from the Docker build context.
 * `pyproject.toml [tool.setuptools.packages.find]` already restricts
-  the wheel to `triton_ascend_bench*`, so `pip install` artefacts do
+  the wheel to `ascendbench*`, so `pip install` artefacts do
   not ship this directory either.
 * CI (`.github/workflows/ci.yml`) runs a release-tarball smoke check
   plus a `grep` step ensuring bench core code never `import`s from

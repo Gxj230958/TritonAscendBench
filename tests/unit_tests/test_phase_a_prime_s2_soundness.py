@@ -839,7 +839,7 @@ def test_L2_10_w8a8_inputs_are_int8_per_contract():
     assert "A_int8" in contract and "B_int8" in contract
 
     # build_inputs now actually materialises signed int8 A/B.
-    from triton_ascend_bench.inputs import build_inputs
+    from ascendbench.input_spec.inputs import build_inputs
 
     inp = build_inputs(sh, sh["public_shapes"][0]["id"], seed=0)
     assert inp["A"].dtype is torch.int8, inp["A"].dtype

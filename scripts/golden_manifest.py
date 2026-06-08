@@ -11,7 +11,7 @@ trust chain:
         test_capture_sha, upstream_closure_fingerprint}`` -- the R12
       commit-chain proof. Including ``meta_upstream_commit_sha`` here
       means R18 signature covers the R12 gate input.
-* ``triton_ascend_bench/sanity_bounds.yaml`` -- global, M3.0 ship.
+* ``ascendbench/policies/sanity_bounds.yaml`` -- global, M3.0 ship.
 * ``meta.yaml.provenance.golden`` canonical-JSON view -- per-task
   provenance fields.
 
@@ -19,7 +19,7 @@ All four artifacts feed into a **single detached signature** stored at
 ``tasks/<id>/provenance.sig``. The signature payload is the SHA-256
 of a canonical-JSON envelope listing the four anchor digests.
 
-Trust roots live in ``triton_ascend_bench/trust_roots.json``
+Trust roots live in ``ascendbench/policies/trust_roots.json``
 (not a Python constant; supports key rotation). The private key is
 stored under ``$TAB_GPFS_ROOT/keys/<key_id>.priv`` (mode 0400, owner
 provider) -- the dev box has neither, so signing fails-loud rather
@@ -50,7 +50,7 @@ from scripts.automation.lib.atomic import (  # noqa: E402
     atomic_write_bytes,
     atomic_write_json,
 )
-from triton_ascend_bench.golden_store import GoldenStore  # noqa: E402
+from ascendbench.correctness.golden_store import GoldenStore  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,7 +60,7 @@ logging.basicConfig(
 log = logging.getLogger("golden_manifest")
 
 
-TRUST_ROOTS = REPO_ROOT / "triton_ascend_bench" / "trust_roots.json"
+TRUST_ROOTS = REPO_ROOT / "ascendbench" / "policies" / "trust_roots.json"
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ def build_envelope(
 
 
 def load_trust_roots() -> dict[str, Any]:
-    """Load ``triton_ascend_bench/trust_roots.json``.
+    """Load ``ascendbench/policies/trust_roots.json``.
 
     Returns an empty doc when the file is absent (allows the verifier
     to fail-closed cleanly without crashing -- "no trust roots" is
@@ -328,7 +328,7 @@ def freeze_and_sign(
     pc_path = td / "provenance_commit.json"
     atomic_write_json(pc_path, pc_body)
 
-    sanity_bounds_path = REPO_ROOT / "triton_ascend_bench" / "sanity_bounds.yaml"
+    sanity_bounds_path = REPO_ROOT / "ascendbench" / "policies" / "sanity_bounds.yaml"
     envelope = build_envelope(
         manifest_path=manifest_path,
         provenance_commit_path=pc_path,
@@ -373,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.verify:
         manifest_path = td / "golden" / "manifest.json"
         pc_path = td / "provenance_commit.json"
-        sb_path = REPO_ROOT / "triton_ascend_bench" / "sanity_bounds.yaml"
+        sb_path = REPO_ROOT / "ascendbench" / "policies" / "sanity_bounds.yaml"
         sig_path = td / "provenance.sig"
         if not sig_path.is_file():
             log.error("signature %s missing", sig_path)

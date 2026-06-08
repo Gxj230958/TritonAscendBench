@@ -44,11 +44,11 @@ H, Dn and Dr are powers of two.
 - `out_dtype`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`elementwise` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`elementwise` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

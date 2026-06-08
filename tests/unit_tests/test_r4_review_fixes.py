@@ -36,15 +36,15 @@ import torch
 import yaml
 from safetensors.torch import save_file
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench import static_checker
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eligibility import (
+from ascendbench.engine import eval as _eval
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.integrity import static_checker
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.release_gate.eligibility import (
     golden_artifact_usable,
     golden_complete,
 )
-from triton_ascend_bench.eval import evaluate
+from ascendbench.engine.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -153,7 +153,7 @@ def _make_upstream_task(tmp_path: Path, *, solution_src: str,
     same input the verified runner uses for the correctness pass and
     (R4-1) forces the sampled timing trials onto.
     """
-    from triton_ascend_bench import inputs as _inputs
+    from ascendbench.input_spec import inputs as _inputs
 
     tdir = tmp_path / "task"
     tdir.mkdir()
@@ -228,7 +228,7 @@ def test_apply_golden_fixed_inputs_skips_shapes_without_fixed():
 # --- _verify_sampled_outputs_offline: match vs drift. ---------------------
 
 def _tol_cls():
-    from triton_ascend_bench import tolerance
+    from ascendbench.correctness import tolerance
     pol = tolerance.load_policy()
     return next(iter(pol.values()))
 
@@ -271,7 +271,7 @@ def test_evaluate_upstream_verified_honest_no_drift(tmp_path, static_pass):
     task, sol = _make_upstream_task(tmp_path, solution_src=_HONEST_SOLUTION)
     result = evaluate("SYN_r4_upstream", sol, task_def=task, mode="verified")
 
-    from triton_ascend_bench import scoring
+    from ascendbench.perf import scoring
     assert result.task_status == scoring.TASK_STATUS_EVALUATED
     assert result.shape_results, "expected the shape to be graded"
     assert all(r.correctness_passed for r in result.shape_results), [
@@ -295,7 +295,7 @@ def test_evaluate_upstream_verified_cheat_detected(tmp_path, static_pass):
     task, sol = _make_upstream_task(tmp_path, solution_src=_CHEAT_SOLUTION)
     result = evaluate("SYN_r4_upstream", sol, task_def=task, mode="verified")
 
-    from triton_ascend_bench import scoring
+    from ascendbench.perf import scoring
     assert result.task_status == scoring.TASK_STATUS_EVALUATED
     # The sampled timing outputs (x*3 on the seed-0 input) drift from the
     # offline golden (x*2) — the cheat is detected.
@@ -350,7 +350,7 @@ def test_resolve_golden_and_golden_complete_agree_on_complete(tmp_path):
     task, _ = _make_upstream_task(
         tmp_path, solution_src=_HONEST_SOLUTION, corrupt_golden=False)
 
-    from triton_ascend_bench import scoring
+    from ascendbench.perf import scoring
     status, kind, offline = _eval._resolve_golden(task, "verified", ["P1"])
     assert status == scoring.TASK_STATUS_EVALUATED
     assert kind == "offline"

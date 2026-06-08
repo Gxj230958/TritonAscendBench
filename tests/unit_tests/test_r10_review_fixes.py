@@ -23,9 +23,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from triton_ascend_bench import peak_table
-from triton_ascend_bench.cli import _cmd_analyze
-from triton_ascend_bench.scoring import (
+from ascendbench.perf import peak_table
+from ascendbench.engine.cli import _cmd_analyze
+from ascendbench.perf.scoring import (
     EPSILON,
     TaskMeasurement,
     aggregate_perf,

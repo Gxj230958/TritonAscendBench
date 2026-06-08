@@ -27,7 +27,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check triton_ascend_bench/ tests/ scripts/
+          ruff check ascendbench/ tests/ scripts/
 
       - name: Verify release boundary (release tarball excludes INTERNAL)
         run: |
@@ -58,7 +58,7 @@ jobs:
       - name: Verify bench core does not import orchestrator (single-direction)
         run: |
           set -e
-          paths='triton_ascend_bench/ scripts/validate_tasks.py scripts/phase_a_prime.py scripts/phase_b_golden_capture.py scripts/resolve_upstream_entrypoints.py scripts/phase_a_cost_xcheck.py scripts/verify_version_matrix.py scripts/phase_a_freeze.py scripts/phase_b_oracle.py'
+          paths='ascendbench/ scripts/validate_tasks.py scripts/phase_a_prime.py scripts/phase_b_golden_capture.py scripts/resolve_upstream_entrypoints.py scripts/phase_a_cost_xcheck.py scripts/verify_version_matrix.py scripts/phase_a_freeze.py scripts/phase_b_oracle.py'
           # GNU grep exit codes: 0=found(=fail), 1=no match(=pass), 2=error(=fail loud).
           # Explicit rc capture so missing paths / read errors do NOT fail-open under `if grep`.
           rc=0
@@ -116,13 +116,13 @@ jobs:
       - name: Type check (mypy, soft mode)
         continue-on-error: true
         run: |
-          mypy triton_ascend_bench/ || true
+          mypy ascendbench/ || true
 
       - name: Run unit tests
         env:
           TAB_BACKEND: mock
         run: |
-          pytest tests/unit_tests/ -v --cov=triton_ascend_bench
+          pytest tests/unit_tests/ -v --cov=ascendbench
 
       - name: Validate task manifests against schema
         run: |

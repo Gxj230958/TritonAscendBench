@@ -57,7 +57,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench.inputs import build_inputs  # noqa: E402
+from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
 
 GOLDEN_SEED = 0
 DEFAULT_SHAPES = ["P1", "P2"]
@@ -204,7 +204,7 @@ def _extract_oracle_helper_contract(oracle_path: Path):
     as a module-local name so the original call sites in this script
     keep working without touching imports (V9 codex review 2026-05-27
     consolidated the implementation)."""
-    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
         extract_oracle_helper_contract,
     )
 
@@ -252,10 +252,10 @@ def _resolve_kernel_entrypoint(
     oracle_input_keys: list[str] | None = None,
 ) -> str | None:
     """Thin shim over the shared
-    :func:`triton_ascend_bench.kernel_resolver.resolve_kernel_entrypoint`
+    :func:`ascendbench.corpus.kernel_resolver.resolve_kernel_entrypoint`
     -- preserves the local name R10.a / tests already use.
     """
-    from triton_ascend_bench.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
         resolve_kernel_entrypoint,
     )
 
@@ -392,7 +392,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
     # here and classify by whether the oracle agrees (WRAPPER_CONTRACT_
     # MISMATCH = patch shapes fixes both) or disagrees
     # (ORACLE_KERNEL_LAYOUT_MISMATCH = oracle needs rewrite, route to ②).
-    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
         check_against_inputs,
         extract_wrapper_contract,
     )
@@ -556,7 +556,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             # sidecar) so R10.b can verify rebuilt inputs match. The old path
             # dropped scalar_seq/str/None, leaving them undefended against
             # shapes drift.
-            from triton_ascend_bench.inputs import split_inputs
+            from ascendbench.input_spec.inputs import split_inputs
 
             # H2 artifact uses the pre-mutation snapshot (pre==post for
             # non-inplace tasks).

@@ -206,7 +206,7 @@ def _legacy_golden_complete(tasks_root: Path, task_id: str) -> bool:
     # Reuse the shared "exists AND safetensors loads" predicate so the
     # runtime loader, the static validator, and this metric all agree
     # on what counts as a usable golden artifact.
-    from triton_ascend_bench.eligibility import golden_artifact_usable
+    from ascendbench.release_gate.eligibility import golden_artifact_usable
     return all(
         golden_artifact_usable(golden_dir / f"{sid}.safetensors")
         for sid in shape_ids

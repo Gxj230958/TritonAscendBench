@@ -22,10 +22,10 @@ Frozen by: scripts/phase_a_freeze.py
 
 from packaging import version
 
-from triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
+from ascendbench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
+from ascendbench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
 triton = _pa_make_triton_clone()
 
 TRITON_22 = version.parse(triton.__version__) >= version.parse("2.2.0")

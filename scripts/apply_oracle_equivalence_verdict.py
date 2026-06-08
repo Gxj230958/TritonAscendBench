@@ -175,7 +175,7 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         # stale vs the current kernel.py -- is cross-inconsistent: record the raw
         # C2 verdict but do NOT promote. (`compute_usability` enforces the same
         # conjunction independently; this keeps the golden provenance honest.)
-        from triton_ascend_bench.eligibility import fresh_s2_pass
+        from ascendbench.release_gate.eligibility import fresh_s2_pass
 
         _kp = td / "kernel.py"
         _ksha = (
@@ -199,7 +199,7 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         # reduction order at scale). Accepted as a status DISTINCT from VERIFIED -- no
         # golden_sha256 promotion -- but recorded with its own source so a stale
         # 'oracle_pytorch_verified' never lingers and downstream never conflates it with a
-        # strict pass. See triton_ascend_bench/ceiling_acceptance.yaml.
+        # strict pass. See ascendbench/policies/ceiling_acceptance.yaml.
         golden["golden_source"] = "dtype_ceiling_accepted"
         # NOT a strict pass -> never carry a golden_sha256 (a task that was VERIFIED before a
         # new shape pushed it to CEILING_ACCEPTED would otherwise leave a stale one that

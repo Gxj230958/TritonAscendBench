@@ -5,7 +5,7 @@ Closes Gap 1 of ``scripts/gpu_pipeline/`` (step 20). Per task it:
 
 1. evaluates the analytic ``meta.yaml.cost_model`` ``flops`` (``W_c``) and
    ``bytes`` (``M_r``) formulas at every public eval shape, over the task's
-   ``shapes.yaml`` size-knob universe, reusing :mod:`triton_ascend_bench.
+   ``shapes.yaml`` size-knob universe, reusing :mod:`ascendbench.
    cost_model` verbatim (``parse_cost_model`` / ``FormulaEnv``);
 2. runs the promoted (Phase A' PASS) ``kernel.py`` GPU-Triton reference on a
    live CUDA device under **Nsight Compute** (``ncu``) instrumentation,
@@ -104,13 +104,13 @@ REPO_ROOT = _SCRIPTS_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench.cost_model import (  # noqa: E402
+from ascendbench.perf.cost_model import (  # noqa: E402
     CostModel,
     CostModelError,
     FormulaEnv,
 )
-from triton_ascend_bench.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
-from triton_ascend_bench.eligibility import is_score_eligible  # noqa: E402
+from ascendbench.corpus.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
+from ascendbench.release_gate.eligibility import is_score_eligible  # noqa: E402
 
 #: ``meta.cost_model.status`` values this script writes.
 STATUS_PASS = "PASS"
@@ -141,11 +141,11 @@ _FLOOR_FRACTION = 0.5
 
 def _floor_dominated_allowlist() -> set[str]:
     """Source-audited task ids eligible for FLOOR_DOMINATED -- see
-    ``triton_ascend_bench/floor_dominated_acceptance.yaml``. The structural test
+    ``ascendbench/policies/floor_dominated_acceptance.yaml``. The structural test
     (>= 2 shapes, max analytic < min measured) cannot by itself tell a true
     sub-burst floor from a formula that systematically under-counts (L2_26 omits
     its m_indices store), so a task must ALSO be audited into this allowlist."""
-    p = REPO_ROOT / "triton_ascend_bench" / "floor_dominated_acceptance.yaml"
+    p = REPO_ROOT / "ascendbench" / "policies" / "floor_dominated_acceptance.yaml"
     if not p.is_file():
         return set()
     return set((yaml.safe_load(p.read_text()) or {}).get("floor_dominated_tasks") or [])
@@ -241,7 +241,7 @@ def _shape_knobs(
     """Resolve a shape's numeric size-knob table.
 
     ``size_knobs`` defaults merged with the per-row ``knobs`` override -- the
-    same merge :func:`triton_ascend_bench.inputs.build_inputs` performs.
+    same merge :func:`ascendbench.input_spec.inputs.build_inputs` performs.
 
     Args:
         shapes_doc: the parsed ``shapes.yaml`` document.
@@ -273,7 +273,7 @@ def evaluate_analytic(
 ) -> tuple[dict[str, float], dict[str, float]]:
     """Evaluate the analytic ``W_c`` / ``M_r`` formulas for one shape.
 
-    Reuses :class:`triton_ascend_bench.cost_model.FormulaEnv` verbatim -- the
+    Reuses :class:`ascendbench.perf.cost_model.FormulaEnv` verbatim -- the
     single shared safe evaluator, so the symbol set cannot drift from
     ``dataset.py`` / ``validate_tasks.py``.
 
@@ -386,7 +386,7 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
         print("XCHECK_WORKER_ERROR: torch.cuda.is_available() is False",
               file=sys.stderr)
         raise SystemExit(3)
-    from triton_ascend_bench.inputs import build_inputs
+    from ascendbench.input_spec.inputs import build_inputs
     import yaml
 
     runner_path = {runner_path!r}

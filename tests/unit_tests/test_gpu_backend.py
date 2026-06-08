@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench.backends import get_backend
-from triton_ascend_bench.backends.gpu import GpuBackend
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.backends import get_backend
+from ascendbench.backends.gpu import GpuBackend
 
 
 def test_get_backend_gpu_returns_gpu_backend():

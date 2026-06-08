@@ -15,8 +15,8 @@ from typing import Optional, Tuple
 import torch
 import triton
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
-from triton_ascend_bench.frozen.shim import register_custom_op  # Phase A': inert custom-op decorator (B-inert-shim)
+from ascendbench.frozen.shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
+from ascendbench.frozen.shim import register_custom_op  # Phase A': inert custom-op decorator (B-inert-shim)
 
 @triton.jit
 def experts_combine_kernel(out_hidden_states, moe_hidden_states, mlp_hidden_states, combine_k: tl.constexpr, hidden_dim: tl.constexpr, BLOCK_SIZE: tl.constexpr):

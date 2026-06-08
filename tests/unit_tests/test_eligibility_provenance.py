@@ -1,11 +1,11 @@
 """Unit tests for V9 plan M0.0 -- ProvenanceEligibility helpers in
-``triton_ascend_bench.eligibility``."""
+``ascendbench.release_gate.eligibility``."""
 from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
 
-from triton_ascend_bench.eligibility import (
+from ascendbench.release_gate.eligibility import (
     compute_release_ready_eligible,
     is_provenance_eligible,
     projected_eligible,

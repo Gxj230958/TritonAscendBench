@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from triton_ascend_bench.dataset import load_task
+from ascendbench.corpus.dataset import load_task
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
@@ -116,7 +116,7 @@ def test_param_constraints_missing_is_none(tmp_path, monkeypatch):
     td = tmp_path / "level1" / "L1_99_param_constraints_fixture"
     td.mkdir(parents=True)
     _write_task(td)  # param_constraints omitted
-    import triton_ascend_bench.dataset as ds
+    import ascendbench.corpus.dataset as ds
     monkeypatch.setattr(ds, "TASKS_ROOT", tmp_path)
     task = ds.load_task("L1_99_param_constraints_fixture")
     assert task.param_constraints is None
@@ -142,7 +142,7 @@ def test_loader_lenient_on_malformed_block(tmp_path, monkeypatch):
     # `dims` is a string, not a list — schema-illegal but loader-lenient.
     _write_task(td, param_constraints={"dims": "D >= 8", "scaffold": "yes"})
     # The loader resolves tasks under tasks/level{1,2,3}; point it here.
-    import triton_ascend_bench.dataset as ds
+    import ascendbench.corpus.dataset as ds
     monkeypatch.setattr(ds, "TASKS_ROOT", tmp_path)
     task = ds.load_task("L1_99_param_constraints_fixture")
     # raw dict preserved verbatim, no raise, no validation
@@ -156,7 +156,7 @@ def test_loader_wraps_non_mapping_param_constraints(tmp_path, monkeypatch):
     td = tmp_path / "level1" / "L1_99_param_constraints_fixture"
     td.mkdir(parents=True)
     _write_task(td, param_constraints=["not", "a", "mapping"])
-    import triton_ascend_bench.dataset as ds
+    import ascendbench.corpus.dataset as ds
     monkeypatch.setattr(ds, "TASKS_ROOT", tmp_path)
     task = ds.load_task("L1_99_param_constraints_fixture")
     assert task.param_constraints == {"__raw__": ["not", "a", "mapping"]}

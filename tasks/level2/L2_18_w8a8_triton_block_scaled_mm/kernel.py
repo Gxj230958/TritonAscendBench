@@ -17,18 +17,18 @@ import os
 from collections.abc import Callable, Sequence
 from typing import Any
 import torch
-import triton_ascend_bench.frozen.shim.envs as envs
-from triton_ascend_bench.frozen.shim import ops as ops
-from triton_ascend_bench.frozen.shim import init_logger
-from triton_ascend_bench.frozen.shim import get_fp8_min_max
-from triton_ascend_bench.frozen.shim import all_close_1d, per_tensor_dequantize
-from triton_ascend_bench.frozen.shim import BlockQuantScaleParameter, ChannelQuantScaleParameter, PerTensorScaleParameter
-from triton_ascend_bench.frozen.shim import set_weight_attrs
-from triton_ascend_bench.frozen.shim import current_platform
+import ascendbench.frozen.shim.envs as envs
+from ascendbench.frozen.shim import ops as ops
+from ascendbench.frozen.shim import init_logger
+from ascendbench.frozen.shim import get_fp8_min_max
+from ascendbench.frozen.shim import all_close_1d, per_tensor_dequantize
+from ascendbench.frozen.shim import BlockQuantScaleParameter, ChannelQuantScaleParameter, PerTensorScaleParameter
+from ascendbench.frozen.shim import set_weight_attrs
+from ascendbench.frozen.shim import current_platform
 import triton
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import get_tma_aligned_size, is_deep_gemm_e8m0_used, transform_sf_into_required_layout
-from triton_ascend_bench.frozen.shim import direct_register_custom_op
+from ascendbench.frozen.shim import get_tma_aligned_size, is_deep_gemm_e8m0_used, transform_sf_into_required_layout
+from ascendbench.frozen.shim import direct_register_custom_op
 
 def _triton_per_token_group_quant_fp8_impl(x: torch.Tensor, group_size: int) -> tuple[torch.Tensor, torch.Tensor]:
     return per_token_group_quant_fp8(x, group_size, column_major_scales=False, use_ue8m0=False)

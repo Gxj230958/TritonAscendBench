@@ -1,4 +1,4 @@
-"""Unit tests for triton_ascend_bench.kernel_resolver.
+"""Unit tests for ascendbench.corpus.kernel_resolver.
 
 Codex 2026-05-27 review caught that R10.a/R10.b resolvers were
 returning ``@triton.jit``-decorated raw kernels when
@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from triton_ascend_bench.kernel_resolver import (
+from ascendbench.corpus.kernel_resolver import (
     _resolve_meta_name_pattern,
     enumerate_non_jit_module_defs,
     is_jit_decorated,

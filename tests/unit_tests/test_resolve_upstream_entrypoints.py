@@ -460,11 +460,11 @@ def test_complete_verdict_surface_is_fingerprinted(tmp_path):
     The resolver VERDICT/category also depends on the input builder,
     the tolerance comparator, and the tolerance-policy YAML:
 
-      * triton_ascend_bench/inputs.py    -- build_inputs() feeds BOTH
+      * ascendbench/input_spec/inputs.py    -- build_inputs() feeds BOTH
         the oracle anchor and the S2 runner;
-      * triton_ascend_bench/tolerance.py -- compare()/load_policy()
+      * ascendbench/correctness/tolerance.py -- compare()/load_policy()
         ARE the oracle-mismatch decision;
-      * triton_ascend_bench/tolerance_policy.yaml -- the per-class
+      * ascendbench/policies/tolerance_policy.yaml -- the per-class
         atol/rtol/bit_exact VALUES the comparator reads.
 
     A byte change to ANY of these flips a verdict while a cache built
@@ -477,11 +477,11 @@ def test_complete_verdict_surface_is_fingerprinted(tmp_path):
     stale). (b) also fails on revert: a file outside the surface does
     not influence the digest, so the changed-digest assertion breaks.
     """
-    pkg = REPO / "triton_ascend_bench"
+    pkg = REPO / "ascendbench"
     must_cover = {
-        pkg / "inputs.py",
-        pkg / "tolerance.py",
-        pkg / "tolerance_policy.yaml",
+        pkg / "input_spec" / "inputs.py",
+        pkg / "correctness" / "tolerance.py",
+        pkg / "policies" / "tolerance_policy.yaml",
     }
     surface = set(rue._PROVENANCE_CODE_FILES)
 
@@ -501,9 +501,9 @@ def test_complete_verdict_surface_is_fingerprinted(tmp_path):
     #     resolver_code_fingerprint() takes (f.read_bytes()).
     base = rue.resolver_code_fingerprint()
     for target in (
-        pkg / "inputs.py",
-        pkg / "tolerance.py",
-        pkg / "tolerance_policy.yaml",
+        pkg / "input_spec" / "inputs.py",
+        pkg / "correctness" / "tolerance.py",
+        pkg / "policies" / "tolerance_policy.yaml",
     ):
         original = target.read_bytes()
         try:

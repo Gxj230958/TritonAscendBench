@@ -181,7 +181,7 @@ _MISSING_FOR_ENTRY_RE = re.compile(
 # Composite dim symbols: (required_atomic_bases, emitted_dim_expression).
 # The atomic bases are checked against the task's knobs universe (skip
 # the convention if any base is missing). The emitted expression is the
-# arithmetic form ``triton_ascend_bench.inputs._resolve_dims`` actually
+# arithmetic form ``ascendbench.input_spec.inputs._resolve_dims`` actually
 # evaluates -- inputs.py's whitelist evaluator accepts ``B+1`` / ``B*N``
 # but NOT a bare token like ``BP1``; emitting ``[BP1]`` directly would
 # leave the dim unmaterializable.
@@ -204,7 +204,7 @@ _NAME_TO_DEFAULT_DIST: dict[str, str] = {
 }
 
 # Names whose declared dtype would silently be ignored by
-# ``triton_ascend_bench.inputs._make_tensor`` (the ``offsets`` /
+# ``ascendbench.input_spec.inputs._make_tensor`` (the ``offsets`` /
 # ``cumcount`` / ``arange`` / ``full`` branches return early as
 # ``torch.int64`` -- they never reach the dtype-cast step). Authoring
 # a ``dtype`` for those rows would lie in the spec, so the auto-filler
@@ -392,7 +392,7 @@ def _build_entry(name: str, knobs: set[str]) -> dict | None:
       - the atomic bases (``("B", "N")`` for ``BN``) are checked against
         the knobs universe;
       - the emitted ``dims`` entry uses the arithmetic expression
-        (``B*N``) that ``triton_ascend_bench.inputs._resolve_dims`` can
+        (``B*N``) that ``ascendbench.input_spec.inputs._resolve_dims`` can
         actually evaluate. Bare composite tokens are not understood by
         the input materialiser, so the dim would stay unmaterializable.
     """

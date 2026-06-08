@@ -25,9 +25,9 @@ from pathlib import Path
 
 import pytest
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench.scoring import (
+from ascendbench.engine import eval as _eval
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.perf.scoring import (
     TaskMeasurement,
     capped_geomean_native,
     fastp_at_threshold,
@@ -39,7 +39,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True,
     )
 
@@ -99,8 +99,8 @@ class TestR8_1BlockedInDenominator:
 
         The verified-mode denominator must equal the score-eligible set
         size — a `blocked` task does not shrink it (W4.3 ④)."""
-        from triton_ascend_bench.dataset import iter_all_tasks
-        from triton_ascend_bench.eligibility import (
+        from ascendbench.corpus.dataset import iter_all_tasks
+        from ascendbench.release_gate.eligibility import (
             compute_score_eligible,
             compute_verified_blocked,
         )
@@ -190,7 +190,7 @@ class _ThrowingOracle:
 
 
 def _tol_cls():
-    from triton_ascend_bench import tolerance
+    from ascendbench.correctness import tolerance
     pol = tolerance.load_policy()
     return next(iter(pol.values()))
 
@@ -272,8 +272,8 @@ class TestR8_2SampledOutputFailClosed:
         host-timing series, plus a fail-closed "0 verified" verifier — so
         the R8-2 call-site branch is genuinely exercised, not skipped.
         """
-        from triton_ascend_bench import process_isolation as _pi
-        from triton_ascend_bench import static_checker
+        from ascendbench.integrity import process_isolation as _pi
+        from ascendbench.integrity import static_checker
 
         # Make the static checker pass so grading is reached.
         monkeypatch.setattr(

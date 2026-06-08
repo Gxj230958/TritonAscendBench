@@ -13,18 +13,18 @@ Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import torch.nn as nn
-from triton_ascend_bench.frozen.shim import CustomOp  # Phase A': inert CustomOp base + no-op register (B-inert-shim)
+from ascendbench.frozen.shim import CustomOp  # Phase A': inert CustomOp base + no-op register (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import cdiv, next_power_of_2  # Phase A': pure-math shim (B-inert-shim)
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.chunk_delta_h import chunk_gated_delta_rule_fwd_h  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.cumsum import chunk_local_cumsum  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.fused_recurrent import fused_recurrent_gated_delta_rule_fwd_kernel  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.l2norm import l2norm_fwd  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.op import exp, log  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.solve_tril import solve_tril  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils import FLA_CHUNK_SIZE, is_amd  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.shim import cdiv, next_power_of_2  # Phase A': pure-math shim (B-inert-shim)
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.chunk_delta_h import chunk_gated_delta_rule_fwd_h  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.cumsum import chunk_local_cumsum  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.fused_recurrent import fused_recurrent_gated_delta_rule_fwd_kernel  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.l2norm import l2norm_fwd  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.op import exp, log  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.solve_tril import solve_tril  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.utils import FLA_CHUNK_SIZE, is_amd  # Phase A': U2 FLA-ops package vendoring
 
 @triton.heuristics({'STORE_RESIDUAL_OUT': lambda args: args['residual_out'] is not None, 'HAS_RESIDUAL': lambda args: args['residual'] is not None, 'HAS_WEIGHT': lambda args: args['w'] is not None, 'HAS_BIAS': lambda args: args['b'] is not None})
 @triton.jit

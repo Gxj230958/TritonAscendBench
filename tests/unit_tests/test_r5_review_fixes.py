@@ -32,10 +32,10 @@ from pathlib import Path
 import pytest
 import torch
 
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench.cost_model import CostModelError, parse_cost_model
-from triton_ascend_bench.eval import ShapeRunResult, TaskEvalResult
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.perf.cost_model import CostModelError, parse_cost_model
+from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
 
 _SHAPES_DOC = {
     "size_knobs": {"B": 2, "L": 4, "D": 8},

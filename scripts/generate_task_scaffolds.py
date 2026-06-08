@@ -306,7 +306,7 @@ stage ordering invariants — mirror `tasks/level1/L1_01_bias/contract.md`.
 
 ## Tolerance class
 
-`{tolerance_class}` (see `triton_ascend_bench/tolerance_policy.yaml`).
+`{tolerance_class}` (see `ascendbench/policies/tolerance_policy.yaml`).
 
 ## Metamorphic checks
 

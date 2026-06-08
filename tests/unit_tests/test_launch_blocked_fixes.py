@@ -10,8 +10,8 @@ from pathlib import Path
 import torch
 import yaml
 
-from triton_ascend_bench.inputs import build_inputs
-from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+from ascendbench.input_spec.inputs import build_inputs
+from ascendbench.upstream_shims.vllm_runtime_hygiene import (
     clear_conflicting_vllm_registrations,
     install_vllm_c_stub,
     install_vllm_flash_attn_stub,

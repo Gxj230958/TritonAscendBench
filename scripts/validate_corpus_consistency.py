@@ -41,7 +41,7 @@ def _sha256(p: Path) -> str:
 
 
 def _ceiling_allowlist() -> set[str]:
-    cfg = yaml.safe_load((REPO / "triton_ascend_bench" / "ceiling_acceptance.yaml").read_text()) or {}
+    cfg = yaml.safe_load((REPO / "ascendbench" / "policies" / "ceiling_acceptance.yaml").read_text()) or {}
     names: set[str] = set(cfg.get("tol_units_tasks") or [])
     names |= set((cfg.get("physical_tasks") or {}).keys())
     return names

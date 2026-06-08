@@ -1,4 +1,4 @@
-"""Contract tests for ``triton_ascend_bench.upstream_shims``.
+"""Contract tests for ``ascendbench.upstream_shims``.
 
 These tests pin every observable property the resolver subprocess
 relies on when it injects the ``vllm.triton_utils`` forward shim:
@@ -58,7 +58,7 @@ def shim_clean():
         sys.modules.pop(k, None)
     # Also clear the shim's internal saved-state dict so unregister()
     # in a previous test does not leak across.
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     _inject._saved.clear()
     yield
@@ -101,7 +101,7 @@ def test_shim_module_importable(shim_clean) -> None:
     """The ``_inject`` module itself must import without raising
     (a syntax error or missing dependency would mask every later
     register() call)."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     assert hasattr(_inject, "register")
     assert hasattr(_inject, "unregister")
@@ -111,7 +111,7 @@ def test_shim_all_mirrors_upstream(shim_clean) -> None:
     """The shim's ``__all__`` must be a superset of upstream's
     so every name a vendored kernel can import is satisfied."""
     upstream_all = set(_parse_upstream_all())
-    from triton_ascend_bench.upstream_shims import vllm_triton_utils_shim
+    from ascendbench.upstream_shims import vllm_triton_utils_shim
 
     shim_all = set(vllm_triton_utils_shim.__all__)
     assert upstream_all <= shim_all, (
@@ -123,8 +123,8 @@ def test_shim_all_mirrors_upstream(shim_clean) -> None:
 def test_register_injects_into_sys_modules(shim_clean) -> None:
     """``register()`` makes ``sys.modules['vllm.triton_utils']`` the
     shim object, not the upstream placeholder module."""
-    from triton_ascend_bench.upstream_shims import _inject
-    from triton_ascend_bench.upstream_shims import (
+    from ascendbench.upstream_shims import _inject
+    from ascendbench.upstream_shims import (
         vllm_triton_utils_shim as expected,
     )
 
@@ -141,7 +141,7 @@ def test_register_force_overrides_existing(shim_clean) -> None:
     fake_existing.__pa_test_marker__ = "original-upstream"
     sys.modules["vllm.triton_utils"] = fake_existing
 
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     # force=False -> keep existing.
     installed = _inject.register(force=False)
@@ -158,7 +158,7 @@ def test_register_force_overrides_existing(shim_clean) -> None:
 def test_unregister_cleans_sys_modules(shim_clean) -> None:
     """After ``register()`` then ``unregister()`` the prior
     ``sys.modules`` state is restored (no shim entries remain)."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     assert "vllm.triton_utils" not in sys.modules
     _inject.register(force=True)
@@ -175,7 +175,7 @@ def test_triton_is_real_not_placeholder(shim_clean) -> None:
     machinery is intact."""
     import triton as real_triton
 
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     _inject.register(force=True)
 
@@ -191,7 +191,7 @@ def test_triton_is_real_not_placeholder(shim_clean) -> None:
 def test_tl_dtypes_available(shim_clean) -> None:
     """Every dtype a vendored kernel may reach for must be present on
     the forwarded ``tl``."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     _inject.register(force=True)
 
@@ -220,7 +220,7 @@ def test_has_active_triton_driver_no_raise(shim_clean) -> None:
     """The driver probe must NEVER raise -- it is called inside the
     autotune wrapper on every kernel launch, so a swallowed exception
     here is a hard requirement."""
-    from triton_ascend_bench.upstream_shims.vllm_triton_utils_shim import (
+    from ascendbench.upstream_shims.vllm_triton_utils_shim import (
         _has_active_triton_driver,
     )
 
@@ -241,7 +241,7 @@ def test_autotune_interpreter_mode_skips_benchmark(shim_clean) -> None:
     branch and break this assertion."""
     os.environ["TRITON_INTERPRET"] = "1"
 
-    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+    from ascendbench.upstream_shims import _inject, vllm_triton_utils_shim
 
     _inject.register(force=True)
 
@@ -270,7 +270,7 @@ def test_autotune_interpreter_mode_skips_benchmark(shim_clean) -> None:
             v = tl.load(p + offs, mask=mask)
             tl.store(p + offs, v + 1, mask=mask)
 
-        from triton_ascend_bench.upstream_shims.vllm_triton_utils_shim import (
+        from ascendbench.upstream_shims.vllm_triton_utils_shim import (
             _AutotunedKernel,
         )
 
@@ -299,7 +299,7 @@ def test_autotune_interpreter_forwards_full_config_kwargs(shim_clean) -> None:
     ``_first_kwargs``."""
     os.environ["TRITON_INTERPRET"] = "1"
 
-    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+    from ascendbench.upstream_shims import _inject, vllm_triton_utils_shim
 
     _inject.register(force=True)
 
@@ -347,7 +347,7 @@ def test_autotune_interpreter_fallback_handles_stub_without_all_kwargs(
     shadow the Config's real ``num_warps`` field."""
     os.environ["TRITON_INTERPRET"] = "1"
 
-    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+    from ascendbench.upstream_shims import _inject, vllm_triton_utils_shim
 
     _inject.register(force=True)
 
@@ -414,7 +414,7 @@ def test_autotune_active_driver_uses_real(shim_clean) -> None:
     # Make sure interpret is OFF.
     os.environ.pop("TRITON_INTERPRET", None)
 
-    from triton_ascend_bench.upstream_shims import vllm_triton_utils_shim
+    from ascendbench.upstream_shims import vllm_triton_utils_shim
 
     with mock.patch.object(
         vllm_triton_utils_shim,
@@ -445,7 +445,7 @@ def test_autotune_pin_env_forces_first_config_on_active_driver(
     os.environ.pop("TRITON_INTERPRET", None)
     os.environ["PA_PIN_AUTOTUNE_FIRST"] = "1"
     try:
-        from triton_ascend_bench.upstream_shims import (
+        from ascendbench.upstream_shims import (
             triton_autotune_interp as m,
         )
 
@@ -506,7 +506,7 @@ def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
             sys.modules.pop(k, None)
 
     try:
-        from triton_ascend_bench.upstream_shims import _inject
+        from ascendbench.upstream_shims import _inject
 
         _inject.register(force=True)
 
@@ -517,7 +517,7 @@ def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
         assert mu.cdiv(7, 3) == 3
 
         # And the shim is still the active vllm.triton_utils entry.
-        from triton_ascend_bench.upstream_shims import (
+        from ascendbench.upstream_shims import (
             vllm_triton_utils_shim as expected,
         )
 
@@ -531,7 +531,7 @@ def test_vllm_triton_utils_importing_submodule(shim_clean) -> None:
     """``from vllm.triton_utils.importing import HAS_TRITON`` must
     return the real-Triton ``True`` value, not the placeholder
     ``False``."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     _inject.register(force=True)
 
@@ -549,7 +549,7 @@ def test_shim_does_not_touch_sys_path(shim_clean) -> None:
     shim directory onto ``sys.path``, this test would catch it
     (shadowing every other vllm.* submodule is exactly the failure
     mode the shim was designed to avoid)."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     path_before = list(sys.path)
     _inject.register(force=True)
@@ -565,7 +565,7 @@ def test_is_registered_reflects_state(shim_clean) -> None:
     """``is_registered()`` returns ``True`` iff the parent shim is
     the active ``sys.modules`` entry. Smoke-checks the predicate the
     runner subprocesses can use to assert the shim took effect."""
-    from triton_ascend_bench.upstream_shims import _inject
+    from ascendbench.upstream_shims import _inject
 
     assert _inject.is_registered() is False
     _inject.register(force=True)
@@ -590,7 +590,7 @@ def test_kernel_with_relative_import_loads_via_shim_and_bridge(
     the branch and break this assertion."""
     os.environ["TRITON_INTERPRET"] = "1"
 
-    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+    from ascendbench.upstream_shims import _inject, vllm_triton_utils_shim
 
     _inject.register(force=True)
 
@@ -650,7 +650,7 @@ def test_heuristics_on_autotune_on_jit_launches(tmp_path) -> None:
     'arg_names'`` (then '...has no attribute run'). This exercises the
     full stacked decoration under interpreter mode."""
     os.environ["TRITON_INTERPRET"] = "1"
-    from triton_ascend_bench.upstream_shims import _inject, vllm_triton_utils_shim
+    from ascendbench.upstream_shims import _inject, vllm_triton_utils_shim
 
     _inject.register(force=True)
     kernel_src = (

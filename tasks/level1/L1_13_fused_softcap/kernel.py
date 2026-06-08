@@ -37,14 +37,14 @@ import triton.language as tl
 from torch import nn
 from triton.language.extra import libdevice
 
-from triton_ascend_bench.frozen.shim import get_tensor_model_parallel_world_size, tensor_model_parallel_all_gather  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import envs  # Phase A': sglang env namespace (B-inert-shim)
-from triton_ascend_bench.frozen.shim import DpPaddingMode, attn_tp_all_gather, attn_tp_all_gather_into_tensor, dp_gather_replicate, dp_scatter, get_attention_dp_rank, get_attention_dp_size, get_attention_tp_size, get_dp_device, get_dp_dtype, get_dp_hidden_size  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import InputLogprobsResult, compute_temp_top_p_normalized_logprobs, get_token_ids_logprobs_chunk, get_token_ids_logprobs_prefill, get_top_logprobs_chunk, get_top_logprobs_prefill  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import VocabParallelEmbedding  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import CaptureHiddenMode, ForwardBatch, ForwardMode  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import get_global_server_args  # Phase A': sglang sibling surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import is_npu, use_intel_amx_backend  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import get_tensor_model_parallel_world_size, tensor_model_parallel_all_gather  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import envs  # Phase A': sglang env namespace (B-inert-shim)
+from ascendbench.frozen.shim import DpPaddingMode, attn_tp_all_gather, attn_tp_all_gather_into_tensor, dp_gather_replicate, dp_scatter, get_attention_dp_rank, get_attention_dp_size, get_attention_tp_size, get_dp_device, get_dp_dtype, get_dp_hidden_size  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import InputLogprobsResult, compute_temp_top_p_normalized_logprobs, get_token_ids_logprobs_chunk, get_token_ids_logprobs_prefill, get_top_logprobs_chunk, get_top_logprobs_prefill  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import VocabParallelEmbedding  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import CaptureHiddenMode, ForwardBatch, ForwardMode  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import get_global_server_args  # Phase A': sglang sibling surface (B-inert-shim)
+from ascendbench.frozen.shim import is_npu, use_intel_amx_backend  # Phase A': sglang sibling surface (B-inert-shim)
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from triton_ascend_bench.determinism import (
+from ascendbench.correctness.determinism import (
     DeterminismResult,
     DeterminismVerdict,
     to_verdict,

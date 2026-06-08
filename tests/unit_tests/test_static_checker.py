@@ -1,11 +1,11 @@
-"""Unit tests for triton_ascend_bench.static_checker."""
+"""Unit tests for ascendbench.integrity.static_checker."""
 from __future__ import annotations
 
 import textwrap
 
 import pytest
 
-from triton_ascend_bench.static_checker import check_solution
+from ascendbench.integrity.static_checker import check_solution
 
 
 def _src(s: str) -> str:
@@ -3578,7 +3578,7 @@ def test_required_op_cube_missing():
 ])
 def test_real_poc_kernels_pass_static(task_id):
     """Every PoC task's reference kernel.py must pass static checks."""
-    from triton_ascend_bench.dataset import load_task
+    from ascendbench.corpus.dataset import load_task
 
     task = load_task(task_id)
     required = task.meta.get("runner_checks", {}).get("static_checks", [])

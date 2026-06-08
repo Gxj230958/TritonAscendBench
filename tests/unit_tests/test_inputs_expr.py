@@ -3,7 +3,7 @@
 `inputs.py` previously materialised its numeric size-knob expressions
 (``dims`` / ``randint`` bounds / ``offsets:to=`` / ``full:`` / ``scalar_knob``)
 through bare :func:`eval` calls. WA.2 replaces every one with the shared
-AST-whitelist :func:`triton_ascend_bench.expr.eval_numeric`. These tests
+AST-whitelist :func:`ascendbench.input_spec.expr.eval_numeric`. These tests
 confirm the materialisation behaviour is unchanged (same knobs → same values)
 and that an unsafe expression at an input site is now statically rejected.
 """
@@ -12,8 +12,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from triton_ascend_bench.expr import ExprError
-from triton_ascend_bench.inputs import _resolve_dims, build_inputs
+from ascendbench.input_spec.expr import ExprError
+from ascendbench.input_spec.inputs import _resolve_dims, build_inputs
 
 
 def _shapes_doc(inputs: dict) -> dict:

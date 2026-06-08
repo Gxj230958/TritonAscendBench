@@ -36,11 +36,11 @@ DeepEP combine: weighted sum over a token's topk expert outputs.
 - `topk`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`atomic_scatter` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`atomic_scatter` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

@@ -6,7 +6,7 @@ Per v4.13 Phase 1.2 + R9 (Source drift mitigation).
 Workflow:
 1. Read tasks/level{1,2,3}/<task_id>/meta.yaml
 2. Read commit_sha + upstream.path
-3. Copy upstream snapshot to triton_ascend_bench/frozen/snapshots/<task_id>_<sha7>.py
+3. Copy upstream snapshot to ascendbench/frozen/snapshots/<task_id>_<sha7>.py
 4. Update meta.yaml.upstream.file_sha256 + vendored_snapshot path
 5. Commit (provider repo)
 
@@ -99,7 +99,7 @@ def main() -> int:
     parser.add_argument("--all", action="store_true", help="Freeze all tasks")
     parser.add_argument(
         "--vendored-root",
-        default="triton_ascend_bench/frozen/snapshots",
+        default="ascendbench/frozen/snapshots",
         help="Vendored snapshot directory (relative to repo root)",
     )
     parser.add_argument("--verbose", "-v", action="store_true")

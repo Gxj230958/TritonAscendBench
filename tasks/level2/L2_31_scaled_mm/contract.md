@@ -34,11 +34,11 @@ after the dot; bias is added after the output cast.
 GPU surface is `_pa_launcher.py::run`, which drives the frozen
 `scaled_mm_kernel` exactly as `triton_scaled_mm` does (heuristic tile
 selection, candidate-allocated output). Inputs are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`int8_w8a8` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`int8_w8a8` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Shape coverage
 

@@ -12,11 +12,11 @@ File SHA-256 (this vendored copy): a2792421a61c0b20acf5bb21dc9d5cfea8464da17f44a
 Frozen by: scripts/phase_a_freeze.py
 """
 import torch
-from triton_ascend_bench.frozen.shim import FP8_DTYPE, get_fp8_min_max  # Phase A': quant symbols, symbol-aware (B-inert-shim)
-from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
+from ascendbench.frozen.shim import FP8_DTYPE, get_fp8_min_max  # Phase A': quant symbols, symbol-aware (B-inert-shim)
+from ascendbench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import is_quantized_kv_cache  # Phase A': pure predicate (B-inert-shim)
+from ascendbench.frozen.shim import is_quantized_kv_cache  # Phase A': pure predicate (B-inert-shim)
 
 @triton.jit
 def reshape_and_cache_kernel_flash(key_ptr, value_ptr, key_cache_ptr, value_cache_ptr, slot_mapping_ptr, k_scale, v_scale, key_stride: tl.int64, value_stride: tl.int64, block_stride: tl.int64, head_stride: tl.int64, dim_stride_k: tl.int64, dim_stride_v: tl.int64, page_stride: tl.int64, num_heads: tl.constexpr, head_size: tl.constexpr, block_size: tl.constexpr, x: tl.constexpr, USE_HEAD_MAJOR_LAYOUT: tl.constexpr, FP8_KV_CACHE: tl.constexpr, TILE_SIZE: tl.constexpr):

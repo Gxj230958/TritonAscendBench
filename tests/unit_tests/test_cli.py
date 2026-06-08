@@ -15,7 +15,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 
 def _run_tab(*args: str, check: bool = False) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True, check=check,
     )
 

@@ -1,9 +1,9 @@
-"""Unit tests for triton_ascend_bench.adversarial."""
+"""Unit tests for ascendbench.integrity.adversarial."""
 from __future__ import annotations
 
 import torch
 
-from triton_ascend_bench.adversarial import (
+from ascendbench.integrity.adversarial import (
     KNOWN_METAMORPHIC_CHECKS,
     CanaryFinding,
     MetamorphicContext,

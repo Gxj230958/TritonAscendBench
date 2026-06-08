@@ -86,10 +86,10 @@ def run(task: str, peak_table: str) -> RankVerdict:
     import oracle_equivalence_gpu_runner as oeq
     import yaml
 
-    from triton_ascend_bench import peak_table as pt
-    from triton_ascend_bench import scoring
-    from triton_ascend_bench.dataset import load_task
-    from triton_ascend_bench.eval import (
+    from ascendbench.perf import peak_table as pt
+    from ascendbench.perf import scoring
+    from ascendbench.corpus.dataset import load_task
+    from ascendbench.engine.eval import (
         _representative_dtype_size,
         _shape_knobs,
     )

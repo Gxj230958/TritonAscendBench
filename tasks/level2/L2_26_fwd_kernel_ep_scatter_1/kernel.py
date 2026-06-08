@@ -13,12 +13,12 @@ Frozen by: scripts/phase_a_freeze.py
 """
 '\nTaken from https://github.com/ModelTC/LightLLM/blob/8ed97c74c18f11505b048b1ba00ba5c0cef8bff6/lightllm/common/fused_moe/deepep_scatter_gather.py\nand updated to fit vllm needs and terminology.\n'
 import torch
-import triton_ascend_bench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import count_expert_num_tokens  # Phase A': off-path host-wrapper helper (B-inert-shim)
+import ascendbench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
+from ascendbench.frozen.shim import count_expert_num_tokens  # Phase A': off-path host-wrapper helper (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import get_mk_alignment_for_contiguous_layout  # Phase A': off-path deep_gemm accel surface (B-inert-shim)
-from triton_ascend_bench.frozen.shim import round_up  # Phase A': pure-math shim (B-inert-shim)
+from ascendbench.frozen.shim import get_mk_alignment_for_contiguous_layout  # Phase A': off-path deep_gemm accel surface (B-inert-shim)
+from ascendbench.frozen.shim import round_up  # Phase A': pure-math shim (B-inert-shim)
 
 @triton.jit
 def round_up_128(x: int) -> int:

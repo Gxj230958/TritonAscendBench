@@ -55,7 +55,7 @@ def npu_triton_impl(inputs: dict) -> dict:
 ```
 
 **Forbidden in `solution.py`** (per AST denylist, `specs/ast_denylist.md`):
-- `import oracle_pytorch` / `import triton_ascend_bench` / `import tasks.*`
+- `import oracle_pytorch` / `import ascendbench` / `import tasks.*`
 - High-level torch ops: `torch.nn.functional.*`, `Tensor.matmul`, `@` operator
 - Native AscendC ops: `sgl_kernel_npu.*`, `vllm_ascend.npu_*`, `torch_npu.npu_*`
 - Code execution: `exec`, `eval`, `compile`, `__import__`, `ctypes`, `cffi`, `torch.utils.cpp_extension`
@@ -101,7 +101,7 @@ oracle:
   pytorch: "oracle_pytorch.py::run"
   gpu_triton: "kernel.py::placeholder"   # resolver fills the verified upstream entrypoint
 
-tolerance_class: "vector_reduce"  # one of the classes in triton_ascend_bench/tolerance_policy.yaml
+tolerance_class: "vector_reduce"  # one of the classes in ascendbench/policies/tolerance_policy.yaml
 
 cost_model:                          # performance baseline — see docs/DESIGN.md §5.6
   flops: "2*B*L*D"                   # size-knob FLOPs formula (scalar form)
@@ -199,7 +199,7 @@ formula *parses and evaluates*, not its numeric value. `cost_model.py` defines
 exactly which derived symbols exist and is reused verbatim by `dataset.py`,
 `validate_tasks.py` and the W4.2 GPU cross-check, so the symbol set never
 drifts. The arithmetic safety core itself lives in
-`triton_ascend_bench/expr.py` (WA.2): `cost_model` formula evaluation is the
+`ascendbench/input_spec/expr.py` (WA.2): `cost_model` formula evaluation is the
 `eval_numeric` entrypoint of that shared AST-whitelist evaluator. Allowed in
 numeric mode: `+ - * / // ** %`, unary `+` / `-`, numeric literals,
 knob/derived names, and `min` / `max` / `ceil` / `floor` / `sqrt` calls.
@@ -269,7 +269,7 @@ WA.4.
 
 A `{input_name: dtype}` map; one entry per tensor input declared in
 `shapes.yaml.inputs`. The value is a **closed enum** — the keys of the
-`build_inputs` dtype alias table (`triton_ascend_bench/inputs.py`), which is
+`build_inputs` dtype alias table (`ascendbench/input_spec/inputs.py`), which is
 the **single authority** for the legal dtype set:
 
 ```
@@ -307,7 +307,7 @@ dists:
 string DSL form (`randint:0:E`, `offsets:to=B*L`, `full:expr`); the
 `param_constraints.dists` block uses the structured `{kind, args}` form.
 The two are reconciled through a single shared `parse_dist_spec` normaliser
-(`triton_ascend_bench/inputs.py`, WA.3 — string DSL ⇄ `{kind, args}`) so
+(`ascendbench/input_spec/inputs.py`, WA.3 — string DSL ⇄ `{kind, args}`) so
 there is no duplicated parsing or drift: `build_inputs` materialisation, the
 `validate_tasks` dist check (WA.4) and the generators all route through it.
 The string DSL stays the authoritative `shapes.yaml` authoring form and is
@@ -369,7 +369,7 @@ scalars:
 ```
 
 **`shapes.yaml.inputs` non-tensor forms (WA.3).** The materialisation layer
-(`triton_ascend_bench/inputs.py`) declares a non-tensor input with exactly
+(`ascendbench/input_spec/inputs.py`) declares a non-tensor input with exactly
 one of these keys; the value type is **schema-fixed**:
 
 | key | meaning | value |
@@ -508,7 +508,7 @@ provenance:
     reconstructability_risk: low | medium | high  # M0a.1 6th-dim risk score
 ```
 
-**Closed enums** (validator-strict; see `triton_ascend_bench/provenance.py`):
+**Closed enums** (validator-strict; see `ascendbench/corpus/provenance.py`):
 
 | Field | Allowed values |
 |-------|----------------|
@@ -540,7 +540,7 @@ closed enum and hash-length value MUST conform — a malformed value
 IS release-blocking, because the release gate, eval boundary, and
 GoldenStore all read these fields directly.
 
-**Loader contract**: `triton_ascend_bench.dataset.TaskDef` carries a
+**Loader contract**: `ascendbench.corpus.dataset.TaskDef` carries a
 typed view of the nested block via `provenance_golden:
 ProvenanceGoldenSpec | None` (loader-lenient, same pattern as
 `cost_model` / `param_constraints`); the raw YAML structure stays
@@ -582,7 +582,7 @@ ignores absent / well-formed blocks.
 | **required** | optional |
 | **default** | `false` (treated as absent) |
 | **written by** | orchestrator (`scripts/automation/fix_orchestrator.py`) on a `defer-to-golden` decision under the `oracle-mismatch` verdict |
-| **read by** | `scripts/phase_a_prime.py` `s2_verify_task` early-return; eligibility gate (`triton_ascend_bench/eligibility.py`) |
+| **read by** | `scripts/phase_a_prime.py` `s2_verify_task` early-return; eligibility gate (`ascendbench/release_gate/eligibility.py`) |
 
 **Semantics.** When `true`, the phase A' GPU S2 verify step **does not**
 invoke the operator in an isolated subprocess. Instead it records
@@ -664,7 +664,7 @@ A multi-segment dotted name belongs in `module`, not `function`.
 | **required** | optional |
 | **default** | `false` (treated as absent) |
 | **written by** | orchestrator on a `defer-to-golden` patch under either the `oracle-mismatch` or `upstream-not-invocable-here` decision |
-| **read by** | eligibility gate (`triton_ascend_bench/eligibility.py::release_status_pass`) |
+| **read by** | eligibility gate (`ascendbench/release_gate/eligibility.py::release_status_pass`) |
 
 **Semantics.** When `true`, the task's release eligibility requires
 `phase_b_capture.status == DONE` (i.e. the golden has been captured and
@@ -741,7 +741,7 @@ but the bench writes only the `Z` form.
 `python scripts/validate_tasks.py` (per-task schema / hash validation; `--release-gate` runs the S6 gate) checks:
 - All 5 files present (`kernel.py` / `oracle_pytorch.py` / `meta.yaml` / `shapes.yaml` / `contract.md`)
 - `meta.yaml` matches schema; the top-level `cost_model` key is **required** (R1-4) — a missing block is a hard error. `cost_model.{flops,bytes}` (scalar or map form) parse under the shared evaluator and every formula evaluates against the task's `shapes.yaml` knob universe (§5.1). (The dataset *loader* stays lenient — a missing block yields `TaskDef.cost_model = None`; only the validator enforces presence. See §5.1.)
-- the top-level `param_constraints` key is **required** (WA.1) — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (WA.1 — the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (WA.4 — `dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `triton_ascend_bench.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)
+- the top-level `param_constraints` key is **required** (WA.1) — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (WA.1 — the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (WA.4 — `dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `ascendbench.input_spec.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)
 - `kernel.py` has at least one `@triton.jit` and exports the resolved upstream entrypoint (`meta.yaml.oracle.gpu_triton`)
 - `oracle_pytorch.py` exports `run`
 - `contract.md` references match `meta.yaml`

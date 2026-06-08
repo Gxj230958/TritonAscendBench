@@ -232,11 +232,11 @@ log_ok "CUDA is available to torch"
 
 # --- 5. bench import + CLI smoke check --------------------------------------
 log_info "verifying the 'tab' CLI entrypoint ..."
-python3 -c "import triton_ascend_bench; print('  triton_ascend_bench import OK')"
+python3 -c "import ascendbench; print('  ascendbench import OK')"
 if command -v tab >/dev/null 2>&1; then
     log_ok "tab CLI on PATH"
 else
-    log_warn "tab not on PATH -- use 'python3 -m triton_ascend_bench.cli' instead"
+    log_warn "tab not on PATH -- use 'python3 -m ascendbench.engine.cli' instead"
 fi
 
 echo

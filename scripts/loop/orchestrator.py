@@ -6,7 +6,7 @@ mounted at the same path as A.
 
 Subcommands:
   sync-code        rsync local working tree (scripts/ tasks/ pyproject.toml
-                   triton_ascend_bench/ infra/) to gpfs so the daemon sees latest code
+                   ascendbench/ infra/) to gpfs so the daemon sees latest code
   submit           write a batch spec to <loop_mailbox>/jobs/<id>.json
   wait             poll <loop_mailbox>/done/<id>.flag (heartbeat-aware)
   collect          rsync <loop_mailbox>/results/<id>/ back to local
@@ -137,7 +137,7 @@ def cmd_sync_code(args: argparse.Namespace, exclude_refs: bool = False) -> int:
         "scripts/",
         "tasks/",
         "pyproject.toml",
-        "triton_ascend_bench/",
+        "ascendbench/",
         "infra/",          # peak tables (cost-model Roofline needs these on GPU A)
     ]
     rc_total = 0

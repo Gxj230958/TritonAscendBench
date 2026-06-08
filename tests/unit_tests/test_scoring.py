@@ -1,4 +1,4 @@
-"""Unit tests for triton_ascend_bench.scoring per specs/scoring_spec.md.
+"""Unit tests for ascendbench.perf.scoring per specs/scoring_spec.md.
 
 Post-codex P1-2 fix:
 - P_CAP = 5 (not 10)
@@ -13,7 +13,7 @@ import math
 
 import pytest
 
-from triton_ascend_bench.scoring import (
+from ascendbench.perf.scoring import (
     EPSILON,
     MIN_COVERAGE_FOR_RANKING,
     P_CAP,
@@ -209,7 +209,7 @@ class TestDeduplication:
             capped_geomean_native(m, s_native_size=1)
 
     def test_duplicate_task_id_raises_in_coverage(self):
-        from triton_ascend_bench.scoring import native_coverage
+        from ascendbench.perf.scoring import native_coverage
         m = [
             TaskMeasurement(task_id="t1"),
             TaskMeasurement(task_id="t1"),
@@ -219,7 +219,7 @@ class TestDeduplication:
 
     def test_coverage_clamped_to_one(self):
         """Even if caller passes more correct tasks than s_native_size, coverage ≤ 1.0."""
-        from triton_ascend_bench.scoring import native_coverage
+        from ascendbench.perf.scoring import native_coverage
         m = [
             TaskMeasurement(task_id="t1"),
             TaskMeasurement(task_id="t2"),

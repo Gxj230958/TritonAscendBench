@@ -37,8 +37,8 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench.inputs import build_inputs  # noqa: E402
-from triton_ascend_bench.tolerance import (  # noqa: E402
+from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.correctness.tolerance import (  # noqa: E402
     ToleranceClass,
     compare,
     load_policy,
@@ -53,11 +53,11 @@ _CEILING_CFG: dict | None = None
 
 def _ceiling_config() -> dict:
     """Load the two-mode dtype-ceiling acceptance allowlist (cached). See
-    triton_ascend_bench/ceiling_acceptance.yaml. Allowlist-gated: L2_23/24 and every other
+    ascendbench/policies/ceiling_acceptance.yaml. Allowlist-gated: L2_23/24 and every other
     task stay strict by construction."""
     global _CEILING_CFG
     if _CEILING_CFG is None:
-        p = REPO_ROOT / "triton_ascend_bench" / "ceiling_acceptance.yaml"
+        p = REPO_ROOT / "ascendbench" / "policies" / "ceiling_acceptance.yaml"
         try:
             _CEILING_CFG = yaml.safe_load(p.read_text()) or {}
         except Exception:
@@ -276,11 +276,11 @@ def _resolve_kernel_entrypoint(
     oracle_input_keys: list[str] | None = None,
 ) -> str | None:
     """Shim over the shared resolver in
-    :mod:`triton_ascend_bench.kernel_resolver`. The R10.a / R10.b / auto-
+    :mod:`ascendbench.corpus.kernel_resolver`. The R10.a / R10.b / auto-
     patch scripts all delegate here so they can never drift on jaccard
     thresholds, jit gating, or tried-cache trust rules.
     """
-    from triton_ascend_bench.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
         resolve_kernel_entrypoint,
     )
 
@@ -333,7 +333,7 @@ def _import_kernel_function(kernel_path: Path, fn_name: str, infer_root: Path):
         if str(_r) not in sys.path:
             sys.path.insert(0, str(_r))
     try:
-        from triton_ascend_bench.upstream_shims.vllm_runtime_hygiene import (
+        from ascendbench.upstream_shims.vllm_runtime_hygiene import (
             install_vllm_num_compute_units_stub,
         )
         install_vllm_num_compute_units_stub()
@@ -456,7 +456,7 @@ def _verify_one_task(
     # trace; AND when ALL shapes are static-blocked we skip kernel
     # import entirely, so import-time failures cannot mask a clean
     # static verdict (codex Medium #2).
-    from triton_ascend_bench.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
         check_against_inputs,
         extract_oracle_helper_contract,
         extract_wrapper_contract,
@@ -658,7 +658,7 @@ def _verify_one_task(
         # makes a correct kernel falsely FAIL. Fail-closed: artifacts must
         # exist+load and the full payload (tensor bytes + non-tensor values)
         # must match R10.a, else INPUT_DRIFT (never a silent precision FAILED).
-        from triton_ascend_bench.inputs import split_inputs  # noqa: PLC0415
+        from ascendbench.input_spec.inputs import split_inputs  # noqa: PLC0415
 
         inputs_file = ref_dir / f"inputs_{sid}.safetensors"
         sidecar_file = ref_dir / f"inputs_{sid}.sidecar.json"

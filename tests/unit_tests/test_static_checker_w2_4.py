@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from triton_ascend_bench import static_checker as sc
-from triton_ascend_bench.static_checker import (
+from ascendbench.integrity import static_checker as sc
+from ascendbench.integrity.static_checker import (
     RuntimeAuditViolation,
     _runtime_audit_hook,
     install_runtime_audit_hook,

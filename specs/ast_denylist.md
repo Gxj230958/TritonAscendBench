@@ -35,7 +35,7 @@ DENYLIST_IMPORT = {
     "torch.profiler", "torch_npu.profiler",
 
     # Oracle / harness imports
-    "oracle_pytorch", "triton_ascend_bench", "tasks",
+    "oracle_pytorch", "ascendbench", "tasks",
 }
 ```
 

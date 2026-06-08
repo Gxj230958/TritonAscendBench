@@ -18,11 +18,11 @@ from typing import Any, Dict, List, Optional
 import torch
 import triton
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import is_batch_invariant_mode_enabled  # Phase A': batch-invariant gate (B-inert-shim)
-from triton_ascend_bench.frozen.shim import get_moe_padding_size  # Phase A': MoE padding query (B-inert-shim)
-from triton_ascend_bench.frozen.shim import per_token_group_quant_fp8, scaled_fp8_quant, sglang_per_token_group_quant_fp8  # Phase A': fp8 quant helpers -> shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import per_token_group_quant_int8, per_token_quant_int8, sglang_per_token_group_quant_int8  # Phase A': int8 quant -> loud-fail stub (off-path)
-from triton_ascend_bench.frozen.shim import cpu_has_amx_support, get_bool_env_var, is_cpu, is_cuda, is_hip, is_sm90_supported  # Phase A': platform/math predicate (B-inert-shim)
+from ascendbench.frozen.shim import is_batch_invariant_mode_enabled  # Phase A': batch-invariant gate (B-inert-shim)
+from ascendbench.frozen.shim import get_moe_padding_size  # Phase A': MoE padding query (B-inert-shim)
+from ascendbench.frozen.shim import per_token_group_quant_fp8, scaled_fp8_quant, sglang_per_token_group_quant_fp8  # Phase A': fp8 quant helpers -> shim (B-inert-shim)
+from ascendbench.frozen.shim import per_token_group_quant_int8, per_token_quant_int8, sglang_per_token_group_quant_int8  # Phase A': int8 quant -> loud-fail stub (off-path)
+from ascendbench.frozen.shim import cpu_has_amx_support, get_bool_env_var, is_cpu, is_cuda, is_hip, is_sm90_supported  # Phase A': platform/math predicate (B-inert-shim)
 try:
     from triton.tools.tensor_descriptor import TensorDescriptor
     _support_tensor_descriptor = True

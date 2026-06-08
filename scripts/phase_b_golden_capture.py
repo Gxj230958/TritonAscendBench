@@ -96,8 +96,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from triton_ascend_bench import eligibility  # noqa: E402
-from triton_ascend_bench.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
+from ascendbench.release_gate import eligibility  # noqa: E402
+from ascendbench.corpus.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
 
 # The capture seed MUST match the verified runner's correctness-pass seed
 # (``eval.evaluate`` builds ``correctness_inputs`` with ``seed=0``). The
@@ -147,7 +147,7 @@ try:
             sys.path.insert(0, extra)
     import torch
     from safetensors.torch import save_file
-    from triton_ascend_bench.inputs import build_inputs
+    from ascendbench.input_spec.inputs import build_inputs
 
     if not torch.cuda.is_available():
         status["fatal"] = ("torch.cuda.is_available() is False -- the "
@@ -609,7 +609,7 @@ def _enumerate_shapes(task: TaskDef) -> tuple[list[str], list[str]]:
     """
     import yaml
 
-    from triton_ascend_bench import inputs as _inputs
+    from ascendbench.input_spec import inputs as _inputs
 
     shapes_doc = yaml.safe_load(
         (task.task_dir / "shapes.yaml").read_text())

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from triton_ascend_bench.cost_model import (
+from ascendbench.perf.cost_model import (
     DERIVED_SYMBOL_DEFAULTS,
     VALID_BYTES_RESOURCES,
     VALID_FLOPS_CLASSES,

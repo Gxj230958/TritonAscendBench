@@ -24,10 +24,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eval import evaluate
-from triton_ascend_bench.process_isolation import (
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine.eval import evaluate
+from ascendbench.integrity.process_isolation import (
     CandidateRunResult,
     ShapeCandidateResult,
     TwoPassResult,
@@ -127,7 +127,7 @@ def _clean_two_pass_factory(task: TaskDef, *, event_ns=None):
 
     import torch
 
-    from triton_ascend_bench import inputs as _inputs
+    from ascendbench.input_spec import inputs as _inputs
 
     omod_spec = importlib.util.spec_from_file_location(
         "_r1_oracle", task.task_dir / "oracle_pytorch.py")
@@ -218,7 +218,7 @@ def test_unran_task_keeps_performance_status_error():
     """A task that never reached phase-2b grading keeps the default
     ``performance_status == "error"`` — the R1-1 promotion is gated on a
     real run, it does not blanket-set "ok"."""
-    from triton_ascend_bench.eval import TaskEvalResult
+    from ascendbench.engine.eval import TaskEvalResult
 
     fresh = TaskEvalResult(task_id="x", static_checks_passed=True)
     assert fresh.performance_status == "error"
@@ -285,7 +285,7 @@ def test_arbitrate_timing_invalid_stream_path_reachable():
     stream, `arbitrate_timing` reaches the `invalid_timing` /
     `invalid_stream` verdict — the path that was previously unreachable
     because `event_ns` never crossed the IPC."""
-    from triton_ascend_bench import timing
+    from ascendbench.perf import timing
 
     host = [10_000_000] * 6              # 10 ms host durations
     # Event timer reads ~half the host time -> ~50% drift, well over 10%.
@@ -317,8 +317,8 @@ def test_scalar_cost_model_t_ref_path_connected():
     `compute_t_ref` → `shape_efficiency`. The companion `flops_class` /
     `bytes_resource` make the normalised map key a real peak-table
     class/resource, so the Roofline path actually computes a number."""
-    from triton_ascend_bench.cost_model import parse_cost_model
-    from triton_ascend_bench.scoring import compute_t_ref, shape_efficiency
+    from ascendbench.perf.cost_model import parse_cost_model
+    from ascendbench.perf.scoring import compute_t_ref, shape_efficiency
 
     # Scalar form: a single FLOPs formula on the fp16 cube, a single
     # bytes formula on HBM — each with its required companion field.
@@ -354,8 +354,8 @@ def test_scalar_cost_model_unknown_class_still_fails_closed():
     fail-closes in `compute_t_ref` — the companion field is validated at
     parse time, but a peak table missing that class is a scoring-time
     fail-closed (RooflineError), never silent bad data."""
-    from triton_ascend_bench.cost_model import parse_cost_model
-    from triton_ascend_bench.scoring import RooflineError, compute_t_ref
+    from ascendbench.perf.cost_model import parse_cost_model
+    from ascendbench.perf.scoring import RooflineError, compute_t_ref
 
     model = parse_cost_model({
         "flops": "B", "flops_class": "int8",

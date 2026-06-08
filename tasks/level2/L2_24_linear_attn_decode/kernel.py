@@ -15,7 +15,7 @@ import torch
 from einops import rearrange
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from ascendbench.frozen.shim import PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
 
 @triton.jit
 def _linear_attn_decode_kernel(q_ptr, k_ptr, v_ptr, kv_cache_ptr, slope_rate, slot_idx, output_ptr, D: tl.constexpr, qkv_b_stride, qkv_h_stride, cache_b_stride, cache_h_stride, cache_d0_stride, cache_d1_stride, pad_slot_id: tl.constexpr, BLOCK_SIZE: tl.constexpr):

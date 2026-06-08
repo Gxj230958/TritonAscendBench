@@ -34,7 +34,7 @@ pbgc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_b_golden_capture"] = pbgc
 _spec.loader.exec_module(pbgc)
 
-from triton_ascend_bench.dataset import TaskDef  # noqa: E402
+from ascendbench.corpus.dataset import TaskDef  # noqa: E402
 
 # --- fixtures: synthetic on-disk tasks --------------------------------
 
@@ -102,7 +102,7 @@ def _write_task(
 
 def _load(task_dir: Path) -> TaskDef:
     """Load a synthetic task dir into a TaskDef (bypasses level scan)."""
-    from triton_ascend_bench import dataset
+    from ascendbench.corpus import dataset
 
     meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
     return TaskDef(
@@ -145,8 +145,8 @@ def test_select_all_finds_exactly_the_score_eligible_uor_set():
     over/under-selection; non-score-eligible UOR tasks (stub oracle /
     PHASE-C-MANUAL shapes) are excluded because they have no capturable
     offline golden."""
-    from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
+    from ascendbench.corpus.dataset import iter_all_tasks
 
     all_tasks = list(iter_all_tasks())
     selected = pbgc._select_tasks(None)
@@ -177,8 +177,8 @@ def test_select_all_includes_resolved_gumbel_sample_uor():
     (real oracle + executable shapes), so it is score-eligible and MUST
     appear in the capture sweep. (It was the corpus's last stub-oracle UOR
     before resolution; this guards against a regression back to a stub.)"""
-    from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import load_task
+    from ascendbench.release_gate import eligibility
+    from ascendbench.corpus.dataset import load_task
 
     gumbel = load_task("L2_08_gumbel_sample")
     assert eligibility.is_upstream_oracle_required(gumbel)
@@ -197,7 +197,7 @@ def test_select_task_rejects_non_score_eligible_uor(monkeypatch, tmp_path):
     whether any real corpus task currently ships a stub oracle.
     ``_select_tasks`` calls the module-local ``load_task`` directly, so we
     monkeypatch that symbol to return the synthetic task."""
-    from triton_ascend_bench import eligibility
+    from ascendbench.release_gate import eligibility
 
     stub_dir = _write_task(tmp_path, "L1_99_stub_uor")
     stub_task = _load(stub_dir)
@@ -219,8 +219,8 @@ def test_select_all_is_sorted():
 def test_select_task_rejects_non_upstream_oracle_required():
     """--task on a PyTorch-oracle task is a category error: such a task's
     golden is generated live, never pre-stored."""
-    from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
+    from ascendbench.corpus.dataset import iter_all_tasks
 
     non_uor = next(
         t for t in iter_all_tasks()
@@ -231,8 +231,8 @@ def test_select_task_rejects_non_upstream_oracle_required():
 
 def test_select_task_accepts_upstream_oracle_required():
     """--task on a real upstream_oracle_required task resolves to it."""
-    from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
+    from ascendbench.corpus.dataset import iter_all_tasks
 
     uor = next(
         t for t in iter_all_tasks()
@@ -290,8 +290,8 @@ def test_dry_run_all_tasks_enumerates_every_eval_shape():
     exactly the score-eligible upstream_oracle_required tasks and their
     full eval shape set. Counts are derived from the eligibility filter, not
     hardcoded, so the corpus composition is not frozen."""
-    from triton_ascend_bench import eligibility
-    from triton_ascend_bench.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
+    from ascendbench.corpus.dataset import iter_all_tasks
 
     expected_ids = {
         t.task_id for t in iter_all_tasks()
@@ -344,7 +344,7 @@ def test_capture_result_satisfies_eligibility_golden_complete(
         tmp_path, monkeypatch):
     """A fully-captured task satisfies eligibility.golden_complete -- the
     runtime gate eval and validate_tasks both consume."""
-    from triton_ascend_bench import eligibility
+    from ascendbench.release_gate import eligibility
 
     task = _load(_write_task(tmp_path, "L1_99_demo"))
 

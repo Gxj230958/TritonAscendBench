@@ -1,4 +1,4 @@
-"""Unit tests for triton_ascend_bench.dataset."""
+"""Unit tests for ascendbench.corpus.dataset."""
 from __future__ import annotations
 
 import shutil
@@ -6,8 +6,8 @@ import shutil
 import pytest
 import yaml
 
-from triton_ascend_bench import dataset as dataset_mod
-from triton_ascend_bench.dataset import iter_all_tasks, load_task
+from ascendbench.corpus import dataset as dataset_mod
+from ascendbench.corpus.dataset import iter_all_tasks, load_task
 
 POC_TASK_IDS = [
     "L1_01_bias",
@@ -47,7 +47,7 @@ def test_each_task_has_mandatory_meta(task_id):
 
 @pytest.mark.parametrize("task_id", POC_TASK_IDS)
 def test_tolerance_class_exists_in_policy(task_id):
-    from triton_ascend_bench.tolerance import load_policy
+    from ascendbench.correctness.tolerance import load_policy
 
     pol = load_policy()
     task = load_task(task_id)

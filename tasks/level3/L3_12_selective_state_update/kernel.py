@@ -21,12 +21,12 @@ Frozen by: scripts/phase_a_freeze.py
 import torch
 from packaging import version
 
-from triton_ascend_bench.frozen.shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
-from triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
+from ascendbench.frozen.shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
+from ascendbench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
 HAS_TRITON = True  # Phase A': pinned severed-runtime capability flag
-from triton_ascend_bench.frozen.shim import NULL_BLOCK_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from ascendbench.frozen.shim import NULL_BLOCK_ID  # Phase A': attention sentinel constants (B-inert-shim)
 
 TRITON3 = HAS_TRITON and (version.parse(triton.__version__) >= version.parse("3.0.0"))
 

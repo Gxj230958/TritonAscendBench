@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from triton_ascend_bench.dataset import load_task
+from ascendbench.corpus.dataset import load_task
 
 
 def _load_oracle_module(task):

@@ -41,19 +41,19 @@ logger = logging.getLogger("validate_tasks")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
 CANARY_ROOT = Path(os.environ.get("TAB_CANARY_ROOT") or (TASKS_ROOT / "_canary"))
-POLICY_FILE = REPO_ROOT / "triton_ascend_bench" / "tolerance_policy.yaml"
+POLICY_FILE = REPO_ROOT / "ascendbench" / "policies" / "tolerance_policy.yaml"
 
 sys.path.insert(0, str(REPO_ROOT))
-from triton_ascend_bench import param_constraints  # noqa: E402
-from triton_ascend_bench.adversarial import (  # noqa: E402
+from ascendbench.input_spec import param_constraints  # noqa: E402
+from ascendbench.integrity.adversarial import (  # noqa: E402
     KNOWN_METAMORPHIC_CHECKS,
 )
-from triton_ascend_bench.cost_model import (  # noqa: E402
+from ascendbench.perf.cost_model import (  # noqa: E402
     CostModelError,
     parse_cost_model,
     validate_formulas,
 )
-from triton_ascend_bench.eligibility import (  # noqa: E402
+from ascendbench.release_gate.eligibility import (  # noqa: E402
     golden_artifact_usable,
     is_score_eligible,
 )
@@ -219,7 +219,7 @@ _HIGH_LEVEL_NN_CLASS_MODULES = frozenset({
 })
 
 # Known metamorphic-transformation check names. The authoritative registry
-# lives in `triton_ascend_bench.adversarial.KNOWN_METAMORPHIC_CHECKS` (W2.4)
+# lives in `ascendbench.integrity.adversarial.KNOWN_METAMORPHIC_CHECKS` (W2.4)
 # and is imported above — `validate_tasks` owns only the *validation* of
 # `meta.runner_checks.metamorphic_checks` against that single source of
 # truth, no longer a local bootstrap copy.
@@ -292,7 +292,7 @@ def _validate_param_constraints(tid: str, meta: dict) -> list[str]:
     :func:`_validate_param_constraints_semantic` (WA.4).
 
     The schema-shape logic is the shared
-    :func:`triton_ascend_bench.param_constraints.validate_schema_shape`, so
+    :func:`ascendbench.input_spec.param_constraints.validate_schema_shape`, so
     the validator and the eval gate cannot drift. A missing block is reported
     by the :data:`REQUIRED_META_TOP_LEVEL` check (Step 2) and skipped here so
     it is not double-reported.
@@ -319,7 +319,7 @@ def _validate_param_constraints_semantic(
 ) -> list[str]:
     """Validate ``meta.yaml.param_constraints`` semantics — WA.4 ①.
 
-    Runs the shared :func:`triton_ascend_bench.param_constraints.
+    Runs the shared :func:`ascendbench.input_spec.param_constraints.
     check_param_constraints` helper (the SAME helper ``eval`` and the
     ``cli.py`` status resolver consult) against the task's ``shapes.yaml``.
     The helper's fixed decision order is: scaffold short-circuit → schema
@@ -943,7 +943,7 @@ def _validate_phase_b_capture(tid: str, meta: dict) -> list[str]:
 def _validate_provenance_golden(tid: str, meta: dict) -> list[str]:
     """V9 plan M1.2 -- closed-enum + shape check on ``provenance.golden:``.
 
-    Delegates to ``triton_ascend_bench.provenance.validate_provenance_golden``,
+    Delegates to ``ascendbench.corpus.provenance.validate_provenance_golden``,
     which is the single source of truth for the schema. Grace period:
     when the nested ``golden:`` block is absent the validator returns
     cleanly; when present, every closed enum and hash-length field
@@ -953,7 +953,7 @@ def _validate_provenance_golden(tid: str, meta: dict) -> list[str]:
     # where the package's optional deps aren't installed (the
     # cli/dataset path imports torch transitively; this validator
     # script is run from CI on minimal envs).
-    from triton_ascend_bench.provenance import (  # noqa: PLC0415
+    from ascendbench.corpus.provenance import (  # noqa: PLC0415
         validate_provenance_golden,
     )
 
@@ -1335,14 +1335,14 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
 def _load_eligible_ids() -> tuple[set[str], int]:
     """Return (score_eligible_ids, catalogue_expected_eligible_count).
 
-    Single source of truth: triton_ascend_bench.eligibility (shared
+    Single source of truth: ascendbench.release_gate.eligibility (shared
     with cli.py -- plan U7, prevents drift). The expected count is
     derived independently from iter_all_tasks() so the non-vacuity
     guard can detect a wrong task-root / empty fixture / compute bug.
     """
     sys.path.insert(0, str(REPO_ROOT))
-    from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import compute_release_ready_eligible
+    from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate.eligibility import compute_release_ready_eligible
 
     # Release-ready eligible = score-eligible INTERSECT C2 provenance-eligible
     # (is_provenance_eligible). Gating the release set on this is what makes C2
@@ -1387,7 +1387,7 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
     """
     if tasks is None or eligible_ids is None:
         eligible_ids, expected = _load_eligible_ids()
-        from triton_ascend_bench.dataset import iter_all_tasks
+        from ascendbench.corpus.dataset import iter_all_tasks
 
         tasks = iter_all_tasks()
     else:
@@ -1422,7 +1422,7 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
 
     # W1.5: composite release predicate -- shared with cli.py analyze
     # and phase_a_prime.py's S6 verdict (identical blocking set).
-    from triton_ascend_bench.eligibility import compute_release_blocking
+    from ascendbench.release_gate.eligibility import compute_release_blocking
 
     blocking = compute_release_blocking(all_tasks, eligible_ids)
 

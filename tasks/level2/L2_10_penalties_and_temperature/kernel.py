@@ -13,13 +13,13 @@ Frozen by: scripts/phase_a_freeze.py
 """
 import numpy as np
 import torch
-from triton_ascend_bench.frozen.shim import SamplingParams  # Phase A': sibling-setup constants/types (B-inert-shim)
+from ascendbench.frozen.shim import SamplingParams  # Phase A': sibling-setup constants/types (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import async_tensor_h2d  # Phase A': pure predicate (B-inert-shim)
-from triton_ascend_bench.frozen.shim import UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
-from triton_ascend_bench.frozen.shim import RequestState  # Phase A': sibling request-state stand-in (B-inert-shim)
+from ascendbench.frozen.shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
+from ascendbench.frozen.shim import async_tensor_h2d  # Phase A': pure predicate (B-inert-shim)
+from ascendbench.frozen.shim import UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
+from ascendbench.frozen.shim import RequestState  # Phase A': sibling request-state stand-in (B-inert-shim)
 
 @triton.jit
 def _penalties_kernel(logits_ptr, logits_stride, expanded_idx_mapping_ptr, token_ids_ptr, expanded_local_pos_ptr, repetition_penalty_ptr, frequency_penalty_ptr, presence_penalty_ptr, prompt_bin_mask_ptr, prompt_bin_mask_stride, output_bin_counts_ptr, output_bin_counts_stride, vocab_size, BLOCK_SIZE: tl.constexpr):

@@ -18,7 +18,7 @@
 #
 # Implementation: scripts/phase_a_cost_xcheck.py. Per task it
 #   1. evaluates the analytic W_c / M_r formulas at each public eval
-#      shape (reuses triton_ascend_bench.cost_model verbatim);
+#      shape (reuses ascendbench.perf.cost_model verbatim);
 #   2. runs the promoted (Phase A' PASS) kernel.py on a live CUDA device
 #      under Nsight Compute (ncu), measuring HBM traffic via the
 #      hardware DRAM counters dram__bytes_read.sum + dram__bytes_write.sum;

@@ -25,13 +25,13 @@ from typing import Any
 
 import torch
 
-import triton_ascend_bench.frozen.shim.envs as envs  # Phase A': vllm.envs allowlist shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
-from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
+import ascendbench.frozen.shim.envs as envs  # Phase A': vllm.envs allowlist shim (B-inert-shim)
+from ascendbench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
+from ascendbench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.deps.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers import apply_alibi_to_score, apply_softcap, cdiv_fn, compute_kv_seq_mask, compute_tile_loop_bounds, find_seq_idx, init_softmax_M, load_qq_bias_tile, resolve_seq_and_query_len, softmax_step, store_segm_reduce_scalars  # Phase A': U2 pool-vendored triton helper
-from triton_ascend_bench.frozen.deps.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode import KVQuantMode  # Phase A': U2 pool-vendored IntEnum slice
+from ascendbench.frozen.deps.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers import apply_alibi_to_score, apply_softcap, cdiv_fn, compute_kv_seq_mask, compute_tile_loop_bounds, find_seq_idx, init_softmax_M, load_qq_bias_tile, resolve_seq_and_query_len, softmax_step, store_segm_reduce_scalars  # Phase A': U2 pool-vendored triton helper
+from ascendbench.frozen.deps.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode import KVQuantMode  # Phase A': U2 pool-vendored IntEnum slice
 
 logger = init_logger(__name__)
 is_batch_invariant = envs.VLLM_BATCH_INVARIANT

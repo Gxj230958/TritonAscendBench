@@ -43,7 +43,7 @@ pbgc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_b_golden_capture"] = pbgc
 _spec.loader.exec_module(pbgc)
 
-from triton_ascend_bench.dataset import TaskDef  # noqa: E402
+from ascendbench.corpus.dataset import TaskDef  # noqa: E402
 
 _PROMOTED_KERNEL = '''\
 """Synthetic promoted standalone kernel for path-A tests."""
@@ -106,7 +106,7 @@ def _write_task(
 
 def _load(task_dir: Path) -> TaskDef:
     """Build a TaskDef from a synthetic task dir."""
-    from triton_ascend_bench import dataset
+    from ascendbench.corpus import dataset
 
     meta = yaml.safe_load((task_dir / "meta.yaml").read_text())
     return TaskDef(

@@ -70,7 +70,7 @@ Outputs (dict keys): `eagle_input_ids` (int32), `eagle_positions`
 `last_token_indices` (int64), `eagle_current_draft_step` (int64 scalar).
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 

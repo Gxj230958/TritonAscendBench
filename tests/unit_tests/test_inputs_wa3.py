@@ -22,8 +22,8 @@ import math
 import pytest
 import torch
 
-from triton_ascend_bench.expr import ExprError
-from triton_ascend_bench.inputs import (
+from ascendbench.input_spec.expr import ExprError
+from ascendbench.input_spec.inputs import (
     DistSpecError,
     build_inputs,
     merge_inputs,

@@ -27,8 +27,8 @@ xc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_cost_xcheck"] = xc
 _spec.loader.exec_module(xc)
 
-from triton_ascend_bench.cost_model import parse_cost_model  # noqa: E402
-from triton_ascend_bench.dataset import ShapeSpec, TaskDef, load_task  # noqa: E402
+from ascendbench.perf.cost_model import parse_cost_model  # noqa: E402
+from ascendbench.corpus.dataset import ShapeSpec, TaskDef, load_task  # noqa: E402
 
 
 # --------------------------------------------------------------------------
@@ -473,7 +473,7 @@ def test_real_l1_21_task_is_score_eligible_not_skipped():
     non-eligible stub. It enters the real cost-xcheck path (BLOCKED in a
     GPU-free dry-run, never SKIPPED_NON_ELIGIBLE). Guards against a
     regression back to a stub-oracle scaffold."""
-    from triton_ascend_bench import eligibility
+    from ascendbench.release_gate import eligibility
 
     task = load_task("L2_08_gumbel_sample")
     assert eligibility.is_score_eligible(task)

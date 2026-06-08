@@ -39,8 +39,8 @@ if str(REPO) not in sys.path:
 
 import torch  # noqa: E402
 
-from triton_ascend_bench.cost_model import FormulaEnv, parse_cost_model  # noqa: E402
-from triton_ascend_bench.inputs import build_inputs  # noqa: E402
+from ascendbench.perf.cost_model import FormulaEnv, parse_cost_model  # noqa: E402
+from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
 
 #: declared-dtype -> element byte width (mirrors phase_a_cost_xcheck dtype_size).
 _DTYPE_BYTES = {

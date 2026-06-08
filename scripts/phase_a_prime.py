@@ -66,8 +66,8 @@ INFER_ROOT = paf.INFER_ROOT
 VLLM_ROOT = paf.VLLM_ROOT                       # infer/vllm
 SGLANG_ROOT = paf.SGLANG_ROOT                   # infer/sglang/python
 
-FROZEN_DEPS_POOL = REPO_ROOT / "triton_ascend_bench" / "frozen" / "deps"
-FROZEN_SHIM = REPO_ROOT / "triton_ascend_bench" / "frozen" / "shim"
+FROZEN_DEPS_POOL = REPO_ROOT / "ascendbench" / "frozen" / "deps"
+FROZEN_SHIM = REPO_ROOT / "ascendbench" / "frozen" / "shim"
 PLANS_DIR = REPO_ROOT / "docs" / "plans"
 CLASSIFICATION_MD = PLANS_DIR / "phase_a_prime_classification.md"
 STATUS_MD = PLANS_DIR / "phase_a_prime_status.md"
@@ -1061,7 +1061,7 @@ def _vendor_triton_helper_module(
     edit -- that re-export is a Class-D peer, not a vendorable upstream
     symbol), content-addresses the result into the pool via vendor_symbol,
     and returns the dotted pool import path
-    (``triton_ascend_bench.frozen.deps.h_<sha12>.<safe_mod>``) or None if the
+    (``ascendbench.frozen.deps.h_<sha12>.<safe_mod>``) or None if the
     source is unreadable.
 
     Whole-module (not per-symbol) is the architecturally-correct slice for
@@ -1109,7 +1109,7 @@ def _vendor_triton_helper_module(
     # dst = FROZEN_DEPS_POOL / h_<sha12> / <safe_mod>.py ; build dotted path.
     sha_dir = dst.parent.name           # h_<sha12>
     safe_mod = dst.stem                 # <module-with-dots-as-underscores>
-    return f"triton_ascend_bench.frozen.deps.{sha_dir}.{safe_mod}"
+    return f"ascendbench.frozen.deps.{sha_dir}.{safe_mod}"
 
 
 # Import-safe pool key for the extracted mamba softplus (no ':' -- a colon
@@ -1238,7 +1238,7 @@ def _vendor_mamba_softplus(repo: str) -> str | None:
     dst = vendor_symbol(_MAMBA_SOFTPLUS_POOL_KEY, body, repo)
     sha_dir = dst.parent.name           # h_<sha12>
     safe_mod = dst.stem                 # <key-with-dots-as-underscores>
-    return f"triton_ascend_bench.frozen.deps.{sha_dir}.{safe_mod}"
+    return f"ascendbench.frozen.deps.{sha_dir}.{safe_mod}"
 
 
 # Import-safe pool key for the extracted KVQuantMode IntEnum (no ':' so
@@ -1361,7 +1361,7 @@ def _vendor_kvquantmode(repo: str) -> str | None:
     dst = vendor_symbol(_KVQUANTMODE_POOL_KEY, body, repo)
     sha_dir = dst.parent.name           # h_<sha12>
     safe_mod = dst.stem                 # <key-with-dots-as-underscores>
-    return f"triton_ascend_bench.frozen.deps.{sha_dir}.{safe_mod}"
+    return f"ascendbench.frozen.deps.{sha_dir}.{safe_mod}"
 
 
 # FLA-ops package U2 vendoring (codex design A). Each module's external
@@ -1381,16 +1381,16 @@ _FLA_REWRITE = {
     ],
     "from vllm.triton_utils import triton": ["import triton"],
     "from vllm.platforms import current_platform": [
-        "from triton_ascend_bench.frozen.shim import current_platform",
+        "from ascendbench.frozen.shim import current_platform",
     ],
     "from vllm.utils.platform_utils import num_compute_units": [
-        "from triton_ascend_bench.frozen.shim import num_compute_units",
+        "from ascendbench.frozen.shim import num_compute_units",
     ],
     # FLA ops module ``kda.py`` subclasses CustomOp for an unrelated
     # registered class; redirect to the inert shim (same A1 lever, base
     # nn.Module + no-op register). The FLA modules never read op_registry.
     "from vllm.model_executor.custom_op import CustomOp": [
-        "from triton_ascend_bench.frozen.shim import CustomOp",
+        "from ascendbench.frozen.shim import CustomOp",
     ],
 }
 # math_utils import is handled by prefix (variable symbol list).
@@ -1417,7 +1417,7 @@ def _rewrite_fla_module_source(src: str) -> str | None:
         if s.startswith(_FLA_MATH_PREFIX):
             syms = {x.strip() for x in s[len(_FLA_MATH_PREFIX):].split(",")}
             if syms and syms <= _FLA_MATH_ALLOWED and "(" not in s:
-                out.append(f"{indent}from triton_ascend_bench.frozen.shim import "
+                out.append(f"{indent}from ascendbench.frozen.shim import "
                            f"{s[len(_FLA_MATH_PREFIX):]}\n")
                 continue
             return None  # math_utils symbol outside the shimmed set
@@ -1437,7 +1437,7 @@ def vendor_package(pkg_name: str, modules: dict[str, str], repo: str) -> str | N
     rewritten source. The package hash is over the sorted concatenation
     so the whole package is one content-addressed unit and intra-package
     relative imports resolve within it. Returns the dotted package
-    prefix ``triton_ascend_bench.frozen.deps.h_<sha>.<pkg_name>`` (callers append
+    prefix ``ascendbench.frozen.deps.h_<sha>.<pkg_name>`` (callers append
     ``.<submodule>``), or None if ``modules`` is empty.
     """
     if not modules:
@@ -1446,7 +1446,7 @@ def vendor_package(pkg_name: str, modules: dict[str, str], repo: str) -> str | N
     blob = "\n".join(f"### {m}\n{modules[m]}" for m in sorted(modules))
     sha12 = hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
     pkg_dir = FROZEN_DEPS_POOL / f"h_{sha12}" / pkg_name
-    prefix = f"triton_ascend_bench.frozen.deps.h_{sha12}.{pkg_name}"
+    prefix = f"ascendbench.frozen.deps.h_{sha12}.{pkg_name}"
     # Completeness check, not bare existence: a prior interrupted write
     # could leave a partial pkg_dir. Only treat it as cached when every
     # expected file (__init__ + each module) is present (codex finding 1).
@@ -1649,7 +1649,7 @@ def _update_notice_for_vendoring() -> None:
         return
     para = (
         "\n5. **Phase A-prime vendored dependency pool** "
-        "(`triton_ascend_bench/frozen/deps/`):\n"
+        "(`ascendbench/frozen/deps/`):\n"
         "   Symbol-level reachable-closure dependencies extracted from\n"
         "   vLLM / SGLang upstream sources to make each `kernel.py`\n"
         "   standalone. Each pool entry preserves its original Apache\n"
@@ -1668,7 +1668,7 @@ def _update_notice_for_vendoring() -> None:
 # U3: narrow Class-B shim (default-deny)
 # ───────────────────────────────────────────────────────────────────────────
 def register_shim_symbol(sc: SymbolClass) -> None:
-    """Register a provably-inert Class-B symbol into `triton_ascend_bench/frozen/shim/`.
+    """Register a provably-inert Class-B symbol into `ascendbench/frozen/shim/`.
 
     Default-deny: ONLY `CLASS_B_INERT_SHIM` with a non-empty proof is
     accepted. `tl`/`triton` re-exports (B-rewrite-public) are REJECTED
@@ -4033,8 +4033,8 @@ def _release_blocker_count() -> int:
     (not merely a numeric coincidence on a 0-PASS dev box)."""
     if str(REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(REPO_ROOT))
-    from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import (
+    from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate.eligibility import (
         compute_release_blocking,
         compute_release_ready_eligible,
     )
@@ -4625,7 +4625,7 @@ def rewrite_imports_to_standalone(
     """Rewrite a kernel.py's external imports to the standalone
     surface (plan U5). B-rewrite-public symbols become public
     ``import triton`` / ``import triton.language as tl``; B-inert-shim
-    symbols point at ``triton_ascend_bench.frozen.shim``. Class-A/C/S symbols are
+    symbols point at ``ascendbench.frozen.shim``. Class-A/C/S symbols are
     pool-backed (the pool entry is written separately by U2). This is
     a conservative line-level rewrite of the *import statements only*;
     it never edits kernel numeric logic (plan: changing values = A'
@@ -4918,7 +4918,7 @@ def rewrite_imports_to_standalone(
         # but softplus is a @triton.jit device function referenced ONLY inside
         # the sibling _chunk_cumsum_fwd_kernel, which the chunk_state launcher
         # never launches (proven by the launched-jit closure). Redirect it to
-        # the inert raising triton_ascend_bench.frozen.shim.softplus so the off-path jit
+        # the inert raising ascendbench.frozen.shim.softplus so the off-path jit
         # sibling imports without compiling. Single-symbol + subset-allowlisted
         # ({softplus}) + fail-closed on TWO independent gates: (1) the symbol
         # must be OFF the launcher-launched jit closure (so the cumsum task
@@ -4935,7 +4935,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import softplus"
+                    f"{indent}from ascendbench.frozen.shim import softplus"
                     f"  # Phase A': off-path mamba softplus (B-inert-shim)\n"
                 )
                 continue
@@ -4976,7 +4976,7 @@ def rewrite_imports_to_standalone(
         # chunked_prefill_paged_decode's prefill branch (max_query_len > 1); the
         # graded @triton.jit kernel_paged_attention_2d decode kernel (which the
         # launcher drives with one query token per sequence) never reaches it.
-        # Redirect to the inert raising triton_ascend_bench.frozen.shim.context_attention_fwd
+        # Redirect to the inert raising ascendbench.frozen.shim.context_attention_fwd
         # so the severed standalone resolves without pulling the real
         # prefix_prefill module (its vllm _custom_ops / platform closure).
         # Single-symbol + subset-allowlisted ({context_attention_fwd}) +
@@ -4996,7 +4996,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"context_attention_fwd"
                     f"  # Phase A': off-path prefix-prefill wrapper (B-inert-shim)\n"
                 )
@@ -5114,7 +5114,7 @@ def rewrite_imports_to_standalone(
             # delegates to the real autotuner, so GPU benchmarking is intact.
             if _kernel_autotuned and not _autotune_clone_emitted:
                 out.append(
-                    f"{indent}from triton_ascend_bench.upstream_shims."
+                    f"{indent}from ascendbench.upstream_shims."
                     f"triton_autotune_interp import make_triton_clone as "
                     f"_pa_make_triton_clone"
                     f"  # Phase A': interpreter-aware autotune fallback\n"
@@ -5139,7 +5139,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"get_moe_padding_size"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import get_moe_padding_size"
+                    f"{indent}from ascendbench.frozen.shim import get_moe_padding_size"
                     f"  # Phase A': MoE padding query (B-inert-shim)\n"
                 )
                 continue
@@ -5152,7 +5152,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"is_batch_invariant_mode_enabled"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import is_batch_invariant_mode_enabled"
+                    f"{indent}from ascendbench.frozen.shim import is_batch_invariant_mode_enabled"
                     f"  # Phase A': batch-invariant gate (B-inert-shim)\n"
                 )
                 continue
@@ -5176,7 +5176,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {', '.join(sorted(_sym_set))}"
+                    f"{indent}from ascendbench.frozen.shim import {', '.join(sorted(_sym_set))}"
                     f"  # Phase A': int8 quant -> loud-fail stub (off-path)\n"
                 )
                 continue
@@ -5186,7 +5186,7 @@ def rewrite_imports_to_standalone(
             indent = ln[: len(ln) - len(ln.lstrip())]
             # B-inert-shim: no-op logger sink.
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import init_logger"
+                f"{indent}from ascendbench.frozen.shim import init_logger"
                 f"  # Phase A': inert no-op sink (B-inert-shim)\n"
             )
             continue
@@ -5197,7 +5197,7 @@ def rewrite_imports_to_standalone(
         if stripped.startswith("from vllm.platforms import current_platform"):
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import current_platform"
+                f"{indent}from ascendbench.frozen.shim import current_platform"
                 f"  # Phase A': platform stub (B-inert-shim)\n"
             )
             continue
@@ -5225,7 +5225,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': pure predicate (B-inert-shim)\n"
                 )
                 continue
@@ -5242,7 +5242,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': pure-math shim (B-inert-shim)\n"
                 )
                 continue
@@ -5267,7 +5267,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import CustomOp"
+                    f"{indent}from ascendbench.frozen.shim import CustomOp"
                     f"  # Phase A': inert CustomOp base + no-op register "
                     f"(B-inert-shim)\n"
                 )
@@ -5284,7 +5284,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': scheduling-only grid sizing (B-inert-shim)\n"
                 )
                 continue
@@ -5300,7 +5300,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': live device query (B-inert-shim)\n"
                 )
                 continue
@@ -5325,7 +5325,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': platform/math predicate (B-inert-shim)\n"
                 )
                 continue
@@ -5340,7 +5340,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"register_custom_op"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import register_custom_op"
+                    f"{indent}from ascendbench.frozen.shim import register_custom_op"
                     f"  # Phase A': inert custom-op decorator (B-inert-shim)\n"
                 )
                 continue
@@ -5355,7 +5355,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"register_cuda_ci"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import register_cuda_ci"
+                    f"{indent}from ascendbench.frozen.shim import register_cuda_ci"
                     f"  # Phase A': CI-registration no-op (B-inert-shim)\n"
                 )
                 continue
@@ -5373,7 +5373,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"moe_align_block_size"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import moe_align_block_size"
+                    f"{indent}from ascendbench.frozen.shim import moe_align_block_size"
                     f"  # Phase A': sibling-only CUDA reference (B-inert-shim)\n"
                 )
                 continue
@@ -5390,7 +5390,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"is_arch_support_pdl"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import is_arch_support_pdl"
+                    f"{indent}from ascendbench.frozen.shim import is_arch_support_pdl"
                     f"  # Phase A': sibling-only PDL arch gate (B-inert-shim)\n"
                 )
                 continue
@@ -5410,7 +5410,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"fused_topk"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import fused_topk"
+                    f"{indent}from ascendbench.frozen.shim import fused_topk"
                     f"  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)\n"
                 )
                 continue
@@ -5431,7 +5431,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"is_dp_attention_enabled"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import is_dp_attention_enabled"
+                    f"{indent}from ascendbench.frozen.shim import is_dp_attention_enabled"
                     f"  # Phase A': sibling-only DP-attention gate (B-inert-shim)\n"
                 )
                 continue
@@ -5448,7 +5448,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"concat_mla_absorb_q"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import concat_mla_absorb_q"
+                    f"{indent}from ascendbench.frozen.shim import concat_mla_absorb_q"
                     f"  # Phase A': sibling-only CUDA absorb-concat (B-inert-shim)\n"
                 )
                 continue
@@ -5465,7 +5465,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': sibling-setup constants/types (B-inert-shim)\n"
                 )
                 continue
@@ -5479,7 +5479,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"LogprobsTensors"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import LogprobsTensors"
+                    f"{indent}from ascendbench.frozen.shim import LogprobsTensors"
                     f"  # Phase A': faithful NamedTuple container (B-inert-shim)\n"
                 )
                 continue
@@ -5495,7 +5495,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': setup-only buffer helpers (B-inert-shim)\n"
                 )
                 continue
@@ -5507,7 +5507,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"InputBatch"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import InputBatch"
+                    f"{indent}from ascendbench.frozen.shim import InputBatch"
                     f"  # Phase A': sibling batch-state stand-in (B-inert-shim)\n"
                 )
                 continue
@@ -5526,7 +5526,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"RequestState"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import RequestState"
+                    f"{indent}from ascendbench.frozen.shim import RequestState"
                     f"  # Phase A': sibling request-state stand-in (B-inert-shim)\n"
                 )
                 continue
@@ -5551,7 +5551,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"LoRABatchInfo"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import LoRABatchInfo"
+                    f"{indent}from ascendbench.frozen.shim import LoRABatchInfo"
                     f"  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)\n"
                 )
                 continue
@@ -5574,7 +5574,7 @@ def rewrite_imports_to_standalone(
                 _sym = next(iter(_sym_set))
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_sym}"
+                    f"{indent}from ascendbench.frozen.shim import {_sym}"
                     f"  # Phase A': LoRA block-size config (B-inert-shim)\n"
                 )
                 continue
@@ -5590,20 +5590,20 @@ def rewrite_imports_to_standalone(
         if stripped.startswith(_FP8K):
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import {stripped[len(_FP8K):]}"
+                f"{indent}from ascendbench.frozen.shim import {stripped[len(_FP8K):]}"
                 f"  # Phase A': fp8 quant helpers -> shim (B-inert-shim)\n"
             )
             continue
         # B-inert-shim: `import vllm.envs as <alias>`. The module-import
         # form (not `from ... import ...`), redirected to the allowlisted
-        # triton_ascend_bench.frozen.shim.envs module, which exposes only verified-inert
+        # ascendbench.frozen.shim.envs module, which exposes only verified-inert
         # flag defaults and loud-fails on anything else. Preserve the alias
         # so `<alias>.VLLM_X` references keep resolving.
         _m_envs = re.match(r"^import\s+vllm\.envs\s+as\s+(\w+)\s*$", stripped)
         if _m_envs:
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}import triton_ascend_bench.frozen.shim.envs as {_m_envs.group(1)}"
+                f"{indent}import ascendbench.frozen.shim.envs as {_m_envs.group(1)}"
                 f"  # Phase A': vllm.envs allowlist shim (B-inert-shim)\n"
             )
             continue
@@ -5662,7 +5662,7 @@ def rewrite_imports_to_standalone(
                 if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                     indent = ln[: len(ln) - len(ln.lstrip())]
                     out.append(
-                        f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                        f"{indent}from ascendbench.frozen.shim import {_syms}"
                         f"  # Phase A': sglang sibling surface "
                         f"(B-inert-shim)\n"
                     )
@@ -5679,7 +5679,7 @@ def rewrite_imports_to_standalone(
         if stripped == "from sglang.srt.environ import envs":
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import envs"
+                f"{indent}from ascendbench.frozen.shim import envs"
                 f"  # Phase A': sglang env namespace (B-inert-shim)\n"
             )
             continue
@@ -5695,7 +5695,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import {_syms}"
+                    f"{indent}from ascendbench.frozen.shim import {_syms}"
                     f"  # Phase A': attention sentinel constants (B-inert-shim)\n"
                 )
                 continue
@@ -5718,7 +5718,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"count_expert_num_tokens"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import count_expert_num_tokens"
+                    f"{indent}from ascendbench.frozen.shim import count_expert_num_tokens"
                     f"  # Phase A': off-path host-wrapper helper (B-inert-shim)\n"
                 )
                 continue
@@ -5765,7 +5765,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path deep_gemm accel surface (B-inert-shim)\n"
                 )
@@ -5798,7 +5798,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path w8a8 weight utils (B-inert-shim)\n"
                 )
@@ -5827,7 +5827,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path weight-loader params (B-inert-shim)\n"
                 )
@@ -5851,7 +5851,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path weight-attr setter (B-inert-shim)\n"
                 )
@@ -5863,7 +5863,7 @@ def rewrite_imports_to_standalone(
         # off-graded-path host wrappers ``compute_aligned_M`` /
         # ``deepgemm_moe_permute``; the graded ``_fwd_kernel_ep_scatter_1`` is
         # annotated with none of these types. Redirect to the allowlisted
-        # triton_ascend_bench.frozen.shim.modular_kernel module (exposes ExpertTokensMetadata's
+        # ascendbench.frozen.shim.modular_kernel module (exposes ExpertTokensMetadata's
         # verbatim dataclass shape) so the def-time annotation resolves without
         # re-importing vllm's modular_kernel closure. Preserve the alias.
         _m_modkern = re.match(
@@ -5874,7 +5874,7 @@ def rewrite_imports_to_standalone(
         if _m_modkern:
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}import triton_ascend_bench.frozen.shim.modular_kernel as "
+                f"{indent}import ascendbench.frozen.shim.modular_kernel as "
                 f"{_m_modkern.group(1)}"
                 f"  # Phase A': off-path modular_kernel annotation shim "
                 f"(B-inert-shim)\n"
@@ -5885,7 +5885,7 @@ def rewrite_imports_to_standalone(
         # pure @triton.jit ``fast_exp`` device function (verbatim exp2 identity).
         # It cannot be shimmed (compute-path @triton.jit, not an inert constant)
         # so the sanctioned path is U2 content-addressed vendoring: copy the
-        # upstream module verbatim into triton_ascend_bench/frozen/deps/ (rewriting its
+        # upstream module verbatim into ascendbench/frozen/deps/ (rewriting its
         # own ``from vllm.triton_utils import tl, triton`` to public triton),
         # then redirect the kernel's import at the pool path. The severed runner
         # already exposes the pool on sys.path.
@@ -5998,7 +5998,7 @@ def rewrite_imports_to_standalone(
         if _m_custom_ops:
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import ops as "
+                f"{indent}from ascendbench.frozen.shim import ops as "
                 f"{_m_custom_ops.group(1)}"
                 f"  # Phase A': off-path custom-ops shim (B-inert-shim)\n"
             )
@@ -6013,7 +6013,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"MoEActivation"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import MoEActivation"
+                    f"{indent}from ascendbench.frozen.shim import MoEActivation"
                     f"  # Phase A': off-path activation enum (B-inert-shim)\n"
                 )
                 continue
@@ -6035,7 +6035,7 @@ def rewrite_imports_to_standalone(
             if _sym_set and _sym_set <= _allowed and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path fused_moe config (B-inert-shim)\n"
                 )
@@ -6053,7 +6053,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"LoRAExpertsMixin"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import LoRAExpertsMixin"
+                    f"{indent}from ascendbench.frozen.shim import LoRAExpertsMixin"
                     f"  # Phase A': off-path mixin base (B-inert-shim)\n"
                 )
                 continue
@@ -6085,7 +6085,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path reduce helper (B-inert-shim)\n"
                 )
@@ -6103,7 +6103,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"_resize_cache"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import _resize_cache"
+                    f"{indent}from ascendbench.frozen.shim import _resize_cache"
                     f"  # Phase A': off-path workspace reshape (B-inert-shim)\n"
                 )
                 continue
@@ -6118,7 +6118,7 @@ def rewrite_imports_to_standalone(
             if _sym_set == {"has_triton_kernels"} and "(" not in _syms:
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import has_triton_kernels"
+                    f"{indent}from ascendbench.frozen.shim import has_triton_kernels"
                     f"  # Phase A': optional-package predicate (B-inert-shim)\n"
                 )
                 continue
@@ -6131,7 +6131,7 @@ def rewrite_imports_to_standalone(
         if stripped == "from ..utils import swiglu_limit_func":
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
-                f"{indent}from triton_ascend_bench.frozen.shim import swiglu_limit_func"
+                f"{indent}from ascendbench.frozen.shim import swiglu_limit_func"
                 f"  # Phase A': off-path swiglu helper (B-inert-shim)\n"
             )
             continue
@@ -6158,7 +6158,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': off-path forward-context (B-inert-shim)\n"
                 )
@@ -6205,7 +6205,7 @@ def rewrite_imports_to_standalone(
             ):
                 indent = ln[: len(ln) - len(ln.lstrip())]
                 out.append(
-                    f"{indent}from triton_ascend_bench.frozen.shim import "
+                    f"{indent}from ascendbench.frozen.shim import "
                     f"{', '.join(sorted(_sym_set))}"
                     f"  # Phase A': quant symbols, symbol-aware (B-inert-shim)\n"
                 )
@@ -6682,15 +6682,15 @@ def build_staged_candidate(
 
 
 # Matches the pool-import lines the rewrite emits (both the single-file
-# helper path -> ``from triton_ascend_bench.frozen.deps.h_<sha>.<mod> import ...`` and
-# the package path -> ``from triton_ascend_bench.frozen.deps.h_<sha>.<pkg>.<sub>
+# helper path -> ``from ascendbench.frozen.deps.h_<sha>.<mod> import ...`` and
+# the package path -> ``from ascendbench.frozen.deps.h_<sha>.<pkg>.<sub>
 # import ...``). Captures the concrete MODULE dotted-path (the exact shipped
-# artifact), ignoring the imported names. ``import triton_ascend_bench.frozen.deps...``
+# artifact), ignoring the imported names. ``import ascendbench.frozen.deps...``
 # is also handled. Used by promote_staged_candidate to record frozen_deps as
 # what shipped, not classification noise.
 _POOL_IMPORT_RE = re.compile(
     r"^\s*(?:from|import)\s+"
-    r"(triton_ascend_bench\.frozen\.deps\.h_[0-9a-f]+(?:\.[\w.]+)?)",
+    r"(ascendbench\.frozen\.deps\.h_[0-9a-f]+(?:\.[\w.]+)?)",
     re.M,
 )
 

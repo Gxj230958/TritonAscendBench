@@ -22,8 +22,8 @@ from pathlib import Path
 
 import pytest
 
-from triton_ascend_bench import process_isolation as pi
-from triton_ascend_bench.eval import evaluate
+from ascendbench.integrity import process_isolation as pi
+from ascendbench.engine.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"
@@ -36,7 +36,7 @@ _HIDDEN_IDS = {"H1", "H2", "H3", "H4"}
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True,
     )
 

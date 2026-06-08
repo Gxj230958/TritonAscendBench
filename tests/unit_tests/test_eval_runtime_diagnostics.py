@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from triton_ascend_bench.eval import _apply_runtime_diagnostics
+from ascendbench.engine.eval import _apply_runtime_diagnostics
 
 
 def _scr(ke=None, sn=None, fs=None):

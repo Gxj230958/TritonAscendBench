@@ -128,10 +128,10 @@ def main(argv: list[str] | None = None) -> int:
     # Release-cert stage (sentinel-gated): the daemon host is a CUDA GPU, so the
     # GPU-only cert steps that dev cannot run -- cost_model GPU cross-check (needs
     # ncu) and golden offline-reference capture (needs CUDA) -- CAN run here. When
-    # a `triton_ascend_bench/.run_cert` sentinel is synced in, run them on this
+    # a `ascendbench/.run_cert` sentinel is synced in, run them on this
     # host after the C2 grade. Best-effort: never affects the C2 verdict, and
     # sentinel-gated so ordinary C2 batches stay fast.
-    if (REPO_ROOT / "triton_ascend_bench" / ".run_cert").is_file():
+    if (REPO_ROOT / "ascendbench" / ".run_cert").is_file():
         # cost-xcheck applies to every task; golden capture only to score-eligible
         # upstream_oracle_required tasks (it returns rc=1 by design elsewhere), so
         # prefilter golden to avoid noisy no-op runs.

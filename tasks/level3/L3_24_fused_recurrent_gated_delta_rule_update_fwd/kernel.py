@@ -15,8 +15,8 @@ from typing import Optional, Tuple
 import torch
 import triton
 import triton.language as tl
-from triton_ascend_bench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.op import exp  # Phase A': U2 SGLang FLA op vendoring
-from triton_ascend_bench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.utils import input_guard  # Phase A': U2 SGLang FLA utils vendoring
+from ascendbench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.op import exp  # Phase A': U2 SGLang FLA op vendoring
+from ascendbench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.utils import input_guard  # Phase A': U2 SGLang FLA utils vendoring
 
 @triton.jit(do_not_specialize=['T'])
 def fused_recurrent_gated_delta_rule_update_fwd_kernel(q, k, v, g, beta, o, h0_source, h0_indices, cu_seqlens, scale, intermediate_states_buffer, intermediate_state_indices, cache_steps, retrieve_parent_token_ptr, stride_retrieve_parent_token_seq: tl.constexpr, stride_retrieve_parent_token_token: tl.constexpr, T, NP2_T: tl.constexpr, B: tl.constexpr, H: tl.constexpr, HV: tl.constexpr, K: tl.constexpr, V: tl.constexpr, BK: tl.constexpr, BV: tl.constexpr, USE_INITIAL_STATE: tl.constexpr, IS_BETA_HEADWISE: tl.constexpr, USE_QK_L2NORM_IN_KERNEL: tl.constexpr, IS_VARLEN: tl.constexpr, DISABLE_STATE_UPDATE: tl.constexpr, DISABLE_OUTPUT_CALCULATION: tl.constexpr, CACHE_INTERMEDIATE_STATES: tl.constexpr, HAS_EAGLE_TREE_CUSTOM_ATTN_MASK: tl.constexpr):

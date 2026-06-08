@@ -89,12 +89,12 @@ def _find_task_dir(repo_root: Path, task_id: str) -> Path | None:
 
 
 def _find_wrapper_signature(repo_root: Path, task_id: str) -> str:
-    """Look up ``triton_ascend_bench/frozen/snapshots/<task>_*.py`` for the wrapper entry
+    """Look up ``ascendbench/frozen/snapshots/<task>_*.py`` for the wrapper entry
     point and pull its signature. If not present, return an explicit
     fail-loud marker -- the orchestrator should raise."""
     vendored = repo_root / "tasks" / "_vendored"
     if not vendored.is_dir():
-        return "(no vendored sources under triton_ascend_bench/frozen/snapshots)"
+        return "(no vendored sources under ascendbench/frozen/snapshots)"
     candidates = list(vendored.glob(f"{task_id}_*.py"))
     if not candidates:
         return f"(no vendored file matching {task_id}_*.py)"
@@ -183,7 +183,7 @@ def build_prompt(
         "## current shapes.yaml",
         current_shapes,
         "",
-        "## wrapper signature (from triton_ascend_bench/frozen/snapshots/)",
+        "## wrapper signature (from ascendbench/frozen/snapshots/)",
         wrapper_sig,
         "",
         "## caller evidence (greps from infer/{vllm,sglang})",

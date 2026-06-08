@@ -17,10 +17,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import peak_table
-from triton_ascend_bench.cost_model import CostModel
-from triton_ascend_bench.eval import ShapeRunResult, TaskEvalResult
+from ascendbench.engine import eval as _eval
+from ascendbench.perf import peak_table
+from ascendbench.perf.cost_model import CostModel
+from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
 
 # A two-shape document: knobs feed the cost-model formulas.
 _SHAPES_DOC = {
@@ -42,7 +42,7 @@ def _verified_peaks(_path=None, *, require_verified=False):
 def _make_result(durations_by_shape: dict[str, list[float]]) -> TaskEvalResult:
     r = TaskEvalResult(task_id="T", static_checks_passed=True)
     for sid, durs in durations_by_shape.items():
-        from triton_ascend_bench.scoring import duration_stats
+        from ascendbench.perf.scoring import duration_stats
         st = duration_stats(durs)
         r.shape_results.append(ShapeRunResult(
             shape_id=sid, correctness_passed=True, correctness_reason=None,

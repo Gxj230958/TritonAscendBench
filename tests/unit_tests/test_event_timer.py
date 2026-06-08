@@ -12,7 +12,7 @@ from unittest import mock
 
 import pytest
 
-from triton_ascend_bench.backends.npu import EventTimer, NpuBackend
+from ascendbench.backends.npu import EventTimer, NpuBackend
 
 
 def _mock_npu():
@@ -37,7 +37,7 @@ def test_event_timer_defers_elapsed_read_past_exit():
     """elapsed_time is NOT read in __exit__; only when elapsed_ns() is called
     (after the caller's post-bracket sync)."""
     fake, rec_order, elapsed_calls = _mock_npu()
-    with mock.patch("triton_ascend_bench.backends.npu._NPU_AVAILABLE", True), \
+    with mock.patch("ascendbench.backends.npu._NPU_AVAILABLE", True), \
             mock.patch("torch.npu", fake, create=True):
         timer = EventTimer()
         with timer:
@@ -54,7 +54,7 @@ def test_event_timer_defers_elapsed_read_past_exit():
 def test_event_timer_exception_leaves_elapsed_none():
     """An exception in the bracket → end not recorded, elapsed_ns() is None."""
     fake, rec_order, elapsed_calls = _mock_npu()
-    with mock.patch("triton_ascend_bench.backends.npu._NPU_AVAILABLE", True), \
+    with mock.patch("ascendbench.backends.npu._NPU_AVAILABLE", True), \
             mock.patch("torch.npu", fake, create=True):
         timer = EventTimer()
         with pytest.raises(ValueError):
@@ -68,7 +68,7 @@ def test_event_timer_exception_leaves_elapsed_none():
 def test_event_timer_takes_no_sync_arg():
     """The timer no longer accepts a sync callable (the caller owns syncs)."""
     fake, _, _ = _mock_npu()
-    with mock.patch("triton_ascend_bench.backends.npu._NPU_AVAILABLE", True), \
+    with mock.patch("ascendbench.backends.npu._NPU_AVAILABLE", True), \
             mock.patch("torch.npu", fake, create=True):
         assert NpuBackend().event_timer() is not None
         with pytest.raises(TypeError):

@@ -4,9 +4,9 @@
 
 
 > v0 — per v4.13 §10.2 + R18-S2
-> Machine-readable form: `triton_ascend_bench/tolerance_policy.yaml` (loaded by `eval.py`)
+> Machine-readable form: `ascendbench/policies/tolerance_policy.yaml` (loaded by `eval.py`)
 
-Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for the correctness check. The table is illustrative; `triton_ascend_bench/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
+Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for the correctness check. The table is illustrative; `ascendbench/policies/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
 
 ## Tolerance Classes
 
@@ -44,8 +44,8 @@ Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner
 
 ## Authority
 
-- Source of truth: `triton_ascend_bench/tolerance_policy.yaml` (this file's machine-readable counterpart).
-- Each task's `meta.yaml.tolerance_class` MUST be one of the keys in `triton_ascend_bench/tolerance_policy.yaml` (the complete authority). New classes require:
+- Source of truth: `ascendbench/policies/tolerance_policy.yaml` (this file's machine-readable counterpart).
+- Each task's `meta.yaml.tolerance_class` MUST be one of the keys in `ascendbench/policies/tolerance_policy.yaml` (the complete authority). New classes require:
   1. Justification in PR description
   2. Code review from at least one Phase 2 owner
   3. Update to both this `.md` and the `.yaml`

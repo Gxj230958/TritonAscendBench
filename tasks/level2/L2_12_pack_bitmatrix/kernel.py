@@ -12,20 +12,20 @@ File SHA-256 (this vendored copy): 1a839b9706673f8a54e7d21818952a190a853cf7021a6
 Frozen by: scripts/phase_a_freeze.py
 """
 import torch
-import triton_ascend_bench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
-from triton_ascend_bench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
-from triton_ascend_bench.frozen.shim import MoEActivation  # Phase A': off-path activation enum (B-inert-shim)
-from triton_ascend_bench.frozen.shim import FUSED_MOE_UNQUANTIZED_CONFIG, FusedMoEConfig, FusedMoEParallelConfig, FusedMoEQuantConfig, RoutingMethodType  # Phase A': off-path fused_moe config (B-inert-shim)
-from triton_ascend_bench.frozen.shim import LoRAExpertsMixin  # Phase A': off-path mixin base (B-inert-shim)
-from triton_ascend_bench.frozen.shim import TopKWeightAndReduceNoOP  # Phase A': off-path reduce helper (B-inert-shim)
-from triton_ascend_bench.frozen.shim import _resize_cache  # Phase A': off-path workspace reshape (B-inert-shim)
-from triton_ascend_bench.frozen.shim import QuantKey, kMxfp4Static  # Phase A': quant symbols, symbol-aware (B-inert-shim)
-from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
+import ascendbench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
+from ascendbench.frozen.shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
+from ascendbench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
+from ascendbench.frozen.shim import MoEActivation  # Phase A': off-path activation enum (B-inert-shim)
+from ascendbench.frozen.shim import FUSED_MOE_UNQUANTIZED_CONFIG, FusedMoEConfig, FusedMoEParallelConfig, FusedMoEQuantConfig, RoutingMethodType  # Phase A': off-path fused_moe config (B-inert-shim)
+from ascendbench.frozen.shim import LoRAExpertsMixin  # Phase A': off-path mixin base (B-inert-shim)
+from ascendbench.frozen.shim import TopKWeightAndReduceNoOP  # Phase A': off-path reduce helper (B-inert-shim)
+from ascendbench.frozen.shim import _resize_cache  # Phase A': off-path workspace reshape (B-inert-shim)
+from ascendbench.frozen.shim import QuantKey, kMxfp4Static  # Phase A': quant symbols, symbol-aware (B-inert-shim)
+from ascendbench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.frozen.shim import has_triton_kernels  # Phase A': optional-package predicate (B-inert-shim)
-from triton_ascend_bench.frozen.shim import swiglu_limit_func  # Phase A': off-path swiglu helper (B-inert-shim)
+from ascendbench.frozen.shim import has_triton_kernels  # Phase A': optional-package predicate (B-inert-shim)
+from ascendbench.frozen.shim import swiglu_limit_func  # Phase A': off-path swiglu helper (B-inert-shim)
 logger = init_logger(__name__)
 
 def _patch_make_bitmatrix_metadata() -> None:

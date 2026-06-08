@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from triton_ascend_bench.manifest import SolutionManifest
+from ascendbench.manifest import SolutionManifest
 
 
 def test_round_trip_dict():

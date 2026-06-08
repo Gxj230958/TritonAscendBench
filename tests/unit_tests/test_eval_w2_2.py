@@ -21,17 +21,17 @@ fallback) likewise must not.
 """
 from __future__ import annotations
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench.eval import (
+from ascendbench.engine import eval as _eval
+from ascendbench.engine.eval import (
     ShapeRunResult,
     TaskEvalResult,
 )
-from triton_ascend_bench.process_isolation import (
+from ascendbench.integrity.process_isolation import (
     CandidateRunResult,
     ShapeCandidateResult,
     TwoPassResult,
 )
-from triton_ascend_bench.scoring import TaskMeasurement, native_coverage
+from ascendbench.perf.scoring import TaskMeasurement, native_coverage
 
 
 def _two_pass(diag: dict) -> TwoPassResult:

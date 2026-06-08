@@ -40,7 +40,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.automation.lib.atomic import atomic_write_yaml  # noqa: E402
-from triton_ascend_bench.wrapper_contract import (  # noqa: E402
+from ascendbench.integrity.wrapper_contract import (  # noqa: E402
     extract_wrapper_contract,
 )
 
@@ -74,7 +74,7 @@ def _read_oracle_keys(oracle_path: Path) -> list[str]:
 
 def _knobs_universe(shapes_doc: dict) -> set[str]:
     """Return the set of knob names available for substitution into
-    ``dims`` (i.e. the symbols that ``triton_ascend_bench.inputs.
+    ``dims`` (i.e. the symbols that ``ascendbench.input_spec.inputs.
     _resolve_dims`` knows how to evaluate)."""
     out: set[str] = set()
     out.update((shapes_doc.get("size_knobs") or {}).keys())
@@ -91,7 +91,7 @@ def _resolve_kernel_entrypoint(
     R10.b / auto-patch) now route through one implementation that
     rejects @triton.jit picks AND gates the resolve_all.json cache by
     jaccard overlap (the P5.2 + P6 fix codex flagged on 2026-05-27)."""
-    from triton_ascend_bench.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
         resolve_kernel_entrypoint,
     )
 

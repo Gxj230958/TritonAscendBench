@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import inputs as _inputs
-from triton_ascend_bench import timing
-from triton_ascend_bench.eval import ShapeRunResult, evaluate
+from ascendbench.engine import eval as _eval
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.perf import timing
+from ascendbench.engine.eval import ShapeRunResult, evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"
@@ -99,7 +99,7 @@ class _Oracle:
 
 
 def _tol_cls():
-    from triton_ascend_bench import tolerance
+    from ascendbench.correctness import tolerance
     pol = tolerance.load_policy()
     # any elementwise-ish class works; pick a permissive one.
     return next(iter(pol.values()))

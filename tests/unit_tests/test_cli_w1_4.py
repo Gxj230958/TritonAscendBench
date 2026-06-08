@@ -23,7 +23,7 @@ _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True,
     )
 
@@ -65,7 +65,7 @@ def test_shape_result_json_baseline_ns_is_ns_not_seconds():
     """per-shape baseline_ns is ns (t_ref*1e9), not raw seconds t_ref."""
     from types import SimpleNamespace
 
-    from triton_ascend_bench.cli import _shape_result_json
+    from ascendbench.engine.cli import _shape_result_json
     r = SimpleNamespace(
         shape_id="P1", correctness_passed=True, correctness_reason=None,
         t_ref=1e-6, baseline_ns=1000.0, t_npu=2000.0,

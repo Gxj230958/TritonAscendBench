@@ -146,7 +146,7 @@ infer = [
 ]
 
 [project.scripts]
-tab = "triton_ascend_bench.cli:main"
+tab = "ascendbench.engine.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/<TBD>/triton-ascend-bench"
@@ -155,8 +155,11 @@ Repository = "https://github.com/<TBD>/triton-ascend-bench"
 Issues = "https://github.com/<TBD>/triton-ascend-bench/issues"
 
 [tool.setuptools.packages.find]
-include = ["triton_ascend_bench*"]
+include = ["ascendbench*"]
 exclude = ["tests*", "tasks*", "results*", "specs*", "docs*", "infra*", "scripts*"]
+
+[tool.setuptools.package-data]
+ascendbench = ["policies/*.yaml", "policies/*.json"]
 
 [tool.ruff]
 line-length = 120

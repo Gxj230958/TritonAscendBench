@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from triton_ascend_bench.provenance import (
+from ascendbench.corpus.provenance import (
     ProvenanceGoldenSpec,
     VALID_ORACLE_KERNEL_EQUIVALENCE,
     VALID_TOLERANCE_SOURCE,
@@ -343,7 +343,7 @@ def test_loader_returns_typed_spec_when_nested_block_present():
     TaskDef.provenance_golden surfaces as a typed ProvenanceGoldenSpec
     (not None) so consumers can read fields directly without re-parsing
     the raw meta dict."""
-    from triton_ascend_bench.dataset import load_task
+    from ascendbench.corpus.dataset import load_task
 
     td = load_task("L1_12_rms_norm")
     prov = td.meta.get("provenance") or {}

@@ -30,14 +30,15 @@ import torch
 import yaml
 from safetensors.torch import save_file
 
-from triton_ascend_bench import eval as _eval
-from triton_ascend_bench import scoring, static_checker
-from triton_ascend_bench.dataset import TaskDef
-from triton_ascend_bench.eligibility import (
+from ascendbench.engine import eval as _eval
+from ascendbench.perf import scoring
+from ascendbench.integrity import static_checker
+from ascendbench.corpus.dataset import TaskDef
+from ascendbench.release_gate.eligibility import (
     compute_verified_blocked,
     golden_complete,
 )
-from triton_ascend_bench.eval import _resolve_golden, evaluate
+from ascendbench.engine.eval import _resolve_golden, evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -139,7 +140,7 @@ def _make_synthetic_task(tmp_path: Path, *, oracle_tier: str,
         gdir.mkdir()
         # Golden = oracle output (x*2) on the seed-0 correctness input.
         # `partial_golden` omits H1 to exercise the incomplete-set path.
-        from triton_ascend_bench import inputs as _inputs
+        from ascendbench.input_spec import inputs as _inputs
         for sid in ("P1", "P2", "H1"):
             if partial_golden and sid == "H1":
                 continue
@@ -323,8 +324,8 @@ def test_golden_complete_true_on_full_set(tmp_path):
 def test_compute_verified_blocked_includes_all_upstream_on_dev_machine():
     """On the dev machine no task ships a `golden/` directory, so every
     `upstream_oracle_required` task is verified-blocked."""
-    from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import (
+    from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate.eligibility import (
         compute_upstream_oracle_required,
     )
 
@@ -344,7 +345,7 @@ def test_compute_verified_blocked_includes_all_upstream_on_dev_machine():
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "triton_ascend_bench.cli", *args],
+        [sys.executable, "-m", "ascendbench.engine.cli", *args],
         cwd=REPO, capture_output=True, text=True,
     )
 
@@ -353,8 +354,8 @@ def test_analyze_verified_mode_marks_upstream_blocked(tmp_path):
     """In verified mode `analyze` assigns `task_status="blocked"` to the
     upstream tasks (golden/ missing on the dev machine), derived from repo
     state — NOT from the result's reported `task_status`."""
-    from triton_ascend_bench.dataset import iter_all_tasks
-    from triton_ascend_bench.eligibility import (
+    from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate.eligibility import (
         compute_score_eligible,
         compute_verified_blocked,
     )

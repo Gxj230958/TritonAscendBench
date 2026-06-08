@@ -28,18 +28,18 @@ from pathlib import Path
 
 import yaml
 
-from triton_ascend_bench.adversarial import (
+from ascendbench.integrity.adversarial import (
     aggregate_canary_findings,
     check_canaries,
     run_canary_suite,
 )
-from triton_ascend_bench.dataset import (
+from ascendbench.corpus.dataset import (
     CanaryTaskDef,
     iter_all_tasks,
     iter_canary_tasks,
     load_canary_task,
 )
-from triton_ascend_bench.eligibility import compute_score_eligible
+from ascendbench.release_gate.eligibility import compute_score_eligible
 
 REPO = Path(__file__).resolve().parent.parent.parent
 CANARY_ID = "C1_identity_trap"
@@ -194,7 +194,7 @@ def test_run_canary_suite_default_grader_threads_backend(tmp_path, monkeypatch):
     """
     from types import SimpleNamespace
 
-    import triton_ascend_bench.eval as _eval
+    import ascendbench.engine.eval as _eval
     canary = load_canary_task(CANARY_ID)
     root = _make_solutions_root(tmp_path, canary.source_task_id)
     seen: dict[str, str] = {}

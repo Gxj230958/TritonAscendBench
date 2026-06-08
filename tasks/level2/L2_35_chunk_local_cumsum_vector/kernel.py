@@ -14,10 +14,10 @@ Frozen by: scripts/phase_a_freeze.py
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from triton_ascend_bench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
+from ascendbench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
 triton = _pa_make_triton_clone()
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
-from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils import check_shared_mem, input_guard  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
+from ascendbench.frozen.deps.h_af43637ae818.fla_ops.utils import check_shared_mem, input_guard  # Phase A': U2 FLA-ops package vendoring
 BS_LIST = [32, 64] if check_shared_mem() else [16, 32]
 
 @triton.heuristics({'IS_VARLEN': lambda args: args['cu_seqlens'] is not None})

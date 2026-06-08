@@ -18,9 +18,9 @@ import torch
 import triton
 import triton.language as tl
 
-from triton_ascend_bench.frozen.shim import get_lora_expand_config  # Phase A': LoRA block-size config (B-inert-shim)
-from triton_ascend_bench.frozen.shim import LoRABatchInfo  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)
-from triton_ascend_bench.frozen.shim import cached_triton_kernel  # Phase A': platform/math predicate (B-inert-shim)
+from ascendbench.frozen.shim import get_lora_expand_config  # Phase A': LoRA block-size config (B-inert-shim)
+from ascendbench.frozen.shim import LoRABatchInfo  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)
+from ascendbench.frozen.shim import cached_triton_kernel  # Phase A': platform/math predicate (B-inert-shim)
 
 
 @cached_triton_kernel(

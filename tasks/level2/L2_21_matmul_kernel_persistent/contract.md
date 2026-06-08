@@ -36,11 +36,11 @@ on the kernel side — numerically a plain GEMM, fp32 accumulate.
 - `bias`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`vector_reduce` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`vector_reduce` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 

@@ -42,11 +42,11 @@ out[t, :] = sum_k 1[recv_topk_ids[t,k] >= 0] * recv_topk_weight[t,k]
 - `input_index`
 
 Concrete per-shape tensors are built by
-`triton_ascend_bench.inputs.build_inputs(shapes.yaml, shape_id)`.
+`ascendbench.input_spec.inputs.build_inputs(shapes.yaml, shape_id)`.
 
 ## Tolerance class
 
-`atomic_scatter` — see `triton_ascend_bench/tolerance_policy.yaml`.
+`atomic_scatter` — see `ascendbench/policies/tolerance_policy.yaml`.
 
 ## Metamorphic checks
 
