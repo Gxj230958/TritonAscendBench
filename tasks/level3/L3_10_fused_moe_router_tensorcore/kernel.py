@@ -15,8 +15,8 @@ from typing import Optional, Tuple
 import torch
 import triton
 import triton.language as tl
-from tasks._frozen_shim import fused_topk  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)
-from tasks._frozen_shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
+from triton_ascend_bench.frozen.shim import fused_topk  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)
+from triton_ascend_bench.frozen.shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
 
 @triton.jit
 def fused_moe_router_tensorcore_kernel(a_ptr, b_ptr, topk_weights_ptr, topk_ids_ptr, bs, num_experts: tl.constexpr, topk: tl.constexpr, moe_softcapping: tl.constexpr, moe_renormalize: tl.constexpr, correction_bias_ptr, is_correction_bias: tl.constexpr, K: tl.constexpr, BLOCK_SIZE_M: tl.constexpr, BLOCK_SIZE_N: tl.constexpr, BLOCK_SIZE_K: tl.constexpr, stride_am: tl.constexpr, stride_bn: tl.constexpr, dp_attn_workaround_flag: tl.constexpr):

@@ -16,7 +16,7 @@ upstream:
   function_hash: b9ffe4c9fc79a4d9a96914f342c89408c69c0362588866e6b3d6f38480f8fb7c
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L2_27_fused_moe_router_cudacore_kernel_409d350.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L2_27_fused_moe_router_cudacore_kernel_409d350.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -196,14 +196,14 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_27_fused_moe_router_cudacore-20260602T203116
-  classified_at: '2026-06-02'
-  standalone_sha256: 59b4a649078e9ec6ab98c773b274de466f447d859f694675f31d38b281eb1d40
-  kernel_sha256: 59b4a649078e9ec6ab98c773b274de466f447d859f694675f31d38b281eb1d40
+  s2_gpu_run_id: s2-L2_27_fused_moe_router_cudacore-20260608T184504
+  classified_at: '2026-06-08'
+  standalone_sha256: 14ec4d334a864a7cd9c0274768dc91c140972d655fbfc8f9ae318ec89430b5a1
+  kernel_sha256: 14ec4d334a864a7cd9c0274768dc91c140972d655fbfc8f9ae318ec89430b5a1
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.logger
   proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
     `vllm_default_logger`)
-reference_path: triton_fallback
+reference_path: native

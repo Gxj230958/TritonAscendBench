@@ -15,7 +15,7 @@ import numpy as np
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import NULL_BLOCK_ID, PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from triton_ascend_bench.frozen.shim import NULL_BLOCK_ID, PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
 
 @triton.jit()
 def _causal_conv1d_update_kernel(x_ptr, w_ptr, bias_ptr, conv_state_ptr, conv_state_indices_ptr, num_accepted_tokens_ptr, query_start_loc_ptr, block_idx_last_scheduled_token, initial_state_idx, o_ptr, batch: int, dim: tl.constexpr, seqlen: tl.constexpr, state_len: tl.constexpr, num_cache_lines: tl.constexpr, stride_x_seq: tl.constexpr, stride_x_dim: tl.constexpr, stride_x_token: tl.int64, stride_w_dim: tl.constexpr, stride_w_width: tl.constexpr, stride_conv_state_seq: tl.constexpr, stride_conv_state_dim: tl.constexpr, stride_conv_state_tok: tl.constexpr, stride_state_indices: tl.constexpr, stride_o_seq: tl.constexpr, stride_o_dim: tl.constexpr, stride_o_token: tl.int64, null_block_id: tl.constexpr, HAS_BIAS: tl.constexpr, KERNEL_WIDTH: tl.constexpr, SILU_ACTIVATION: tl.constexpr, IS_VARLEN: tl.constexpr, IS_APC_ENABLED: tl.constexpr, IS_SPEC_DECODING: tl.constexpr, NP2_STATELEN: tl.constexpr, HAS_NULL_BLOCK: tl.constexpr, BLOCK_N: tl.constexpr):

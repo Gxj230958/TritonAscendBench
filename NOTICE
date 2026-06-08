@@ -13,7 +13,7 @@ Specifically:
    GPU Triton kernel implementations are extracted from vLLM and SGLang
    upstream sources, with original Apache 2.0 license preserved. Each task's
    `meta.yaml` declares the upstream commit SHA, file path, and license.
-   Vendored snapshots are stored in `tasks/_vendored/` per the freeze policy.
+   Vendored snapshots are stored in `triton_ascend_bench/frozen/snapshots/` per the freeze policy.
 
 2. **Evaluator harness** (`triton_ascend_bench/`):
    The 13-module Provider Surface design (dataset / eval / timing / scoring /
@@ -33,7 +33,7 @@ Specifically:
    reward-hacking robustness. See `specs/reward_hack_defense.md` §5b.25.
 
 
-5. **Phase A-prime vendored dependency pool** (`tasks/_frozen_deps_pool/`):
+5. **Phase A-prime vendored dependency pool** (`triton_ascend_bench/frozen/deps/`):
    Symbol-level reachable-closure dependencies extracted from
    vLLM / SGLang upstream sources to make each `kernel.py`
    standalone. Each pool entry preserves its original Apache

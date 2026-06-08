@@ -16,8 +16,8 @@ import torch
 import triton
 import triton.language as tl
 
-from tasks._frozen_deps_pool.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils import _resolve_token_positions  # Phase A': U2 vendored sglang LoRA helper
-from tasks._frozen_shim import LoRABatchInfo  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)
+from triton_ascend_bench.frozen.deps.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils import _resolve_token_positions  # Phase A': U2 vendored sglang LoRA helper
+from triton_ascend_bench.frozen.shim import LoRABatchInfo  # Phase A': sibling LoRA batch-state stand-in (B-inert-shim)
 
 
 @triton.jit

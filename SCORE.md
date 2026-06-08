@@ -23,27 +23,16 @@ auditable.
 BLOCKED here means "fix UPSTREAM before NPU migration is meaningful." We refuse to
 silently fix them — that refusal is what makes the discovered bugs credible.
 
-> Note (2026-06-05): `L2_23` / `L2_24` are moved to `tasks/_deprecated/` so the
-> `iter_all_tasks()` metrics (cost_model / C2 denominator) stop counting a kernel
-> whose UPSTREAM source is itself buggy. They remain **reported here** as the
-> bench's discovered upstream bugs, with the proof and `tasks/_corrected/`
-> variants kept in-repo — this is **exclusion-with-evidence, not a silent fix or
-> hide**. (`L2_33` stays in the scored set: its debug-assert is compile-compat,
-> not numerical.)
+> Note: `L2_23` / `L2_24` are EXCLUDED from the `iter_all_tasks()` metrics
+> (cost_model / C2 denominator) because their vendored upstream kernel carries a
+> real off-by-one bug (vLLM `lightning_attn.py` cross-block decay
+> `array = arange + 1`). A correct oracle therefore necessarily diverges
+> (~80 dtype-ULP, far above tolerance), so grading them is not meaningful. This
+> is **exclusion-with-evidence, not a silent fix or hide** — the bug is proven in
+> the backing artifacts below. (`L2_33` stays scored: its debug-assert is
+> compile-compat, not numerical.)
 
-## SECONDARY (derived, footnoted, NEVER bare, NEVER co-equal)
-
-**99 / 100 with proven upstream fixes applied (non-scored)** — the 97 plus the two
-tasks whose 1-line upstream fix is proven, applied in the **non-scored**
-`tasks/_corrected/` variants (GPU bit-exact PASS): **+L2_23, +L2_24**.
-
-It is explicitly **99, not 100**: **L2_33 is excluded** (compile-compat debug-assert,
-not a numerical-correctness divergence). The scored frozen kernels are unchanged and
-byte-exact; this is a documented *what-if* computed from non-scored corrected variants,
-not a re-grade of the scored corpus.
-
-Backing artifacts (the secondary number must always link these):
-- `tasks/_corrected/{L2_23_fwd_kv_parallel,L2_24_fwd_kv_reduce}_fixed/` (manifests)
+Backing artifacts:
 - `docs/verification/L2_24_lightning_attn_offbyone_proof.py` (the 0.28 → 0.00 proof)
 - `docs/upstream_reports/vllm_lightning_attn_crossblock_decay_offbyone.md` (filed bug)
 

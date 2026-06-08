@@ -14,7 +14,7 @@ Frozen by: scripts/phase_a_freeze.py
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op import exp  # Phase A': U2 FLA-ops package vendoring
+from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.op import exp  # Phase A': U2 FLA-ops package vendoring
 
 @triton.heuristics({'USE_INITIAL_STATE': lambda args: args['h0'] is not None, 'IS_VARLEN': lambda args: args['cu_seqlens'] is not None, 'IS_CONTINUOUS_BATCHING': lambda args: args['ssm_state_indices'] is not None, 'IS_SPEC_DECODING': lambda args: args['num_accepted_tokens'] is not None})
 @triton.jit(do_not_specialize=['N', 'T'])

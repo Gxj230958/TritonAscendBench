@@ -50,7 +50,7 @@ def run(inputs: dict) -> dict:
     # launcher is exec'd into: kernel.py's top-level
     # `from vllm.v1.attention.backends.utils import NULL_BLOCK_ID, PAD_SLOT_ID`
     # is the binding on the original side, and the severed staging rewrites that
-    # same line to `from tasks._frozen_shim import NULL_BLOCK_ID, PAD_SLOT_ID`.
+    # same line to `from triton_ascend_bench.frozen.shim import NULL_BLOCK_ID, PAD_SLOT_ID`.
     # Referencing them as module globals (NOT a fresh `from vllm import` inside
     # run(), which would resolve vllm at call time and leak it onto the severed
     # import-audit surface) keeps both sides byte-identical sentinel ints

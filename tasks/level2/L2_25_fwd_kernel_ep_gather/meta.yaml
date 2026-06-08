@@ -16,7 +16,7 @@ upstream:
   function_hash: e377f5a12580d4bf511aed8990e51242b1b8b2b5946951a7e5e79df71620c083
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L2_25_fwd_kernel_ep_gather_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L2_25_fwd_kernel_ep_gather_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -208,10 +208,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_25_fwd_kernel_ep_gather-20260602T203050
-  classified_at: '2026-06-02'
-  standalone_sha256: 1dea45a96050130b82e4e0a2bfbf6a3a122af7b8615e35afc57f9d5de30ee44e
-  kernel_sha256: 1dea45a96050130b82e4e0a2bfbf6a3a122af7b8615e35afc57f9d5de30ee44e
+  s2_gpu_run_id: s2-L2_25_fwd_kernel_ep_gather-20260608T184439
+  classified_at: '2026-06-08'
+  standalone_sha256: d30ec709bc5b813f79a663348b5463efb794b2ce3883f93094c4b09e19c40d00
+  kernel_sha256: d30ec709bc5b813f79a663348b5463efb794b2ce3883f93094c4b09e19c40d00
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl
@@ -225,7 +225,7 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native
 phase_b_capture:
   status: DONE
   captured_at: '2026-06-05T01:10:52Z'

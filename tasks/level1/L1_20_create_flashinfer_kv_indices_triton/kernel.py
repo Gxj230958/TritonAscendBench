@@ -14,11 +14,11 @@ Frozen by: scripts/phase_a_freeze.py
 import torch
 import triton
 import triton.language as tl
-from tasks._frozen_shim import is_cuda  # Phase A': platform/math predicate (B-inert-shim)
+from triton_ascend_bench.frozen.shim import is_cuda  # Phase A': platform/math predicate (B-inert-shim)
 _is_cuda = is_cuda()
 if _is_cuda:
-    from tasks._frozen_shim import concat_mla_absorb_q  # Phase A': sibling-only CUDA absorb-concat (B-inert-shim)
-from tasks._frozen_shim import is_arch_support_pdl  # Phase A': sibling-only PDL arch gate (B-inert-shim)
+    from triton_ascend_bench.frozen.shim import concat_mla_absorb_q  # Phase A': sibling-only CUDA absorb-concat (B-inert-shim)
+from triton_ascend_bench.frozen.shim import is_arch_support_pdl  # Phase A': sibling-only PDL arch gate (B-inert-shim)
 
 @triton.jit
 def create_flashinfer_kv_indices_triton(req_to_token_ptr, req_pool_indices_ptr, page_kernel_lens_ptr, kv_indptr, kv_start_idx, kv_indices_ptr, req_to_token_ptr_stride: tl.constexpr):

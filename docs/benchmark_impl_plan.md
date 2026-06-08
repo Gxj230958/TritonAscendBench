@@ -453,7 +453,7 @@ Phase 0  →  Phase 1  ─┐
 | # | 任务 | 产物 | 工作量 |
 |---|---|---|---|
 | 1.1 | `extract_kernel.py`：AST/import graph 抽取 → `kernel.py` | tool | 5 天 |
-| 1.2 | `freeze_source.py`：commit SHA + vendored snapshot | tool + `tasks/_vendored/` | 2 天 |
+| 1.2 | `freeze_source.py`：commit SHA + vendored snapshot | tool + `triton_ascend_bench/frozen/snapshots/` | 2 天 |
 | 1.3 | `derive_pytorch_oracle.py`：启发式生成 → 独立 `oracle_pytorch.py` | tool | 4 天 |
 | 1.4 | `extraction_failure_taxonomy.md` | spec | 1.5 天 |
 | 1.5 | `meta.yaml` schema + generator（11 字段 + license + commit SHA + tolerance class） | schema + tool | 2 天 |

@@ -18,7 +18,7 @@ upstream:
   notes: Graded entrypoint is the host wrapper `causal_conv1d_update`, which launches
     the frozen `_causal_conv1d_update_kernel` and rolls conv_state in place. Fixture
     re-authored to the wrapper's contract (see provenance.golden).
-  vendored_snapshot: tasks/_vendored/L3_08_causal_conv1d_update_kernel_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_08_causal_conv1d_update_kernel_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -213,10 +213,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_08_causal_conv1d_update-20260602T203024
-  classified_at: '2026-06-02'
-  standalone_sha256: 066fb1668d6172e2106dff92cf6755434cc1e755a6dd1b343641212e8c7bae09
-  kernel_sha256: 066fb1668d6172e2106dff92cf6755434cc1e755a6dd1b343641212e8c7bae09
+  s2_gpu_run_id: s2-L3_08_causal_conv1d_update-20260608T184754
+  classified_at: '2026-06-08'
+  standalone_sha256: b2ae0c680edb95531e9c0f527f579bbfa912324efc707e16d615c2d2915cc0be
+  kernel_sha256: b2ae0c680edb95531e9c0f527f579bbfa912324efc707e16d615c2d2915cc0be
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl
@@ -230,4 +230,4 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native

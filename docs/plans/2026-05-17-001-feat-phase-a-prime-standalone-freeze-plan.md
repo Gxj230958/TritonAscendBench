@@ -75,7 +75,7 @@ provenance 层立住。详见 origin: `docs/plans/2026-05-17-phase-a-prime-stand
 - `triton_ascend_bench/tolerance.py` + `tolerance_policy.yaml`：分档容差 +
   `non_deterministic`/`rerun_count`——S2 **不复用**其 tolerance_class（origin
   §5 明确），仅复用 `non_deterministic` 声明读取。
-- `tasks/_vendored/`：96 个 `<task>_<sha>.py` 快照命名约定（参考，非复用）。
+- `triton_ascend_bench/frozen/snapshots/`：96 个 `<task>_<sha>.py` 快照命名约定（参考，非复用）。
 - `infer/{vllm,sglang,vllm-ascend,sgl-kernel-npu}` 本地可得 → S2 original 侧
   可跑（等价性可验证非假设）。
 - 测试基建：`tests/unit_tests/`（现 375 passed，pytest）。
@@ -97,7 +97,7 @@ provenance 层立住。详见 origin: `docs/plans/2026-05-17-phase-a-prime-stand
   `@triton.jit`/launcher 出发的可达符号闭包；unknown→A；B 需逐符号正向数值
   惰性证明（默认拒绝）。理由：codex 证明"静态依赖链判 A/B"不可判定，模块名
   会骗（`platform_utils.num_compute_units` 影响 tiling）。
-- **content-addressed 池 `tasks/_frozen_deps_pool/<sha12>/`**：跨 task 去重，
+- **content-addressed 池 `triton_ascend_bench/frozen/deps/<sha12>/`**：跨 task 去重，
   sha 即 pin。理由：去重 + 可审计闭包 + 防版本漂移（origin D1）。
 - **S2 = S2-smoke（CPU/interpret，不可 PASS）+ S2-gpu-authoritative（GPU，
   PASS 唯一来源）**，各在全新子进程 + severed 侧 import 审计断言零泄漏，严格
@@ -135,8 +135,8 @@ phase_a_prime.py 流水线（per task）:
   classify(task)                      # U1 符号级可达闭包
     └─> {A:[…], B:[…+proof], C:[…], S:[…], D:[…], tier∈T0..T3, BLOCKED?}
          │
-  vendor(A∪C-fallback closure) ──> tasks/_frozen_deps_pool/<sha12>/   # U2
-  shim(B provably-inert)     ──> tasks/_frozen_shim/                  # U3
+  vendor(A∪C-fallback closure) ──> triton_ascend_bench/frozen/deps/<sha12>/   # U2
+  shim(B provably-inert)     ──> triton_ascend_bench/frozen/shim/                  # U3
   pin(S)                     ──> meta.pinned_semantic_config          # U1/U5
          │
   rewrite kernel.py imports ──> 指向 pool/shim（standalone）          # U5
@@ -234,7 +234,7 @@ repo→源路径；`ast` 遍历参考其 `_parse_kernel()`。
 
 **Goal:** 对 U1 判定的 A（及 C 的 triton-fallback 闭包）符号，从
 `infer/<repo>@commit_sha` 抽取符号+传递闭包，写
-`tasks/_frozen_deps_pool/h_<sha12>/<module>.py`，去重，保留 Apache 头+provenance。
+`triton_ascend_bench/frozen/deps/h_<sha12>/<module>.py`，去重，保留 Apache 头+provenance。
 （codex-cep-r1 U2 FIX [confirmed]：包段必须 **`h_<sha12>`** 前缀——裸 sha 可能
 数字开头，作 Python 包段非法，import 改写会语法错误。）
 
@@ -246,7 +246,7 @@ repo→源路径；`ast` 遍历参考其 `_parse_kernel()`。
 - Modify: `scripts/phase_a_prime.py`（vendor 引擎）
 - Modify: `NOTICE`（仓库根，新增被 vendoring 上游的归属，codex-cep-r1 U2）
 - Create: `tests/unit_tests/test_phase_a_prime_vendor.py`
-- Create（产物根）: `tasks/_frozen_deps_pool/`（包段 `h_<sha12>/`）
+- Create（产物根）: `triton_ascend_bench/frozen/deps/`（包段 `h_<sha12>/`）
 
 **Approach:**
 - 复用 `phase_a_freeze._commit_sha()` 取 pin；按符号闭包抽取最小可运行单元
@@ -256,7 +256,7 @@ repo→源路径；`ast` 遍历参考其 `_parse_kernel()`。
 - 每池条目头：源 repo+commit_sha+原文件 sha256+Apache 头保留；更新根 NOTICE。
 
 **Patterns to follow:** `phase_a_freeze._provenance_header()` 头格式；
-`tasks/_vendored/` 的 `<id>_<sha>` 命名精神（这里改 content-addressed）。
+`triton_ascend_bench/frozen/snapshots/` 的 `<id>_<sha>` 命名精神（这里改 content-addressed）。
 
 **Test scenarios:**
 - Happy path: 单函数无再依赖 → 池内 1 文件，sha 稳定，重复 vendor 不重复写。
@@ -273,7 +273,7 @@ torch+triton 环境可 import；provenance 头完整含 commit_sha+原 sha256。
 
 - [ ] **Unit 3: 极窄 Class-B 共享 shim（默认拒绝）**
 
-**Goal:** `tasks/_frozen_shim/` 提供 U1 判为"可证明惰性"的 B 符号的确定性
+**Goal:** `triton_ascend_bench/frozen/shim/` 提供 U1 判为"可证明惰性"的 B 符号的确定性
 no-op/常量实现；每符号附 U1 产的证明串引用。
 
 **Requirements:** R4, R7
@@ -281,7 +281,7 @@ no-op/常量实现；每符号附 U1 产的证明串引用。
 **Dependencies:** Unit 1
 
 **Files:**
-- Create: `tasks/_frozen_shim/__init__.py`（+ 子模块如 `_logging.py`）
+- Create: `triton_ascend_bench/frozen/shim/__init__.py`（+ 子模块如 `_logging.py`）
 - Modify: `scripts/phase_a_prime.py`（shim 注册/改写）
 - Create: `tests/unit_tests/test_phase_a_prime_shim.py`
 
@@ -289,13 +289,13 @@ no-op/常量实现；每符号附 U1 产的证明串引用。
 - **B-rewrite-public**：`vllm.triton_utils` 等再导出的 `tl`/`triton` **不入
   shim**——直接改写为合法公开 import（`import triton` /
   `import triton.language as tl`，Class-D 同级）。shim 不是 triton 的替身。
-- **B-inert-shim**：仅 *真正惰性* 符号入 `tasks/_frozen_shim/`：纯 logging
+- **B-inert-shim**：仅 *真正惰性* 符号入 `triton_ascend_bench/frozen/shim/`：纯 logging
   sink（no-op logger）、纯 typing-only import、确定常量（值=上游默认且 U1
   记录）。
 - shim 不含任何会改 dtype/shape/调度/副作用的逻辑；"看似环境但影响 tiling"
   （如 `num_compute_units`）**不入 shim**（U1 已判 A）；`triton_utils` 的
   `HAS_TRITON`/autotune helper/capability gate 也**不入 shim**（U1 判 A）。
-- 改写：B-rewrite-public → 公开 triton import；B-inert-shim → `tasks._frozen_shim`。
+- 改写：B-rewrite-public → 公开 triton import；B-inert-shim → `triton_ascend_bench.frozen.shim`。
 
 **Patterns to follow:** 无现成；保持 shim 文件极小、纯函数、零外部 import。
 

@@ -14,11 +14,11 @@ Frozen by: scripts/phase_a_freeze.py
 import logging
 import torch
 import triton
-from tasks._frozen_shim import ceil_div, is_cuda, is_musa  # Phase A': platform/math predicate (B-inert-shim)
+from triton_ascend_bench.frozen.shim import ceil_div, is_cuda, is_musa  # Phase A': platform/math predicate (B-inert-shim)
 _is_cuda = is_cuda()
 _is_musa = is_musa()
 if _is_cuda or _is_musa:
-    from tasks._frozen_shim import sglang_per_token_group_quant_fp8 as per_token_group_quant_fp8  # Phase A': fp8 quant helpers -> shim (B-inert-shim)
+    from triton_ascend_bench.frozen.shim import sglang_per_token_group_quant_fp8 as per_token_group_quant_fp8  # Phase A': fp8 quant helpers -> shim (B-inert-shim)
 import triton.language as tl
 
 @triton.jit

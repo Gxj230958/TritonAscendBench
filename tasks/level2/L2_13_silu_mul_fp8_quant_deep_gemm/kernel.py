@@ -18,19 +18,19 @@ Frozen by: scripts/phase_a_freeze.py
 
 import torch
 
-import tasks._frozen_shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
-from tasks._frozen_shim import get_forward_context, is_forward_context_available  # Phase A': off-path forward-context (B-inert-shim)
-from tasks._frozen_shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
-from tasks._frozen_shim import MoEActivation  # Phase A': off-path activation enum (B-inert-shim)
-from tasks._frozen_shim import FusedMoEConfig, FusedMoEParallelConfig, FusedMoEQuantConfig  # Phase A': off-path fused_moe config (B-inert-shim)
-from tasks._frozen_shim import TopKWeightAndReduceDelegate  # Phase A': off-path reduce helper (B-inert-shim)
-from tasks._frozen_shim import _resize_cache  # Phase A': off-path workspace reshape (B-inert-shim)
-from tasks._frozen_shim import QuantKey, get_fp8_min_max, kFp8Dynamic128Sym, kFp8Static128BlockSym  # Phase A': quant symbols, symbol-aware (B-inert-shim)
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
+import triton_ascend_bench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)
+from triton_ascend_bench.frozen.shim import get_forward_context, is_forward_context_available  # Phase A': off-path forward-context (B-inert-shim)
+from triton_ascend_bench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
+from triton_ascend_bench.frozen.shim import MoEActivation  # Phase A': off-path activation enum (B-inert-shim)
+from triton_ascend_bench.frozen.shim import FusedMoEConfig, FusedMoEParallelConfig, FusedMoEQuantConfig  # Phase A': off-path fused_moe config (B-inert-shim)
+from triton_ascend_bench.frozen.shim import TopKWeightAndReduceDelegate  # Phase A': off-path reduce helper (B-inert-shim)
+from triton_ascend_bench.frozen.shim import _resize_cache  # Phase A': off-path workspace reshape (B-inert-shim)
+from triton_ascend_bench.frozen.shim import QuantKey, get_fp8_min_max, kFp8Dynamic128Sym, kFp8Static128BlockSym  # Phase A': quant symbols, symbol-aware (B-inert-shim)
+from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import DeepGemmQuantScaleFMT, fp8_m_grouped_gemm_nt_masked, get_mk_alignment_for_contiguous_layout, is_deep_gemm_e8m0_used, is_deep_gemm_supported  # Phase A': off-path deep_gemm accel surface (B-inert-shim)
-from tasks._frozen_shim import cdiv, round_up  # Phase A': pure-math shim (B-inert-shim)
+from triton_ascend_bench.frozen.shim import DeepGemmQuantScaleFMT, fp8_m_grouped_gemm_nt_masked, get_mk_alignment_for_contiguous_layout, is_deep_gemm_e8m0_used, is_deep_gemm_supported  # Phase A': off-path deep_gemm accel surface (B-inert-shim)
+from triton_ascend_bench.frozen.shim import cdiv, round_up  # Phase A': pure-math shim (B-inert-shim)
 
 logger = init_logger(__name__)
 

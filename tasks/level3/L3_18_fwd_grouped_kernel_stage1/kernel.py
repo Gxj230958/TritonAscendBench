@@ -15,7 +15,7 @@ Frozen by: scripts/phase_a_freeze.py
 import logging
 import torch
 from packaging import version
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
+from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
 logger = logging.getLogger(__name__)

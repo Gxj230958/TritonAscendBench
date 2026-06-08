@@ -17,7 +17,7 @@ upstream:
   license: Apache-2.0
   notes: Triton-fallback path of persistent_masked_m_silu_mul_quant; graded via _pa_launcher.py::run
     driving the @triton.jit _silu_mul_fp8_quant_deep_gemm (FLOAT32 scale format).
-  vendored_snapshot: tasks/_vendored/L2_13_silu_mul_fp8_quant_deep_gemm_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L2_13_silu_mul_fp8_quant_deep_gemm_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -200,10 +200,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_13_silu_mul_fp8_quant_deep_gemm-20260604T181028
-  classified_at: '2026-06-04'
-  standalone_sha256: 637f70a875a93b8922c4d126126d22bd334c303a26075066322df3e27f43fe71
-  kernel_sha256: 637f70a875a93b8922c4d126126d22bd334c303a26075066322df3e27f43fe71
+  s2_gpu_run_id: s2-L2_13_silu_mul_fp8_quant_deep_gemm-20260608T184313
+  classified_at: '2026-06-08'
+  standalone_sha256: 42cacc72b0a4ac882fc84e1744674b0c928f965de1246a46f4953b9f8f45892b
+  kernel_sha256: 42cacc72b0a4ac882fc84e1744674b0c928f965de1246a46f4953b9f8f45892b
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.init_logger
@@ -217,4 +217,4 @@ classB_symbols:
   proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
     rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
     shimmed)
-reference_path: triton_fallback
+reference_path: native

@@ -34,7 +34,7 @@ function prompt(t) {
 
 TASK: ${t.id} (${t.level}).
 
-STEP 1 — Read LOCAL (use Read): tasks/${t.level}/${t.id}/{meta.yaml, oracle_pytorch.py, kernel.py, shapes.yaml}, and tasks/_vendored/${t.id}_*.py if present. Optionally fetch the task's most recent daemon blocker:
+STEP 1 — Read LOCAL (use Read): tasks/${t.level}/${t.id}/{meta.yaml, oracle_pytorch.py, kernel.py, shapes.yaml}, and triton_ascend_bench/frozen/snapshots/${t.id}_*.py if present. Optionally fetch the task's most recent daemon blocker:
   ssh -p 2222 -o BatchMode=yes -o StrictHostKeyChecking=no root@127.0.0.1 'for b in $(ls -t ${RL}/results/ 2>/dev/null); do f=${RL}/results/$b/${t.id}.json; if [ -f "$f" ]; then grep -ao "reason:[^\\"]*" "$f" | head -1; break; fi; done'
 
 STEP 2 — Identify the GRADED operator: meta.oracle.pytorch (= oracle_pytorch.py::run) defines the true semantics; meta.oracle.gpu_triton names the kernel entrypoint. Find the host-wrapper / kernel that computes the SAME operation as oracle_pytorch.py::run on the SAME logical inputs.

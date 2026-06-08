@@ -15,8 +15,8 @@ from collections.abc import Iterable
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
-from tasks._frozen_shim import StagedWriteTensor, UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
+from triton_ascend_bench.frozen.shim import PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from triton_ascend_bench.frozen.shim import StagedWriteTensor, UvaBackedTensor  # Phase A': setup-only buffer helpers (B-inert-shim)
 
 @triton.jit(do_not_specialize=['num_reqs'])
 def _gather_block_tables_kernel(batch_idx_to_req_idx, src_block_table_ptrs, dst_block_table_ptrs, block_table_strides, num_blocks_ptr, num_blocks_stride, num_reqs, max_num_blocks, BLOCK_SIZE: tl.constexpr):

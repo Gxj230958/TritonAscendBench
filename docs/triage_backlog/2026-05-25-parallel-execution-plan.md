@@ -414,7 +414,7 @@ def test_all_mirrors_upstream():
 | `test_tl_constexpr` | `tl.constexpr` 与真 triton 同对象 |
 | `test_tl_dtype_aliases` | float32 / float16 / bfloat16 / int32 / int64 都是真 triton 的引用 |
 | `test_heuristics_passthrough` | `@triton.heuristics({...})` 装饰能正常生效 |
-| `test_e2e_L1_22_min_p_load` | mock load `tasks/_vendored/L1_22_min_p_kernel_18f6bf5.py`,resolve 入口到 `apply_min_p`,不抛 subscriptable 错 |
+| `test_e2e_L1_22_min_p_load` | mock load `triton_ascend_bench/frozen/snapshots/L1_22_min_p_kernel_18f6bf5.py`,resolve 入口到 `apply_min_p`,不抛 subscriptable 错 |
 | `test_e2e_L1_14_layer_norm_fwd_1pass_load` | 类似,attribute `next_power_of_2` 解析成功 |
 | `test_e2e_L2_01_bmm_chunk_fwd_load` | 类似,`tl.dot` 等属性可访问 |
 
@@ -848,7 +848,7 @@ pytest tests/unit_tests/test_release_boundary.py -v
 | **pyproject** | `pyproject.toml [infer]` extras 补包(只 B 改) |
 | **测试** | `tests/unit_tests/`(新增覆盖 B 改动的 test 文件;但**不**碰 `test_upstream_shims.py`) |
 
-> **`tasks/_vendored/*` 是 frozen upstream snapshot,双方禁改(codex r1 MF9)**。Vendored 树由 `scripts/phase_a_freeze.py` 在专门的 re-freeze PR 中维护(参见 `docs/triage_backlog/2026-05-25-blocked-task-resolution-plan.md`)。bench 端 P2(relative import)修复**不**靠改 `_vendored`,而是利用 loader bridge(`b534449` 已 commit)在解析 kernel.py 时把 relative import 重定向到真 upstream sibling tree。session A / B 都**不**写 `tasks/_vendored/`。
+> **`triton_ascend_bench/frozen/snapshots/*` 是 frozen upstream snapshot,双方禁改(codex r1 MF9)**。Vendored 树由 `scripts/phase_a_freeze.py` 在专门的 re-freeze PR 中维护(参见 `docs/triage_backlog/2026-05-25-blocked-task-resolution-plan.md`)。bench 端 P2(relative import)修复**不**靠改 `_vendored`,而是利用 loader bridge(`b534449` 已 commit)在解析 kernel.py 时把 relative import 重定向到真 upstream sibling tree。session A / B 都**不**写 `triton_ascend_bench/frozen/snapshots/`。
 
 ### 6.3 共享(只读 / 单方写)
 
@@ -874,7 +874,7 @@ pytest tests/unit_tests/test_release_boundary.py -v
 - ✓ tests(各自新增,不重叠)
 - ✓ docs/triage_backlog 本 plan(A own)
 - ✓ frozen kernel.py(双方禁改)
-- ✓ frozen `tasks/_vendored/*`(双方禁改,见 §6.2)
+- ✓ frozen `triton_ascend_bench/frozen/snapshots/*`(双方禁改,见 §6.2)
 - ✓ tolerance_policy(双方默认不动)
 
 未列出的目录默认不在本次并行修复范围内(包括 `docs/diagrams/` SVG / `docs/release/` / 其它 `triton_ascend_bench/*.py` 模块)。如双方在执行时遇到需要触及此外文件,先在协调点(§7)沟通。
@@ -915,7 +915,7 @@ pytest tests/unit_tests/test_release_boundary.py -v
 - B **绝对不**编辑 `triton_ascend_bench/upstream_shims/` 任何文件。
 - A **绝对不**编辑 `pyproject.toml`。
 - 双方**都不**编辑 `tasks/level*/<task_id>/kernel.py`(frozen)。
-- 双方**都不**编辑 `tasks/_vendored/*`(frozen upstream snapshot;re-freeze 须走独立 PR via `scripts/phase_a_freeze.py`)。
+- 双方**都不**编辑 `triton_ascend_bench/frozen/snapshots/*`(frozen upstream snapshot;re-freeze 须走独立 PR via `scripts/phase_a_freeze.py`)。
 - 双方**都不**修改 `triton_ascend_bench/tolerance_policy.yaml` 不商量。
 - 双方**都不**push 到非自己分支(本协议默认双方都在同一 working branch,后续若 split branch 须双方协商分支名)。
 

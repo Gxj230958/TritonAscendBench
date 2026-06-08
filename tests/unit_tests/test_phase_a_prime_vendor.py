@@ -97,10 +97,10 @@ def test_vendor_triton_helper_strips_vllm_reexport(tmp_path, monkeypatch):
         "    return tl.math.exp2(x)\n"
     )
     dotted = pap._vendor_triton_helper_module("vllm.x.triton_helpers", src, "vllm")
-    assert dotted.startswith("tasks._frozen_deps_pool.h_")
+    assert dotted.startswith("triton_ascend_bench.frozen.deps.h_")
     assert dotted.endswith(".vllm_x_triton_helpers")
     # Locate the written pool file and assert it is vllm-free + has public triton.
-    sha_dir = dotted.split(".")[2]
+    sha_dir = next(p for p in dotted.split(".") if p.startswith("h_"))
     pooled = (tmp_path / "pool" / sha_dir / "vllm_x_triton_helpers.py").read_text()
     assert "from vllm" not in pooled
     assert "import triton" in pooled
@@ -133,9 +133,9 @@ def test_vendor_package_atomic_and_importable(tmp_path, monkeypatch):
     (tmp_path / "NOTICE").write_text("x\n")
     mods = {"a": "VALUE = 1\n", "b": "from .a import VALUE\nDOUBLE = VALUE * 2\n"}
     prefix = pap.vendor_package("pkg", mods, "vLLM")
-    assert prefix.startswith("tasks._frozen_deps_pool.h_")
+    assert prefix.startswith("triton_ascend_bench.frozen.deps.h_")
     assert prefix.endswith(".pkg")
-    sha_dir = prefix.split(".")[2]
+    sha_dir = next(p for p in prefix.split(".") if p.startswith("h_"))
     pkgdir = tmp_path / "pool" / sha_dir / "pkg"
     assert (pkgdir / "__init__.py").exists()
     assert (pkgdir / "a.py").exists() and (pkgdir / "b.py").exists()
@@ -178,19 +178,19 @@ def test_pool_import_re_captures_module_paths():
     multiline `from ... import (` forms, and bare `import ...`."""
     src = (
         "import torch\n"
-        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index import x\n"
-        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils import (a,\n"
+        "from triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.index import x\n"
+        "from triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.utils import (a,\n"
         "    b)\n"
-        "from tasks._frozen_deps_pool.h_119bf34e8937.vllm_helpers import fast_exp\n"
-        "import tasks._frozen_deps_pool.h_deadbeef1234.m as sm\n"
+        "from triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_helpers import fast_exp\n"
+        "import triton_ascend_bench.frozen.deps.h_deadbeef1234.m as sm\n"
         "from vllm.triton_utils import tl\n"
     )
     got = sorted(set(pap._POOL_IMPORT_RE.findall(src)))
     assert got == [
-        "tasks._frozen_deps_pool.h_119bf34e8937.vllm_helpers",
-        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index",
-        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.utils",
-        "tasks._frozen_deps_pool.h_deadbeef1234.m",
+        "triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_helpers",
+        "triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.index",
+        "triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.utils",
+        "triton_ascend_bench.frozen.deps.h_deadbeef1234.m",
     ]
 
 
@@ -210,7 +210,7 @@ def test_promote_frozen_deps_is_shipped_not_classification(tmp_path):
     staged = tmp_path / "staged_kernel.py"
     staged.write_text(
         "import torch\n"
-        "from tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index "
+        "from triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.index "
         "import prepare_chunk_indices\n"
         "def run(inputs):\n    return {}\n"
     )
@@ -235,5 +235,5 @@ def test_promote_frozen_deps_is_shipped_not_classification(tmp_path):
     meta = _yaml.safe_load((task_dir / "meta.yaml").read_text())
     # ONLY the shipped pool module is recorded -- no vllm.config / vllm._C noise.
     assert meta["frozen_deps"] == [
-        "tasks._frozen_deps_pool.h_a9f952fcc731.fla_ops.index"
+        "triton_ascend_bench.frozen.deps.h_a9f952fcc731.fla_ops.index"
     ]

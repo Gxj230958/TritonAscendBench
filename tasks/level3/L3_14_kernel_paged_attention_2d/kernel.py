@@ -23,13 +23,13 @@ Frozen by: scripts/phase_a_freeze.py
 
 import torch
 
-from tasks._frozen_shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
-from tasks._frozen_shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
+from triton_ascend_bench.frozen.shim import ops as ops  # Phase A': off-path custom-ops shim (B-inert-shim)
+from triton_ascend_bench.frozen.shim import init_logger  # Phase A': inert no-op sink (B-inert-shim)
+from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
 
-from tasks._frozen_shim import context_attention_fwd  # Phase A': off-path prefix-prefill wrapper (B-inert-shim)
+from triton_ascend_bench.frozen.shim import context_attention_fwd  # Phase A': off-path prefix-prefill wrapper (B-inert-shim)
 
 logger = init_logger(__name__)
 

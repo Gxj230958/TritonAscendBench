@@ -16,13 +16,13 @@ import os
 from collections.abc import Callable
 from typing import Any
 import torch
-import tasks._frozen_shim.envs as envs  # Phase A': vllm.envs allowlist shim (B-inert-shim)
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
+import triton_ascend_bench.frozen.shim.envs as envs  # Phase A': vllm.envs allowlist shim (B-inert-shim)
+from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import get_max_shared_memory_bytes  # Phase A': live device query (B-inert-shim)
-from tasks._frozen_shim import num_compute_units  # Phase A': scheduling-only grid sizing (B-inert-shim)
-from tasks._frozen_shim import is_torch_equal_or_newer  # Phase A': pure predicate (B-inert-shim)
+from triton_ascend_bench.frozen.shim import get_max_shared_memory_bytes  # Phase A': live device query (B-inert-shim)
+from triton_ascend_bench.frozen.shim import num_compute_units  # Phase A': scheduling-only grid sizing (B-inert-shim)
+from triton_ascend_bench.frozen.shim import is_torch_equal_or_newer  # Phase A': pure predicate (B-inert-shim)
 
 @triton.jit
 def bmm_kernel(a_ptr, b_ptr, c_ptr, B, M, N, K, stride_ab, stride_am, stride_ak, stride_bb, stride_bk, stride_bn, stride_cb, stride_cm, stride_cn, BLOCK_SIZE_M: tl.constexpr, BLOCK_SIZE_N: tl.constexpr, BLOCK_SIZE_K: tl.constexpr, A_LARGE: tl.constexpr, B_LARGE: tl.constexpr, C_LARGE: tl.constexpr):

@@ -12,12 +12,12 @@ File SHA-256 (this vendored copy): 3a81942a6853b21e69cbf7344f6a9504ff8a7b104a203
 Frozen by: scripts/phase_a_freeze.py
 """
 import torch
-from tasks._frozen_deps_pool.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
+from triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
 from triton_ascend_bench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
 triton = _pa_make_triton_clone()
-from tasks._frozen_deps_pool.h_ccee54797b1f.vllm_model_executor_layers_mamba_ops_mamba_ssm_softplus import softplus  # Phase A': U2 pool-vendored on-path mamba softplus
+from triton_ascend_bench.frozen.deps.h_ccee54797b1f.vllm_model_executor_layers_mamba_ops_mamba_ssm_softplus import softplus  # Phase A': U2 pool-vendored on-path mamba softplus
 
 @triton.autotune(configs=[triton.Config({'BLOCK_SIZE_H': 2}), triton.Config({'BLOCK_SIZE_H': 4}), triton.Config({'BLOCK_SIZE_H': 8}), triton.Config({'BLOCK_SIZE_H': 16}), triton.Config({'BLOCK_SIZE_H': 32}), triton.Config({'BLOCK_SIZE_H': 64})], key=['chunk_size', 'nheads'])
 @triton.jit

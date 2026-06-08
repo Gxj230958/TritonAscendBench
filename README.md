@@ -63,7 +63,7 @@ python scripts/verify_version_matrix.py
 python scripts/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
 
 # Phase A: vendor the upstream GPU triton kernel.py (Apache-2.0/BSD-3
-# attribution preserved; raw snapshot kept in tasks/_vendored/).
+# attribution preserved; raw snapshot kept in triton_ascend_bench/frozen/snapshots/).
 python scripts/phase_a_freeze.py --limit 9999    # 93 frozen
 
 # Phase B: author the PyTorch ground-truth oracle_pytorch.py.

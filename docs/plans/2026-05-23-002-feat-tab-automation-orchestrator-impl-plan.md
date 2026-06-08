@@ -1498,7 +1498,7 @@ prompt 模板要点(用 design doc §4.2 描述,这里给具体编排):
 - **User message** 包含 context:
   - `task_id`
   - resolver 给的 missing-param evidence(scripts/_pa_subproc_runner.py:345-353 报错具体哪个参数没值,类型 tensor / scalar / scalar_seq)
-  - wrapper Python signature(从 `tasks/_vendored/<task>_*.py` 提取的 entrypoint 函数签名 + dtype annotations)
+  - wrapper Python signature(从 `triton_ascend_bench/frozen/snapshots/<task>_*.py` 提取的 entrypoint 函数签名 + dtype annotations)
   - 上游 repo 里 wrapper 的调用点(orchestrator grep `infer/{vllm,sglang}` 提取 N 个 call sites,作为 size/dtype 推断证据)
   - 当前 `shapes.yaml`(可能 scaffold 完全空)
   - `inputs.py` 的 schema 描述(`size_knobs: dict[str, int]` / `public_shapes: list[{id,name,knobs}]` / `hidden_shapes: list[...]` / `inputs.<name>.{dims+dtype+dist, scalar, derive, scalar_seq}` / `DIST_KINDS = {randn, rand, ones, zeros, randint, choice}`)
@@ -1513,7 +1513,7 @@ prompt 模板要点(用 design doc §4.2 描述,这里给具体编排):
 - Happy:1 个 shapes-incomplete task,build_prompt 出含全部 context 的 prompt;字数 < 32k token(防超 LLM context)
 - Edge:wrapper signature 没有 type annotation → prompt 显式标 "type hint 缺失,LLM 须从 caller 推";`missing_params` 仍要列
 - Edge:`infer/{vllm,sglang}` 找不到 caller(grep 0 命中)→ prompt 标 "caller 不可见,LLM 从 wrapper docstring 推";不阻塞
-- Edge:`tasks/_vendored/<task>_*.py` 缺失 → prompt fail-loud(不能在没 wrapper 源码时让 LLM 瞎猜)
+- Edge:`triton_ascend_bench/frozen/snapshots/<task>_*.py` 缺失 → prompt fail-loud(不能在没 wrapper 源码时让 LLM 瞎猜)
 - Integration:prompt 喂给 LLM(mock LLM)→ LLM 返回 mock file-block → `lib/file_blocks.py` parse + validate PASS
 
 **Verification:**
@@ -1965,7 +1965,7 @@ prompt 模板要点:
 - User message:
   - task_id
   - 当前 oracle_pytorch.py 全文
-  - 上游 kernel(vendored snapshot `tasks/_vendored/<task>_*.py`)全文
+  - 上游 kernel(vendored snapshot `triton_ascend_bench/frozen/snapshots/<task>_*.py`)全文
   - meta.yaml.tolerance_class 既有值
   - resolver 报的数值差距(`max abs diff`, `max rel diff`)
   - high-level op 黑名单(`validate_tasks.py:147-167` `_HIGH_LEVEL_OP_NAMES ∪ _HIGH_LEVEL_NN_CLASS_NAMES` 完整枚举)
@@ -2012,7 +2012,7 @@ prompt 模板要点:
   - 唯一路径:defer-to-golden(`isolated_invocation_shim.py` 已弃用)
   - **5 步骤产 patch**:
     1. 读 resolver evidence(`Resolution.tried` / `reject_notes`)拿 `upstream_callable.function`
-    2. 读 `tasks/_vendored/<task>_*.py` 文件头 `Source path:`(`phase_a_freeze.py:226` 写)或 canonical `meta.upstream.path` 拿 `upstream_callable.module`(canonical dotted path,e.g. `vllm.model_executor.layers.layernorm`,`sglang.srt.layers.elementwise`)
+    2. 读 `triton_ascend_bench/frozen/snapshots/<task>_*.py` 文件头 `Source path:`(`phase_a_freeze.py:226` 写)或 canonical `meta.upstream.path` 拿 `upstream_callable.module`(canonical dotted path,e.g. `vllm.model_executor.layers.layernorm`,`sglang.srt.layers.elementwise`)
     3. 扫现有 oracle_pytorch.py 是否含 `_HIGH_LEVEL_OP_NAMES ∪ _HIGH_LEVEL_NN_CLASS_NAMES`(`validate_tasks.py:147-167`)
        - 情况 A:不含 → `oracle_action="unchanged"`,patch 只改 meta.yaml
        - 情况 B:含 → `oracle_action="rewrite-primitives"`(**唯一选项**:把高层 op 转 low-level math),patch 同时改 oracle_pytorch.py;**禁止** `raise NotImplementedError` / stub / `placeholder` 作为出口

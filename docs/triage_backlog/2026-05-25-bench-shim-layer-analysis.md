@@ -302,7 +302,7 @@ GPU 端报的 P4 全是 cachetools/cpuinfo,说明那台机已装 gguf/flashinfer
 
 - **解什么**: 18 个 P2 sibling-relative-import 全部
 - **工作量**: 写一个新脚本 `scripts/freeze_siblings.py`(类似 `scripts/freeze_source.py`),从 kernel.py 解析 `from .X import Y`,递归收集闭包,对每个 sibling 加 SPDX header 写入 task_dir。单 task ~5 min(脚本跑完);全 18 个一次性 ~1.5h 含闭包递归处理。**注意**: 闭包可能很大(L2_17 / L3_17 / L3_19 各 8 个 sibling,而那些 sibling 自己又 import 更多)
-- **风险**: 中。闭包可能拉出整个 fla/ops/ 子树(几千行),会让 task_dir 膨胀;`upstream_fp` / `code_fingerprint` 哈希链路要相应扩展;`tasks/_vendored/` 目录约定也要适配 sibling
+- **风险**: 中。闭包可能拉出整个 fla/ops/ 子树(几千行),会让 task_dir 膨胀;`upstream_fp` / `code_fingerprint` 哈希链路要相应扩展;`triton_ascend_bench/frozen/snapshots/` 目录约定也要适配 sibling
 - **leverage**: 18 / 38 ≈ 47%
 - **替代方案**: M-B' = 让 resolver 的 synthetic package 把 `__path__` **扩展为 task_dir + 真实上游目录**,这样 `from .utils import X` 直接到 `infer/vllm/vllm/model_executor/layers/fla/ops/utils.py`,不用 vendor。优点: 0 task_dir 改动; 缺点: 与 "frozen verbatim" 原则有微妙冲突(原意是 task_dir 是自包含的、SHA256 锁定的,但 sibling 走 LIVE)。需要团队决策
 - **正确性**: ✓ confirmed,resolve_all 直接报 `attempted relative import with no known parent package`
@@ -372,7 +372,7 @@ GPU 端报的 P4 全是 cachetools/cpuinfo,说明那台机已装 gguf/flashinfer
    - 更新 `meta.yaml` `upstream.sibling_files` list
 2. 跑 18 个 P2 task
 3. 闭包大小预期: fla/ops/ 大集中, utils/index/op 三个文件 ≈ 200-500 行 / 个;mamba_ssm 个位百行
-4. **决策点**: 与团队确认 sibling 是否 "frozen verbatim" 同等对待(answer 应该是 yes,扩展 `tasks/_vendored/` 目录命名约定)
+4. **决策点**: 与团队确认 sibling 是否 "frozen verbatim" 同等对待(answer 应该是 yes,扩展 `triton_ascend_bench/frozen/snapshots/` 目录命名约定)
 
 ### Step 4: M-E + M-D 收尾 (0.5 工作日)
 1. M-E: 改 L1_03 / L1_34 / L1_38 的 shapes.yaml,加 knob constraint

@@ -16,7 +16,7 @@ upstream:
   function_hash: e23c11980383a471f9f5aed8a32b4458f9fbf3a4b3edb89c25fa9002dde0f347
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L3_24_fused_recurrent_gated_delta_rule_update_fwd_kernel_409d350.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_24_fused_recurrent_gated_delta_rule_update_fwd_kernel_409d350.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -212,13 +212,13 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_24_fused_recurrent_gated_delta_rule_update_fwd-20260602T203325
-  classified_at: '2026-06-02'
-  standalone_sha256: 73ea1aee6439ee276f6602a67a23c8a7e72a0f0d22b14a1284b7ab65de28c351
-  kernel_sha256: 73ea1aee6439ee276f6602a67a23c8a7e72a0f0d22b14a1284b7ab65de28c351
+  s2_gpu_run_id: s2-L3_24_fused_recurrent_gated_delta_rule_update_fwd-20260608T185013
+  classified_at: '2026-06-08'
+  standalone_sha256: 28e1a6af262ae7a97b74c738adcd5e75d92153f5777bc82a53335680d66e5228
+  kernel_sha256: 28e1a6af262ae7a97b74c738adcd5e75d92153f5777bc82a53335680d66e5228
 frozen_deps:
-- tasks._frozen_deps_pool.h_e36d74582749.sglang_fla_op_utils.op
-- tasks._frozen_deps_pool.h_e36d74582749.sglang_fla_op_utils.utils
+- triton_ascend_bench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.op
+- triton_ascend_bench.frozen.deps.h_e36d74582749.sglang_fla_op_utils.utils
 classB_symbols:
 - sym: vllm.logger.logger
   proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
@@ -227,4 +227,4 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native

@@ -597,7 +597,7 @@ for each (task_id, verdict_class) in BLOCKED_list:
        - shapes.yaml
        - kernel.py(placeholder 或 promoted)
        - oracle_pytorch.py
-       - tasks/_vendored/<task>_<sha>.py  <- 上游源
+       - triton_ascend_bench/frozen/snapshots/<task>_<sha>.py  <- 上游源
        - resolver verdict 详情 + evidence
     2. 选 prompt 模板(按 verdict_class)
     3. 调 LLM -> JSON {"decision", "patch", "rationale"}
@@ -1052,7 +1052,7 @@ LLM 在 upstream-not-invocable 这条路上**不**需要修 vendored snapshot(�
 
 禁止 touch:
 - `tasks/<level>/<task_id>/kernel.py`(promoted by phase_a_prime,不该手改)
-- `tasks/_vendored/`(上游 snapshot,只读)
+- `triton_ascend_bench/frozen/snapshots/`(上游 snapshot,只读)
 - 任何 `scripts/` / `triton_ascend_bench/` / `infra/` / `docs/`
 - 其它 task
 

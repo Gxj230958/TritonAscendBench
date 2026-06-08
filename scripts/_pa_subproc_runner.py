@@ -77,6 +77,11 @@ _REL_IMPORT_RE = re.compile(
 _SEVERED_ALLOWED_TOP = {
     "torch", "triton", "einops", "numpy", "yaml", "safetensors", "_yaml",
     "packaging",
+    # First-party frozen severance runtime (triton_ascend_bench.frozen.*).
+    # In a pip-installed env it resolves from site-packages, so it must be
+    # allowlisted here; vllm/sglang stay forbidden via _FORBIDDEN_TOP even
+    # when reached through this package.
+    "triton_ascend_bench",
 }
 _FORBIDDEN_TOP = {"vllm", "sglang"}
 
@@ -563,7 +568,7 @@ def _load_kernel_with_optional_bridge(
     # duplicate registration carried over from a prior load must be
     # cleared. The severed side (upstream_roots is None) is the staged
     # standalone candidate -- it binds the INERT
-    # ``tasks._frozen_shim.CustomOp`` whose ``register`` is a no-op that
+    # ``triton_ascend_bench.frozen.shim.CustomOp`` whose ``register`` is a no-op that
     # never touches a real vllm op_registry, so there is nothing to clear.
     # Worse, ``clear_conflicting_vllm_registrations`` does ``from
     # vllm.model_executor.custom_op import ...`` whenever the source text
@@ -704,7 +709,7 @@ def _run_side(args: argparse.Namespace) -> int:
         for p in (str(pool.parent), str(shimp)):
             if p not in sys.path:
                 sys.path.insert(0, p)
-        # Expose REPO_ROOT so the rewriter-emitted ``from tasks._frozen_shim
+        # Expose REPO_ROOT so the rewriter-emitted ``from triton_ascend_bench.frozen.shim
         # import ...`` resolves at IMPORT TIME. Without it the severed kernel
         # is loaded before the later REPO_ROOT insertion (around the run()
         # dispatch) and fails with ``ModuleNotFoundError: No module named

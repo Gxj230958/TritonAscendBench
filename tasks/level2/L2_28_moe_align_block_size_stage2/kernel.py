@@ -20,8 +20,8 @@ import torch
 import triton
 import triton.language as tl
 
-from tasks._frozen_shim import moe_align_block_size  # Phase A': sibling-only CUDA reference (B-inert-shim)
-from tasks._frozen_shim import register_cuda_ci  # Phase A': CI-registration no-op (B-inert-shim)
+from triton_ascend_bench.frozen.shim import moe_align_block_size  # Phase A': sibling-only CUDA reference (B-inert-shim)
+from triton_ascend_bench.frozen.shim import register_cuda_ci  # Phase A': CI-registration no-op (B-inert-shim)
 
 register_cuda_ci(est_time=28, suite="stage-b-kernel-unit-1-gpu-large")
 register_cuda_ci(est_time=120, suite="nightly-kernel-1-gpu", nightly=True)

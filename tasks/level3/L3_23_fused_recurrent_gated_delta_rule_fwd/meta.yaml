@@ -16,7 +16,7 @@ upstream:
   function_hash: 38885b93ebd6d4dbf4a1bcdd133fb40725d2f417c305c170c7f0e8313306accf
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L3_23_fused_recurrent_gated_delta_rule_fwd_kernel_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_23_fused_recurrent_gated_delta_rule_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -232,12 +232,12 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_23_fused_recurrent_gated_delta_rule_fwd-20260602T203321
-  classified_at: '2026-06-02'
-  standalone_sha256: ce20788de75453ea594e1fafd85bf000afc4b16f8de2408ec222d0f8fbbecb9a
-  kernel_sha256: ce20788de75453ea594e1fafd85bf000afc4b16f8de2408ec222d0f8fbbecb9a
+  s2_gpu_run_id: s2-L3_23_fused_recurrent_gated_delta_rule_fwd-20260608T185001
+  classified_at: '2026-06-08'
+  standalone_sha256: ed12b929d5aed9e7f3084b57eb0a4f619b38a0290d1f1f20294d9ab688f5d6b3
+  kernel_sha256: ed12b929d5aed9e7f3084b57eb0a4f619b38a0290d1f1f20294d9ab688f5d6b3
 frozen_deps:
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.op
 classB_symbols:
 - sym: vllm.triton_utils.tl
   proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;

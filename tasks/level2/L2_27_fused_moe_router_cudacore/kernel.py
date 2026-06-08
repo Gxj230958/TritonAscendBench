@@ -15,8 +15,8 @@ from typing import Optional, Tuple
 import torch
 import triton
 import triton.language as tl
-from tasks._frozen_shim import fused_topk  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)
-from tasks._frozen_shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
+from triton_ascend_bench.frozen.shim import fused_topk  # Phase A': sibling-only CUDA topk dispatcher (B-inert-shim)
+from triton_ascend_bench.frozen.shim import is_hip  # Phase A': platform/math predicate (B-inert-shim)
 _is_hip = is_hip()
 
 @triton.jit

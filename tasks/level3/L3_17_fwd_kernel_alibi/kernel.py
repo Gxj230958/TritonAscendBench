@@ -13,7 +13,7 @@ Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Any
 import torch
-from tasks._frozen_shim import current_platform  # Phase A': platform stub (B-inert-shim)
+from triton_ascend_bench.frozen.shim import current_platform  # Phase A': platform stub (B-inert-shim)
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
 NUM_WARPS = 4 if current_platform.is_rocm() else 8

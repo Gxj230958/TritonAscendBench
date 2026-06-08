@@ -29,9 +29,9 @@ import triton.language as tl
 from triton_ascend_bench.upstream_shims.triton_autotune_interp import make_triton_clone as _pa_make_triton_clone  # Phase A': interpreter-aware autotune fallback
 triton = _pa_make_triton_clone()
 
-from tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
-from tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op import exp  # Phase A': U2 FLA-ops package vendoring
-from tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils import FLA_CHUNK_SIZE  # Phase A': U2 FLA-ops package vendoring
+from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_indices  # Phase A': U2 FLA-ops package vendoring
+from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.op import exp  # Phase A': U2 FLA-ops package vendoring
+from triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils import FLA_CHUNK_SIZE  # Phase A': U2 FLA-ops package vendoring
 
 
 @triton.heuristics(

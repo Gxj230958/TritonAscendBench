@@ -16,7 +16,7 @@ upstream:
   function_hash: b953102d1e6f5ad56bc3e1ef41f3ffeeb7e548a44859c6e667648e0492eaf349
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L3_13_kernel_unified_attention_3d_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_13_kernel_unified_attention_3d_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -227,13 +227,13 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_13_kernel_unified_attention_3d-20260604T181344
-  classified_at: '2026-06-04'
-  standalone_sha256: af272a520866e21ee0b4d1b984131d84d3aa5dc4c96df3cde6801e66efab8372
-  kernel_sha256: af272a520866e21ee0b4d1b984131d84d3aa5dc4c96df3cde6801e66efab8372
+  s2_gpu_run_id: s2-L3_13_kernel_unified_attention_3d-20260608T184820
+  classified_at: '2026-06-08'
+  standalone_sha256: 45500b55af1cb0e7308adc2b2281e03dfa15455f4ef5d4bc869d42cd0d44f0d7
+  kernel_sha256: 45500b55af1cb0e7308adc2b2281e03dfa15455f4ef5d4bc869d42cd0d44f0d7
 frozen_deps:
-- tasks._frozen_deps_pool.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode
-- tasks._frozen_deps_pool.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers
+- triton_ascend_bench.frozen.deps.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode
+- triton_ascend_bench.frozen.deps.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers
 classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
@@ -246,7 +246,7 @@ classB_symbols:
   proof: vllm.triton_utils.triton is a verbatim re-export of public `triton`/`triton.language`;
     rewrite to `import triton` / `import triton.language as tl` (Class-D peer, NOT
     shimmed)
-reference_path: triton_fallback
+reference_path: native
 phase_b_capture:
   status: DONE
   captured_at: '2026-06-05T01:15:47Z'

@@ -224,7 +224,7 @@ T3 明标 per-task；**不 fake 全量**；只要有 score-eligible BLOCKED 即�
 
 **交付物**：① `scripts/phase_a_prime.py`（符号级闭包分类器 + 池化 vendoring
 引擎 + 子进程 S2 runner + import 审计 + S3）② content-addressed
-`tasks/_frozen_deps_pool/`（D1）③ 极窄 `tasks/_frozen_shim/`（仅证明惰性
+`triton_ascend_bench/frozen/deps/`（D1）③ 极窄 `triton_ascend_bench/frozen/shim/`（仅证明惰性
 Class-B）④ per-task standalone kernel.py + 池引用 + meta.yaml
 (`commit_sha/file_sha256/frozen_deps[]/classB_symbols[]+证明/reference_path/
 pinned_semantic_config`) ⑤ `version_matrix.toml [gpu_capture]` ⑥
@@ -259,7 +259,7 @@ pinned_semantic_config`) ⑤ `version_matrix.toml [gpu_capture]` ⑥
 ## 8. 已决议（自主拍板，不留给后续决策）
 
 - **D1（原 Q1，已决）**：用 **content-addressed 共享池**
-  `tasks/_frozen_deps_pool/<sha256[:12]>/<module>.py`。理由：跨 task 去重 +
+  `triton_ascend_bench/frozen/deps/<sha256[:12]>/<module>.py`。理由：跨 task 去重 +
   sha 本身即 pin + 可审计闭包；per-task `meta.yaml.frozen_deps[]` 记录引用的
   pool 条目 sha。kernel.py 的 import 改写为指向 pool 的稳定相对路径。
 - **D2（原 Q2，已决；codex-r1 FIX#6 去循环更正）**：S2 含 hidden 抽样 =
@@ -281,7 +281,7 @@ pinned_semantic_config`) ⑤ `version_matrix.toml [gpu_capture]` ⑥
   deferred 到 910B（Phase A′ 不碰 perf）。
 - 复用既有：`phase_a_freeze.py` 的 `resolve_source/_provenance_header`、
   `infra/version_matrix.toml` pin 机制、`tolerance.py` 分档容差、
-  `tasks/_vendored/` 快照命名约定。
+  `triton_ascend_bench/frozen/snapshots/` 快照命名约定。
 
 ## 10. codex-r3 SHIP — 实现澄清（已采纳，非新改方案，防实现期歧义）
 

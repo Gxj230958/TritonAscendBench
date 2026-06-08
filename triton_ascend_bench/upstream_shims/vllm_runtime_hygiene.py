@@ -497,7 +497,7 @@ def install_vllm_num_compute_units_stub() -> bool:
 
     Un-severed kernels import it for grid sizing (scheduling-only, never the
     numeric path), so a constant SM count is dispatch-neutral; matches
-    ``tasks/_frozen_shim``. Must run before the kernel's ``from ... import``.
+    ``triton_ascend_bench/frozen/shim``. Must run before the kernel's ``from ... import``.
     Fail-safe: errors are swallowed.
     """
     try:

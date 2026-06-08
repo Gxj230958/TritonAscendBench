@@ -157,7 +157,7 @@ def test_rewrite_operation_end_to_end_on_pass_fixture(tmp_path):
     assert "from vllm.triton_utils import" not in new_src
     assert "from vllm.logger import" not in new_src
     assert "import triton.language as tl" in new_src
-    assert "from tasks._frozen_shim import init_logger" in new_src
+    assert "from triton_ascend_bench.frozen.shim import init_logger" in new_src
     assert not (td / "kernel.py.tmp").exists()  # atomic
 
     m = yaml.safe_load((td / "meta.yaml").read_text())
@@ -213,7 +213,7 @@ def test_rewrite_severs_batch_invariant_shim_imports():
     """The batch_invariant family (L2_13/L2_14) leaks vllm.envs,
     mem_utils.get_max_shared_memory_bytes, torch_utils.is_torch_equal_or_newer,
     and platform_utils.num_compute_units. All four redirect to the
-    tasks._frozen_shim surface so the standalone has NO vllm import left."""
+    triton_ascend_bench.frozen.shim surface so the standalone has NO vllm import left."""
     import re
     src = (
         "import torch\n"
@@ -229,10 +229,10 @@ def test_rewrite_severs_batch_invariant_shim_imports():
     out = pap.rewrite_imports_to_standalone(src, cls, task_dir=None)
     assert not [l for l in out.splitlines()
                 if re.search(r"^\s*(from|import)\s+vllm", l)], out
-    assert "import tasks._frozen_shim.envs as envs" in out
-    assert "from tasks._frozen_shim import get_max_shared_memory_bytes" in out
-    assert "from tasks._frozen_shim import is_torch_equal_or_newer" in out
-    assert "from tasks._frozen_shim import num_compute_units" in out
+    assert "import triton_ascend_bench.frozen.shim.envs as envs" in out
+    assert "from triton_ascend_bench.frozen.shim import get_max_shared_memory_bytes" in out
+    assert "from triton_ascend_bench.frozen.shim import is_torch_equal_or_newer" in out
+    assert "from triton_ascend_bench.frozen.shim import num_compute_units" in out
 
 
 def test_rewrite_refuses_unallowlisted_torch_utils_symbol():
@@ -248,7 +248,7 @@ def test_rewrite_refuses_unallowlisted_torch_utils_symbol():
 
 
 def test_envs_shim_exposes_only_verified_inert_flag():
-    """tasks._frozen_shim.envs exposes ONLY the verified-inert
+    """triton_ascend_bench.frozen.shim.envs exposes ONLY the verified-inert
     VLLM_BATCH_INVARIANT (verbatim upstream default False). Compute-path
     semantic knobs (Class-S: VLLM_TUNED_CONFIG_FOLDER / VLLM_ROCM_FP8_PADDING)
     and any other flag LOUD-FAIL -- the loud-fail is the Class-S gate that
@@ -257,7 +257,7 @@ def test_envs_shim_exposes_only_verified_inert_flag():
     import pytest
     REPO = Path(__file__).resolve().parent.parent.parent
     sys.path.insert(0, str(REPO))
-    envs = importlib.import_module("tasks._frozen_shim.envs")
+    envs = importlib.import_module("triton_ascend_bench.frozen.shim.envs")
     assert envs.VLLM_BATCH_INVARIANT is False
     for semantic in ("VLLM_TUNED_CONFIG_FOLDER", "VLLM_ROCM_FP8_PADDING",
                      "VLLM_SOME_UNVETTED_FLAG"):
@@ -292,7 +292,7 @@ def test_rewrite_customop_inert_shim_and_failclosed_guards():
     rw = lambda s: pap.rewrite_imports_to_standalone(s, cls, task_dir=None)
     ok = rw("from vllm.model_executor.custom_op import CustomOp\n"
             "@CustomOp.register('x')\nclass Y(CustomOp):\n    pass\n")
-    assert "from tasks._frozen_shim import CustomOp" in ok
+    assert "from triton_ascend_bench.frozen.shim import CustomOp" in ok
     assert "from vllm.model_executor.custom_op" not in ok
     # refuse: extra symbol
     multi = rw("from vllm.model_executor.custom_op import CustomOp, PluggableLayer\n")
@@ -308,7 +308,7 @@ def test_customop_shim_is_nn_module_with_noop_register():
     REPO = Path(__file__).resolve().parent.parent.parent
     sys.path.insert(0, str(REPO))
     import importlib
-    shim = importlib.import_module("tasks._frozen_shim")
+    shim = importlib.import_module("triton_ascend_bench.frozen.shim")
     assert issubclass(shim.CustomOp, torch.nn.Module)
 
     @shim.CustomOp.register("op_x")

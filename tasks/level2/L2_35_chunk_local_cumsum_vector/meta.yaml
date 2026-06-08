@@ -16,7 +16,7 @@ upstream:
   function_hash: 49c9ced2c2e337f2482955f777d18824546df3028b26f561ea2dd9440153a642
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L2_35_chunk_local_cumsum_vector_kernel_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L2_35_chunk_local_cumsum_vector_kernel_18f6bf5.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -214,13 +214,13 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_35_chunk_local_cumsum_vector-20260602T203452
-  classified_at: '2026-06-02'
-  standalone_sha256: 023fa26cef944cf759b97c7f914f8ebdb7607dd750d1d9da03099cdb9ce3addc
-  kernel_sha256: 023fa26cef944cf759b97c7f914f8ebdb7607dd750d1d9da03099cdb9ce3addc
+  s2_gpu_run_id: s2-L2_35_chunk_local_cumsum_vector-20260608T184615
+  classified_at: '2026-06-08'
+  standalone_sha256: 4eb98fa19e13657adc3b34588a8c742fe9cbc507e69fc3d9c015aad31c46de50
+  kernel_sha256: 4eb98fa19e13657adc3b34588a8c742fe9cbc507e69fc3d9c015aad31c46de50
 frozen_deps:
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.index
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils
 classB_symbols:
 - sym: vllm.triton_utils.tl
   proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;

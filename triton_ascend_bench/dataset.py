@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -30,7 +31,10 @@ TASKS_ROOT = REPO_ROOT / "tasks"
 # Canary trap tasks live here (W2.5 / DESIGN-V2 §6.8). `iter_all_tasks()`
 # deliberately skips every `_`-prefixed directory, so canaries are NEVER
 # score-eligible. They are discovered ONLY through `iter_canary_tasks()`.
-CANARY_ROOT = TASKS_ROOT / "_canary"
+# TAB_CANARY_ROOT lets the sealed (gitignored) maintainer canary copy live
+# outside the repo so a submitter-visible public clone has no trap; defaults
+# to tasks/_canary for a maintainer checkout.
+CANARY_ROOT = Path(os.environ.get("TAB_CANARY_ROOT") or (TASKS_ROOT / "_canary"))
 
 
 @dataclass

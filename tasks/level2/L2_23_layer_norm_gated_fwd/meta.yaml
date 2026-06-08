@@ -16,7 +16,7 @@ upstream:
   function_hash: ce3e54fa178c177d7aef72149d1e154d70986d10ad7e3af80dca8ea364a59b99
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L2_23_layer_norm_gated_fwd_kernel_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L2_23_layer_norm_gated_fwd_kernel_18f6bf5.py
 interface:
   alias_map: {}
   param_name_map:
@@ -204,19 +204,19 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_23_layer_norm_gated_fwd-20260602T203018
-  classified_at: '2026-06-02'
-  standalone_sha256: d2b8dcc7f37e0490575c160edde8da7e9efb2ebfbcedc4ba37c95a7e0913a503
-  kernel_sha256: d2b8dcc7f37e0490575c160edde8da7e9efb2ebfbcedc4ba37c95a7e0913a503
+  s2_gpu_run_id: s2-L2_23_layer_norm_gated_fwd-20260608T184416
+  classified_at: '2026-06-08'
+  standalone_sha256: 8f752a4dd3c00b77e070f6391bde5e94b170c03f318e897e879109720c81d494
+  kernel_sha256: 8f752a4dd3c00b77e070f6391bde5e94b170c03f318e897e879109720c81d494
 frozen_deps:
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.chunk_delta_h
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.cumsum
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.fused_recurrent
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.index
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.l2norm
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.op
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.solve_tril
-- tasks._frozen_deps_pool.h_af43637ae818.fla_ops.utils
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.chunk_delta_h
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.cumsum
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.fused_recurrent
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.index
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.l2norm
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.op
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.solve_tril
+- triton_ascend_bench.frozen.deps.h_af43637ae818.fla_ops.utils
 classB_symbols:
 - sym: vllm.triton_utils.tl
   proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
@@ -229,7 +229,7 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native
 phase_b_capture:
   status: DONE
   captured_at: '2026-06-05T01:08:45Z'

@@ -16,7 +16,7 @@ upstream:
   function_hash: 6c86d0e356522b9cd88d536df060cf91d9b03bf307f4eaf51c0e31c632a49dba
   license: Apache-2.0
   notes: scaffold — kernel.py is a placeholder; freeze upstream before grading.
-  vendored_snapshot: tasks/_vendored/L3_06_sgemm_lora_b_kernel_409d350.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_06_sgemm_lora_b_kernel_409d350.py
 interface:
   alias_map: {}
   mutability: unspecified
@@ -220,15 +220,15 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_06_sgemm_lora_b-20260604T181224
-  classified_at: '2026-06-04'
-  standalone_sha256: 07a41057b2d2cbb62a465ab2d2084d42635b908ca024ede6a0d285c840b226ec
-  kernel_sha256: 07a41057b2d2cbb62a465ab2d2084d42635b908ca024ede6a0d285c840b226ec
+  s2_gpu_run_id: s2-L3_06_sgemm_lora_b-20260608T184752
+  classified_at: '2026-06-08'
+  standalone_sha256: d7175c39f3f98f9ded118ed15dd7bb8c7e3d5779746ad805851509e902a197f2
+  kernel_sha256: d7175c39f3f98f9ded118ed15dd7bb8c7e3d5779746ad805851509e902a197f2
 frozen_deps:
-- tasks._frozen_deps_pool.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils
+- triton_ascend_bench.frozen.deps.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils
 classB_symbols:
 - sym: vllm.logger.logger
   proof: vllm.logger.logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect) (local alias
     `vllm_default_logger`)
-reference_path: triton_fallback
+reference_path: native

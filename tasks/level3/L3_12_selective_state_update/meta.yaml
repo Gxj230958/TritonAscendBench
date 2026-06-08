@@ -17,7 +17,7 @@ upstream:
     update.
   file_sha256: 9d9ab2f781faa7f5d6a4c24db93d6ab4243c9360dfd160f3704bf12130e75e07
   function_hash: 9d9ab2f781faa7f5d6a4c24db93d6ab4243c9360dfd160f3704bf12130e75e07
-  vendored_snapshot: tasks/_vendored/L3_12_selective_state_update_18f6bf5.py
+  vendored_snapshot: triton_ascend_bench/frozen/snapshots/L3_12_selective_state_update_18f6bf5.py
 interface:
   alias_map: {}
   mutability: 'state: inplace'
@@ -214,12 +214,12 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_12_selective_state_update-20260604T181342
-  classified_at: '2026-06-04'
-  standalone_sha256: 0d153af6618bd0a6bd0d923ad136814e1054a4e08bb97600bd30bc9e10287154
-  kernel_sha256: 0d153af6618bd0a6bd0d923ad136814e1054a4e08bb97600bd30bc9e10287154
+  s2_gpu_run_id: s2-L3_12_selective_state_update-20260608T184816
+  classified_at: '2026-06-08'
+  standalone_sha256: d628591640f7f5ebf46f9845b8acccd5f076dca957df3bb5ffc4ab4d04e48776
+  kernel_sha256: d628591640f7f5ebf46f9845b8acccd5f076dca957df3bb5ffc4ab4d04e48776
 frozen_deps:
-- tasks._frozen_deps_pool.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers
+- triton_ascend_bench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers
 classB_symbols:
 - sym: vllm.triton_utils.tl
   proof: vllm.triton_utils.tl is a verbatim re-export of public `triton`/`triton.language`;
@@ -232,4 +232,4 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native

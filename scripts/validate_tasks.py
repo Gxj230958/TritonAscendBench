@@ -27,6 +27,7 @@ import argparse
 import ast
 import hashlib
 import logging
+import os
 import re
 import sys
 from datetime import datetime
@@ -39,7 +40,7 @@ logger = logging.getLogger("validate_tasks")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-CANARY_ROOT = TASKS_ROOT / "_canary"
+CANARY_ROOT = Path(os.environ.get("TAB_CANARY_ROOT") or (TASKS_ROOT / "_canary"))
 POLICY_FILE = REPO_ROOT / "triton_ascend_bench" / "tolerance_policy.yaml"
 
 sys.path.insert(0, str(REPO_ROOT))

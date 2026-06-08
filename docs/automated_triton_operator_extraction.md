@@ -109,7 +109,7 @@ pointer/stride 参数、处理 in-place 输出契约,镜像上游 host 调用点
 
 ### R2 — severance 泄漏 → 加 rewriter 规则 / shim
 severed-import 审计仍见 `vllm`/`sglang`。在 `phase_a_prime.py` 加**subset-allowlisted、
-fail-closed** 的重写规则,把**离开 graded 路径**的 upstream 符号映射到 `tasks/_frozen_shim/` 的 stub。
+fail-closed** 的重写规则,把**离开 graded 路径**的 upstream 符号映射到 `triton_ascend_bench/frozen/shim/` 的 stub。
 **铁律**:behavior-bearing 符号的 stub 必须 `raise NotImplementedError`(loud-fail,绝不静默返回假数据);
 只有 import-时装饰器/注册/device-probe/常量这类 off-path 符号可返回诚实值。可 vendoring 的小依赖直接 vendor。
 

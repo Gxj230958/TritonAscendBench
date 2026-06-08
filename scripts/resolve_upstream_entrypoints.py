@@ -274,7 +274,7 @@ _PROVENANCE_CODE_FILES = (
 #                          a changed oracle flips oracle-mismatch
 # ``contract.md`` is NOT here (audited: never read on the verdict
 # path -- only kernel.py/meta.yaml/shapes.yaml/oracle_pytorch.py are).
-# The per-task ``tasks/_frozen_deps_pool/**`` + ``tasks/_frozen_shim/**``
+# The per-task ``triton_ascend_bench/frozen/deps/**`` + ``triton_ascend_bench/frozen/shim/**``
 # closures are populated ONLY by an ``--apply`` run; this resolver runs
 # DRY-RUN (never --apply) so no task's verdict here references them
 # (the dirs do not even exist on a dry-run box) -- per the codex r5

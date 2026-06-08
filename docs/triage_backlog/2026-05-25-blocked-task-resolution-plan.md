@@ -62,7 +62,7 @@ scope: docs/triage_backlog/ is export-ignored (INTERNAL operator manual)
 | 文件 | 原因 |
 |------|------|
 | `tasks/level*/<task_id>/kernel.py` | **frozen upstream** by `scripts/phase_a_freeze.py`。文件头有 SPDX header(Apache-2.0)+ vendored file SHA-256。改动破坏 license attribution + 偏离 bench"验证 frozen upstream"的根本目标。 |
-| `tasks/_vendored/<task_id>_<kernel>_<sha>.py` | 同上,这是 frozen 副本的源(`phase_a_freeze.py` 校对一致性)。 |
+| `triton_ascend_bench/frozen/snapshots/<task_id>_<kernel>_<sha>.py` | 同上,这是 frozen 副本的源(`phase_a_freeze.py` 校对一致性)。 |
 | `scripts/resolve_upstream_entrypoints.py` 及其依赖 | 是评估器本身;不可为绕过 BLOCKED 而放宽 anchor。 |
 | `triton_ascend_bench/tolerance_policy.yaml` | 全局 tolerance class 表;改动影响所有 task,不是 per-task 修法。 |
 
@@ -83,7 +83,7 @@ scope: docs/triage_backlog/ is export-ignored (INTERNAL operator manual)
 ```
 REPO              = /data1/code/agentic-rl/kernel/triton-ascend-bench
 TASKS_ROOT        = $REPO/tasks
-VENDORED          = $REPO/tasks/_vendored
+VENDORED          = $REPO/triton_ascend_bench/frozen/snapshots
 SPECS             = $REPO/specs/task_api_contract.md  # schema 权威
 RESOLVE_CACHE     = $REPO/results/resolve_all.json    # verdict 输入
 RESOLVER          = $REPO/scripts/resolve_upstream_entrypoints.py

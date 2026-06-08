@@ -53,7 +53,7 @@ STEP 1 -- AUTHORITATIVE TYPE. Run the bench's own classifier (do not guess):
   cd ${ROOT} && python3 -c "import importlib.util,sys; sys.path.insert(0,'.'); s=importlib.util.spec_from_file_location('pap','scripts/phase_a_prime.py'); p=importlib.util.module_from_spec(s); sys.modules['pap']=p; s.loader.exec_module(p); from pathlib import Path; td=Path('tasks/${t.level}/${t.id}'); c=p.classify_task(td.name,(td/'kernel.py').read_text()); print('diagnostics:', c.diagnostics)"
   -> "jit-only" diagnostic => no host-wrapper (jit_only). Else host_wrapper/mixed.
 
-STEP 2 -- READ: tasks/${t.level}/${t.id}/{meta.yaml (oracle.gpu_triton/pytorch, interface, param_constraints, output_allocation), oracle_pytorch.py (the reference), kernel.py (the frozen upstream + its host call site / how the @triton.jit is launched), shapes.yaml}, tasks/_vendored/${t.id}_*.py. Optionally the task's last daemon blocker via ssh -p 2222 -o BatchMode=yes -o StrictHostKeyChecking=no root@127.0.0.1.
+STEP 2 -- READ: tasks/${t.level}/${t.id}/{meta.yaml (oracle.gpu_triton/pytorch, interface, param_constraints, output_allocation), oracle_pytorch.py (the reference), kernel.py (the frozen upstream + its host call site / how the @triton.jit is launched), shapes.yaml}, triton_ascend_bench/frozen/snapshots/${t.id}_*.py. Optionally the task's last daemon blocker via ssh -p 2222 -o BatchMode=yes -o StrictHostKeyChecking=no root@127.0.0.1.
 
 STEP 3 -- ROUTE to ONE lever (and APPLY for the per-task-tractable ones):
   * launcher (jit_only with DENSE oracle-compatible inputs): author tasks/${t.level}/${t.id}/_pa_launcher.py defining run(inputs)->dict that derives grid/constexpr/strides from the upstream call site and drives the in-module @triton.jit; return the oracle's exact output dict key(s). Match the upstream invocation EXACTLY. If the oracle/shapes are also wrong vs upstream, fix them too (oracle_reauthor below).
@@ -79,7 +79,7 @@ function reviewPrompt(t, r) {
 
 A prior agent applied lever "${r.lever}" (files: ${(r.fix_files || []).join(', ')}). Its faithfulness basis: ${r.faithfulness_basis || '(none)'}. Summary: ${r.fix_summary || '(none)'}.
 
-Read tasks/${t.level}/${t.id}/{kernel.py, oracle_pytorch.py, shapes.yaml, meta.yaml, _pa_launcher.py if present} and tasks/_vendored/${t.id}_*.py. Try to BREAK the fix:
+Read tasks/${t.level}/${t.id}/{kernel.py, oracle_pytorch.py, shapes.yaml, meta.yaml, _pa_launcher.py if present} and triton_ascend_bench/frozen/snapshots/${t.id}_*.py. Try to BREAK the fix:
 - oracle_reauthor: is the new oracle INDEPENDENT pure-PyTorch (does NOT import/call the kernel) AND does it reproduce the kernel's exact math/index/layout convention? Any case (rank, dtype, indexing direction, masking convention, accumulation) where it diverges from the frozen kernel? Does it secretly echo inputs?
 - launcher: does run() mirror the upstream call site exactly (grid, constexpr, strides, arg order, in-place vs out, output key)? Any wrong constant?
 - param_name_map/shapes_fix/output_projection: do the dims/dtypes/maps match how the kernel actually indexes the tensors and the oracle's contract?

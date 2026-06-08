@@ -5,8 +5,8 @@ the reverse SSH tunnel on 127.0.0.1:2222 -> root@<B> which has gpfs
 mounted at the same path as A.
 
 Subcommands:
-  sync-code        rsync local working tree (tasks/ scripts/ pyproject.toml +
-                   tasks/_frozen_shim) to gpfs so the daemon sees latest code
+  sync-code        rsync local working tree (scripts/ tasks/ pyproject.toml
+                   triton_ascend_bench/ infra/) to gpfs so the daemon sees latest code
   submit           write a batch spec to <loop_mailbox>/jobs/<id>.json
   wait             poll <loop_mailbox>/done/<id>.flag (heartbeat-aware)
   collect          rsync <loop_mailbox>/results/<id>/ back to local

@@ -15,7 +15,7 @@ import numpy as np
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import NULL_BLOCK_ID, PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
+from triton_ascend_bench.frozen.shim import NULL_BLOCK_ID, PAD_SLOT_ID  # Phase A': attention sentinel constants (B-inert-shim)
 
 @triton.jit()
 def _causal_conv1d_fwd_kernel(x_ptr, w_ptr, bias_ptr, initial_states_ptr, cache_indices_ptr, has_initial_states_ptr, query_start_loc_ptr, batch_ptr, token_chunk_offset_ptr, block_idx_first_scheduled_token, block_idx_last_scheduled_token, initial_state_idx, num_computed_tokens, o_ptr, dim: tl.constexpr, seqlen: tl.int32, num_cache_lines: tl.constexpr, stride_x_dim: tl.constexpr, stride_x_token: tl.int64, stride_w_dim: tl.constexpr, stride_w_width: tl.constexpr, stride_istate_seq: tl.constexpr, stride_istate_dim: tl.constexpr, stride_istate_token: tl.constexpr, stride_cache_indices: tl.constexpr, stride_o_dim: tl.constexpr, stride_o_token: tl.int64, stride_block_m: tl.constexpr, pad_slot_id: tl.constexpr, null_block_id: tl.constexpr, HAS_BIAS: tl.constexpr, KERNEL_WIDTH: tl.constexpr, SILU_ACTIVATION: tl.constexpr, IS_APC_ENABLED: tl.constexpr, HAS_NULL_BLOCK: tl.constexpr, NP2_STATELEN: tl.constexpr, BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr):
@@ -289,7 +289,7 @@ def run(inputs: dict) -> dict:
     # launcher is exec'd into: kernel.py's top-level
     # `from vllm.v1.attention.backends.utils import NULL_BLOCK_ID, PAD_SLOT_ID`
     # is the binding on the original side, and the severed staging rewrites that
-    # same line to `from tasks._frozen_shim import NULL_BLOCK_ID, PAD_SLOT_ID`.
+    # same line to `from triton_ascend_bench.frozen.shim import NULL_BLOCK_ID, PAD_SLOT_ID`.
     # Referencing them as module globals (NOT a fresh `from vllm import` inside
     # run(), which would resolve vllm at call time and leak it onto the severed
     # import-audit surface) keeps both sides byte-identical sentinel ints

@@ -19,9 +19,9 @@ import torch
 
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)
 import triton.language as tl
-from tasks._frozen_shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
-from tasks._frozen_shim import async_copy_to_gpu  # Phase A': setup-only buffer helpers (B-inert-shim)
-from tasks._frozen_shim import InputBatch  # Phase A': sibling batch-state stand-in (B-inert-shim)
+from triton_ascend_bench.frozen.shim import cdiv  # Phase A': pure-math shim (B-inert-shim)
+from triton_ascend_bench.frozen.shim import async_copy_to_gpu  # Phase A': setup-only buffer helpers (B-inert-shim)
+from triton_ascend_bench.frozen.shim import InputBatch  # Phase A': sibling batch-state stand-in (B-inert-shim)
 
 
 class StructuredOutputsWorker:

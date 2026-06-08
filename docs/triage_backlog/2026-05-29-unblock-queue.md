@@ -149,11 +149,11 @@ Per-task diagnoses for the remaining stub-unblocked tasks:
 | `L3_06_fwd_grouped_kernel_stage1` | DEFER | same paged-vs-contiguous mismatch; if re-scoped to stage-1-only the target is `_decode_grouped_att_m_fwd` with the intermediate `[..., Lv+1]` partial-logsumexp buffer, not `decode_attention_fwd_grouped`. Oracle / shapes / output-contract surgery. |
 | `L3_17` / `L3_19` | DEFER | FLA package: 8 relative imports (`.chunk_delta_h`, `.cumsum`, `.l2norm`, `.solve_tril`, `.op`, `.utils`, ...) -> needs whole-package vendoring, not single-symbol shim. |
 
-Next high-leverage infra: wire U2 pool vendoring (`vendor_symbol` + rewrite redirect to `tasks/_frozen_deps_pool`) -- unblocks the mamba family and any future pure-`@triton.jit`-helper import. Needs its own design review (>50 LOC infra change).
+Next high-leverage infra: wire U2 pool vendoring (`vendor_symbol` + rewrite redirect to `triton_ascend_bench/frozen/deps`) -- unblocks the mamba family and any future pure-`@triton.jit`-helper import. Needs its own design review (>50 LOC infra change).
 
 ## U2 vendoring wired + 15 PASS 2026-05-29
 
-Wired the previously-unused U2 content-addressed pool vendoring (`vendor_symbol` was dead scaffolding) for the pure `@triton.jit` `fast_exp` helper, and added packaging to Class-D (both `CLASS_D_PKGS` and the severed allowlist). Pool entry shipped in-tree (`tasks/_frozen_deps_pool/h_119bf34e8937/`), with 3 targeted tests added.
+Wired the previously-unused U2 content-addressed pool vendoring (`vendor_symbol` was dead scaffolding) for the pure `@triton.jit` `fast_exp` helper, and added packaging to Class-D (both `CLASS_D_PKGS` and the severed allowlist). Pool entry shipped in-tree (`triton_ascend_bench/frozen/deps/h_119bf34e8937/`), with 3 targeted tests added.
 
 Two more deep-vllm PASS landed via the cleared walls:
 - `L2_22_linear_attn_decode` (14th): decode-contract oracle rewrite (`q/k/v [B,H,1,D]` + `slot_idx` arange + slot-routed kv + `candidate_inplace`).
