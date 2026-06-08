@@ -124,8 +124,13 @@ def _rsync(
     return proc.returncode
 
 
-def cmd_sync_code(args: argparse.Namespace) -> int:
-    """rsync local bench code dirs into the remote gpfs bench root."""
+def cmd_sync_code(args: argparse.Namespace, exclude_refs: bool = False) -> int:
+    """rsync local bench code dirs into the remote gpfs bench root.
+
+    exclude_refs skips tasks/*/r10_pyref/ -- safe only for callers that
+    regenerate refs (c2/oracle_equiv_one wipes+regens). gpu-rank reads refs
+    without regenerating, so it must keep them.
+    """
     # Push selected paths to keep traffic small. Bench infra under scripts/,
     # task data under tasks/, dep deps in pyproject.toml.
     paths = [
@@ -150,8 +155,13 @@ def cmd_sync_code(args: argparse.Namespace) -> int:
         # update=True so a freshly-resolved meta.yaml on gpfs is NOT
         # clobbered by an older dev-side copy during a sync-code call
         # that races with an in-flight resolve batch.
-        rc = _rsync(src, dst, exclude=[".loop/", "__pycache__/", "*.pyc"],
-                    update=True)
+        excl = [".loop/", "__pycache__/", "*.pyc"]
+        if exclude_refs:
+            # r10_pyref/ is ~99% of tasks/ by size; c2 wipes+regens it, so the
+            # c2 sync-code skips dev's copies. Callers that read refs without
+            # regenerating (gpu-rank) keep them.
+            excl.append("r10_pyref/")
+        rc = _rsync(src, dst, exclude=excl, update=True)
         rc_total |= rc
     return rc_total
 
@@ -474,7 +484,8 @@ def cmd_oracle(args: argparse.Namespace) -> int:
 
 def cmd_run_oracle(args: argparse.Namespace) -> int:
     """sync-code + oracle-equiv + wait + collect, one shot."""
-    rc = cmd_sync_code(args)
+    # c2 wipes+regens r10_pyref, so skip pushing dev's ~13G of refs.
+    rc = cmd_sync_code(args, exclude_refs=True)
     if rc != 0:
         return rc
     batch_id = args.batch_id or _new_batch_id()
