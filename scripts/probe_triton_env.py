@@ -1,6 +1,6 @@
 """One-shot diagnostic for the deploy host's Triton install.
 
-Why this script exists: on the user's `/inspire/...` deploy host, the
+Why this script exists: on some deploy hosts the
 resolver's oracle subprocess fails on the six sglang LoRA tasks
 (L2_04 ~ L2_09) with::
 
@@ -240,7 +240,7 @@ def probe_sglang_assertion() -> None:
         )
     except AssertionError:
         print(
-            "assert FAIL -- this reproduces the /inspire/ failure. "
+            "assert FAIL -- this reproduces the deploy-host failure. "
             f"Decorated fn is type {type(fn).__module__}.{type(fn).__qualname__} "
             f"but sglang checks against {JITFunction.__module__}.JITFunction. "
             "Fix the triton install on this host."

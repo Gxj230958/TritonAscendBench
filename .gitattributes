@@ -15,6 +15,29 @@
 scripts/automation/                              export-ignore
 tab_automation/                                  export-ignore
 
+# INTERNAL closed-loop orchestration (dev <-> tunnel <-> gpfs <-> GPU)
+scripts/loop/                                    export-ignore
+
+# INTERNAL dev-only helper scripts (corpus authoring / diagnostics / full
+# regression driver) -- not part of the public `tab` surface
+scripts/full_regression.py                       export-ignore
+scripts/auto_shapes_filler.py                    export-ignore
+scripts/auto_patch_shapes_from_wrapper.py        export-ignore
+scripts/lint_shapes_against_kernel.py            export-ignore
+scripts/per_task_diagnostic.py                   export-ignore
+scripts/_c2_sweep_analyze.py                     export-ignore
+scripts/probe_triton_env.py                      export-ignore
+scripts/build_oracle_digest.py                   export-ignore
+scripts/multi_launched_manifest.py               export-ignore
+scripts/operator_slice.py                        export-ignore
+scripts/freeze_source.py                         export-ignore
+scripts/extract_kernel.py                        export-ignore
+scripts/_test_ceiling_acceptance.py              export-ignore
+
+# INTERNAL infra notes (scope RFC + upstream maintainer contacts)
+infra/RFC_0001_scope.md                          export-ignore
+infra/upstream_contacts.md                       export-ignore
+
 # INTERNAL plan documents (design doc + impl plan)
 docs/plans/2026-05-23-001-*.md                   export-ignore
 docs/plans/2026-05-23-002-*.md                   export-ignore
@@ -44,3 +67,5 @@ tests/unit_tests/test_fix_orchestrator_tier2.py  export-ignore
 tests/unit_tests/test_fix_orchestrator_m2.py     export-ignore
 tests/unit_tests/test_runners.py                 export-ignore
 tests/unit_tests/test_tab_quickstart.py          export-ignore
+tests/unit_tests/test_r19_boundary.py            export-ignore
+tests/unit_tests/test_resolve_loader.py          export-ignore

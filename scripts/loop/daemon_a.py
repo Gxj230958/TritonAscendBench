@@ -1,12 +1,11 @@
 """GPU A side: poll <loop_mailbox>/jobs/ for batch specs, run phase_a_prime --verify per task.
 
 The loop mailbox lives OUTSIDE the bench repo at <bench_parent>/loop_mailbox/
-(sibling of TritonAscendBench/). On gpfs that resolves to
-/inspire/hdd/.../kernel/loop_mailbox/. Override via env var LOOP_MAILBOX_DIR.
+(a sibling directory). Override via env var LOOP_MAILBOX_DIR.
 
-Deployment (one-time on GPU A, then zero further intervention):
+Deployment (one-time on the GPU host, then zero further intervention):
 
-    cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
+    cd <remote>/triton-ascend-bench
     mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
     tmux new-session -d -s loop_daemon \
         'scripts/loop/supervise_daemon.sh --workers 4 --gpus 4 2>&1 | tee -a ../loop_mailbox/daemon.log'
@@ -635,7 +634,7 @@ def main() -> int:
             "versions that differ from the daemon's env -- e.g. when the "
             "system python has torch 2.9.1 but the vendored vllm requires "
             "torch == 2.11.0 with a separately-built vllm._C. Example: "
-            "/inspire/.../vllm_venv/bin/python3"
+            "/path/to/vllm_venv/bin/python3"
         ),
     )
     args = ap.parse_args()

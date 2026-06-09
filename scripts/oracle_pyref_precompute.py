@@ -10,10 +10,10 @@ For each task:
      `tasks/<id>/r10_pyref/{inputs_<sid>.safetensors, ref_<sid>.safetensors}`.
   3. Emit per-task oracle_pyref_status into a report json + audit md.
 
-This script is V9 architectural-shift unit M2.1a (dev / CPU portion of
+This script is the architectural-shift unit (dev / CPU portion of
 R10 GPU equivalence verification). It produces artifacts the GPU-side
 operator script (gpu_pipeline/25_oracle_equivalence_verify.sh) will
-consume in stage 2 (M2.1b, manual operator run).
+consume in stage 2 (manual operator run).
 
 Status enum (closed):
   ALIGNED_READY              — oracle ran OK on CPU, artifacts written
@@ -29,12 +29,12 @@ Status enum (closed):
                                rank that build_inputs does not produce, BUT
                                the oracle is rank-agnostic so patching
                                shapes.yaml.inputs.dims would resolve both.
-                               (V9 codex review 2026-05-27)
+
   ORACLE_KERNEL_LAYOUT_MISMATCH — kernel host wrapper expects rank N, oracle
                                internal helper expects rank M (M != N). The
                                two contracts disagree fundamentally; patching
                                shapes would break one to fix the other.
-                               Route to source ②. (V9 codex review 2026-05-27)
+                               Route to source ②.
 """
 from __future__ import annotations
 
@@ -202,7 +202,7 @@ def _load_resolve_tried_map() -> dict[str, list[str]]:
 def _extract_oracle_helper_contract(oracle_path: Path):
     """Thin re-export of the shared ``wrapper_contract`` helper. Kept
     as a module-local name so the original call sites in this script
-    keep working without touching imports (V9 codex review 2026-05-27
+    keep working without touching imports (the shared helper
     consolidated the implementation)."""
     from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
         extract_oracle_helper_contract,
@@ -385,7 +385,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         )
         return audit
 
-    # V9 codex review 2026-05-27: static rank check before running oracle.
+    # Static rank check before running oracle.
     # Even when key sets line up, the kernel host wrapper may unpack
     # ``B, T, H, K = k.shape`` expecting 4-D while build_inputs produces
     # rank-3 -- GPU verify then fails with stale tracebacks. Catch it
@@ -584,7 +584,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             inputs_path = ref_dir / f"inputs_{shape_id}.safetensors"
             ref_path = ref_dir / f"ref_{shape_id}.safetensors"
 
-            # V9 codex review 2026-05-27 (round 2): safetensors load_file
+            # safetensors load_file
             # returns keys sorted alphabetically. For a multi-output oracle
             # whose dict insertion order doesn't match alphabetical, the
             # R10.b runner used to mis-map the kernel's positional tuple

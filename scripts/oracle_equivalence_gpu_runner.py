@@ -10,7 +10,7 @@ For each task with provenance.golden.oracle_pyref_status == "ALIGNED_READY":
   5. Emit /tmp/r10_verdict/<task_id>.json with per-shape PASS/FAIL +
      numeric diff (max_abs, max_rel) per output tensor.
 
-Manual operator workflow (V9 M2.1b):
+Manual operator workflow:
   ssh <gpu-host>
   cd /path/to/triton-ascend-bench && git pull
   bash scripts/gpu_pipeline/oracle_equivalence_verify.sh --task-list <task1,task2,...>
@@ -447,7 +447,7 @@ def _verify_one_task(
         log.info("  %s: cannot resolve kernel entrypoint", task_id)
         return verdict
 
-    # V9 codex review 2026-05-27: static wrapper-rank check BEFORE GPU
+    # Static wrapper-rank check BEFORE GPU
     # import / kernel call. Many tasks previously fell through to
     # `_import_kernel_function`, then LAUNCH_BLOCKED with stale
     # `not enough values to unpack` tracebacks. Catching the rank
@@ -455,7 +455,7 @@ def _verify_one_task(
     # candidate vs source-2 reroute) instead of a misleading runtime
     # trace; AND when ALL shapes are static-blocked we skip kernel
     # import entirely, so import-time failures cannot mask a clean
-    # static verdict (codex Medium #2).
+    # static verdict.
     from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
         check_against_inputs,
         extract_oracle_helper_contract,
@@ -463,7 +463,7 @@ def _verify_one_task(
     )
 
     wrapper_contract = extract_wrapper_contract(kernel_path, fn_name)
-    # Shared oracle-helper extractor (codex Medium #3 -- de-duplicates
+    # Shared oracle-helper extractor de-duplicates
     # the near-identical R10.a / R10.b inline walks).
     oracle_helper_contract = (
         extract_oracle_helper_contract(oracle_path)
@@ -540,7 +540,7 @@ def _verify_one_task(
     # If EVERY shape has a static verdict (any mix of WRAPPER_CONTRACT_
     # MISMATCH / ORACLE_KERNEL_LAYOUT_MISMATCH / build-error
     # LAUNCH_BLOCKED), skip kernel import entirely. This is the
-    # codex Medium #2 fix: an unrelated import-time crash can no
+    # An unrelated import-time crash can no
     # longer mask a clean static verdict.
     if (
         per_shape_static_verdict
@@ -617,7 +617,7 @@ def _verify_one_task(
             continue
         ref_keys_seen |= set(ref_tensors.keys())
 
-        # V9 codex review 2026-05-27: safetensors load_file returns
+        # safetensors load_file returns
         # alphabetical keys, so a multi-output oracle whose dict
         # insertion order didn't happen to be alphabetical can no
         # longer be re-aligned with the kernel's positional tuple
@@ -897,7 +897,7 @@ def _verify_one_task(
             # Multi-output kernels MUST carry the oracle's dict insertion
             # order in safetensors metadata. Silently falling back to
             # alphabetical ``ref_tensors.keys()`` is a mispair landmine
-            # (codex r2 review 2026-05-27): for the L1_36 case it would
+            # for the L1_36 case it would
             # quietly swap seg_indptr and src2dst and report inf again.
             # Validate the metadata: it must be a list of strings whose
             # set EXACTLY matches the safetensors keys and whose length

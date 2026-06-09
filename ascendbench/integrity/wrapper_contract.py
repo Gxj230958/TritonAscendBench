@@ -1,4 +1,4 @@
-"""wrapper_contract.py -- V9 plan M0a.2 / codex review 2026-05-27.
+"""wrapper_contract.py
 
 Statically extract per-input rank constraints from a kernel.py host
 wrapper function body, then compare against the ranks ``build_inputs``
@@ -23,7 +23,7 @@ Coverage:
 * ``len(x.shape)`` dispatch: ``if len(x.shape) == 3: ...``
                             -> ``x.ndim`` accepts 3
 
-Out of scope (codex flagged but unlikely worth modeling for v1):
+Out of scope (unlikely worth modeling for v1):
 
 * ``view`` / ``reshape`` that change rank mid-body
 * ``*args`` / ``**kwargs`` wrappers
@@ -55,7 +55,7 @@ class WrapperContract:
     source_lines: dict[str, list[tuple[int, str]]] = field(
         default_factory=dict
     )
-    # V9 P6 (auto_patch_shapes): for each input, the list of dim-name
+    # (auto_patch_shapes): for each input, the list of dim-name
     # tuples observed in *direct* (non-starred) ``a, b, c = x.shape``
     # unpacks. Each tuple is the LHS variable name sequence in source
     # order, e.g. ``B, T, H, K = k.shape`` -> ``('B', 'T', 'H', 'K')``.
@@ -471,7 +471,7 @@ def check_against_inputs(
 
 
 def extract_oracle_helper_contract(oracle_path: Path) -> WrapperContract | None:
-    """V9 plan M0a.2 / codex review 2026-05-27: single shared
+    """Single shared
     extractor for the oracle's internal helper contract.
 
     Oracles by convention have one top-level helper function (any
@@ -486,7 +486,7 @@ def extract_oracle_helper_contract(oracle_path: Path) -> WrapperContract | None:
     Returns ``None`` when the oracle file has no non-``run`` def, or
     if the file does not parse. Both R10.a and R10.b previously
     inlined near-identical AST walks; consolidating here is the
-    single-source fix codex flagged as Medium-severity duplication.
+    single-source fix for the Medium-severity duplication.
     """
     if not oracle_path.exists():
         return None

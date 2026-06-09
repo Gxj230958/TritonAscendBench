@@ -1,45 +1,45 @@
-# H200 Roofline peak table — H200 self-check 用, 非 910B 评分用。
-# H200 = H100 同 GH100 die: compute peak 与 H100 相同, 唯一差 HBM (HBM3e 4.8TB/s)。
-# 全部 nvidia-official 公开规格 (来源 nvidia.com/h200 datasheet)。
+# H200 Roofline peak table — for H200 self-check, not for 910B scoring.
+# H200 = H100, same GH100 die: compute peak identical to H100, only HBM differs (HBM3e 4.8TB/s).
+# All nvidia-official public specs (source: nvidia.com/h200 datasheet).
 
 schema_version = "1.0"
 device = "NVIDIA H200 SXM"
 
 # ============================================================================
-# per-compute-class 峰值算力 π_c (TFLOP/s, int8 用 TOP/s)
+# per-compute-class peak compute π_c (TFLOP/s, int8 in TOP/s)
 # ============================================================================
 
 [compute_class.fp16_cube]
-peak_tflops = 989.0   # H200 SXM FP16 Tensor (= H100, 同 die)。
+peak_tflops = 989.0   # H200 SXM FP16 Tensor (= H100, same die).
 provenance = "nvidia-official"
 description = "Tensor core, fp16 matrix multiply-accumulate"
 
 [compute_class.bf16_cube]
-peak_tflops = 989.0   # = fp16 (同 Tensor 流水)。
+peak_tflops = 989.0   # = fp16 (same Tensor pipeline).
 provenance = "nvidia-official"
 description = "Tensor core, bf16 matrix multiply-accumulate"
 
 [compute_class.int8]
-peak_tops = 1979.0    # H200 SXM INT8 Tensor。
+peak_tops = 1979.0    # H200 SXM INT8 Tensor.
 provenance = "nvidia-official"
 description = "Tensor core, int8 quantized multiply-accumulate"
 
 [compute_class.vector]
-peak_tflops = 67.0    # H200 FP32 CUDA-core FMA peak (special-function 走 SFU ~4T 更低,
-                      # 但 vector task 多 memory-bound, peak 取值对相对排名不敏感)。
+peak_tflops = 67.0    # H200 FP32 CUDA-core FMA peak (special-functions via SFU ~4T lower,
+                      # but vector tasks are mostly memory-bound, so the peak value has little effect on relative ranking).
 provenance = "nvidia-official"
 description = "CUDA core, fp32 elementwise / reduction FLOPS"
 
 # ============================================================================
-# per-resource 峰值带宽 β_r (GB/s)
+# per-resource peak bandwidth β_r (GB/s)
 # ============================================================================
 
 [resource.hbm]
-peak_bandwidth_gbps = 4800.0  # H200 HBM3e 4.8 TB/s (vs H100 HBM3 3.35)。
+peak_bandwidth_gbps = 4800.0  # H200 HBM3e 4.8 TB/s (vs H100 HBM3 3.35).
 provenance = "nvidia-official"
 description = "HBM3e memory bandwidth"
 
 [resource.interconnect]
-peak_bandwidth_gbps = 900.0   # NVLink 4.0, 900 GB/s bidirectional。
+peak_bandwidth_gbps = 900.0   # NVLink 4.0, 900 GB/s bidirectional.
 provenance = "nvidia-official"
 description = "NVLink cross-device bandwidth"

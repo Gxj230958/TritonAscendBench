@@ -1,4 +1,4 @@
-"""determinism.py -- V9 plan M3.1 (R20 determinism verification, v1).
+"""determinism.py -- R20 determinism verification, v1.
 
 A kernel's captured golden is only trustworthy if the kernel produces
 the same bytes every time it runs with the same inputs / seed / env.

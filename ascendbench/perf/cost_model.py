@@ -1,6 +1,6 @@
 """cost_model.py — `meta.yaml.cost_model` schema + shared formula evaluator.
 
-DESIGN-V2 §5.6 / `specs/task_api_contract.md` §5: every task may declare a
+The design spec §5.6 / `specs/task_api_contract.md` §5: every task may declare a
 performance cost model so scoring can build the Roofline theoretical-latency
 baseline ``t_ref = max(max_c W_c/π_c, max_r M_r/β_r)`` (§9).
 

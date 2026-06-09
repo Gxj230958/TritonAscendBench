@@ -2765,7 +2765,7 @@ WORKING_REFS: dict[str, tuple[str, str]] = {
 }
 
 
-# codex-review + self-diagnosis: tasks whose kernel has a genuine
+# Tasks whose kernel has a genuine
 # math-changing optional path the working-ref oracle does NOT fully
 # cover on a mainstream config. These are downgraded to
 # `upstream_oracle_required` (the runner must not claim the canonical

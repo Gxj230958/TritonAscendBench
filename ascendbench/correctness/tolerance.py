@@ -29,7 +29,7 @@ class ToleranceClass:
     nan_must_match: bool = True
     sample_fraction: float = 1.0     # 1.0 == compare full tensor
     bit_exact: bool = False          # integer / bool / sampling_rng → torch.equal
-    # V9 codex review 2026-05-27: per-class explicit integer-output
+    # Per-class explicit integer-output
     # tolerance. When ``None`` (default), integer dtypes go through
     # bit-exact equality -- the historical safe behaviour for
     # sampling_rng / int64 ULP-sensitive ops. When set to a positive
@@ -82,7 +82,7 @@ def load_policy(path: Path = DEFAULT_POLICY) -> dict[str, ToleranceClass]:
 
 @dataclass(frozen=True)
 class ToleranceSpec:
-    """Unified tolerance spec for a task -- V9 plan M0.0 authority.
+    """Unified tolerance spec for a task.
 
     ``for_task(task)`` consults the nested
     ``provenance.golden.tolerance_source`` (when present) to pick the
@@ -121,7 +121,7 @@ def for_task(
     ``.meta`` (dict). Both ``ascendbench.corpus.dataset.TaskDef`` and
     raw-meta callers fit.
 
-    Precedence (V9 plan M0.0):
+    Precedence:
 
     1. ``meta.provenance.golden.tolerance_source == upstream_test_explicit``
        AND ``atol`` / ``rtol`` present -> pinned from the upstream test;
@@ -130,7 +130,7 @@ def for_task(
        in ``tolerance_policy.yaml`` and used as the default. The spec's
        ``source`` is reported faithfully (``upstream_test_default``
        when the schema declares it, also when the nested block is
-       absent -- the pre-V9 schema always carried the default
+       absent -- the schema always carried the default
        implicitly).
     3. ``migration_drift_budget`` is recognised as a source but its
        v1 implementation is "not release-ready"; the spec is still
@@ -165,7 +165,7 @@ def for_task(
                     nan_must_match=base_cls.nan_must_match,
                     sample_fraction=base_cls.sample_fraction,
                     bit_exact=base_cls.bit_exact,
-                    # Codex review 2026-05-27: clone *all* class fields so
+                    # Clone *all* class fields so
                     # tasks that pin atol/rtol from an upstream test keep
                     # their integer-output ULP tolerance. Without this an
                     # explicitly pinned int8/int32 task would silently
@@ -268,7 +268,7 @@ _INTEGER_DTYPES = {
 def _int_atol_compare(
     a: torch.Tensor, e: torch.Tensor, atol: int,
 ) -> ComparisonResult:
-    """V9 codex review 2026-05-27: integer-typed compare with explicit
+    """Integer-typed compare with explicit
     ULP tolerance. ``|a - e| <= atol`` element-wise, with diff
     computed in widened int64 so the subtraction itself does not
     overflow the input dtype.
@@ -302,7 +302,7 @@ def _int_atol_compare(
 def _bit_exact_compare(
     a: torch.Tensor, e: torch.Tensor
 ) -> ComparisonResult:
-    """Integer / bool / sampling_rng exact equality (codex round-2 P1)."""
+    """Integer / bool / sampling_rng exact equality."""
     if a.dtype != e.dtype:
         return ComparisonResult(
             passed=False,
@@ -390,12 +390,12 @@ def compare(
 ) -> ComparisonResult:
     """Numeric comparison.
 
-    Per codex P1-3: sampled fast-fail must NOT be the final verdict. If a
+    Sampled fast-fail must NOT be the final verdict. If a
     sampled allclose detects a mismatch we fail-fast. If the sample passes,
     we still run the **full** allclose so that NaN/Inf or large drift
     outside the sample window cannot pass.
 
-    Per codex round-2 P1: integer / bool dtypes (or any `bit_exact: true`
+    Integer / bool dtypes (or any `bit_exact: true`
     class) get strict torch.equal — they MUST NOT go through float32 cast
     + allclose, which silently rounds e.g. int64(2^24+1) to 2^24.
     """

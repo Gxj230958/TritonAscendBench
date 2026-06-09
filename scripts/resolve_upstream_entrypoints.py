@@ -8,7 +8,7 @@ points at the non-existent ``placeholder``. This module finds the
 CORRECT host wrapper (the Python function that launches the
 ``@triton.jit`` kernel) and -- the NON-NEGOTIABLE anti-fake anchor --
 subjects it to a STRONG DUAL ANCHOR before it is ever written to
-meta.yaml (codex finding 6, [adopted]: this is a strong empirical
+meta.yaml (this is a strong empirical
 anchor, NOT a formal impossibility proof -- see the honest caveat
 below):
 
@@ -90,7 +90,7 @@ _ORACLE_CHECK_RUNNER = SCRIPTS_DIR / "_pa_oracle_check_runner.py"
 # and never needs it.
 _ORACLE_TIMEOUT_S = int(os.environ.get("TAB_ORACLE_TIMEOUT_S", "180"))
 
-# MUST-FIX 1 (codex r2 [confirmed]): the resolver-verdict cache must be
+# The resolver-verdict cache must be
 # a DETERMINISTIC, REPRODUCIBLE in-repo artifact -- NOT a stray /tmp
 # file whose freshness/provenance cannot be trusted. The status
 # generator (`phase_a_prime.py`) reads THIS exact path by default. It is
@@ -106,7 +106,7 @@ CANONICAL_RESOLVE_CACHE = REPO_ROOT / "results" / "resolve_all.json"
 
 
 class StaleResolverCacheError(RuntimeError):
-    """codex r3/r7 [confirmed] -- the resolver-verdict cache is
+    """The resolver-verdict cache is
     STALE / MISSING / UNPROVENANCED, OR the live/cached infer/ state is
     not a verifiable clean pinned git checkout (HOLE 1+2 fail-closed).
     Raised instead of silently consuming -- or futilely regenerating --
@@ -114,7 +114,7 @@ class StaleResolverCacheError(RuntimeError):
     aliased to THIS class so a single ``except`` catches both the
     code-fp/auto-regen path and the new fail-closed infer/ path."""
 
-# MUST-FIX 1 (codex r3 [confirmed]): cache freshness must be STRUCTURAL,
+# Cache freshness must be STRUCTURAL,
 # not a /tmp-mtime / "we just regenerated it" CONVENTION. The cache JSON
 # embeds a PROVENANCE STAMP = sha256 of the COMPLETE resolver-relevant
 # code surface that decides a verdict. The status generator validates
@@ -130,7 +130,7 @@ class StaleResolverCacheError(RuntimeError):
 RESOLVER_TOOL_VERSION = "0.1.0"
 
 # The COMPLETE set of files whose bytes decide a per-task verdict /
-# honest category. MUST-FIX (codex r4 [confirmed]): the surface MUST
+# honest category. The surface MUST
 # cover EVERY file a verdict-flip can come from, else a change to an
 # uncovered file alters the verdict while the cache still validates as
 # "fresh" -- a hole in the structural-provenance guarantee.
@@ -142,7 +142,7 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #     s2_verify_task (the second half of every verdict)
 #   * phase_a_prime.py                 -- _honest_category (maps the
 #     resolver status+reason to the HONEST bucket) + s2_verify_task
-#   * phase_a_freeze.py                -- codex r5 [confirmed]:
+#   * phase_a_freeze.py                --
 #     phase_a_prime.py:58 does ``import phase_a_freeze as paf`` and
 #     reuses its commit-pin / provenance / repo-root helpers ON the
 #     verdict path (paf.REPO_ROOT/TASKS_ROOT/VLLM_ROOT/SGLANG_ROOT at
@@ -177,7 +177,7 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 # verdict/category (that is _honest_category(status, reason) -- pure
 # string logic over the resolver outcome).
 #
-# UPSTREAM PROVENANCE (codex r6 [confirmed], CORRECTED disposition --
+# UPSTREAM PROVENANCE (CORRECTED disposition --
 # the EARLIER "meta.commit_sha transitively covers infer/" REJECT was
 # WRONG and is hereby overturned by a CONCRETE counterexample):
 #
@@ -188,8 +188,8 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #   a task's verdict. ``meta.yaml`` only RECORDS
 #   ``upstream.commit_sha``/``file_sha256`` -- NOTHING ENFORCES that the
 #   live ``infer/`` working tree actually MATCHES that pin at
-#   resolve/cache-validate time. So an edit under ``infer/`` (codex r6
-#   counterexample: remove the ``cbor2`` import in
+#   resolve/cache-validate time. So an edit under ``infer/``
+#   (counterexample: remove the ``cbor2`` import in
 #   ``infer/vllm/vllm/utils/hashing.py``) can FLIP a verdict
 #   (``missing-dep:cbor2`` BLOCKED -> resolvable) while kernel.py,
 #   meta.yaml, shapes.yaml, oracle_pytorch.py, the 8-file code-fp AND
@@ -199,14 +199,14 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #   what IS live on disk; nothing connected the two. This was a real
 #   provenance hole in the live-upstream verdict surface.
 #
-#   CORRECTED MECHANISM (ADOPT codex r6, HARDENED by codex r7 -- the
-#   PRECISE minimal closure form is kept; codex itself listed "the
-#   imported closure" as an option; the orchestrator's original "do NOT
+#   CORRECTED MECHANISM (the
+#   PRECISE minimal closure form is kept;
+#   the orchestrator's original "do NOT
 #   hash multi-GB trees" precision concern is PRESERVED by hashing ONLY
 #   the actual touched closure, NEVER the whole trees):
 #     1. per-task ``upstream_fp`` -- sha256 over the sorted
 #        ``(relpath, sha256-of-bytes)`` of the ACTUAL ``infer/`` files a
-#        task's verdict path imported/executed. codex r7 [confirmed]
+#        task's verdict path imported/executed.
 #        HOLE 3: this is the UNION of BOTH live-upstream sides --
 #        the oracle-consistency subprocess closure AND the S2 *original*
 #        subprocess closure (the S2-original side ALSO puts infer/ on
@@ -220,7 +220,7 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #        -- never None-by-accident).
 #     2. global ``infer_state`` (in ``_provenance``) -- per upstream
 #        root actually used: the CLEAN ``git -C <root> rev-parse HEAD``
-#        ONLY. codex r7 [confirmed] HOLE 1+2: this is FAIL-CLOSED and
+#        ONLY. HOLE 1+2: this is FAIL-CLOSED and
 #        CLEAN-REQUIRED. A non-git / git-missing / rev-parse-or-status
 #        -error root, OR a DIRTY working tree (non-empty
 #        ``git status --porcelain``), is recorded as an
@@ -257,7 +257,7 @@ _PROVENANCE_CODE_FILES = (
     _PACKAGE_DIR / "policies" / "tolerance_policy.yaml",
 )
 
-# ADOPT-1 (codex r5 [confirmed]): the per-task verdict-deciding INPUT
+# ADOPT-1: the per-task verdict-deciding INPUT
 # files. The code fingerprint above covers verdict-deciding CODE; this
 # covers each task's OWN inputs. ``resolve_task`` reads exactly these
 # four per task:
@@ -277,7 +277,7 @@ _PROVENANCE_CODE_FILES = (
 # The per-task ``ascendbench/frozen/deps/**`` + ``ascendbench/frozen/shim/**``
 # closures are populated ONLY by an ``--apply`` run; this resolver runs
 # DRY-RUN (never --apply) so no task's verdict here references them
-# (the dirs do not even exist on a dry-run box) -- per the codex r5
+# (the dirs do not even exist on a dry-run box) -- per the
 # disposition, when a task references none it is correct to hash just
 # the four task files.
 _PER_TASK_INPUT_FILES = (
@@ -295,8 +295,8 @@ def resolver_code_fingerprint() -> str:
     oracle anchor, the S2-smoke runner, the honest-category mapper, the
     input builder, the tolerance comparator, OR the tolerance-policy
     YAML -- or a tool-version bump -- changes this digest, so a cache
-    produced under the OLD code/config is detectably stale (codex r4
-    [confirmed]: the surface now covers EVERY verdict-flip source, so
+    produced under the OLD code/config is detectably stale (the
+    surface now covers EVERY verdict-flip source, so
     a tolerance/inputs edit can no longer slip past a "fresh" cache)."""
     h = hashlib.sha256()
     h.update(f"tool:{RESOLVER_TOOL_VERSION}\n".encode())
@@ -314,7 +314,7 @@ def resolver_code_fingerprint() -> str:
 
 
 def task_input_fingerprint(task_dir: Path) -> str:
-    """ADOPT-1 (codex r5 [confirmed]) -- sha256 over THIS task's
+    """ADOPT-1 -- sha256 over THIS task's
     verdict-deciding INPUT files (a per-task companion to the global
     ``resolver_code_fingerprint``).
 
@@ -345,13 +345,13 @@ def task_input_fingerprint(task_dir: Path) -> str:
     return h.hexdigest()
 
 
-# codex r6/r7 [confirmed] -- the live upstream source roots whose
+# The live upstream source roots whose
 # IMPORTED CLOSURE a verdict path executes. ``upstream_fp`` (per task)
 # hashes the real touched closure under these, UNIONed across the
-# oracle UNION S2-original sides (codex r7 HOLE 3); ``infer_state``
+# oracle UNION S2-original sides (HOLE 3); ``infer_state``
 # (global) records their CLEAN git HEAD ONLY and is FAIL-CLOSED
 # clean-required (a non-git / DIRTY root => <UNVERIFIABLE:...> sentinel
-# => the cache is refused, codex r7 HOLE 1+2). These ARE the live
+# => the cache is refused, HOLE 1+2). These ARE the live
 # verdict-deciding upstream bytes the old meta-sha claim failed to
 # actually enforce.
 _INFER_ROOTS = (
@@ -370,12 +370,12 @@ _EMPTY_UPSTREAM_CLOSURE_FP = (
 
 
 def upstream_closure_fingerprint(files: list[str] | None) -> str:
-    """codex r6 [confirmed] -- sha256 over the sorted
+    """sha256 over the sorted
     ``(relpath-under-infer-root, sha256-of-bytes)`` pairs of the ACTUAL
     ``infer/`` files a task's verdict path imported/executed.
 
     ``files`` is the absolute-path list captured at resolve time: the
-    UNION (codex r7 [confirmed] HOLE 3) of the ``sys.modules`` whose
+    UNION (HOLE 3) of the ``sys.modules`` whose
     ``__file__`` is under ``infer/vllm`` / ``infer/sglang/python`` from
     BOTH live-upstream sides -- the oracle-consistency subprocess AND
     the S2 *original* subprocess (it too runs the unmodified upstream
@@ -387,8 +387,8 @@ def upstream_closure_fingerprint(files: list[str] | None) -> str:
     silently "unchanged"). Deterministic + order-independent: identical
     closure bytes -> identical fp regardless of import order.
 
-    This is the precise MINIMAL form (codex itself listed "the imported
-    closure" as an option) -- whole multi-GB trees are NEVER hashed,
+    This is the precise MINIMAL form
+    -- whole multi-GB trees are NEVER hashed,
     only the actual touched closure, so the original precision concern
     is preserved while the live verdict-deciding bytes are validated."""
     if not files:
@@ -425,7 +425,7 @@ def upstream_closure_fingerprint(files: list[str] | None) -> str:
     return "sha256:" + h.hexdigest()
 
 
-# codex r7 [confirmed] -- HOLE 1+2 sentinel PREFIX. ANY infer/ root
+# HOLE 1+2 sentinel PREFIX. ANY infer/ root
 # whose state is not an authoritatively-verified CLEAN checkout at a
 # resolvable HEAD produces a state string starting with this prefix.
 # ``build_infer_state`` records it verbatim and ``load_resolver_cache``
@@ -444,7 +444,7 @@ def upstream_closure_fingerprint(files: list[str] | None) -> str:
 # byte-edit to an already-dirty/untracked file slipped past).
 _INFER_UNVERIFIABLE_PREFIX = "<UNVERIFIABLE:"
 
-# codex r8 [confirmed] FIX 1 -- HOLE 4: a CLEAN-but-WRONG-COMMIT infer/
+# HOLE 4: a CLEAN-but-WRONG-COMMIT infer/
 # was silently TRUSTED. ``_git_root_state`` returned the live clean HEAD
 # verbatim and ``load_resolver_cache`` only compared cached==live
 # (SELF-consistency). Nothing validated the live HEAD against the
@@ -490,7 +490,7 @@ _FULL_SHA_RE = re.compile(r"\A[0-9a-f]{40}\Z")
 
 
 def expected_infer_pins() -> dict[str, str]:
-    """codex r8 [confirmed] FIX 1 -- the AUTHORITATIVE expected pinned
+    """The AUTHORITATIVE expected pinned
     commit per infer/ root, derived from the corpus consensus of
     ``tasks/*/*/meta.yaml`` ``upstream.commit_sha`` (version_matrix
     explicitly defers the per-commit pin to meta -- see the comment
@@ -505,7 +505,7 @@ def expected_infer_pins() -> dict[str, str]:
     line-scan parse (no yaml dep needed; meta.yaml ``upstream:`` block is
     a flat 2-space-indented map -- the exact shape every meta.yaml uses).
 
-    codex r9 [confirmed] FIX 3 -- a MANAGED repo whose task
+    A MANAGED repo whose task
     ``upstream.commit_sha`` is neither a valid 40-hex SHA NOR the
     explicit ``snapshot-no-git`` sentinel is GARBAGE (truncated SHA,
     branch name, typo, placeholder, ...). The OLD code SILENTLY DROPPED
@@ -522,12 +522,12 @@ def expected_infer_pins() -> dict[str, str]:
     by_root: dict[str, set[str]] = {
         name: set() for name in _META_REPO_TO_INFER_ROOT.values()
     }
-    # codex r9 FIX 3: first malformed commit_sha seen per managed root
+    # First malformed commit_sha seen per managed root
     # (its presence poisons that root's pin -> UNVERIFIABLE, never
     # silently dropped). Records (meta_relpath, raw_value) for an
     # actionable fail-closed message.
     malformed: dict[str, tuple[str, str]] = {}
-    # codex r10 MUST-FIX 2(a) [confirmed]: first blank/absent commit_sha
+    # First blank/absent commit_sha
     # seen per managed root -> distinct ``:blank-commit-sha:`` /
     # ``:absent-commit-sha:`` fail-closed sentinel (not silently
     # skipped). Records (meta_relpath, "blank"|"absent").
@@ -538,7 +538,7 @@ def expected_infer_pins() -> dict[str, str]:
         except OSError:
             continue
         # Scope to the `upstream:` block; read its repo + commit_sha.
-        # codex r10 MUST-FIX 2(a) [confirmed] -- track whether a
+        # Track whether a
         # ``commit_sha:`` KEY was present AT ALL (separately from
         # whether it had a non-blank value). The old ``\s+commit_sha:
         # \s*(\S+)`` only matched a NON-blank value, so ``commit_sha:``
@@ -578,7 +578,7 @@ def expected_infer_pins() -> dict[str, str]:
         root = _META_REPO_TO_INFER_ROOT.get(repo)
         if root is None:
             continue  # repo maps to no managed infer root (irrelevant)
-        # codex r10 MUST-FIX 2(a) [confirmed] -- for a MANAGED repo a
+        # For a MANAGED repo a
         # commit_sha that is absent / blank / whitespace / quoted-empty
         # is JUST AS UNVERIFIABLE as a malformed one. It is NEVER
         # silently skipped: it poisons this root's pin (fail-closed),
@@ -598,7 +598,7 @@ def expected_infer_pins() -> dict[str, str]:
         if _FULL_SHA_RE.match(sha):
             by_root[root].add(sha)
         elif root not in malformed:
-            # codex r9 FIX 3: neither a valid 40-hex SHA nor the
+            # Neither a valid 40-hex SHA nor the
             # deliberate snapshot sentinel -> GARBAGE for a MANAGED
             # repo. Never silently dropped: poison this root's pin.
             try:
@@ -609,7 +609,7 @@ def expected_infer_pins() -> dict[str, str]:
     pins: dict[str, str] = {}
     for name, shas in by_root.items():
         if name in blank:
-            # codex r10 MUST-FIX 2(a) [confirmed]: a managed repo whose
+            # A managed repo whose
             # commit_sha is blank/absent/whitespace/quoted-empty is
             # UNVERIFIABLE -- it FAILS CLOSED with its own distinct
             # sentinel and takes precedence over any otherwise-valid
@@ -621,7 +621,7 @@ def expected_infer_pins() -> dict[str, str]:
                 f"{name}:in={rel}>"
             )
         elif name in malformed:
-            # codex r9 [confirmed] FIX 3: a malformed managed
+            # A malformed managed
             # commit_sha FAILS CLOSED and takes precedence over any
             # otherwise-valid consensus -- never silently ignored.
             rel, bad = malformed[name]
@@ -644,7 +644,7 @@ def expected_infer_pins() -> dict[str, str]:
 
 
 def _git_root_state(root: Path, name: str | None = None) -> str:
-    """codex r6/r7/r8 [confirmed] -- FAIL-CLOSED, CLEAN-AND-PINNED
+    """FAIL-CLOSED, CLEAN-AND-PINNED
     upstream git state for ONE infer/ root.
 
     Returns the resolved ``HEAD`` revision ONLY when the root is an
@@ -656,7 +656,7 @@ def _git_root_state(root: Path, name: str | None = None) -> str:
       * ``git rev-parse HEAD`` resolves a real commit;
       * ``git status --porcelain`` is EMPTY (no tracked modifications,
         no untracked files -- a CLEAN checkout);
-      * codex r8 HOLE 4: when ``name`` is given, the live HEAD EQUALS
+      * HOLE 4: when ``name`` is given, the live HEAD EQUALS
         the AUTHORITATIVE expected pin for that root
         (``expected_infer_pins()`` -- the corpus meta consensus;
         version_matrix defers the per-commit pin to meta). A CLEAN
@@ -672,8 +672,8 @@ def _git_root_state(root: Path, name: str | None = None) -> str:
     / status non-zero, a subprocess error/timeout, a non-empty
     porcelain i.e. a DIRTY tree, OR a clean HEAD != the expected pin)
     returns an ``<UNVERIFIABLE:...>`` sentinel. That sentinel is
-    recorded verbatim and makes the cache FAIL-CLOSED on read (codex r7
-    HOLE 1+2, codex r8 HOLE 4): a dirty / non-git / git-broken /
+    recorded verbatim and makes the cache FAIL-CLOSED on read (
+    HOLE 1+2, HOLE 4): a dirty / non-git / git-broken /
     wrong-commit infer/ is NOT a reproducible pinned state, so it can
     NEVER be trusted as "fresh".
 
@@ -681,7 +681,7 @@ def _git_root_state(root: Path, name: str | None = None) -> str:
     ``+dirty`` marker as if a dirty tree were still a comparable state
     -- but byte-edits to an already-dirty tracked file (or an existing
     untracked file) leave porcelain text unchanged, and ignored files
-    were omitted entirely, so the codex r6 verdict-flip hole reopened
+    were omitted entirely, so the verdict-flip hole reopened
     for the dirty sub-case. We do NOT try to byte-hash arbitrary
     dirty/untracked/ignored files (unbounded + still leaky);
     CLEAN-REQUIRED is strictly stronger, correct, and aligned with the
@@ -726,7 +726,7 @@ def _git_root_state(root: Path, name: str | None = None) -> str:
                 f"{_INFER_UNVERIFIABLE_PREFIX}dirty-not-pinned:"
                 f"{root.name}>"
             )
-        # codex r8 [confirmed] HOLE 4: a CLEAN checkout at the WRONG
+        # HOLE 4: a CLEAN checkout at the WRONG
         # commit is NOT a reproducible pinned state. Validate the live
         # HEAD against the AUTHORITATIVE expected pin (meta consensus --
         # version_matrix defers the per-commit pin to meta). The OLD
@@ -763,7 +763,7 @@ def _git_root_state(root: Path, name: str | None = None) -> str:
 
 
 def _infer_state_is_unverifiable(state: dict) -> str | None:
-    """codex r7 [confirmed] -- if ANY recorded infer/ root state is an
+    """If ANY recorded infer/ root state is an
     ``<UNVERIFIABLE:...>`` sentinel, return a short reason; else None.
     Used by ``load_resolver_cache`` to FAIL CLOSED (HOLE 1+2): a cache
     whose embedded infer_state -- OR the CURRENT live infer_state --
@@ -779,7 +779,7 @@ def _infer_state_is_unverifiable(state: dict) -> str | None:
     return "; ".join(bad) if bad else None
 
 
-# codex r10 MUST-FIX 2(b) [confirmed] -- the UNVERIFIABLE sentinel
+# The UNVERIFIABLE sentinel
 # kinds that mean "a managed task DID reference this root, but its pin
 # could not be authoritatively resolved" (malformed / blank / absent /
 # ambiguous). These roots ARE managed: a task pins them, so a
@@ -798,12 +798,12 @@ _REFERENCED_UNVERIFIABLE_PIN_KINDS = (
 
 
 def _managed_root_names() -> set[str]:
-    """codex r9/r10 [confirmed] -- the set of infer/ roots a managed
+    """The set of infer/ roots a managed
     corpus task references and therefore MUST be present-and-pinned on
     disk. A managed root that is ABSENT is a fail-closed
     ``<UNVERIFIABLE:missing-root:...>``, NEVER a silent omission.
 
-    codex r10 MUST-FIX 2(b) [confirmed PRODUCTION bug]: the OLD set was
+    The OLD set was
     ONLY roots whose ``expected_infer_pins()`` resolved to a valid
     40-hex SHA. A root that a managed task DID reference but whose pin
     came back UNVERIFIABLE (malformed / blank / absent / ambiguous) was
@@ -838,26 +838,26 @@ def _managed_root_names() -> set[str]:
 
 
 def build_infer_state() -> dict:
-    """codex r6/r7/r8/r9 [confirmed] -- the repo-global FAIL-CLOSED
+    """The repo-global FAIL-CLOSED
     infer/ state guard embedded in ``_provenance``. One
     ``<name>: <clean-pinned-git-HEAD>`` entry per upstream root that
     EXISTS on disk -- OR an ``<UNVERIFIABLE:...>`` sentinel for any root
     that is not an authoritatively-verified CLEAN checkout PINNED AT THE
     EXPECTED commit (non-git / git missing / rev-parse/status error /
-    DIRTY tree / clean-but-WRONG-commit -- codex r8 HOLE 4), OR a
+    DIRTY tree / clean-but-WRONG-commit -- HOLE 4), OR a
     ``<UNVERIFIABLE:missing-root:...>`` sentinel for a MANAGED root
     (one the corpus meta-consensus pins -- ``_managed_root_names()``)
-    that is ABSENT on this box (codex r9 [confirmed] FIX 1).
+    that is ABSENT on this box.
 
     A belt-and-suspenders: an infer/ change OUTSIDE any single task's
     captured ``upstream_fp`` closure (or a whole checkout swap) flips
     the recorded HEAD -> the WHOLE cache is invalidated on read; and an
     unverifiable / dirty / non-git / MISSING managed infer/ makes the
-    cache HARD-FAIL (codex r7 HOLE 1+2, r9 FIX 1: never silently
+    cache HARD-FAIL (HOLE 1+2: never silently
     accepted as fresh -- a non-reproducible OR absent managed upstream
     tree cannot back a trustworthy verdict).
 
-    codex r9 [confirmed] FIX 1 -- the OLD code only recorded roots
+    The OLD code only recorded roots
     where ``root.is_dir()`` was true; a MISSING managed root was
     silently OMITTED (``{}`` / partial state), so a cache generated in
     that same absent-root state validated "fresh" (omission == omission
@@ -871,12 +871,12 @@ def build_infer_state() -> dict:
     state: dict[str, str] = {}
     for name, root in _INFER_ROOTS:
         if root.is_dir():
-            # codex r8 HOLE 4: pass the root NAME so the live HEAD is
+            # HOLE 4: pass the root NAME so the live HEAD is
             # validated against the AUTHORITATIVE expected pin (meta
             # consensus), not merely recorded verbatim.
             state[name] = _git_root_state(root, name)
         elif name in managed:
-            # codex r9 [confirmed] FIX 1: a MANAGED root (meta-consensus
+            # A MANAGED root (meta-consensus
             # pins it) that is ABSENT is FAIL-CLOSED, never a silent
             # omission that would self-consistently validate "fresh".
             state[name] = (
@@ -898,7 +898,7 @@ def build_provenance_stamp() -> dict:
         ).isoformat(),
         "code_files": [f.name for f in _PROVENANCE_CODE_FILES],
         "note": (
-            "MUST-FIX 1 (codex r3 [confirmed]): regenerate with "
+            "Regenerate with "
             "`python3 scripts/resolve_upstream_entrypoints.py "
             "--refresh-cache`. NEVER hand-edit. If "
             "code_fingerprint != resolver_code_fingerprint() the cache "
@@ -957,7 +957,7 @@ def _is_numeric_mismatch(detail: str) -> bool:
     (categorised separately so we never mislabel a runnable-elsewhere
     kernel as 'wrong').
 
-    MUST-FIX 2 (codex r3 [confirmed]): the hardened anchor's
+    The hardened anchor's
     ``_check_one_shape`` rejects a candidate that produced output of the
     WRONG ARITY/STRUCTURE with ``STRUCTURE MISMATCH: ... ⇒ wrong
     operator`` (e.g. L1_01: candidate emits oracle-outputs-PLUS-extras).
@@ -1233,9 +1233,9 @@ def oracle_consistency_check(
     SAME inputs within the task's ``tolerance_class``. Returns
     ``(consistent, detail, upstream_closure)`` where ``upstream_closure``
     is the absolute paths of the ACTUAL ``infer/`` files THIS
-    oracle-consistency subprocess imported/executed (codex r6
-    [confirmed]: the real imported-module closure captured in the
-    subprocess that ran it). codex r7 [confirmed] HOLE 3: the caller
+    oracle-consistency subprocess imported/executed (the
+    real imported-module closure captured in the
+    subprocess that ran it). HOLE 3: the caller
     UNIONs this with the S2 *original* subprocess closure before
     hashing the per-task ``upstream_fp`` -- this is the oracle SIDE of
     the complete closure, not the whole of it.
@@ -1369,8 +1369,8 @@ def s2_smoke_with_entrypoint(
     ``entrypoint`` -- AGAINST A TEMP COPY of the task dir, so the real
     ``meta.yaml`` is NEVER mutated during probing. Returns
     ``(status, reason, s2_original_upstream_closure)`` -- status in
-    {PASS, UNRUN, BLOCKED}; the third element (codex r7 [confirmed]
-    HOLE 3) is the absolute infer/ paths the S2 *original* side
+    {PASS, UNRUN, BLOCKED}; the third element
+    (HOLE 3) is the absolute infer/ paths the S2 *original* side
     imported running the UNMODIFIED upstream kernel.py, which the caller
     UNIONs into the per-task ``upstream_fp`` (the oracle side alone did
     NOT cover an infer/ file imported only on the S2-original path).
@@ -1432,10 +1432,10 @@ class Resolution:
     # close-to-passing task for a genuine shapes gap. Empty when resolved or
     # no candidate was tried.
     primary_blocker: str = ""
-    # codex r6/r7 [confirmed] -- the per-task upstream-closure
+    # The per-task upstream-closure
     # fingerprint: sha256 over the ACTUAL infer/ files THIS task's
     # verdict path imported/executed, UNIONed across BOTH live-upstream
-    # sides (oracle-consistency UNION S2-original, codex r7 HOLE 3) -- or
+    # sides (oracle-consistency UNION S2-original, HOLE 3) -- or
     # the stable empty-closure sentinel if none. Stamped onto every
     # cached verdict; re-validated on read so a live infer/ edit that
     # flips a verdict can no longer slip past a "fresh" cache. Defaults
@@ -1449,10 +1449,10 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
     cur = read_gpu_triton(meta_path)
     src = kp.read_text(encoding="utf-8", errors="replace")
 
-    # codex r6/r7 [confirmed] -- accumulate the UNION of every infer/
+    # Accumulate the UNION of every infer/
     # file ANY live-upstream subprocess imported while deciding THIS
     # task's verdict: each candidate's oracle-consistency subprocess
-    # closure AND (codex r7 HOLE 3) the S2 *original* subprocess
+    # closure AND (HOLE 3) the S2 *original* subprocess
     # closure (returned as ``s2_smoke_with_entrypoint``'s 3rd element).
     # The union is the COMPLETE set of live upstream bytes this task's
     # verdict path executed -- NOT just the oracle side (an infer/ file
@@ -1469,7 +1469,7 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
         # meta already points at a non-placeholder entrypoint (the
         # pre-existing 5, OR a task an EARLIER --apply run resolved).
         #
-        # MUST-FIX 1 (codex r2 [confirmed]): the OLD code returned
+        # The OLD code returned
         # ``ALREADY-RESOLVED`` here WITHOUT running the anchor -- so the
         # cache recorded a "resolved" verdict carrying ZERO post-anchor
         # evidence. If that entrypoint had been applied by a
@@ -1488,7 +1488,7 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
             st, why, s2_cl = s2_smoke_with_entrypoint(
                 task_dir, cur, pap
             )
-            # codex r7 [confirmed] HOLE 3 -- UNION the S2-original
+            # HOLE 3 -- UNION the S2-original
             # side's imported infer/ closure into the per-task
             # accumulator (the belt now reflects oracle UNION S2-original).
             _closure_acc.update(s2_cl)
@@ -1602,7 +1602,7 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
         st, why, s2_cl = s2_smoke_with_entrypoint(
             task_dir, c.name, pap
         )
-        # codex r7 [confirmed] HOLE 3 -- UNION the S2-original side's
+        # HOLE 3 -- UNION the S2-original side's
         # imported infer/ closure (complete belt = oracle UNION S2-original).
         _closure_acc.update(s2_cl)
         if st in ("UNRUN", "PASS"):
@@ -1785,14 +1785,14 @@ def run_resolver(
 
 def write_resolver_cache(path: Path, res: list) -> None:
     """Write the resolver-verdict cache WITH the provenance stamp
-    embedded (MUST-FIX 1, codex r3 [confirmed]).
+    embedded.
 
     Layout: ``{"_provenance": {...}, "verdicts": [ {task...}, ... ]}``.
     The stamp's ``code_fingerprint`` is the validated-on-read field --
     its presence makes freshness verifiable FROM THE ARTIFACT ITSELF
     (no /tmp-mtime / "we just ran it" convention).
 
-    ADOPT-1 (codex r5 [confirmed]): EACH verdict also gets an
+    ADOPT-1: EACH verdict also gets an
     ``input_fp`` = ``task_input_fingerprint(task_dir)`` -- the sha256
     of THAT task's own verdict-deciding input files at write time. The
     code fingerprint proves the CODE is unchanged; ``input_fp`` proves
@@ -1800,17 +1800,17 @@ def write_resolver_cache(path: Path, res: list) -> None:
     invalidates only that entry (read side re-resolves just that task,
     never the whole 101).
 
-    codex r6/r7 [confirmed]: EACH verdict ALSO carries ``upstream_fp``
+    EACH verdict ALSO carries ``upstream_fp``
     -- the sha256 of the ACTUAL infer/ imported closure THIS task's
     verdict path executed, UNIONed across the oracle AND S2-original
-    sides (codex r7 HOLE 3; set by ``resolve_task``; the stable
+    sides (HOLE 3; set by ``resolve_task``; the stable
     empty-closure sentinel if the task imported nothing under infer/).
     The ``_provenance`` block carries the global ``infer_state`` (the
-    CLEAN git HEAD per upstream root; codex r7 HOLE 1+2 fail-closed --
+    CLEAN git HEAD per upstream root; HOLE 1+2 fail-closed --
     a non-git / DIRTY root is an ``<UNVERIFIABLE:...>`` sentinel that
     makes the cache REFUSED, never silently trusted). Together they
     close the live-upstream hole: an edit under infer/ that flips a
-    verdict (codex r6 counterexample: removing the cbor2 import in
+    verdict (counterexample: removing the cbor2 import in
     infer/vllm/.../hashing.py) changes ``upstream_fp`` (if it is in
     this task's closure) AND/OR ``infer_state`` (the global belt) ->
     the read side detects the stale entry and NEVER silently consumes
@@ -1838,7 +1838,7 @@ def write_resolver_cache(path: Path, res: list) -> None:
             d["upstream_fp"] = _EMPTY_UPSTREAM_CLOSURE_FP
         verdicts.append(d)
     stamp = build_provenance_stamp()
-    # codex r7 [confirmed] HOLE 1+2 -- cache GENERATION must NOT be
+    # HOLE 1+2 -- cache GENERATION must NOT be
     # silently trusted later when infer/ is dirty / non-git. The
     # embedded ``infer_state`` ALREADY carries the
     # ``<UNVERIFIABLE:...>`` sentinel for any non-clean root (so
@@ -1853,7 +1853,7 @@ def write_resolver_cache(path: Path, res: list) -> None:
             "WARNING: resolver cache GENERATED while infer/ is NOT a "
             f"verifiable clean pinned git checkout ({bad}). This cache "
             "is recorded UNVERIFIABLE and will be REFUSED on read "
-            "(fail-closed, codex r7 HOLE 1+2) -- a dirty / non-git "
+            "(fail-closed, HOLE 1+2) -- a dirty / non-git "
             "upstream tree is not a reproducible pinned state. Pin "
             "infer/ to the version_matrix commit (commit/stash/clean "
             "local changes) and re-run --refresh-cache to produce a "
@@ -1869,7 +1869,7 @@ def write_resolver_cache(path: Path, res: list) -> None:
 
 @dataclass(frozen=True)
 class CacheLoadSnapshot:
-    """codex r12 MUST-FIX [confirmed] -- the SINGLE-SNAPSHOT provenance
+    """The SINGLE-SNAPSHOT provenance
     record of one ``load_resolver_cache`` call.
 
     The whole load+memoize path used to read the cache file THREE
@@ -1905,7 +1905,7 @@ def load_resolver_cache(
     ``(verdicts, staleness, snapshot)`` where ``snapshot`` is the
     ``CacheLoadSnapshot`` carrying the content-sha / code-fp /
     infer_state captured from the SINGLE file read this call performed
-    (codex r12 MUST-FIX [confirmed] -- the caller memoizes under a key
+    (the caller memoizes under a key
     derived from THAT snapshot, eliminating the post-parse key
     re-read). When False (the historical default, kept so the ~30
     existing 2-tuple-unpacking callers/tests are untouched) the return
@@ -1916,8 +1916,8 @@ def load_resolver_cache(
     ``code_fingerprint`` EQUALS the CURRENT
     ``resolver_code_fingerprint()`` (the resolver-relevant code has not
     changed since the cache was built) AND its embedded global
-    ``infer_state`` EQUALS the CURRENT ``build_infer_state()`` (codex r6
-    [confirmed]: the live upstream git HEAD is unchanged, so no infer/
+    ``infer_state`` EQUALS the CURRENT ``build_infer_state()`` (the
+    live upstream git HEAD is unchanged, so no infer/
     checkout swap happened OUTSIDE any single task's captured closure).
     Otherwise ``staleness`` is a short human reason ('missing' /
     'unparseable' / 'no-provenance' / 'fingerprint-mismatch' /
@@ -1926,16 +1926,16 @@ def load_resolver_cache(
     only returned so a caller can diff/inspect; the contract is
     auto-regenerate on any non-None staleness, NEVER silently consume).
 
-    codex r9 [confirmed] FIX 2 -- the LIVE infer/ UNVERIFIABLE check
+    The LIVE infer/ UNVERIFIABLE check
     runs FIRST OF ALL, strictly BEFORE the cache file is even read
     (i.e. before ``missing`` / ``unparseable`` / ``no-provenance``,
-    and before any regenerable code-fp / input_fp staleness). The r8
+    and before any regenerable code-fp / input_fp staleness). The
     code only ran it AFTER the missing/unparseable/no-provenance EARLY
     RETURNS, so with a non-git / DIRTY / wrong-commit / missing-managed
     -root live infer AND a missing/unparseable cache,
     ``_load_resolver_verdicts`` would still attempt one FULL regen
     (``run_resolver``) under that same bad upstream before the re-read
-    finally raised -- the exact regen-then-raise dance the r8 comment
+    finally raised -- the exact regen-then-raise dance the comment
     CLAIMED was gone (a self-description overclaim: the code did not do
     what its own comment asserted). The honest ordering is now exact:
     if the LIVE infer/ is UNVERIFIABLE (non-git / git-broken / DIRTY /
@@ -1946,12 +1946,12 @@ def load_resolver_cache(
     auto-regen path ONLY when the live infer/ is verifiably
     clean+pinned.
 
-    codex r6 [confirmed]: an ``infer_state`` mismatch invalidates the
+    An ``infer_state`` mismatch invalidates the
     WHOLE cache (the cheap belt-and-suspenders) -- the read path then
     auto-regenerates / per-task live-re-resolves under the CURRENT
     upstream state.
 
-    codex r7 [confirmed] HOLE 1+2 -- FAIL CLOSED (NOT fail-open). This
+    HOLE 1+2 -- FAIL CLOSED (NOT fail-open). This
     function RAISES ``StaleResolverCacheError`` (it does NOT return a
     regenerable staleness) when EITHER the LIVE infer/ state OR the
     cache's embedded ``infer_state`` is an ``<UNVERIFIABLE:...>``
@@ -1965,19 +1965,19 @@ def load_resolver_cache(
     baseline'): the global git-HEAD gate is the PRIMARY structural
     guarantee; the per-task ``upstream_fp`` (validated in
     ``_resolver_verdict_for``) is the precise complete BELT (oracle
-    UNION S2-original closure, codex r7 HOLE 3) -- it is NOT, and was
+    UNION S2-original closure, HOLE 3) -- it is NOT, and was
     never, a substitute for a verifiable clean pinned upstream."""
-    # ── codex r9 [confirmed] FIX 2 -- LIVE-INFER FAIL-CLOSED FIRST ────
+    # ── LIVE-INFER FAIL-CLOSED FIRST ────
     # The live infer/ UNVERIFIABLE guard runs BEFORE the cache file is
     # read/parsed -- strictly ahead of the ``missing`` / ``unparseable``
     # / ``no-provenance`` early returns AND every regenerable
     # (code-fp / input_fp) staleness path. An UNVERIFIABLE live infer/
     # (non-git / git-broken / DIRTY / clean-WRONG-commit / MISSING
-    # managed root -- codex r7 HOLE 1+2, r8 HOLE 4, r9 FIX 1) can NEVER
+    # managed root -- HOLE 1+2, HOLE 4) can NEVER
     # back a trustworthy verdict, and regenerating under that SAME bad
     # upstream cannot fix it. Raising here -- before any read -- means
     # the FIRST ``load_resolver_cache`` call hard-fails with NO regen
-    # attempt, EVEN when the cache is also missing/unparseable. (The r8
+    # attempt, EVEN when the cache is also missing/unparseable. (The
     # code computed this only AFTER the missing/unparseable/no-provenance
     # early returns, so a missing-cache + dirty-infer combination did a
     # futile full regen first -- the regen-then-raise dance its own
@@ -2000,7 +2000,7 @@ def load_resolver_cache(
             "python3 scripts/resolve_upstream_entrypoints.py "
             "--refresh-cache"
         )
-    # ── codex r12 MUST-FIX [confirmed] -- SINGLE-SNAPSHOT LOAD ────────
+    # ── SINGLE-SNAPSHOT LOAD ────────
     # Read the cache file bytes EXACTLY ONCE into ``raw_bytes``. The
     # content-sha is sha256 of THOSE bytes; the verdicts are parsed from
     # THOSE bytes; ``code_fp`` is captured ONCE here (``live_state`` was
@@ -2045,7 +2045,7 @@ def load_resolver_cache(
     ]
     if not isinstance(prov, dict) or "code_fingerprint" not in prov:
         return _ret(verdicts, "no-provenance")
-    # ── codex r9 [confirmed] FIX 2 -- FAIL-CLOSED ORDERING (now-true) ──
+    # ── FAIL-CLOSED ORDERING (now-true) ──
     # The LIVE-infer UNVERIFIABLE guard already ran at the TOP of this
     # function (before the file was even read), so it strictly precedes
     # the ``missing`` / ``unparseable`` / ``no-provenance`` early
@@ -2079,13 +2079,13 @@ def load_resolver_cache(
                 "the resolver cache was GENERATED while infer/ was not "
                 f"a verifiable clean pinned git checkout ({cached_bad}) "
                 "-- a dirty-/non-git-/wrong-commit-built cache is "
-                "non-reproducible and is NEVER trusted (codex r7 HOLE "
-                "1+2, r8 HOLE 4). With infer/ now pinned & clean, "
+                "non-reproducible and is NEVER trusted (HOLE "
+                "1+2, HOLE 4). With infer/ now pinned & clean, "
                 "re-run: python3 "
                 "scripts/resolve_upstream_entrypoints.py --refresh-cache"
             )
     # ── REGENERABLE staleness (verifiable clean-pinned infer below) ───
-    # codex r6/r7 [confirmed]: a code-fp / no-infer-state /
+    # A code-fp / no-infer-state /
     # infer-state-mismatch on a VERIFIABLE clean-pinned upstream keeps
     # its auto-regen path -- the read path regenerates / per-task
     # live-re-resolves under the CURRENT code+upstream. A cache built
@@ -2135,7 +2135,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument(
         "--refresh-cache", action="store_true",
-        help="MUST-FIX 1 (codex r2 [confirmed]): regenerate the "
+        help="Regenerate the "
         "DETERMINISTIC canonical resolver-verdict cache "
         f"({CANONICAL_RESOLVE_CACHE.relative_to(REPO_ROOT)}) by running "
         "the FULL 101-task sweep under the CURRENT (hardened) "

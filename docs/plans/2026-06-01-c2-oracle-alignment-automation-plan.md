@@ -8,7 +8,7 @@ core-principle: **所有精度对齐必须 GPU 实跑得到,不是理论推导/�
 
 - C1(severed-vs-original S2 bit-exact)= 另一 session 成熟,batch bfull100g(6-01)98 PASS / 2 BLOCKED
 - C2 当前:meta.yaml golden VERIFIED 仅 10;R10.a census(6-01 dev)= 40 ALIGNED_READY / 40 SIGNATURE_MISMATCH / 19 NEEDS_BRIDGE / 2 WRAPPER_CONTRACT
-- 机器:dev(无 GPU/gpfs)→ ssh 2222 中间机 B(gpfs,无 GPU)→ GPU A 机(daemon_a,只能投 mailbox 触达)
+- 机器:dev(无 GPU/gpfs)→ ssh 反向隧道 → 中间机 B(gpfs,无 GPU)→ GPU A 机(daemon_a,只能投 mailbox 触达)
 
 ## 1. 载体决策(codex confirmed)
 

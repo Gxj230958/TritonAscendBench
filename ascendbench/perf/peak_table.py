@@ -1,8 +1,8 @@
-"""peak_table.py — 910B Roofline π/β 峰值表 loader.
+"""peak_table.py — 910B Roofline π/β peak table loader.
 
 Loads ``infra/peak_table_910b.toml`` and exposes the 910B per-compute-class
 peak compute (π_c) and per-resource peak bandwidth (β_r) used by scoring's
-Roofline theoretical-latency baseline (DESIGN-V2 §5.6 / §9)::
+Roofline theoretical-latency baseline (the design spec §5.6 / §9)::
 
     t_ref = max( max_c W_c / π_c , max_r M_r / β_r )
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_PEAK_TABLE_PATH = REPO_ROOT / "infra" / "peak_table_910b.toml"
 
-# Keys required by DESIGN-V2 §5.6: cube fp16/bf16, int8, vector compute
+# Keys required by the design spec §5.6: cube fp16/bf16, int8, vector compute
 # classes and HBM / cross-device-interconnect resources. The loader fails
 # closed if the table omits any of these.
 REQUIRED_COMPUTE_CLASSES = ("fp16_cube", "bf16_cube", "int8", "vector")

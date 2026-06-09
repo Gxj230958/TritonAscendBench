@@ -1,4 +1,4 @@
-"""sanity_gate.py -- V9 plan M3.0 (R16 output sanity gate).
+"""sanity_gate.py -- R16 output sanity gate.
 
 Reads the central ``sanity_bounds.yaml`` table and applies the
 per-category bounds to a captured golden tensor (or any candidate

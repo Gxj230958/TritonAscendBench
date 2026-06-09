@@ -34,7 +34,7 @@ from scripts.golden_manifest import (
     sign_envelope,
     verify_envelope,
 )
-from scripts.automation.lib.atomic import atomic_write_bytes
+from ascendbench._util.atomic import atomic_write_bytes
 
 
 # ─────────────────────────────────────────────────────────────────────

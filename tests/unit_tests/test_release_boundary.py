@@ -81,6 +81,8 @@ def test_release_tarball_excludes_internal_test_files(release_tarball):
     internal_tests = {
         "tests/unit_tests/test_automation_skeleton.py",
         "tests/unit_tests/test_release_boundary.py",
+        "tests/unit_tests/test_r19_boundary.py",
+        "tests/unit_tests/test_resolve_loader.py",
     }
     leaked = [m for m in members if m in internal_tests]
     assert not leaked, (
@@ -91,16 +93,32 @@ def test_release_tarball_excludes_internal_test_files(release_tarball):
 
 # --- Happy path: bench core does not reference orchestrator -----------------
 
+# Every PUBLIC (release-tarball) module. Fenced dev-only helpers
+# (scripts/loop/, scripts/automation/, full_regression, extract_kernel, ...)
+# are export-ignored and intentionally NOT listed here.
 _BENCH_CORE_PATHS = [
     "ascendbench",
-    "scripts/validate_tasks.py",
+    "scripts/apply_oracle_equivalence_verdict.py",
+    "scripts/audit_cost_model_formulas.py",
+    "scripts/generate_task_scaffolds.py",
+    "scripts/golden_manifest.py",
+    "scripts/oracle_equivalence_gpu_runner.py",
+    "scripts/oracle_pyref_precompute.py",
+    "scripts/_pa_oracle_check_runner.py",
+    "scripts/_pa_subproc_runner.py",
+    "scripts/phase_a_cost_xcheck.py",
+    "scripts/phase_a_freeze.py",
     "scripts/phase_a_prime.py",
     "scripts/phase_b_golden_capture.py",
-    "scripts/resolve_upstream_entrypoints.py",
-    "scripts/phase_a_cost_xcheck.py",
-    "scripts/verify_version_matrix.py",
-    "scripts/phase_a_freeze.py",
     "scripts/phase_b_oracle.py",
+    "scripts/phase_c_docs.py",
+    "scripts/provenance_release_planning_gate.py",
+    "scripts/resolve_upstream_entrypoints.py",
+    "scripts/source_provenance_census.py",
+    "scripts/validate_corpus_consistency.py",
+    "scripts/validate_tasks.py",
+    "scripts/verify_upstream_commit_chain.py",
+    "scripts/verify_version_matrix.py",
 ]
 
 _ORCH_REFS = re.compile(r"\bfrom automation\b|\bimport automation\b|scripts\.automation|\btab_automation\b")

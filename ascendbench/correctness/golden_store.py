@@ -1,6 +1,6 @@
 """golden_store.py -- Authority for locating + verifying baseline artifacts.
 
-V9 plan M0.0: GoldenStore is one of three first-class authorities
+GoldenStore is one of three first-class authorities
 (GoldenStore / ToleranceAuthority / ProvenanceEligibility) that hide
 hard-coded path conventions behind a single class. The motivation is
 parity: ``cli analyze`` (release blocking computation), ``eval``

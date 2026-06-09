@@ -105,7 +105,7 @@ def test_resource_peaks_normalised_to_bytes_per_second():
 
 
 def test_peaks_consistent_with_version_matrix_hardware_910b():
-    """The细化 table must agree with the coarse [hardware.910b] fields."""
+    """The refined table must agree with the coarse [hardware.910b] fields."""
     vm = tomllib.loads((REPO / "infra" / "version_matrix.toml").read_text())
     hw = vm["hardware"]["910b"]
     compute = load_compute_peaks()

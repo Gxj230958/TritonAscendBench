@@ -1,6 +1,6 @@
 """provenance.py -- nested ``provenance.golden:`` schema parser + validator.
 
-V9 plan M1.2 adds a nested ``provenance.golden:`` sub-block to each
+Adds a nested ``provenance.golden:`` sub-block to each
 ``meta.yaml`` so a task can carry the full audit trail for HOW its
 baseline value was produced (oracle equivalence verdict, captured
 golden SHA, signed manifest, reviewer attestation, etc.) without
@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-# Closed enums (V9 plan M1.2). Anything outside these sets is a
+# Closed enums. Anything outside these sets is a
 # validator error. Open / operational fields (``verified_at``,
 # ``equivalence_per_shape``, ``golden_source``, ``tolerance_class_used``
 # — emitted by ``scripts/apply_oracle_equivalence_verdict.py``) are
@@ -40,8 +40,8 @@ VALID_TOLERANCE_SOURCE = frozenset({
     "upstream_test_default",
     "migration_drift_budget",
 })
-# V4 of the plan added ``NEEDS_MANUAL`` for the R12 SHA-chain drift case.
-# V9 codex review 2026-05-27 added the wrapper-rank pre-check verdicts.
+# Added ``NEEDS_MANUAL`` for the R12 SHA-chain drift case.
+# Added the wrapper-rank pre-check verdicts.
 VALID_ORACLE_KERNEL_EQUIVALENCE = frozenset({
     "VERIFIED", "FAILED", "MIXED", "SKIPPED", "NEEDS_MANUAL",
     "LAUNCH_BLOCKED",  # GPU couldn't invoke the kernel at all
@@ -64,7 +64,7 @@ VALID_GPU_KERNEL_CAPTURE_STATUS = frozenset({
 })
 VALID_RECONSTRUCTABILITY_RISK = frozenset({"low", "medium", "high"})
 
-# Required-when-present per V9 plan §M1.2 schema box. None of the keys
+# Required-when-present per the §M1.2 schema box. None of the keys
 # are required when the ``golden:`` block itself is absent — that is the
 # explicit grace period the plan asks for. When ``golden:`` IS present,
 # its values must conform to the closed enums above; absent keys are

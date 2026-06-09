@@ -15,7 +15,7 @@ a silent skip+positional-shift), (3) imports the task's
 (4) compares every output tensor within the task's ``tolerance_class``
 (``ascendbench.correctness.tolerance.compare``).
 
-FIX 3 (codex finding 6, [adopted]) hardenings:
+Hardenings:
   (a) the anchor checks **>=2 distinct shapes** (small + median, when
       the task enumerates more than one) -- not only the smallest --
       so a wrong candidate coinciding on one tiny shape is far less
@@ -79,7 +79,7 @@ def _vol(r: dict) -> int:
 
 
 def _anchor_shape_ids(shapes_doc: dict) -> list[str]:
-    """FIX 3(a) (codex finding 6, adopted): the anchor must NOT check
+    """(a) the anchor must NOT check
     only the smallest shape -- a wrong candidate can coincide with the
     oracle on one tiny shape. Check at least TWO distinct shapes (small
     + medium) when the task enumerates more than one; a coincidence on
@@ -377,7 +377,7 @@ def _check_one_shape(
     a genuinely wrong operator still fails there: the rescue corrects the rounding
     model, it does not loosen the comparison.
 
-    FIX 3(b)+(c): in addition to requiring
+    (b)+(c): in addition to requiring
     every oracle tensor to find a numeric twin, the candidate output
     STRUCTURE must match the oracle's (same arity of flattened named
     tensor outputs -- EXTRA unexplained candidate outputs ⇒ reject as a
@@ -453,7 +453,7 @@ def _check_one_shape(
     except Exception as e:  # ShapesIncompleteError or introspection
         return False, f"by-name bind failed: {type(e).__name__}: {e}", False, False
     cand_ret = fn(dict(kernel_inputs)) if sig is None else fn(**kwargs)
-    # meta.interface.output_projection (ANCHOR-ONLY, codex r-oproj): a
+    # meta.interface.output_projection (ANCHOR-ONLY): a
     # REVIEWED declaration that this wrapper returns a SUPERSET tuple and
     # only the named indices are the task contract (e.g. layer_norm_gated_fwd
     # returns (y, mean, rstd, residual); {arity: 4, map: {output: 0}}). It
@@ -618,7 +618,7 @@ def _check_one_shape(
         if ("float8" in _odt) or ("float16" in _odt):  # fp8_*, float16, bfloat16
             has_narrow = True
         twin = None
-        # Same-key match -- FIX 3(c): now ALSO require dtype to match
+        # Same-key match -- now ALSO require dtype to match
         # (the old code accepted a same-key twin on shape alone).
         if (
             ok_ in cand_t
@@ -666,7 +666,7 @@ def _check_one_shape(
                 f"{ok_}: ✓ within {tol_name} "
                 f"(max_abs={cmp.max_abs_diff:.3e})"
             )
-    # FIX 3(b): structure / arity must match -- EXTRA candidate tensor
+    # (b): structure / arity must match -- EXTRA candidate tensor
     # outputs not consumed by any oracle output mean the candidate is
     # producing more than the oracle ⇒ it is NOT the same operator.
     if len(used) != len(cand_items):
@@ -820,7 +820,7 @@ def main() -> int:
         policy = load_policy()
         tcls = policy.get(tol_name) or policy.get("elementwise")
 
-        # FIX 3(a): anchor on >=2 distinct shapes (small + medium) when
+        # (a): anchor on >=2 distinct shapes (small + medium) when
         # the task has them -- a wrong candidate that coincides with the
         # oracle on ONE tiny shape is much less likely to also coincide
         # on a second, independent shape. Honest if only one shape
@@ -889,7 +889,7 @@ def main() -> int:
             f"{type(e).__name__}: {e} | {traceback.format_exc()[-500:]}"
         )
 
-    # codex r6 [confirmed] -- capture this task's ACTUAL imported
+    # Capture this task's ACTUAL imported
     # upstream closure: every loaded module whose ``__file__`` is under
     # an infer/ root the verdict path just executed. Done in a ``finally``
     # sense (after the check ran, success OR exception) so even a failing

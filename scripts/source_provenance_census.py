@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""source_provenance_census.py -- V9 plan M0a.1.
+"""source_provenance_census.py.
 
 Static census of 100 corpus tasks across 5 dimensions:
 
 * (a) Source ① static feasibility -- can an author-test ref be
-      extracted from ``infer/{repo}/**/*.py``? (V9 marks the
-      extractor itself as deprecated; this dimension is reported as
+      extracted from ``infer/{repo}/**/*.py``? (the
+      extractor itself is deprecated; this dimension is reported as
       ``V9_DEPRECATED_M1_1`` for every task so the report stays
       honest about the source landscape.)
 * (b) tolerance source        -- ``upstream_test_explicit`` /
@@ -16,7 +16,7 @@ Static census of 100 corpus tasks across 5 dimensions:
       upstream test imports torch.distributed / has
       ``pytest.mark.gpu`` / ``skipif(not torch.cuda.is_available)``.
 * (d) commit_sha verifiable   -- ``git -C infer/{repo} cat-file -e
-      <sha>`` (delegates to the helper used by M2.0.5).
+      <sha>`` (delegates to the helper).
 * (e) R17 reconstructability risk -- per-category score driven by
       a static dictionary (``elementwise / norm / gemm / sampling``
       are HIGH risk: math closed-form, leaderboard-excluded).
@@ -24,7 +24,7 @@ Static census of 100 corpus tasks across 5 dimensions:
 This is pure CPU + AST + git CLI -- safe to run on the dev box.
 Output: per-task JSON + Markdown summary report.
 
-R13c gate (M0a.2) reads the JSON output to compute
+R13c gate reads the JSON output to compute
 ``projected_eligible`` + classify rare-class coverage.
 """
 from __future__ import annotations
@@ -64,8 +64,8 @@ log = logging.getLogger("source_provenance_census")
 # form (sampling RNG with bit_exact, quant cache mapping, etc.)
 #
 # Mapped against the 12 corpus categories. ``norm`` and
-# ``normalization`` are TWO DISTINCT categories per the V9 plan
-# decision (see M0a.2 docstring); the table reflects that.
+# ``normalization`` are TWO DISTINCT categories per the plan
+# decision; the table reflects that.
 _CATEGORY_RISK: dict[str, str] = {
     # HIGH (math closed-form)
     "elementwise": "high",
@@ -124,9 +124,9 @@ def _gpu_skip_in_text(text: str) -> list[str]:
 
 
 def _classify_tolerance_source(meta: dict) -> str:
-    """Pick the tolerance source label per V9 enum.
+    """Pick the tolerance source label per the enum.
 
-    * V9 provenance.golden.tolerance_source takes precedence when set.
+    * provenance.golden.tolerance_source takes precedence when set.
     * Otherwise the corpus declares a ``tolerance_class`` (legacy);
       report ``corpus_only`` so the census makes the absence of an
       upstream attestation visible.
@@ -141,7 +141,7 @@ def _classify_tolerance_source(meta: dict) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Dimension (d): commit sha verifiable (delegates to M2.0.5 helper)
+# Dimension (d): commit sha verifiable (delegates to the helper)
 # ─────────────────────────────────────────────────────────────────────
 
 
@@ -184,7 +184,7 @@ class TaskCensus:
     task_id: str
     category: str | None
     repo: str | None
-    # (a) source ① static feasibility -- V9 deprecates M1.1; reported
+    # (a) source ① static feasibility -- the extractor is deprecated; reported
     # as a fixed sentinel so the dimension is honest about its state.
     source_1_static_extractable: str = "V9_DEPRECATED_M1_1"
     # (b) tolerance source

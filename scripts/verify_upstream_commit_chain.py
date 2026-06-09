@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""verify_upstream_commit_chain.py -- V9 plan M2.0.5 (R12).
+"""verify_upstream_commit_chain.py -- (R12).
 
 Asserts that the kernel.py commit SHA (``meta.upstream.commit_sha``)
 matches the author-test capture commit SHA
@@ -13,9 +13,9 @@ is unreachable the task is routed to source ② / BACKLOG_PENDING_GOLDEN.
 Outputs (per task) one verdict line into a Markdown report + a JSON
 machine-readable summary. The 4-state classification (``VERIFIED`` /
 ``NEEDS_MANUAL`` / ``BACKLOG_PENDING_GOLDEN`` / ``EXCLUDED_SNAPSHOT``)
-is the canonical R12 vocabulary downstream of M1.2 (the M1.2 schema
+is the canonical R12 vocabulary downstream of the schema (which
 allows ``oracle_kernel_equivalence: NEEDS_MANUAL`` so we can write
-this through the M2.1c apply script later).
+this through the apply script later).
 
 This is pure git CLI + YAML I/O -- no GPU, no torch import. Safe to
 run on the dev box; no provider privileges required.
@@ -50,7 +50,7 @@ logging.basicConfig(
 log = logging.getLogger("verify_upstream_commit_chain")
 
 
-# Closed verdict set (V9 plan M2.0.5).
+# Closed verdict set.
 VERDICT_VERIFIED = "VERIFIED"
 VERDICT_NEEDS_MANUAL = "NEEDS_MANUAL"
 VERDICT_BACKLOG = "BACKLOG_PENDING_GOLDEN"
@@ -171,8 +171,8 @@ def verify_task(task_dir: Path) -> Verdict:
     repo_root_str = str(repo_root) if repo_root else None
 
     if not _is_hex(test_sha):
-        # Source ① test capture hasn't been recorded yet (M1.1 was
-        # deprecated in V9, so this is the expected state for the
+        # Source ① test capture hasn't been recorded yet (the author-test
+        # extractor was deprecated, so this is the expected state for the
         # current corpus). Report cleanly + classify so callers can
         # surface "R12 not yet evaluable" cleanly.
         kernel_ok = bool(repo_root) and _is_hex(kernel_sha) and (

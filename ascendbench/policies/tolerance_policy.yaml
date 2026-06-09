@@ -33,7 +33,7 @@ classes:
     notes: "W8A8 INT8 matmul"
 
   int8_quant_round:
-    # V9 codex review 2026-05-27: int8 per-token / per-group quant
+    # int8 per-token / per-group quant
     # outputs (q int8) differ from PyTorch's torch.round-based oracle
     # by at most 1 ULP on tie-breaking (fp32 banker's rounding vs
     # Triton native round-half-away-from-zero). atol/rtol fields are

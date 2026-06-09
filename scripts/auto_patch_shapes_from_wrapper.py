@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""auto_patch_shapes_from_wrapper.py -- V9 P6 (codex review 2026-05-27).
+"""auto_patch_shapes_from_wrapper.py.
 
 Auto-fix WRAPPER_CONTRACT_MISMATCH tasks by rewriting
 ``shapes.yaml.inputs[<name>].dims`` to the dim-name list the kernel
@@ -39,7 +39,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.automation.lib.atomic import atomic_write_yaml  # noqa: E402
+from ascendbench._util.atomic import atomic_write_yaml  # noqa: E402
 from ascendbench.integrity.wrapper_contract import (  # noqa: E402
     extract_wrapper_contract,
 )
@@ -90,7 +90,7 @@ def _resolve_kernel_entrypoint(
     """Shim over the shared resolver -- all three R10 scripts (R10.a /
     R10.b / auto-patch) now route through one implementation that
     rejects @triton.jit picks AND gates the resolve_all.json cache by
-    jaccard overlap (the P5.2 + P6 fix codex flagged on 2026-05-27)."""
+    jaccard overlap."""
     from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
         resolve_kernel_entrypoint,
     )
@@ -240,7 +240,7 @@ def _emit_report(verdicts: list[PatchVerdict], report_path: Path) -> None:
     lines = [
         "---",
         "tool: scripts/auto_patch_shapes_from_wrapper.py",
-        "purpose: V9 P6 — auto-patch shapes.yaml dims from kernel host wrapper unpacks",
+        "purpose: auto-patch shapes.yaml dims from kernel host wrapper unpacks",
         "---",
         "",
         "# Auto-patch shapes from wrapper contract",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""golden_manifest.py -- V9 plan M3.2 (R5 + R18 signed-manifest writer).
+"""golden_manifest.py -- R5 + R18 signed-manifest writer.
 
 Builds the per-task signed-manifest bundle that anchors the baseline
 trust chain:
@@ -11,7 +11,7 @@ trust chain:
         test_capture_sha, upstream_closure_fingerprint}`` -- the R12
       commit-chain proof. Including ``meta_upstream_commit_sha`` here
       means R18 signature covers the R12 gate input.
-* ``ascendbench/policies/sanity_bounds.yaml`` -- global, M3.0 ship.
+* ``ascendbench/policies/sanity_bounds.yaml`` -- global.
 * ``meta.yaml.provenance.golden`` canonical-JSON view -- per-task
   provenance fields.
 
@@ -46,7 +46,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.automation.lib.atomic import (  # noqa: E402
+from ascendbench._util.atomic import (  # noqa: E402
     atomic_write_bytes,
     atomic_write_json,
 )
@@ -94,7 +94,7 @@ def _canonical_json_bytes(obj: Any) -> bytes:
 
 @dataclass
 class GoldenManifest:
-    """V9 plan M3.2 manifest body."""
+    """Manifest body."""
 
     task_id: str
     artifacts: list[dict[str, Any]] = field(default_factory=list)

@@ -3,7 +3,7 @@
 The dev machine has no NPU; these tests validate the *scoring logic*
 (given W / M / π / β / t_npu, compute the right per-shape efficiency `e`
 and the right task-level geomean `s_t`) against synthetic cost models and
-peak tables — never the realness of `t_npu`. See plan W1.4 "约束".
+peak tables — never the realness of `t_npu`. See plan W1.4 "Constraints".
 """
 from __future__ import annotations
 

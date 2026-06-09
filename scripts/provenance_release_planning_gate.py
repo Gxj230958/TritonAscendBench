@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""provenance_release_planning_gate.py -- V9 plan M0a.2 (R13c).
+"""provenance_release_planning_gate.py -- plan (R13c).
 
 Compute the 4-state R13c go/no-go gate from the trusted census +
 ``provenance.golden`` view of the corpus.
 
-Decision tree (V9 plan M0a.2):
+Decision tree (plan):
 
     projected = projected_eligible(corpus,
                                    exclude_r11_pending=True,
@@ -21,7 +21,7 @@ Decision tree (V9 plan M0a.2):
                                       normalization) < 50%
     STOP                           = |projected| < 30 OR < 6 categories
 
-Rare-class set (V9 V4 corrected -- disjoint from R17 high-risk set):
+Rare-class set (corrected -- disjoint from R17 high-risk set):
 ``convolution`` (3 tasks), ``spec_decode`` (1 task), ``normalization``
 (5 tasks). ``norm`` (1 task) is in the R17 high-risk set so it's
 already leaderboard-excluded; it does NOT enter the rare set.
@@ -78,7 +78,7 @@ _EXIT_CODE = {
     STATE_STOP: 3,
 }
 
-# Rare-class set (V9 plan M0a.2 V4 final). DISJOINT from R17 high-
+# Rare-class set (final). DISJOINT from R17 high-
 # risk -- `norm` is high-risk so leaderboard-excluded; the rare set
 # only carries the small-population, NON-high-risk categories.
 RARE_CLASS_SET = frozenset({"convolution", "spec_decode", "normalization"})

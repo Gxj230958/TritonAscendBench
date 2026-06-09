@@ -14,7 +14,7 @@ verbatim, and lets the static checker — which already accepts the full
 upstream form for the 5 existing PoCs — operate on the same canonical
 input.
 
-Tasks whose upstream.path is shorthand (`vLLM 通用`, `同上`, bare repo
+Tasks whose upstream.path is shorthand (`vLLM generic`, `same as above`, bare repo
 name) or whose kernel function cannot be found are reported as
 `needs_manual` and left untouched. Existing 5 PoCs (kernel.py already
 hand-curated) are skipped via SKIP_TASKS.
@@ -180,7 +180,7 @@ def resolve_source(task_id: str, repo: str, raw_path: str, kernel_name: str) -> 
                         break
 
     # 3) Whole-base fallback. When the markdown path is shorthand
-    # (`同上`, `vLLM sample`, ...), search all known repos by kernel name.
+    # (`same as above`, `vLLM sample`, ...), search all known repos by kernel name.
     if not file_hits:
         search_bases = bases if not shorthand else [VLLM_ROOT, SGLANG_ROOT, FBGEMM_ROOT]
         for base in search_bases:

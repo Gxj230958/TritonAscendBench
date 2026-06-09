@@ -1,6 +1,6 @@
 """kernel_resolver.py -- shared helpers for picking the right host wrapper.
 
-V9 plan M2.1a/b run two near-identical resolvers in
+Two near-identical resolvers run in
 ``scripts/oracle_pyref_precompute.py`` (dev / CPU audit) and
 ``scripts/oracle_equivalence_gpu_runner.py`` (GPU verify). They were
 silently divergent: when ``results/resolve_all.json`` cached a
@@ -214,7 +214,7 @@ def resolve_kernel_entrypoint(
     resolve_cache_path: Path | None = None,
     min_tried_jaccard: float = 0.2,
 ) -> str | None:
-    """V9 P5.2: single shared resolver for R10.a / R10.b / auto-patch.
+    """Single shared resolver for R10.a / R10.b / auto-patch.
 
     Preference (each step verifies the candidate is a real host wrapper
     via :func:`is_jit_decorated` / :func:`kernel_function_exists`):

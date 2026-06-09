@@ -141,7 +141,7 @@ class TaskEvalResult:
     aggregate_score: float = 0.0
     coverage: float = 0.0
     rank_eligible: bool = False
-    # codex round-3 N-P0-1: explicit per-run status fields. Downstream
+    # Explicit per-run status fields. Downstream
     # analyze() must NOT infer correctness from static_checks_passed alone.
     correctness_status: str = "error"  # "ok" | "fail" | "error"
     runtime_status: str = "error"      # "ok" | "timeout" | "oom" | "compile_fail" | "invalid_timing" | "error"
@@ -802,7 +802,7 @@ _UPSTREAM_ORACLE_TIER = "upstream_oracle_required"
 
 
 class GoldenIntegrityError(RuntimeError):
-    """V9 plan M4.1: raised when the golden chain fails R15/R18 verify.
+    """Raised when the golden chain fails R15/R18 verify.
 
     Distinct from "golden missing" (a complete absence of artifacts,
     handled via the ``blocked`` task_status). This exception is raised
@@ -855,7 +855,7 @@ def _resolve_golden(
         return ("unsupported", "none", None)
 
     # upstream_oracle_required + verified: load the offline golden.
-    # V9 plan M4.1: run the R15 SHA + R18 signature integrity chain
+    # Run the R15 SHA + R18 signature integrity chain
     # via `eligibility.golden_integrity_chain_ok`. Grace-period
     # semantics: a pre-M3.2 manifest-less capture still loads; a
     # present-but-bad manifest fails closed with GoldenIntegrityError
@@ -1463,11 +1463,11 @@ def evaluate(
                 # is aggregated here. Fail-closed on unverified peaks.
                 _apply_roofline(result, task, shapes_doc, peak_table_path)
     except Exception as e:
-        # E1 fix: phase-2b grading 的编排/harness 级错误(import 缺失、yaml
-        # 解析失败、oracle 模块加载失败等)绝不静默 `logger.debug` 吞掉 ——
-        # 否则任务会停在默认 `correctness_status="error"`、看似「没评测」。
-        # 显式标 error 状态并以 ERROR 级记 reason。candidate 自身运行期异常
-        # 已在上面的 per-shape try 块内降级为 per-shape fail,不会到这里。
+        # E1 fix: orchestration/harness-level errors in phase-2b grading (missing import, yaml
+        # parse failure, oracle module load failure, etc.) must never be silently swallowed by `logger.debug` --
+        # otherwise the task stalls at the default `correctness_status="error"`, appearing as "not evaluated".
+        # Explicitly mark the error status and log the reason at ERROR level. The candidate's own runtime exceptions
+        # have already been downgraded to per-shape fail inside the per-shape try block above, and never reach here.
         reason = f"{type(e).__name__}: {e}"
         logger.error("phase-2b grading harness error for %s: %s", task_id, reason)
         result.correctness_status = "error"

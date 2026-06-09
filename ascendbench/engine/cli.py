@@ -12,7 +12,7 @@ Subcommands (all driven via `tab <subcommand> ...`):
     analyze              compute final scores from verified-runner outputs
 
 Only `tab` is exposed in pyproject.toml [project.scripts]; sub-aliases were
-removed (per codex P0-2) -- use `tab <subcommand>` everywhere instead.
+removed -- use `tab <subcommand>` everywhere instead.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def main() -> int:
     p_run.add_argument("--out", default="round_result.json")
 
     p_suite = sub.add_parser("run-suite", help="evaluate many tasks")
-    # codex round-7 P1: argparse `choices` rejects garbage like `abc` / `-1`.
+    # Argparse `choices` rejects garbage like `abc` / `-1`.
     p_suite.add_argument(
         "--level", default="all",
         choices=["all", "L1", "L2", "L3", "1", "2", "3"],
@@ -106,7 +106,7 @@ def main() -> int:
                            "checks (default 910B)")
     p_an.add_argument("--out", required=True)
 
-    # V9 plan M-CLI: provenance pipeline subcommands. Each is a thin
+    # Plan M-CLI: provenance pipeline subcommands. Each is a thin
     # dispatcher that calls the underlying script's ``main(argv)`` so
     # the CLI surface and the script surface stay in lock-step.
     p_census = sub.add_parser(
@@ -168,7 +168,7 @@ def main() -> int:
         "validate-result":     _cmd_validate_result,
         "static-check":        _cmd_static_check,
         "analyze":             _cmd_analyze,
-        # V9 plan M-CLI
+        # Plan M-CLI
         "census":                       _cmd_census,
         "oracle-pyref-precompute":      _cmd_oracle_pyref_precompute,
         "apply-equivalence-verdict":    _cmd_apply_equivalence_verdict,
@@ -195,11 +195,24 @@ def _argv_from(args, *keys: str) -> list[str]:
     return out
 
 
+def _source_checkout_only(subcommand: str) -> int:
+    print(
+        f"tab {subcommand}: source-checkout-only subcommand -- it needs the "
+        "repository's scripts/ tree, which is not bundled in the pip wheel. "
+        "Run it from a git checkout of the bench repo.",
+        file=sys.stderr,
+    )
+    return 2
+
+
 def _cmd_census(args) -> int:
     import sys as _sys
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
-    from scripts.source_provenance_census import main as _main  # noqa: PLC0415
+    try:
+        from scripts.source_provenance_census import main as _main  # noqa: PLC0415
+    except ModuleNotFoundError:
+        return _source_checkout_only("census")
 
     return _main(_argv_from(args, "task", "task-list", "all", "report", "json-out"))
 
@@ -208,7 +221,10 @@ def _cmd_oracle_pyref_precompute(args) -> int:
     import sys as _sys
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
-    from scripts.oracle_pyref_precompute import main as _main  # noqa: PLC0415
+    try:
+        from scripts.oracle_pyref_precompute import main as _main  # noqa: PLC0415
+    except ModuleNotFoundError:
+        return _source_checkout_only("oracle-pyref-precompute")
 
     return _main(
         _argv_from(args, "task", "all", "workers", "report", "json-out")
@@ -219,7 +235,10 @@ def _cmd_apply_equivalence_verdict(args) -> int:
     import sys as _sys
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
-    from scripts.apply_oracle_equivalence_verdict import main as _main  # noqa: PLC0415
+    try:
+        from scripts.apply_oracle_equivalence_verdict import main as _main  # noqa: PLC0415
+    except ModuleNotFoundError:
+        return _source_checkout_only("apply-equivalence-verdict")
 
     return _main(
         _argv_from(args, "verdict-dir", "report", "dry-run")
@@ -230,7 +249,10 @@ def _cmd_verify_commit_chain(args) -> int:
     import sys as _sys
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
-    from scripts.verify_upstream_commit_chain import main as _main  # noqa: PLC0415
+    try:
+        from scripts.verify_upstream_commit_chain import main as _main  # noqa: PLC0415
+    except ModuleNotFoundError:
+        return _source_checkout_only("verify-commit-chain")
 
     return _main(
         _argv_from(args, "task", "task-list", "all", "report", "json-out")
@@ -241,7 +263,10 @@ def _cmd_r13c_gate(args) -> int:
     import sys as _sys
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
-    from scripts.provenance_release_planning_gate import main as _main  # noqa: PLC0415
+    try:
+        from scripts.provenance_release_planning_gate import main as _main  # noqa: PLC0415
+    except ModuleNotFoundError:
+        return _source_checkout_only("r13c-gate")
 
     return _main(_argv_from(args, "json-out"))
 
@@ -516,7 +541,7 @@ def _cmd_package(args) -> int:
     """Tar.gz a solution dir into `out`.
 
     Warns if the directory has no `manifest.yaml` -- the resulting tarball
-    will not pass `validate-submission` (codex round-3 R-P0-2 follow-up).
+    will not pass `validate-submission`.
     """
     src = Path(args.solution_dir)
     if not src.is_dir():
@@ -545,7 +570,7 @@ def _cmd_package(args) -> int:
 def _cmd_submit(args) -> int:
     """POST a package to the leaderboard endpoint.
 
-    codex round-4 P1: must NOT accept a submission that validate-submission
+    Must NOT accept a submission that validate-submission
     would reject. We run the same validator first and refuse to ship if
     it fails.
     """
@@ -582,7 +607,7 @@ def _cmd_submit(args) -> int:
 def _cmd_validate_submission(args) -> int:
     """Validate a submission tarball: presence, shape, and manifest schema.
 
-    Per codex round-3 R-P0-2: this command must actually parse manifest.yaml
+    This command must actually parse manifest.yaml
     and reject malformed/incomplete manifests, not just verify file existence.
     """
     import yaml as _yaml
@@ -618,7 +643,7 @@ def _cmd_validate_submission(args) -> int:
             except _yaml.YAMLError as exc:
                 payload["errors"].append(f"manifest.yaml parse error: {exc}")
                 doc = None
-            # codex round-4 REGRESSION-P0: empty / non-dict YAML must fail.
+            # Empty / non-dict YAML must fail.
             if doc is None:
                 payload["errors"].append(
                     "manifest.yaml is empty or yields no mapping"
@@ -651,7 +676,7 @@ def _cmd_validate_submission(args) -> int:
 def _cmd_validate_result(args) -> int:
     """Validate a round_result.json against the schema.
 
-    codex round-4 P1 + round-5 P1: must require all five status fields
+    Must require all five status fields
     AND validate their enum values + container types per scoring_spec.md.
 
     W1.4 schema migration: accepts the new producer fields — task-level
@@ -773,11 +798,11 @@ def _cmd_validate_result(args) -> int:
     susp = doc.get("suspicious")
     if susp is not None and not isinstance(susp, bool):
         errors.append(f"suspicious must be a bool or null, got {susp!r}")
-    # codex round-9 P1: task_id must be a non-empty string.
+    # task_id must be a non-empty string.
     tid = doc.get("task_id")
     if not isinstance(tid, str) or not tid:
         errors.append(f"task_id must be a non-empty string, got {tid!r}")
-    # codex round-7 P1: full type checks. `bool` is a subclass of `int` so
+    # Full type checks. `bool` is a subclass of `int` so
     # we must reject `aggregate_score: true` and `static_checks_passed: 1`.
     score = doc.get("aggregate_score")
     if (
@@ -793,7 +818,7 @@ def _cmd_validate_result(args) -> int:
             "static_checks_passed must be a bool, got "
             f"{type(doc.get('static_checks_passed')).__name__}"
         )
-    # codex round-7 P1: unhashable status values would crash `in {...}`
+    # Unhashable status values would crash `in {...}`
     # because we used `not in`. Guard with try/except.
     for field, valid in (
         ("correctness_status", VALID_CORRECTNESS),
@@ -901,7 +926,7 @@ def _cmd_static_check(args) -> int:
 def _cmd_analyze(args) -> int:
     """Read run-suite output -> compute final scores -> score_report.json.
 
-    codex round-3 N-P0-1 hardening:
+    Hardening:
     - Reads explicit `correctness_status` / `runtime_status` /
       `performance_status` / `fallback_detected` fields from each result.
     - Does NOT infer correctness from `static_checks_passed` (static check
@@ -960,15 +985,15 @@ def _cmd_analyze(args) -> int:
     if not isinstance(hidden, dict):
         hidden = {"results": []}
 
-    # codex round-10 P1 #3: results may be None / scalar -- coerce safely.
+    # Results may be None / scalar -- coerce safely.
     raw_results = verified.get("results")
     if not isinstance(raw_results, list):
         verified = {**verified, "results": []}
 
     # The scored catalogue is the full task set (no AscendC-native
     # subset post-removal). The scored denominator is the
-    # *score-eligible* set, frozen from trusted repo metadata (codex
-    # P0-2/P0-3): a task counts only if it has a real working oracle
+    # *score-eligible* set, frozen from trusted repo metadata
+    # a task counts only if it has a real working oracle
     # (not a NotImplementedError stub) and is not PHASE-C-MANUAL.
     # Counting stub/manual tasks as failures would systematically
     # depress valid submissions. The submission JSON cannot influence
@@ -1194,7 +1219,7 @@ def _cmd_analyze(args) -> int:
     # tasks have no provider golden in that mode).
     upstream_oracle_excluded_count = 0
     for r in verified.get("results", []):
-        # codex round-9 P1: result element must be a dict, not e.g. int.
+        # Result element must be a dict, not e.g. int.
         if not isinstance(r, dict):
             missing_task_id_count += 1
             continue
@@ -1222,7 +1247,7 @@ def _cmd_analyze(args) -> int:
                 task_status_mismatch_count += 1
             continue
         if tid in seen_ids:
-            # codex round-16/17 P1: duplicate worst-case propagation
+            # Duplicate worst-case propagation
             # covers ALL status fields, not just correctness/aggregate.
             # W1.4: the per-task Roofline score is `s_t` (lower = worse);
             # `task_status` worst-case follows DESIGN — a blocked/unsupported
@@ -1275,7 +1300,7 @@ def _cmd_analyze(args) -> int:
             continue
         seen_ids.add(tid)
 
-        # codex round-11 P1: performance_flags must be list[str]; non-list
+        # performance_flags must be list[str]; non-list
         # / non-string elements are coerced to [].
         raw_flags = r.get("performance_flags")
         if isinstance(raw_flags, list) and all(isinstance(f, str) for f in raw_flags):
@@ -1331,7 +1356,7 @@ def _cmd_analyze(args) -> int:
     # synthetic task_ids).
     effective_denom = s_native_size if s_native_size > 0 else len(task_measurements)
     # Honest perf aggregate: returns perf_status=unavailable + null
-    # metrics when no task has a real baseline (codex P0-1) instead of
+    # metrics when no task has a real baseline instead of
     # a fabricated ε-collapsed number.
     perf = aggregate_perf(task_measurements, eligible_size=effective_denom)
 
@@ -1454,7 +1479,7 @@ def _unpack_submission(pkg: Path, dest: Path) -> Path:
 
     Defenses:
     - Reject path-traversal entry names (absolute or with `..`).
-    - codex round-7 P1: reject any symlink/hardlink entry outright.
+    - Reject any symlink/hardlink entry outright.
     - tarfile `filter="data"` blocks symlink-out at extraction time as a
       second line of defense.
     """

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-# Canary trap tasks live here (W2.5 / DESIGN-V2 §6.8). `iter_all_tasks()`
+# Canary trap tasks live here (W2.5 / the design spec §6.8). `iter_all_tasks()`
 # deliberately skips every `_`-prefixed directory, so canaries are NEVER
 # score-eligible. They are discovered ONLY through `iter_canary_tasks()`.
 # TAB_CANARY_ROOT lets the sealed (gitignored) maintainer canary copy live
@@ -55,7 +55,7 @@ class TaskDef:
     kernel_py: str
     kernel_py_sha256: str
     oracle_module_name: str = "oracle_pytorch"
-    # Normalised performance cost model (DESIGN-V2 §5.6). ``None`` when the
+    # Normalised performance cost model (the design spec §5.6). ``None`` when the
     # task's meta.yaml omits `cost_model` — the loader stays backward
     # compatible so pre-W3.1 tasks (most of the first 100, no cost_model yet)
     # still load; the red→green transition is carried by `validate_tasks`,
@@ -71,7 +71,7 @@ class TaskDef:
     # backward compatible. `loader-lenient / validator-strict`: presence and
     # schema are enforced only by `scripts/validate_tasks.py`.
     param_constraints: dict[str, Any] | None = None
-    # V9 plan M1.2: typed view of nested ``meta.provenance.golden:``
+    # Typed view of nested ``meta.provenance.golden:``
     # (the baseline trust chain). ``None`` when the nested block is
     # absent (legacy task; grace period until R10/R5 capture has run).
     # The full ``provenance:`` dict (including the legacy top-level
@@ -175,7 +175,7 @@ def load_task(task_id: str) -> TaskDef:
             )
             param_constraints = {"__raw__": raw_param_constraints}
 
-    # V9 plan M1.2: typed view of the nested ``provenance.golden:`` sub-
+    # Typed view of the nested ``provenance.golden:`` sub-
     # block. Returns ``None`` when the block is absent -- the validator
     # gates presence, not the loader.
     provenance_golden = parse_provenance_golden(meta)
@@ -208,7 +208,7 @@ def iter_all_tasks() -> list[TaskDef]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Canary discovery (W2.5 — DESIGN-V2 §6.8 / §8)
+# Canary discovery (W2.5 — the design spec §6.8 / §8)
 # ─────────────────────────────────────────────────────────────────────────────
 # Canary trap tasks live under `tasks/_canary/`. Because `iter_all_tasks()`
 # skips `_`-prefixed directories by design, a canary can never leak into the
@@ -226,7 +226,7 @@ class CanaryTaskDef:
     * ``source_task_id`` binds the canary to a real level1/2/3 task — the
       runner reuses the submission's ``solution.py`` for THAT task to run the
       canary (the submitter writes no canary-specific solution).
-    * ``canary_trap_type`` is the trap class (1 of 10; DESIGN-V2 §8).
+    * ``canary_trap_type`` is the trap class (1 of 10; the design spec §8).
     * ``expected_honest_pass`` is whether an honest submission should PASS the
       canary; ``check_canaries`` flags any ``got != expected_honest_pass``.
 

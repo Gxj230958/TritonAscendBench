@@ -3,23 +3,24 @@
 ## Topology
 
 ```
-dev (no gpfs visibility) ──ssh -p 2222 root@127.0.0.1──> GPU B ──gpfs shared FS──> GPU A
+dev (no gpfs visibility) ──ssh reverse tunnel──> GPU B ──gpfs shared FS──> GPU A
 ```
 
-- dev: my workstation. Cannot mount gpfs. All file movement goes through B.
-- B: jumphost on `127.0.0.1:2222` (reverse tunnel). gpfs mounted at the same
-  path A sees. dev rsyncs to B's local path → lands on gpfs → A sees it.
+- dev: the dev workstation. Cannot mount gpfs. All file movement goes through B.
+- B: jumphost reached via the reverse SSH tunnel (host/port from
+  `LOOP_SSH_HOST` / `LOOP_SSH_PORT`). gpfs mounted at the same path A sees.
+  dev rsyncs to B's local path → lands on gpfs → A sees it.
 - A: GPU host where `phase_a_prime --verify` actually executes. No GitHub
   auth on A; we never `git pull` on A. Code arrives via dev → B rsync.
 
 ## File-based mailbox -- OUTSIDE the bench repo
 
-Mailbox is at **`<bench_parent>/loop_mailbox/`**, sibling of TritonAscendBench.
+Mailbox is at **`<bench_parent>/loop_mailbox/`**, a sibling of the bench repo.
 This decouples runtime state from the git tree (no `git status` noise; no
 `git clean` clobbers; smaller backup surface).
 
-- dev local: `/data1/code/agentic-rl/kernel/loop_mailbox/`
-- gpfs / A: `/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/loop_mailbox/`
+- dev local: `<local>/kernel/loop_mailbox/`
+- gpfs / A: `<remote>/kernel/loop_mailbox/`
 
 Override via env vars `LOOP_MAILBOX_LOCAL` (dev) and `LOOP_MAILBOX_DIR`
 (A daemon) and `LOOP_MAILBOX_REMOTE` (orchestrator's remote view).
@@ -47,16 +48,16 @@ cd /data1/code/agentic-rl/kernel/triton-ascend-bench
 rsync -az \
     --filter='dir-merge,- .gitignore' \
     --exclude '.git/' \
-    -e 'ssh -p 2222' \
+    -e "ssh -p $LOOP_SSH_PORT" \
     ./ \
-    root@127.0.0.1:/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench/
+    "$LOOP_SSH_HOST:<remote>/kernel/triton-ascend-bench/"
 ```
 
 Then on A (one-time -- no further intervention until host reboot):
 
 ```bash
 # (on A)
-cd /inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench
+cd <remote>/kernel/triton-ascend-bench
 mkdir -p ../loop_mailbox/{jobs,results,heartbeat,done,dead}
 tmux new-session -d -s loop_daemon \
   'scripts/loop/supervise_daemon.sh --workers 4 --gpus 4 2>&1 | tee -a ../loop_mailbox/daemon.log'
@@ -127,8 +128,8 @@ SKIPPED_BY_DESIGN.
 
 ## Failure modes
 
-- **rsync auth fails**: tunnel down or key broken. Reopen `ssh -R 2222:localhost:22`
-  from the remote.
+- **rsync auth fails**: tunnel down or key broken. Reopen the reverse tunnel
+  (`ssh -R $LOOP_SSH_PORT:localhost:22`) from the remote.
 - **heartbeat goes stale (>5min)**: daemon crashed. The supervisor's
   back-off restart should take over within ~5s; on startup it quarantines
   any `jobs/<id>.json.taken` left behind by the killed process as
@@ -142,16 +143,16 @@ SKIPPED_BY_DESIGN.
   next `sync-code` overwrites the affected files. Manual A-side edits are
   destructive; treat A as a read-only execution target.
 
-## Iteration pattern (Claude-in-the-loop)
+## Iteration pattern (operator-in-the-loop)
 
 The orchestrator does NOT auto-fix tasks. It moves files. Diagnosis and
-patch creation are still my job. Each iteration:
+patch creation are still the operator's job. Each iteration:
 
 1. `orchestrator.py run --tasks ...`
 2. read the verdict summary that prints
 3. for any FAILED / BLOCKED task: open its result JSON tail + meta + source
 4. propose + apply fix (edit shapes / oracle / meta / scripts)
-5. `git commit -m "..."` (history) + `git push` only after codex review pass
+5. `git commit -m "..."` (history) + `git push` only after review passes
 6. goto 1
 
 For batched same-category passes (e.g. all `missing-shape-row` at once):

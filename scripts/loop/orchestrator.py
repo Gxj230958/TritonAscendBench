@@ -1,8 +1,8 @@
 """dev side: submit / wait / collect batches against the A-side daemon.
 
 The dev box cannot see gpfs directly. All file movement goes through
-the reverse SSH tunnel on 127.0.0.1:2222 -> root@<B> which has gpfs
-mounted at the same path as A.
+a reverse SSH tunnel (host/port from LOOP_SSH_HOST / LOOP_SSH_PORT) to a
+jumphost which has gpfs mounted at the same path as the GPU host.
 
 Subcommands:
   sync-code        rsync local working tree (scripts/ tasks/ pyproject.toml
@@ -14,14 +14,14 @@ Subcommands:
   status           list jobs / running / done on gpfs
 
 Convention:
-  REMOTE_BENCH = /inspire/hdd/.../kernel/TritonAscendBench   (overridable env: LOOP_REMOTE_BENCH)
-  REMOTE_LOOP  = /inspire/hdd/.../kernel/loop_mailbox        (overridable env: LOOP_MAILBOX_REMOTE)
-  LOCAL_LOOP   = /data1/code/.../kernel/loop_mailbox         (overridable env: LOOP_MAILBOX_LOCAL)
-  SSH = ssh -p 2222 root@127.0.0.1
+  REMOTE_BENCH = <remote>/triton-ascend-bench   (env: LOOP_REMOTE_BENCH)
+  REMOTE_LOOP  = <remote>/loop_mailbox          (env: LOOP_MAILBOX_REMOTE)
+  LOCAL_LOOP   = <local>/loop_mailbox           (env: LOOP_MAILBOX_LOCAL)
+  SSH = ssh -p $LOOP_SSH_PORT $LOOP_SSH_HOST
 
-The loop mailbox lives OUTSIDE the bench repo (sibling of TritonAscendBench/)
-so runtime artifacts cannot pollute git status or get clobbered by
-`git clean`. Both A's gpfs view and dev's local view default to the
+The loop mailbox lives OUTSIDE the bench repo (a sibling directory) so
+runtime artifacts cannot pollute git status or get clobbered by
+`git clean`. Both the remote gpfs view and the local view default to the
 same relative location.
 """
 from __future__ import annotations
@@ -58,23 +58,19 @@ def _validate_task_id(task_id: str) -> None:
 
 LOCAL_BENCH = Path(__file__).resolve().parents[2]
 # Loop mailbox lives OUTSIDE the bench repo (decouple runtime state).
-# Both sides default to <kernel>/loop_mailbox/ -- on dev that's
-# /data1/code/agentic-rl/kernel/loop_mailbox/, on A's gpfs view that's
-# /inspire/hdd/.../kernel/loop_mailbox/. Override via env var without
-# editing the script.
+# Both sides default to <kernel>/loop_mailbox/ as a sibling of the bench
+# repo. Override via env var without editing the script.
 LOCAL_LOOP = Path(
     os.environ.get("LOOP_MAILBOX_LOCAL") or (LOCAL_BENCH.parent / "loop_mailbox")
 )
 REMOTE_BENCH = os.environ.get(
-    "LOOP_REMOTE_BENCH",
-    "/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench",
+    "LOOP_REMOTE_BENCH", "/remote/kernel/triton-ascend-bench"
 )
 REMOTE_LOOP = os.environ.get(
-    "LOOP_MAILBOX_REMOTE",
-    "/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/loop_mailbox",
+    "LOOP_MAILBOX_REMOTE", "/remote/kernel/loop_mailbox"
 )
-SSH_PORT = "2222"
-SSH_HOST = "root@127.0.0.1"
+SSH_PORT = os.environ.get("LOOP_SSH_PORT", "22")
+SSH_HOST = os.environ.get("LOOP_SSH_HOST", "root@localhost")
 SSH_RSH = f"ssh -p {SSH_PORT} -o BatchMode=yes -o StrictHostKeyChecking=no"
 
 

@@ -1,78 +1,78 @@
-# 910B Roofline 峰值表 — per-compute-class π_c / per-resource β_r
+# 910B Roofline peak table — per-compute-class π_c / per-resource β_r
 #
-# 用途: scoring 的 Roofline 理论延迟基线
+# Purpose: Roofline theoretical-latency baseline for scoring
 #   t_ref = max( max_c W_c/π_c , max_r M_r/β_r )   (DESIGN-V2 §5.6 / §9)
-# 其中 W_c = 第 c 计算类 FLOPs, π_c = 910B 该类峰值算力;
-#       M_r = 第 r 资源字节,   β_r = 该资源峰值带宽。
+# where W_c = FLOPs of compute-class c, π_c = 910B peak compute for that class;
+#       M_r = bytes of resource r,   β_r = peak bandwidth of that resource.
 #
-# 与 infra/version_matrix.toml 同级锁定 (DESIGN-V2 §5.6)。
-# 粒度细化自 version_matrix.toml [hardware.910b] 的粗粒度 peak_* 字段。
+# Locked at the same level as infra/version_matrix.toml (design spec §5.6).
+# Refined in granularity from the coarse-grained peak_* fields in version_matrix.toml [hardware.910b].
 #
-# 数据来源标注约定:
-#   - 每个数值在行内注释给出来源与单位;
-#   - 无法从公开规格确证的数值标 `# [unverified]`,待在 910B 实机核实,
-#     不编造精确数字冒充权威。
+# Data-source annotation convention:
+#   - each value states its source and unit in an inline comment;
+#   - values that cannot be confirmed from public specs are marked `# [unverified]`, to be verified on real 910B hardware,
+#     never fabricating precise numbers to pose as authoritative.
 #
-# 设备身份: 华为昇腾 910B / Atlas A2 训练系列。
-# 注: 910B 存在多个 SKU (910B1/B2/B3/B4),峰值随 SKU 与 dtype 略有差异;
-#     下表取常见公开规格档位,具体发布版须以 v0.1 release 在实机锁定为准。
+# Device identity: Huawei Ascend 910B / Atlas A2 training series.
+# Note: 910B has multiple SKUs (910B1/B2/B3/B4); peaks vary slightly with SKU and dtype;
+#     the table below uses common public-spec tiers; the specific release must be locked on real hardware in the v0.1 release.
 
 schema_version = "1.0"
 device = "Ascend 910B / Atlas A2"
-# 与 version_matrix.toml [hardware.910b] 的粗粒度字段对应关系:
+# Mapping to the coarse-grained fields in version_matrix.toml [hardware.910b]:
 #   peak_fp16_tflops=256  -> [compute_class.fp16_cube].peak_tflops
 #   peak_int8_tops=512    -> [compute_class.int8].peak_tops
 #   hbm_bandwidth_gbps=1600 -> [resource.hbm].peak_bandwidth_gbps
 
 # ============================================================================
-# per-compute-class 峰值算力 π_c
-#   单位: peak_tflops (10^12 FLOP/s) — int8 类用 peak_tops (10^12 OP/s)。
-#   loader 统一归一化为 FLOP/s (即 *1e12) 供 t_ref 公式直接使用。
+# per-compute-class peak compute π_c
+#   unit: peak_tflops (10^12 FLOP/s) — the int8 class uses peak_tops (10^12 OP/s).
+#   the loader normalizes uniformly to FLOP/s (i.e. *1e12) for direct use in the t_ref formula.
 # ============================================================================
 
 [compute_class.fp16_cube]
-# Cube (matrix) 单元 fp16 累加峰值算力。
-peak_tflops = 256.0   # TFLOP/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+# Cube (matrix) unit fp16 accumulate peak compute.
+peak_tflops = 256.0   # TFLOP/s; Huawei public spec, consistent with version_matrix [hardware.910b].
 provenance = "huawei-official"
 description = "Cube unit, fp16 matrix multiply-accumulate"
 
 [compute_class.bf16_cube]
-# Cube 单元 bf16 峰值。公开规格未单列 bf16, 按 fp16 同档 (同一矩阵流水) 假设。
-peak_tflops = 256.0   # TFLOP/s; 按 fp16_cube 同档假设, 非官方单列。无 task 引用 bf16_cube。
+# Cube unit bf16 peak. Public specs do not list bf16 separately; assumed same tier as fp16 (same matrix pipeline).
+peak_tflops = 256.0   # TFLOP/s; assumed same tier as fp16_cube, not officially listed separately. No task references bf16_cube.
 provenance = "architecture-estimate"
 description = "Cube unit, bf16 matrix multiply-accumulate"
 
 [compute_class.int8]
-# Cube 单元 int8 量化峰值算力。
-peak_tops = 512.0     # TOP/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+# Cube unit int8 quantized peak compute.
+peak_tops = 512.0     # TOP/s; Huawei public spec, consistent with version_matrix [hardware.910b].
 provenance = "huawei-official"
 description = "Cube unit, int8 quantized multiply-accumulate"
 
 [compute_class.vector]
-# Vector (SIMD/AIV) 单元峰值算力。华为不单列 vector; 取第三方学术 spec
-# (arXiv 2505.14022 Table1 910B2C 48-AIV Vector@FP16=20T + CSET, 微架构推算一致)。
-peak_tflops = 20.0    # TFLOP/s FP16; provenance=academic-spec -> 排名可用, 绝对效率%
-                      # 待 910B microbench。SKU 相关: 48 AIV=20T / 40 AIV=16.7T,
-                      # 用 npu-smi 确认机器 SKU 后填对应值。
+# Vector (SIMD/AIV) unit peak compute. Huawei does not list vector separately; uses a third-party academic spec
+# (arXiv 2505.14022 Table1 910B2C 48-AIV Vector@FP16=20T + CSET, consistent with the microarchitecture estimate).
+peak_tflops = 20.0    # TFLOP/s FP16; provenance=academic-spec -> usable for ranking, absolute efficiency %
+                      # pending 910B microbench. SKU-dependent: 48 AIV=20T / 40 AIV=16.7T,
+                      # confirm the machine SKU with npu-smi, then fill in the matching value.
 provenance = "third-party-academic-spec"
 description = "Vector unit, elementwise / reduction FLOPS"
 
 # ============================================================================
-# per-resource 峰值带宽 β_r
-#   单位: peak_bandwidth_gbps (GB/s)。loader 归一化为 byte/s (*1e9)。
+# per-resource peak bandwidth β_r
+#   unit: peak_bandwidth_gbps (GB/s). The loader normalizes to byte/s (*1e9).
 # ============================================================================
 
 [resource.hbm]
-# 片上 HBM (片内显存) 峰值带宽。
-peak_bandwidth_gbps = 1600.0  # GB/s; 华为公开规格, 与 version_matrix [hardware.910b] 一致。
+# On-package HBM (on-package memory) peak bandwidth.
+peak_bandwidth_gbps = 1600.0  # GB/s; Huawei public spec, consistent with version_matrix [hardware.910b].
 provenance = "huawei-official"
 description = "On-package HBM memory bandwidth"
 
 [resource.interconnect]
-# 跨设备互联带宽 (HCCS / 卡间通信),用于多卡算子 (allreduce / all2all 等) 的
-# 通信字节 M_r 归一化。910B Atlas A2 卡间互联 (HCCS) 公开规格因服务器形态
-# (8 卡全互联拓扑等) 而异,无单一权威数字。
-peak_bandwidth_gbps = 0.0     # GB/s; [unverified] — 跨设备互联带宽随 Atlas A2
-                              # 服务器拓扑而变,公开规格无单一权威值,占位 0.0。
-                              # loader 对 β_r<=0 的资源拒绝并报错,强制核实后才可用。
+# Cross-device interconnect bandwidth (HCCS / inter-card communication), used to normalize the
+# communication bytes M_r of multi-card ops (allreduce / all2all, etc.). The 910B Atlas A2 inter-card interconnect (HCCS) public spec varies by server form factor
+# (e.g. 8-card fully-connected topology); there is no single authoritative number.
+peak_bandwidth_gbps = 0.0     # GB/s; [unverified] — cross-device interconnect bandwidth varies with Atlas A2
+                              # server topology; public specs have no single authoritative value, placeholder 0.0.
+                              # the loader rejects resources with β_r<=0 and errors out, requiring verification before use.
 description = "Cross-device interconnect (HCCS) bandwidth for collective ops"

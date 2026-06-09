@@ -167,7 +167,7 @@ def golden_artifact_usable(path) -> bool:
 
 
 def golden_integrity_chain_ok(task_dir, shape_ids: list[str]) -> bool:
-    """V9 plan M4.1: end-to-end R15 SHA + R18 signature chain check.
+    """End-to-end R15 SHA + R18 signature chain check.
 
     ``task_dir`` is the task's ``task_dir`` path (a ``pathlib.Path``);
     the function never assumes the task lives under the real
@@ -440,7 +440,7 @@ def release_status_pass(meta: dict | None) -> bool:
     return True
 
 
-# ── V9 plan M0.0: ProvenanceEligibility authority ───────────────────
+# ── ProvenanceEligibility authority ───────────────────
 #
 # The release gate previously asked only "is the task PHASE A' + cost-
 # model PASS?" (``release_status_pass``). V9 adds a second gate: the
@@ -454,10 +454,10 @@ def release_status_pass(meta: dict | None) -> bool:
 
 
 def is_provenance_eligible(meta: dict | None) -> bool:
-    """V9 plan M0.0 predicate: True iff a task's baseline trust chain
+    """Predicate: True iff a task's baseline trust chain
     is release-ready.
 
-    Definition (V9 plan, v1 scope):
+    Definition (v1 scope):
 
     * ``provenance.golden.oracle_kernel_equivalence in {VERIFIED,
       CEILING_ACCEPTED}`` -- VERIFIED is a strict pass; CEILING_ACCEPTED is an

@@ -53,7 +53,7 @@ class CheckReport:
 # Layer A — Import denylist (specs/ast_denylist.md §Layer A)
 # ─────────────────────────────────────────────────────────────────────────────
 _DENYLIST_IMPORT_EXACT = {
-    "functools.partial", "functools.partialmethod",   # round-21 R-P0-1
+    "functools.partial", "functools.partialmethod",
     "exec", "eval", "compile", "__import__",
     "importlib", "importlib.util", "importlib.import_module",
     "ctypes", "ctypes.CDLL", "cffi",
@@ -68,7 +68,7 @@ _DENYLIST_IMPORT_EXACT = {
     "torch.cuda.Event", "torch.npu.Event", "torch_npu.npu.Event",
     "torch.profiler", "torch_npu.profiler",
     "oracle_pytorch", "ascendbench", "tasks",
-    # V9 plan M2.0 (R19 verified-runner boundary, v1 minimum-viable):
+    # R19 verified-runner boundary, v1 minimum-viable:
     # candidate source MUST NOT import the safetensors loader or
     # torch deserialization primitives. The verified runner holds the
     # sealed-golden tensors in process memory; if a candidate could
@@ -89,9 +89,9 @@ _DENYLIST_IMPORT_PREFIX = {
 }
 
 # Default import allowlist for solution.py (project pin-locked).
-# `operator` removed (round-4 codex: `from operator import attrgetter`
+# `operator` removed (`from operator import attrgetter`
 # exposes reflection).  `functools` allowed but `partial` calls are
-# audited via RHS-walk in Assign (round-4 codex: `partial(open, ...)`).
+# audited via RHS-walk in Assign (`partial(open, ...)`).
 _DEFAULT_IMPORT_ALLOWLIST = {
     "torch",
     "torch_npu",
@@ -210,7 +210,7 @@ _ATTR_DENY_METHOD_SUFFIXES = (
     ".cpu", ".numpy", ".item", ".tolist", ".detach",
 )
 
-# Method names that are unsafe regardless of receiver base (codex round-6 #1).
+# Method names that are unsafe regardless of receiver base.
 # Catches `inputs["x"].matmul(...)`, `f = x.cpu`, etc. — the base is a
 # runtime Tensor, so dotted-prefix checks can't see it. Anything in this
 # set blocks at the Attribute node itself.
@@ -226,7 +226,7 @@ _BANNED_METHOD_NAMES = {
 }
 # Names that are dangerous when *referenced* (any use), because they enable
 # reflection/eval primitives that defeat all other checks.
-# Round-4 codex: `open` moved here because `partial(open, ...)` is a bypass.
+# `open` moved here because `partial(open, ...)` is a bypass.
 _BANNED_REFLECT_NAMES = {
     "exec", "eval", "compile", "__import__",
     "getattr", "setattr", "delattr",
@@ -235,7 +235,7 @@ _BANNED_REFLECT_NAMES = {
     "type",                        # type(x).__getattribute__ bypass
     "open",
     "attrgetter", "itemgetter", "methodcaller",   # from operator
-    "partial", "partialmethod",                    # from functools — round-20
+    "partial", "partialmethod",                    # from functools
 }
 
 # Names that are forbidden only as call targets — they are commonly used
@@ -246,7 +246,7 @@ _BANNED_CALL_ONLY = {
 
 # Builtins that force PyTorch tensors into eager numerical evaluation.
 # Banned as Call targets in host-side code regardless of receiver.
-# (Codex round-7: `sum(x)`, `int(x)`, `float(x)`, `list(x)` etc.)
+# (`sum(x)`, `int(x)`, `float(x)`, `list(x)` etc.)
 # Always-banned: these have no legitimate use in solution.py and only
 # appear when an attacker is laundering Tensor operations.
 _BANNED_EAGER_BUILTINS = {
@@ -260,7 +260,7 @@ _TENSOR_COERCE_BUILTINS = {
     "sum", "min", "max", "abs", "round", "pow",
     "int", "float", "bool", "complex",
     "list", "tuple", "set", "dict", "frozenset",
-    "any", "all", "sorted", "reversed",   # codex round-9 NEW-P0 #4
+    "any", "all", "sorted", "reversed",
 }
 
 # Backward-compat alias — used in some places that check both.
@@ -290,7 +290,7 @@ _BANNED_TL_CALLS = {
 }
 
 # Layer C extension — torch.* paths permitted beyond `_CALL_ALLOW_EXACT`.
-# Used by the round-4 alias-canonicalization check to allow `Tensor.foo`
+# Used by the alias-canonicalization check to allow `Tensor.foo`
 # attribute access (which the AST parser sees as `torch.X.foo`).
 _TORCH_DOTTED_ALLOW_PREFIXES = (
     "torch.dtype",
@@ -446,7 +446,7 @@ def check_solution(
         return None
 
     # Pass 1c: simple Tensor-flow type tracking for host-side eager bans
-    # (codex round-7 #1). Per non-kernel function, infer which local
+    # Per non-kernel function, infer which local
     # Names are Tensors, then reject BinOp / Subscript / for-iter on them.
     _TENSOR_CTORS = (
         "torch.empty", "torch.empty_like",
@@ -457,7 +457,7 @@ def check_solution(
     )
 
     def _rhs_yields_tensor(value: ast.AST, tensors: set[str], containers: set[str] | None = None) -> bool:
-        """Round-9: broadened — Lambda body, Tuple/List/Dict literals,
+        """Broadened — Lambda body, Tuple/List/Dict literals,
         IfExp arms, comprehensions, all walked for Tensor references."""
         if isinstance(value, ast.Call):
             fname = _canonical(value.func) or _dotted_name(value.func)
@@ -466,7 +466,7 @@ def check_solution(
             ):
                 return True
             if isinstance(value.func, ast.Attribute):
-                # codex round-10 P1 #2: respect scalar-returning methods —
+                # Respect scalar-returning methods —
                 # `x.numel()` / `.size()` / `.dim()` produce ints, not Tensors.
                 suffix = "." + value.func.attr
                 if suffix in _SCALAR_RETURNING_METHOD_SUFFIX or suffix in _PROP_ALLOW_SUFFIX:
@@ -477,7 +477,7 @@ def check_solution(
                 for arg in value.args + [kw.value for kw in value.keywords]:
                     if _expr_contains_tensor(arg, tensors, containers):
                         return True
-            # codex round-9/13/17/18: `(lambda v: ...)(x)` — bind formals,
+            # `(lambda v: ...)(x)` — bind formals,
             # *args, **kwargs, defaults, and keywords.
             if isinstance(value.func, ast.Lambda):
                 bound = set(tensors)
@@ -544,11 +544,11 @@ def check_solution(
             return True
         if isinstance(value, ast.Subscript):
             base = value.value
-            # Container subscript → Tensor element (round-10 fix for varargs).
+            # Container subscript → Tensor element (fix for varargs).
             if isinstance(base, ast.Name) and containers and base.id in containers:
                 return True
             return _expr_contains_tensor(value.value, tensors, containers)
-        # codex round-9 R-P0-1: containers and IfExp propagate Tensor-ness.
+        # Containers and IfExp propagate Tensor-ness.
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(_expr_contains_tensor(e, tensors, containers) for e in value.elts)
         if isinstance(value, ast.Dict):
@@ -572,7 +572,7 @@ def check_solution(
         Context-aware: `.shape` / `.dtype` / `.device` peel a Tensor down
         to non-Tensor scalars, so `q.shape[-1]` is NOT a Tensor expr.
         Method calls like `.reshape(-1)` keep the Tensor-ness.
-        Round-10: subscript on a *container* (`inputs: dict`) unwraps to
+        Subscript on a *container* (`inputs: dict`) unwraps to
         Tensor (assumes the contract's container holds Tensors).
         """
         if node is None:
@@ -584,7 +584,7 @@ def check_solution(
             suffix = "." + node.attr
             if suffix in _PROP_ALLOW_SUFFIX:
                 return False
-            # codex round-13 NEW-P0 #1: `b.x` on container `b` yields Tensor.
+            # `b.x` on container `b` yields Tensor.
             if isinstance(node.value, ast.Name) and node.value.id in containers:
                 return True
             return _expr_contains_tensor(node.value, tensors, containers)
@@ -601,7 +601,7 @@ def check_solution(
                     return False
                 if suffix in _TENSOR_RETURNING_METHOD_SUFFIX:
                     return _expr_contains_tensor(node.func.value, tensors, containers)
-            # codex round-20 NEW-P0 #3: nested callable lambda
+            # Nested callable lambda
             # `(lambda f: f(x))(lambda z: z+z)` — when actual is a
             # Lambda passed to formal `f`, audit f-as-lambda when `f(x)`
             # is called in outer lambda body.
@@ -629,7 +629,7 @@ def check_solution(
                             )
                             if _expr_contains_tensor(inlined, tensors, containers):
                                 return True
-            # Round-10/19: `(lambda z: z + z)(x)` — bind ALL formal
+            # `(lambda z: z + z)(x)` — bind ALL formal
             # categories (positional, keyword, *args, defaults).
             if isinstance(node.func, ast.Lambda):
                 lam = node.func
@@ -708,12 +708,12 @@ def check_solution(
     # name has ever been bound to a cpu-bearing string (literal or via
     # static `str + str` folding), every later reference is treated as
     # cpu. Covers default args (`def f(x, d="cpu")`) and string
-    # concatenation (`"c" + "pu"`) — codex round-9 R-P0-2.
+    # concatenation (`"c" + "pu"`).
     cpu_aliases: set[str] = set()
-    # codex round-26: any-string name→value, supports fragment concat
+    # Any-string name→value, supports fragment concat
     # like `c = "c"; pu = "pu"; device=c+pu`.
     str_aliases: dict[str, str] = {}
-    # codex round-26: forward-declared so _eval_str_const can reference
+    # Forward-declared so _eval_str_const can reference
     # them before the post-tree-walk population pass populates them.
     _global_callable_dotted: dict[str, str] = {}
 
@@ -733,13 +733,13 @@ def check_solution(
         return None
 
     def _eval_str_const(n: ast.AST) -> str | None:
-        """Constant-fold a string-typed expression. Round-11/21 broadened."""
+        """Constant-fold a string-typed expression. Broadened."""
         if isinstance(n, ast.Constant) and isinstance(n.value, str):
             return n.value
-        # codex round-21: known local cpu-bearing Name.
+        # Known local cpu-bearing Name.
         if isinstance(n, ast.Name) and n.id in cpu_aliases:
             return "cpu"
-        # codex round-26: any-string fragment Name (e.g. `c = "c"`).
+        # Any-string fragment Name (e.g. `c = "c"`).
         if isinstance(n, ast.Name) and n.id in str_aliases:
             return str_aliases[n.id]
         if isinstance(n, ast.BinOp):
@@ -757,7 +757,7 @@ def check_solution(
                         and k.value > 0
                     ):
                         return s * k.value
-            # codex round-11/12: `"%s" % args` / `"%c%c%c" % (99,112,117)`
+            # `"%s" % args` / `"%c%c%c" % (99,112,117)`
             # printf-style formatting with int or string args.
             if isinstance(n.op, ast.Mod) and isinstance(n.right, (ast.Tuple, ast.Constant)):
                 fmt = _eval_str_const(n.left)
@@ -775,7 +775,7 @@ def check_solution(
                         except (TypeError, ValueError):
                             return None
         if isinstance(n, ast.BoolOp):
-            # codex round-28: `"" or "cpu"` / `cond and "cpu"` — any operand
+            # `"" or "cpu"` / `cond and "cpu"` — any operand
             # folding to a cpu-bearing string wins.
             folded_any = None
             for v in n.values:
@@ -799,7 +799,7 @@ def check_solution(
             if isinstance(container, (ast.Tuple, ast.List)) and isinstance(idx, ast.Constant):
                 if isinstance(idx.value, int) and 0 <= idx.value < len(container.elts):
                     return _eval_str_const(container.elts[idx.value])
-            # codex round-11: `"xcpu"[1:]` — slice a literal string.
+            # `"xcpu"[1:]` — slice a literal string.
             base_str = _eval_str_const(container)
             if base_str is not None:
                 if isinstance(idx, ast.Constant) and isinstance(idx.value, int):
@@ -834,11 +834,11 @@ def check_solution(
             return b if b is not None else o
         if isinstance(n, ast.Call):
             fname = _canonical(n.func) or _dotted_name(n.func)
-            # codex round-26: resolve local callable aliases (e.g. `s = str`).
+            # Resolve local callable aliases (e.g. `s = str`).
             if not fname or fname == getattr(n.func, "id", ""):
                 if isinstance(n.func, ast.Name) and n.func.id in _global_callable_dotted:
                     fname = _global_callable_dotted[n.func.id]
-            # codex round-27: `(lambda: (lambda: "cpu"))()()` — recursively
+            # `(lambda: (lambda: "cpu"))()()` — recursively
             # unwrap nested IIFE: inner Call returns a Lambda; outer Call
             # of it gives Lambda.body.
             if isinstance(n.func, ast.Call):
@@ -849,7 +849,7 @@ def check_solution(
                     folded = _eval_str_const(_cur.body)
                     if folded is not None:
                         return folded
-                # codex round-27: unwrapped result is a callable (e.g.
+                # Unwrapped result is a callable (e.g.
                 # `torch.device`); synthesize an outer call and re-fold.
                 elif not isinstance(_cur, ast.Call):
                     synth = ast.Call(func=_cur, args=list(n.args), keywords=list(n.keywords))
@@ -858,12 +858,12 @@ def check_solution(
                         return folded
             if fname == "str" and n.args:
                 return _eval_str_const(n.args[0])
-            # codex round-26: `torch.device("cpu")` returns CPU device.
+            # `torch.device("cpu")` returns CPU device.
             if fname == "torch.device" and n.args:
                 inner = _eval_str_const(n.args[0])
                 if inner is not None:
                     return inner
-            # codex round-12: `format(99, "c")` returns "c"-encoded chr.
+            # `format(99, "c")` returns "c"-encoded chr.
             if fname == "format" and len(n.args) >= 1:
                 v = _const_value(n.args[0])
                 spec = _eval_str_const(n.args[1]) if len(n.args) >= 2 else ""
@@ -872,7 +872,7 @@ def check_solution(
                         return format(v, spec)
                     except (ValueError, TypeError):
                         return None
-            # codex round-12: `bytes((99,112,117)).decode()` / `str(bytes(...))`.
+            # `bytes((99,112,117)).decode()` / `str(bytes(...))`.
             if fname == "bytes" and n.args:
                 arg0 = n.args[0]
                 if isinstance(arg0, (ast.Tuple, ast.List)):
@@ -888,14 +888,14 @@ def check_solution(
                             return bytes(ints).decode("utf-8", errors="replace")
                         except Exception:                              # noqa: BLE001
                             return None
-            # codex round-12: `chr(99)` — chr of literal int.
+            # `chr(99)` — chr of literal int.
             if fname == "chr" and n.args:
                 if isinstance(n.args[0], ast.Constant) and isinstance(n.args[0].value, int):
                     try:
                         return chr(n.args[0].value)
                     except (ValueError, OverflowError):
                         return None
-            # codex round-18/19: bind Lambda formals (positional + kw +
+            # Bind Lambda formals (positional + kw +
             # *args + **kwargs + defaults) to actuals before evaluating
             # body string. Also handles `(lambda *a: a[0])("cpu")` and
             # `(lambda d: d)(**{"d": "cpu"})`.
@@ -964,7 +964,7 @@ def check_solution(
                         return bindings[body.id]
                     return _eval_str_const(body)
                 return _fold_body(lam.body)
-            # codex round-20: call to lambda alias `dev = lambda d="cpu": d; dev()`.
+            # Call to lambda alias `dev = lambda d="cpu": d; dev()`.
             if isinstance(n.func, ast.Name) and n.func.id in lambda_aliases:
                 for lam in lambda_aliases[n.func.id]:
                     synthetic_call = ast.Call(
@@ -973,7 +973,7 @@ def check_solution(
                     folded = _eval_str_const(synthetic_call)
                     if folded is not None:
                         return folded
-            # codex round-11/15/19: call to a local function whose body
+            # Call to a local function whose body
             # folds to a constant string. Also bind actual call args to
             # formals so `def dev(d): return d; dev("cpu")` folds.
             if isinstance(n.func, ast.Name):
@@ -990,11 +990,11 @@ def check_solution(
                             cpu_match = c
                             break
                     target = cpu_match if cpu_match else next(iter(candidates))
-                # codex round-29: try caller-actual-binding BEFORE
+                # Try caller-actual-binding BEFORE
                 # falling back to the cached default-bound return; otherwise
                 # `def dev(d="npu"): return d; dev("cpu")` would yield "npu".
                 _cached = function_returns.get(target)
-                # Round-19: fold the callee body with caller's actual args.
+                # Fold the callee body with caller's actual args.
                 if target in module_level_fns:
                     fnd = module_level_fns[target]
                     bindings: dict[str, str] = {}
@@ -1018,7 +1018,7 @@ def check_solution(
                             folded = _eval_str_const(fnd.args.kw_defaults[i])
                             if folded is not None:
                                 bindings[formal.arg] = folded
-                    # codex round-20: *args / **kwargs unpacking.
+                    # *args / **kwargs unpacking.
                     vararg_folded: list[str | None] = []
                     if fnd.args.vararg is not None:
                         vararg_folded = [
@@ -1053,7 +1053,7 @@ def check_solution(
                             and 0 <= body.slice.value < len(vararg_folded)
                         ):
                             return vararg_folded[body.slice.value]
-                        # codex round-21/22: recursively substitute Name
+                        # Recursively substitute Name
                         # in BinOp (Add/Mod/Mult).
                         if isinstance(body, ast.BinOp):
                             l = _fold_in_callee_body(body.left)
@@ -1084,7 +1084,7 @@ def check_solution(
                         return _eval_str_const(body)
 
                     # Walk body returns and substitute. Prefer cpu-bearing
-                    # branch if multiple Returns exist (codex round-29).
+                    # branch if multiple Returns exist.
                     _any_found = None
                     for inner in ast.walk(fnd):
                         if isinstance(inner, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)) and inner is not fnd:
@@ -1099,7 +1099,7 @@ def check_solution(
                                 _any_found = folded
                     if _any_found is not None:
                         return _any_found
-                # codex round-29: caller-actual-binding didn't fold; fall
+                # Caller-actual-binding didn't fold; fall
                 # back to cached default-bound return (if any).
                 if _cached is not None:
                     return _cached
@@ -1130,7 +1130,7 @@ def check_solution(
         return None
 
     # Populate function_returns now that _eval_str_const is defined.
-    # codex round-13/14: module-level scope only (class methods are
+    # Module-level scope only (class methods are
     # scoped to instances and must NOT shadow module functions).
     # Track via fixpoint so cross-fn returns (`def a: return b()`)
     # resolve to the leaf constant.
@@ -1143,7 +1143,7 @@ def check_solution(
     # `lambda_aliases` is collected) via the same fixpoint loop.
 
     def _fold_fn_return(fn_node) -> str | None:
-        """codex round-15/18: fold ALL top-level Returns. Also bind
+        """Fold ALL top-level Returns. Also bind
         default arg values into the body string folding, so
         `def dev(d="cpu"): return d` resolves to "cpu"."""
         cpu_found = None
@@ -1157,7 +1157,7 @@ def check_solution(
                     yield child
                 yield from _walk_skip_nested(child)
 
-        # codex round-18: build a name → string-default map for the fn.
+        # Build a name → string-default map for the fn.
         default_bindings: dict[str, str] = {}
         pos_formals = list(fn_node.args.posonlyargs) + list(fn_node.args.args)
         defaults = list(fn_node.args.defaults)
@@ -1247,7 +1247,7 @@ def check_solution(
                 ):
                     kernel_fn_ids.add(id(node))
 
-    # codex round-26/27: name → dotted alias map for `mkdev = torch.device`
+    # Name → dotted alias map for `mkdev = torch.device`
     # / `s = str` / `f = torch.empty` / chained `a=torch; dev=a.device`.
     # Used by _value_is_cpu / _eval_str_const to resolve Call.func canonical.
     _DOTTED_OF_INTEREST = {"str", "format", "bytes", "chr", "torch.device"}
@@ -1263,7 +1263,7 @@ def check_solution(
         if isinstance(node, ast.Attribute):
             base = _resolve_dotted_with_aliases(node.value)
             return f"{base}.{node.attr}" if base else node.attr
-        # codex round-29: `(torch,)[0]` / `[torch][0]` — subscript on
+        # `(torch,)[0]` / `[torch][0]` — subscript on
         # literal tuple/list with constant index.
         if isinstance(node, ast.Subscript):
             container = node.value
@@ -1298,7 +1298,7 @@ def check_solution(
                 for tgt in targets:
                     if isinstance(tgt, ast.Name) and tgt.id != rhs_dotted:
                         _global_callable_dotted[tgt.id] = rhs_dotted
-            # codex round-28: tuple/list destructure `(a,) = (torch,)`.
+            # Tuple/list destructure `(a,) = (torch,)`.
             if isinstance(value, (ast.Tuple, ast.List)):
                 for tgt in targets:
                     if isinstance(tgt, (ast.Tuple, ast.List)) and len(tgt.elts) == len(value.elts):
@@ -1315,7 +1315,7 @@ def check_solution(
         if _global_callable_dotted == prev:
             break
 
-    # codex round-26: name → Tuple/List literal map (any scope).
+    # Name → Tuple/List literal map (any scope).
     _global_tuple_literals: dict[str, ast.Tuple | ast.List] = {}
     for s in ast.walk(tree):
         if isinstance(s, ast.Assign) and isinstance(s.value, (ast.Tuple, ast.List)):
@@ -1325,7 +1325,7 @@ def check_solution(
         elif isinstance(s, ast.AnnAssign) and isinstance(s.value, (ast.Tuple, ast.List)) and isinstance(s.target, ast.Name):
             _global_tuple_literals[s.target.id] = s.value
 
-    # codex round-25/26: name → Dict literal map (any scope) for **kw folding.
+    # Name → Dict literal map (any scope) for **kw folding.
     # Tracks: direct dict literal Assign/AnnAssign, `dict(...)` Call assigns,
     # AugAssign `|=` merges, and Subscript-style mutations `kw["k"] = v`.
     _global_dict_literals: dict[str, ast.Dict] = {}
@@ -1357,7 +1357,7 @@ def check_solution(
     def _resolve_to_dict_literal(expr: ast.AST) -> ast.Dict | None:
         """Best-effort: resolve expr to a Dict literal (None if unknown)."""
         if isinstance(expr, ast.Dict):
-            # codex round-29: `{**{...}}` — keys may include None (the `**`).
+            # `{**{...}}` — keys may include None (the `**`).
             if any(k is None for k in expr.keys):
                 synth_keys: list[ast.AST] = []
                 synth_values: list[ast.AST] = []
@@ -1374,7 +1374,7 @@ def check_solution(
             return expr
         if isinstance(expr, ast.Name):
             return _global_dict_literals.get(expr.id)
-        # codex round-29: `{} | {"device": "cpu"}` BitOr.
+        # `{} | {"device": "cpu"}` BitOr.
         if isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.BitOr):
             left_d = _resolve_to_dict_literal(expr.left)
             right_d = _resolve_to_dict_literal(expr.right)
@@ -1387,7 +1387,7 @@ def check_solution(
             # `dict({"device":"cpu"})` (positional Dict arg).
             fn = _canonical(expr.func) or _dotted_name(expr.func)
             if fn == "dict":
-                # codex round-29: positional Dict arg.
+                # Positional Dict arg.
                 keys: list[ast.AST] = []
                 values: list[ast.AST] = []
                 for a in expr.args:
@@ -1406,7 +1406,7 @@ def check_solution(
                             values.extend(inner.values)
                 return ast.Dict(keys=keys, values=values)
         if isinstance(expr, ast.Subscript):
-            # codex round-27: handle Name bound to tuple/list of dicts.
+            # Handle Name bound to tuple/list of dicts.
             if isinstance(expr.value, ast.Name) and isinstance(expr.slice, ast.Constant):
                 tup = _global_tuple_literals.get(expr.value.id)
                 if tup is not None and isinstance(expr.slice.value, int):
@@ -1433,7 +1433,7 @@ def check_solution(
                     _global_dict_literals[tgt.id] = s.value
         elif isinstance(s, ast.AnnAssign) and isinstance(s.value, ast.Dict) and isinstance(s.target, ast.Name):
             _global_dict_literals[s.target.id] = s.value
-        # codex round-28: Name→Name dict alias (`kw2 = kw1`).
+        # Name→Name dict alias (`kw2 = kw1`).
         elif isinstance(s, ast.Assign) and isinstance(s.value, ast.Name) and s.value.id in _global_dict_literals:
             for tgt in s.targets:
                 if isinstance(tgt, ast.Name):
@@ -1447,7 +1447,7 @@ def check_solution(
                 for tgt in s.targets:
                     if isinstance(tgt, ast.Name):
                         _global_dict_literals[tgt.id] = synth
-        # codex round-29: `kw = {} | {"k": v}` BitOr.
+        # `kw = {} | {"k": v}` BitOr.
         elif isinstance(s, ast.Assign) and isinstance(s.value, ast.BinOp) and isinstance(s.value.op, ast.BitOr):
             synth = _resolve_to_dict_literal(s.value)
             if synth is not None:
@@ -1469,7 +1469,7 @@ def check_solution(
             if other is not None:
                 _merge_into(s.target.id, other)
 
-    # codex round-24/25 NEW-P0 #1: cpu_transfer_aliases / custom_method_aliases
+    # cpu_transfer_aliases / custom_method_aliases
     # collected at module level (aggregate across all functions).
     _global_cpu_transfer_aliases: set[str] = set()
     _global_custom_method_aliases: set[str] = set()
@@ -1479,22 +1479,22 @@ def check_solution(
         "torch.tensor", "torch.as_tensor", "torch.arange",
     )
 
-    # codex round-26: track module-level fn → set of possible return exprs.
+    # Track module-level fn → set of possible return exprs.
     _global_fn_returns: dict[str, list[ast.AST]] = {}
-    # codex round-27: track fn → set of formals that flow to a CPU-sensitive
+    # Track fn → set of formals that flow to a CPU-sensitive
     # position (device kwarg / .to() positional / **kw unpack).
     _cpu_tainted_formals: dict[str, set[str]] = {}
-    # codex round-28: same, but indexed by class method name (any class).
+    # Same, but indexed by class method name (any class).
     _cpu_tainted_method_formals: dict[str, set[str]] = {}
     _method_pos_formals: dict[str, list[str]] = {}
-    # codex round-27: track fn → ordered list of positional formal names.
+    # Track fn → ordered list of positional formal names.
     _fn_pos_formals: dict[str, list[str]] = {}
-    # codex round-27: track fn → set of formal names overall.
+    # Track fn → set of formal names overall.
     _fn_all_formals: dict[str, set[str]] = {}
 
     def _walk_fn_local(fn_node):
         """Yield nodes inside `fn_node` but NOT inside nested function/class
-        defs (codex round-28 P1: avoid over-tainting outer formals)."""
+        defs (avoid over-tainting outer formals)."""
         for child in ast.iter_child_nodes(fn_node):
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
                 continue
@@ -1546,7 +1546,7 @@ def check_solution(
             if sensitive:
                 _cpu_tainted_formals[_fn.name] = sensitive
 
-    # codex round-28: class method formal taint (skip self/cls).
+    # Class method formal taint (skip self/cls).
     for _cls in ast.walk(tree):
         if not isinstance(_cls, ast.ClassDef):
             continue
@@ -1563,7 +1563,7 @@ def check_solution(
                 )
                 _method_pos_formals[_m.name] = caller_pos
 
-    # codex round-29: helper fn aliases (`f = B`) for tainted-fn name
+    # Helper fn aliases (`f = B`) for tainted-fn name
     # resolution at call sites.
     _global_fn_aliases: dict[str, str] = {}
 
@@ -1578,7 +1578,7 @@ def check_solution(
     def _is_tainted_fn(name: str) -> bool:
         return _resolve_fn_alias(name) in _cpu_tainted_formals
 
-    # codex round-29: collect callable-Name → fn-name aliases.
+    # Collect callable-Name → fn-name aliases.
     for s in ast.walk(tree):
         if isinstance(s, ast.Assign) and isinstance(s.value, ast.Name):
             if s.value.id in _global_fn_returns or s.value.id in _cpu_tainted_formals:
@@ -1599,7 +1599,7 @@ def check_solution(
                             if isinstance(tgt, ast.Name):
                                 _global_fn_aliases[tgt.id] = elt.id
 
-    # codex round-28/29: transitive taint — true fixpoint (no hard cap).
+    # Transitive taint — true fixpoint (no hard cap).
     # If fn A calls fn B with formal `d` at B's tainted slot, A's formal
     # `d` becomes tainted too. Also propagates to class methods.
     def _propagate_one_fn(fn_node, current_set: set[str], result_dict: dict[str, set[str]], pos_formals_dict: dict[str, list[str]]) -> set[str]:
@@ -1704,11 +1704,11 @@ def check_solution(
                 return any(_rhs_is_cpu_transfer(e, seen) for e in container.elts)
             if isinstance(container, ast.Dict):
                 return any(_rhs_is_cpu_transfer(v, seen) for v in container.values if v is not None)
-            # codex round-26: container is a Name bound to a Dict literal.
+            # Container is a Name bound to a Dict literal.
             resolved = _resolve_subscript_container(rhs)
             if resolved is not None:
                 return _rhs_is_cpu_transfer(resolved, seen)
-            # codex round-26: tuple/list literal bound to a Name.
+            # Tuple/list literal bound to a Name.
             if isinstance(container, ast.Name):
                 tup = _global_tuple_literals.get(container.id)
                 if (
@@ -1720,7 +1720,7 @@ def check_solution(
                     if -len(tup.elts) <= idx < len(tup.elts):
                         return _rhs_is_cpu_transfer(tup.elts[idx], seen)
         if isinstance(rhs, ast.Call):
-            # codex round-26/27: unwrap Call(Lambda)/Call(Name fn)/Call(Call).
+            # Unwrap Call(Lambda)/Call(Name fn)/Call(Call).
             for ret in _call_possible_returns(rhs, seen):
                 if _rhs_is_cpu_transfer(ret, seen):
                     return True
@@ -1800,7 +1800,7 @@ def check_solution(
     def _walk_destructure(lhs: ast.AST, rhs: ast.AST,
                           ct_set: set[str], cm_set: set[str]) -> None:
         """Recursive element-wise matching of (Tuple/List) LHS↔RHS."""
-        # codex round-27: resolve Name RHS → bound Tuple/List literal.
+        # Resolve Name RHS → bound Tuple/List literal.
         if isinstance(rhs, ast.Name):
             bound = _global_tuple_literals.get(rhs.id)
             if bound is not None:
@@ -1871,7 +1871,7 @@ def check_solution(
         if len(_global_cpu_transfer_aliases) == prev_ct and len(_global_custom_method_aliases) == prev_cm:
             break
 
-    # codex round-18 NEW-P0 #6: full dict-like head set including
+    # Full dict-like head set including
     # OrderedDict / DefaultDict (typed) — used by annotation walkers
     # and type-alias detector.
     _DICT_LIKE_ANNOTATION_HEADS = {
@@ -1886,8 +1886,8 @@ def check_solution(
         "collections.ChainMap", "collections.Counter",
     }
 
-    # codex round-11/16: class-bases & type-alias container detection.
-    # Round-16 P1: take a transitive closure over subclass chains
+    # Class-bases & type-alias container detection.
+    # Take a transitive closure over subclass chains
     # (`class D(dict); class My(D)` → My is dict-like).
     dict_subclasses: set[str] = set()
     list_tensor_subclasses: set[str] = set()
@@ -1954,13 +1954,13 @@ def check_solution(
                 ):
                     type_alias_to_container.add(tgt)
 
-    # codex round-10 NEW-P0 #2: shallow cross-function Tensor-arg
+    # Shallow cross-function Tensor-arg
     # propagation. Two passes:
     # (1) Scan each non-kernel function: collect its Tensor-typed params.
     # (2) For each Call to a top-level function whose actual arg is in
     #     the caller's Tensor set, mark the callee's corresponding formal
     #     parameter Tensor-tainted.
-    # codex round-15/16: fn_defs / class_defs include nested functions
+    # fn_defs / class_defs include nested functions
     # but exclude class methods (class methods should not shadow
     # top-level fn names).
     fn_defs: dict[str, ast.FunctionDef] = {}
@@ -1978,11 +1978,11 @@ def check_solution(
             return
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if not in_class:
-                # codex round-17 NEW-P0 #4: prefer LAST-binding (nested
+                # Prefer LAST-binding (nested
                 # shadow). Nested defs are visited after top-level by
                 # this DFS — overwrite intentionally.
                 fn_defs[node.name] = node                        # type: ignore[assignment]
-                # codex round-17 NEW-P0 #3: detect non-trusted decorators —
+                # Detect non-trusted decorators —
                 # the decorated function is REPLACED at runtime, so the
                 # audit on its original body is unsafe.
                 for deco in node.decorator_list:
@@ -2020,13 +2020,13 @@ def check_solution(
                     ts.add(a.arg)
         fn_initial_tensors[name] = ts
 
-    # codex round-13/14/16: collect callable aliases — `f = h` /
-    # `f = lambda z: ...`. Round-16 NEW-P0 #4: also handle AnnAssign,
+    # Collect callable aliases — `f = h` /
+    # `f = lambda z: ...`. Also handle AnnAssign,
     # destructuring tuple/list, for-target, IIFE Call results.
     lambda_aliases: dict[str, list[ast.Lambda]] = {}
 
     def _record_callable_binding(name: str, value: ast.AST) -> None:  # noqa: C901
-        # codex round-20 NEW-P0 #5: Starred, BoolOp aliases.
+        # Starred, BoolOp aliases.
         if isinstance(value, ast.Starred):
             _record_callable_binding(name, value.value)
             return
@@ -2047,7 +2047,7 @@ def check_solution(
         # IIFE result `(lambda: h)()` — recurse on body.
         if isinstance(value, ast.Call) and isinstance(value.func, ast.Lambda):
             _record_callable_binding(name, value.func.body)
-        # codex round-19/21 NEW-P0: computed alias forms.
+        # Computed alias forms.
         # `g = (h,)[0]` / `g = {"f": h}["f"]` / `g = h if cond else other` /
         # `g = ((h,) or (h,))[0]` (BoolOp inside Subscript).
         if isinstance(value, ast.Subscript):
@@ -2077,7 +2077,7 @@ def check_solution(
                 if isinstance(tgt, ast.Name):
                     _record_callable_binding(tgt.id, rhs)
                 elif isinstance(tgt, (ast.Tuple, ast.List)) and isinstance(rhs, (ast.Tuple, ast.List)):
-                    # codex round-20: handle `*_, g = (h,)` — Starred
+                    # Handle `*_, g = (h,)` — Starred
                     # consumes leading elements, last Name targets last
                     # Tuple element (conservatively bind every element
                     # to every Name target).
@@ -2102,7 +2102,7 @@ def check_solution(
                 for elt in sub.iter.elts:
                     _record_callable_binding(sub.target.id, elt)
 
-    # codex round-14 NEW-P0 #4: fold lambda-alias bodies into
+    # Fold lambda-alias bodies into
     # function_returns so `dev = lambda: "cpu"; x.to(dev())` is caught.
     for name, lams in lambda_aliases.items():
         for lam in lams:
@@ -2115,7 +2115,7 @@ def check_solution(
             if name not in function_returns:
                 function_returns[name] = folded
 
-    # codex round-11 R-P0-1: iterate to fixed point so multi-hop
+    # Iterate to fixed point so multi-hop
     # `h1(x) -> h2(y) -> ...` propagates. Also include local Assign
     # aliases (`y = x`) and keyword actuals, plus container subscript
     # results (`inputs["x"]`).
@@ -2149,14 +2149,14 @@ def check_solution(
         # Add cross-fn-propagated tensors discovered so far.
         local_tensors |= _CROSS_FN_TENSOR_PARAMS.get(caller_fn.name, set())
         # Forward-prop within body (fixpoint within the function):
-        # codex round-12 R-P0-2: include container alias propagation
+        # Include container alias propagation
         # (`c = inputs`), Tuple destructuring on Tensor RHS, AnnAssign.
         for _ in range(8):
             grew = False
             for s in ast.walk(caller_fn):
                 if isinstance(s, ast.Assign):
                     rhs = s.value
-                    # codex round-13 R-P0-1: propagate Tensor-ness from
+                    # Propagate Tensor-ness from
                     # method calls (`x.contiguous()`), IIFE lambdas, and
                     # local helper calls that return Tensor.
                     rhs_tensor = (
@@ -2171,7 +2171,7 @@ def check_solution(
                     rhs_container = (
                         isinstance(rhs, ast.Name) and rhs.id in local_containers
                     )
-                    # codex round-12/13: Tuple/List RHS only triggers
+                    # Tuple/List RHS only triggers
                     # destructure path when its elements actually contain
                     # a Tensor — `dims = (1, 2)` is NOT a Tensor tuple.
                     if isinstance(rhs, (ast.Tuple, ast.List)):
@@ -2180,7 +2180,7 @@ def check_solution(
                             for e in rhs.elts
                         ):
                             rhs_tensor = True
-                    # codex round-13 NEW-P0 #1: subscript / attribute
+                    # Subscript / attribute
                     # write of Tensor into a local → that local becomes
                     # a Tensor container.
                     if _expr_contains_tensor(rhs, local_tensors, local_containers):
@@ -2245,7 +2245,7 @@ def check_solution(
                 break
         return local_tensors, local_containers
 
-    # codex round-12 R-P0-1: raise cap to a hard fixpoint; iteration is
+    # Raise cap to a hard fixpoint; iteration is
     # bounded by `len(fn_defs)` (call graph depth) and call sites.
     _MAX_ITERATIONS = max(64, len(fn_defs) * 4)
     _hit_cap = True
@@ -2258,7 +2258,7 @@ def check_solution(
                     continue
                 if not isinstance(sub.func, ast.Name):
                     continue
-                # Round-13/14: resolve callable alias chain — expand to all
+                # Resolve callable alias chain — expand to all
                 # possible callees via UNION semantics. Any binding that
                 # ever pointed at a real fn_def is propagated.
                 seen: set[str] = set()
@@ -2282,7 +2282,7 @@ def check_solution(
                     )
 
                 def _actual_is_container(actual: ast.AST) -> bool:
-                    """codex round-16/17: passing a container (directly,
+                    """Passing a container (directly,
                     via Subscript chain, IIFE Lambda, or wrapped in
                     Tuple/List/Dict) to a helper taints the formal as
                     container."""
@@ -2299,7 +2299,7 @@ def check_solution(
                     callee_fn = fn_defs.get(callee_name)
                     if callee_fn is None or id(callee_fn) in kernel_fn_ids:
                         continue
-                    # codex round-17 NEW-P0 #2: bind callee's defaults
+                    # Bind callee's defaults
                     # to formals so `def h(z=x): return z + z` is audited.
                     pos_args_callee = list(callee_fn.args.posonlyargs) + list(callee_fn.args.args)
                     defaults_callee = list(callee_fn.args.defaults)
@@ -2314,7 +2314,7 @@ def check_solution(
                             if _actual_is_container(default):
                                 _CROSS_FN_CONTAINER_PARAMS.setdefault(callee_name, set()).add(formal)
                                 changed = True
-                    # codex round-23: kw-only defaults containing Tensor.
+                    # Kw-only defaults containing Tensor.
                     kwonly_callee = list(callee_fn.args.kwonlyargs)
                     for i, default in enumerate(callee_fn.args.kw_defaults):
                         if default is None or i >= len(kwonly_callee):
@@ -2340,7 +2340,7 @@ def check_solution(
                                 existing_c.add(formal_name)
                                 changed = True
                     for kw in sub.keywords:
-                        # codex round-18 NEW-P0 #5: `**{"z": x}` unpacking.
+                        # `**{"z": x}` unpacking.
                         if kw.arg is None:
                             # ** unpacking — if value contains Tensor/container,
                             # taint ALL formals conservatively.
@@ -2393,7 +2393,7 @@ def check_solution(
 
         tensors: set[str] = set()
         # Args annotated as torch.Tensor (or as opaque container dict) are
-        # Tensor-tainted. codex round-9 NEW-P0 #1: `inputs: dict` is the
+        # Tensor-tainted. `inputs: dict` is the
         # canonical Phase-2.B contract entry — `inputs["x"]` is a Tensor.
         all_args = (
             list(fn_node.args.posonlyargs)
@@ -2430,14 +2430,14 @@ def check_solution(
                 if isinstance(sub, ast.Attribute) and sub.attr == "Tensor":
                     return True
                 if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
-                    # codex round-11 P1: word-boundary match, not substring.
+                    # Word-boundary match, not substring.
                     parts = re.split(r"[,\s\[\]\(\)\|]+", sub.value)
                     if any(p.strip("'\"") in {"Tensor", "torch.Tensor"} for p in parts):
                         return True
             return False
 
         def _annotation_is_tensor_container(anno_node: ast.AST | None) -> bool:
-            """Round-11: deep walk annotations including
+            """Deep walk annotations including
             `Optional/Union/T | None / List[Tensor] / dict subclasses /
             type aliases`."""
             if anno_node is None:
@@ -2529,19 +2529,19 @@ def check_solution(
             anno = _canonical(anno_node) or _dotted_name(anno_node)
             if anno in _TENSOR_ANNOTATIONS:
                 tensors.add(arg.arg)
-        # codex round-10 NEW-P0 #1: contract entry name `npu_triton_impl`
+        # Contract entry name `npu_triton_impl`
         # — first arg is always a Tensor container (`inputs`), even when
         # the submitter omits the annotation or annotates as `object`.
         if fn_node.name == "npu_triton_impl":
             pos = list(fn_node.args.posonlyargs) + list(fn_node.args.args)
             if pos:
                 containers.add(pos[0].arg)
-        # codex round-8 R-P0-1: `*args` / `**kwargs` are opaque containers.
+        # `*args` / `**kwargs` are opaque containers.
         if fn_node.args.vararg is not None:
             containers.add(fn_node.args.vararg.arg)
         if fn_node.args.kwarg is not None:
             containers.add(fn_node.args.kwarg.arg)
-        # codex round-10/16: cross-function tensor + container propagation.
+        # Cross-function tensor + container propagation.
         cross_fn_tensor_params = _CROSS_FN_TENSOR_PARAMS.get(fn_node.name, set())
         cross_fn_container_params = _CROSS_FN_CONTAINER_PARAMS.get(fn_node.name, set())
         for arg in all_args:
@@ -2562,7 +2562,7 @@ def check_solution(
             elif isinstance(target, ast.Starred):
                 _spread_tensor(target.value)
             elif isinstance(target, (ast.Subscript, ast.Attribute)):
-                # codex round-13 NEW-P0 #1: writing Tensor into a slot /
+                # Writing Tensor into a slot /
                 # attribute promotes the base name to a Tensor container.
                 if isinstance(target.value, ast.Name):
                     containers.add(target.value.id)
@@ -2587,8 +2587,8 @@ def check_solution(
                 if _rhs_yields_tensor(sub.value, tensors, containers):
                     for tgt in sub.targets:
                         _spread_tensor(tgt)
-                # codex round-14/15/16: container alias propagation.
-                # Round-16 NEW-P0 #2: handle any RHS containing a
+                # Container alias propagation.
+                # Handle any RHS containing a
                 # container reference (not just direct Name), via
                 # `_expr_contains_container`.
                 def _root_name(node: ast.AST) -> str | None:
@@ -2602,7 +2602,7 @@ def check_solution(
                 def _expr_contains_container(
                     node: ast.AST, ctx: set[str] | None = None
                 ) -> bool:
-                    """Round-17/18 broadened: also walks BinOp (multiply
+                    """Broadened: also walks BinOp (multiply
                     list), IIFE Lambda defaults."""
                     cs = ctx if ctx is not None else containers
                     if isinstance(node, ast.Name):
@@ -2632,7 +2632,7 @@ def check_solution(
                                         if f.arg == kw.arg:
                                             bound.add(f.arg)
                             return _expr_contains_container(lam.body, bound)
-                        # codex round-19: include keyword args for `dict(a=inputs)`.
+                        # Include keyword args for `dict(a=inputs)`.
                         if any(_expr_contains_container(a, cs) for a in node.args):
                             return True
                         if any(_expr_contains_container(kw.value, cs) for kw in node.keywords):
@@ -2649,7 +2649,7 @@ def check_solution(
                         return any(_expr_contains_container(e, cs) for e in node.elts)
                     if isinstance(node, ast.Dict):
                         return any(_expr_contains_container(v, cs) for v in node.values)
-                    # codex round-18: `[inputs] * 1` / `list1 + list2`.
+                    # `[inputs] * 1` / `list1 + list2`.
                     if isinstance(node, ast.BinOp):
                         return (
                             _expr_contains_container(node.left, cs)
@@ -2659,7 +2659,7 @@ def check_solution(
 
                 if _expr_contains_container(sub.value):
                     for tgt in sub.targets:
-                        # codex round-18: Tuple/List destructure of a
+                        # Tuple/List destructure of a
                         # container-bearing RHS → all elements are
                         # containers (typical: `(c,) = box`).
                         if isinstance(tgt, (ast.Tuple, ast.List)):
@@ -2683,7 +2683,7 @@ def check_solution(
                     tensors.add(sub.target.id)
                 if _rhs_yields_tensor(sub.value, tensors, containers) and isinstance(sub.target, ast.Name):
                     tensors.add(sub.target.id)
-                # codex round-17/19/20: AnnAssign with any container-
+                # AnnAssign with any container-
                 # bearing RHS uses the same recursive walker as Assign.
                 if isinstance(sub.target, ast.Name):
                     # Reuse the broad walker — handles `box: object = [inputs]`.
@@ -2698,7 +2698,7 @@ def check_solution(
                 # `for row in tensor:` / `for _, row in enumerate(tensor):`
                 if _expr_contains_tensor(sub.iter, tensors):
                     _spread_tensor(sub.target)
-                # codex round-23: `for g in s` where s is bound to a
+                # `for g in s` where s is bound to a
                 # local callable container. Guard against being called
                 # in the module-level walker scope.
                 _per_fn_callable_box = locals().get("callable_container_names_in_fn") or set()
@@ -2710,7 +2710,7 @@ def check_solution(
                     and _per_fn_callable_instance is not None
                 ):
                     _per_fn_callable_instance.add(sub.target.id)
-                # codex round-17/18/19: For-target gets container if
+                # For-target gets container if
                 # iter contains container in any element (incl. IfExp).
                 def _for_target_container(target: ast.expr) -> None:
                     if isinstance(target, ast.Name):
@@ -2736,17 +2736,17 @@ def check_solution(
         if not tensors and not containers:
             continue
 
-        # codex round-15/17: collect instance assignments. Round-17
-        # NEW-P0 #5: also track `f = factory()` where factory returns
+        # Collect instance assignments.
+        # Also track `f = factory()` where factory returns
         # a class instance — any local fn call result is conservatively
         # treated as a callable-helper unless it's a known-safe call.
-        # codex round-23: names bound to `x.to` / `torch.empty` etc.
+        # Names bound to `x.to` / `torch.empty` etc.
         # so that `move = x.to; move("cpu")` triggers CPU transfer check.
         cpu_transfer_aliases: set[str] = set()
-        # codex round-23: names bound to allowlisted method on
+        # Names bound to allowlisted method on
         # non-Tensor receiver (e.g. `f = a.reshape` where `a` is custom).
         custom_method_aliases: set[str] = set()
-        # codex round-23: names bound to local tuple/list/set of callables
+        # Names bound to local tuple/list/set of callables
         # (e.g. `s = (h,); for g in s:`).
         callable_container_names_in_fn: set[str] = set()
         instance_names_in_fn: set[str] = set()
@@ -2774,7 +2774,7 @@ def check_solution(
                         for tgt in s.targets:
                             if isinstance(tgt, ast.Name):
                                 callable_instance_names_in_fn.add(tgt.id)
-            # codex round-23: `move = x.to` / `alloc = torch.empty`.
+            # `move = x.to` / `alloc = torch.empty`.
             if isinstance(s, ast.Assign) and isinstance(s.value, ast.Attribute):
                 v = s.value
                 # `x.to` where x is Tensor.
@@ -2792,7 +2792,7 @@ def check_solution(
                     for tgt in s.targets:
                         if isinstance(tgt, ast.Name):
                             cpu_transfer_aliases.add(tgt.id)
-                # codex round-23: `f = a.reshape` (custom-class method).
+                # `f = a.reshape` (custom-class method).
                 suffix = "." + v.attr
                 if (
                     suffix in _CALL_ALLOW_METHOD_SUFFIX
@@ -2805,7 +2805,7 @@ def check_solution(
                     for tgt in s.targets:
                         if isinstance(tgt, ast.Name):
                             custom_method_aliases.add(tgt.id)
-            # codex round-23: `s = (h,) / [h] / {h}` containing callables
+            # `s = (h,) / [h] / {h}` containing callables
             if isinstance(s, ast.Assign) and isinstance(s.value, (ast.Tuple, ast.List, ast.Set)):
                 has_callable = False
                 for elt in s.value.elts:
@@ -2820,7 +2820,7 @@ def check_solution(
                     for tgt in s.targets:
                         if isinstance(tgt, ast.Name):
                             callable_container_names_in_fn.add(tgt.id)
-            # codex round-24: destructure `(f,) = (a.reshape,)` or
+            # Destructure `(f,) = (a.reshape,)` or
             # `[f, g] = [x.to, y.cpu]` — match element-wise from Tuple/List
             # RHS into Tuple/List LHS targets.
             if (
@@ -2858,7 +2858,7 @@ def check_solution(
                                 if rhs_elt.id in cpu_transfer_aliases:
                                     cpu_transfer_aliases.add(lhs_elt.id)
 
-        # Now scan for forbidden ops. Round-10: thread `containers` set
+        # Now scan for forbidden ops. Thread `containers` set
         # so that `inputs["x"]` (Subscript on container) unwraps to
         # Tensor and only fails when used in a forbidden op.
         for sub in ast.walk(fn_node):
@@ -2900,7 +2900,7 @@ def check_solution(
                         getattr(sub, "lineno", None),
                     )
             elif isinstance(sub, ast.AugAssign):
-                # codex round-23: also audit RHS (`y += x`).
+                # Also audit RHS (`y += x`).
                 if (
                     _expr_contains_tensor(sub.target, tensors, containers)
                     or _expr_contains_tensor(sub.value, tensors, containers)
@@ -2933,14 +2933,14 @@ def check_solution(
                         "host-side iteration over Tensor expression",
                         getattr(sub, "lineno", None),
                     )
-                # codex round-23: `for g in s` where s is callable_container_box.
+                # `for g in s` where s is callable_container_box.
                 if (
                     isinstance(sub.iter, ast.Name)
                     and sub.iter.id in callable_container_names_in_fn
                     and isinstance(sub.target, ast.Name)
                 ):
                     callable_instance_names_in_fn.add(sub.target.id)
-            # codex round-23: Tensor truthiness in control flow.
+            # Tensor truthiness in control flow.
             elif isinstance(sub, (ast.If, ast.While, ast.Assert)):
                 test_node = sub.test if isinstance(sub, ast.Assert) else sub.test
                 if _expr_contains_tensor(test_node, tensors, containers):
@@ -2958,13 +2958,13 @@ def check_solution(
                     )
             elif isinstance(sub, ast.Call):
                 fname = _canonical(sub.func) or _dotted_name(sub.func)
-                # codex round-12 NEW-P0 #2 + round-14: callable-object,
+                # Callable-object,
                 # computed call target, and method on non-Tensor receiver
                 # — fail closed if any actual arg evaluates to a Tensor.
                 func = sub.func
                 # Triton kernel launch idiom: `_fwd_kernel[grid](args...)`.
                 # Subscript on a Name that is a @triton.jit fn is legitimate.
-                # codex round-15 P1: Triton kernel launch
+                # Triton kernel launch
                 # `kernel[grid](...)` — kernel may be the original
                 # @triton.jit fn OR a callable alias to one.
                 def _resolves_to_kernel(name: str) -> bool:
@@ -3003,7 +3003,7 @@ def check_solution(
                     or (isinstance(func, ast.Subscript) and not is_triton_kernel_launch)
                 )
                 # `a.reshape(tensor)` where `a` is not a Tensor (custom
-                # class). round-15 R-P0-2: also covers
+                # class). Also covers
                 # `b.h.reshape(tensor)` / `objs[0].reshape(tensor)` —
                 # any non-Tensor / non-module receiver.
                 def _receiver_is_safe(rcv: ast.AST) -> bool:
@@ -3025,12 +3025,12 @@ def check_solution(
                     isinstance(func, ast.Attribute)
                     and not _receiver_is_safe(func.value)
                 )
-                # codex round-15 NEW-P0 #1: class constructor / instance
+                # Class constructor / instance
                 # __call__ with Tensor actual.
                 func_is_class_init = (
                     isinstance(func, ast.Name) and func.id in class_defs
                 )
-                # codex round-17 NEW-P0 #3: decorator-replaced fn —
+                # Decorator-replaced fn —
                 # `@deco def h(z): ...; h(tensor)` may invoke decorator-
                 # returned eager callable.
                 def _resolves_to_decorated(name: str) -> bool:
@@ -3082,14 +3082,14 @@ def check_solution(
                                 getattr(sub, "lineno", None),
                             )
                             break
-                # codex round-20/21 NEW-P0 #2: IIFE outer lambda receives
+                # IIFE outer lambda receives
                 # a callable lambda — via positional, keyword, or default.
                 if isinstance(sub.func, ast.Lambda):
                     outer_lam = sub.func
                     outer_formals_for_callable = (
                         list(outer_lam.args.posonlyargs) + list(outer_lam.args.args)
                     )
-                    # codex round-22: resolve Name → Lambda (via
+                    # Resolve Name → Lambda (via
                     # lambda_aliases/fn_defs). kw-only defaults + **dict.
                     def _resolve_to_lambda(v: ast.AST) -> ast.Lambda | None:
                         if isinstance(v, ast.Lambda):
@@ -3104,7 +3104,7 @@ def check_solution(
                                         return ast.Lambda(
                                             args=fnd.args, body=inner.value
                                         )
-                        # codex round-23: computed forms.
+                        # Computed forms.
                         if isinstance(v, ast.Subscript):
                             container = v.value
                             if isinstance(container, (ast.Tuple, ast.List, ast.Set)):
@@ -3203,8 +3203,8 @@ def check_solution(
                                         "nested callable lambda returns cpu string",
                                         getattr(sub, "lineno", None),
                                     )
-                # codex round-13/14/15/20: `f = lambda; f(tensor)` —
-                # round-20: full binding (kw/*args/defaults) + full op
+                # `f = lambda; f(tensor)` —
+                # Full binding (kw/*args/defaults) + full op
                 # categories (BinOp/Compare/UnaryOp/BoolOp/Subscript/coerce).
                 if isinstance(sub.func, ast.Name) and sub.func.id in lambda_aliases:
                     for lam in lambda_aliases[sub.func.id]:
@@ -3275,7 +3275,7 @@ def check_solution(
                                 )
                                 break
                     continue
-                # codex round-11/12 P1: audit IIFE-lambda body under bound
+                # Audit IIFE-lambda body under bound
                 # formals. Recursively handles nested IIFE-lambdas
                 # (`(lambda z: (lambda w: w+w)(z))(tensor)`).
                 if isinstance(sub.func, ast.Lambda):
@@ -3300,9 +3300,9 @@ def check_solution(
                             bound_tensors.add(formal.arg)
                         if isinstance(actual, ast.Name) and actual.id in containers:
                             bound_containers.add(formal.arg)
-                    # codex round-18/23: keyword + *args + **kwargs.
+                    # Keyword + *args + **kwargs.
                     kwonly_formals = list(lam_node.args.kwonlyargs)
-                    # codex round-23: kw-only defaults containing Tensor.
+                    # Kw-only defaults containing Tensor.
                     for i, formal in enumerate(kwonly_formals):
                         if i < len(lam_node.args.kw_defaults) and lam_node.args.kw_defaults[i] is not None:
                             if _expr_contains_tensor(
@@ -3374,7 +3374,7 @@ def check_solution(
                             "inline lambda performs eager Tensor op on its bound arg",
                             getattr(sub, "lineno", None),
                         )
-                    # Codex round-12 R-P0-4: recurse into nested IIFE-lambdas
+                    # Recurse into nested IIFE-lambdas
                     # within the body — `(lambda z: (lambda w: w+w)(z))(x)`.
                     for inner_call in ast.walk(body):
                         if isinstance(inner_call, ast.Call) and isinstance(
@@ -3413,7 +3413,7 @@ def check_solution(
                                         )
 
     # Pass 1b: build alias taint table — union of all observed bindings.
-    # codex round-6 #4: any banned binding ⇒ alias tainted, regardless of
+    # Any banned binding ⇒ alias tainted, regardless of
     # which binding `first-wins` aliases happened to pick.
     tainted_aliases: dict[str, str] = {}
     for local, qualifieds in all_bindings.items():
@@ -3433,7 +3433,7 @@ def check_solution(
         Covers banned dotted references AND captures of arbitrary `obj.<attr>`
         where `<attr>` is neither a method allowlist nor a property allowlist
         entry — that's almost certainly a callable being bound to a local
-        name (codex round-5 NEW-P0 #5).
+        name.
         """
         for sub in ast.walk(value):
             if isinstance(sub, (ast.Name, ast.Attribute)):
@@ -3480,7 +3480,7 @@ def check_solution(
     # (Pass-1 already pre-tainted the aliased imports; do not re-add.)
 
     # Pass 2: taint LHS of any binding form whose RHS contains a banned ref.
-    # codex round-5 NEW-P0 #2: must cover AnnAssign / For / starred / defaults
+    # Must cover AnnAssign / For / starred / defaults
     # in addition to plain Assign.
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -3562,7 +3562,7 @@ def check_solution(
                 report.add("D-dunder-deny", "block",
                            f"banned dunder attribute: .{node.attr}",
                            node.lineno)
-            # Codex round-6 #1: receiver-agnostic banned method names.
+            # Receiver-agnostic banned method names.
             # `inputs["x"].matmul(y)`, `Q.cpu()`, etc.
             if node.attr in _BANNED_METHOD_NAMES:
                 report.add("D-banned-method", "block",
@@ -3579,7 +3579,7 @@ def check_solution(
                     getattr(node, "lineno", None),
                 )
         elif isinstance(node, ast.Call):
-            # codex round-12 NEW-P0 #1: Attribute call on non-Name receiver
+            # Attribute call on non-Name receiver
             # — `inputs["x"].add(inputs["y"])` / `(lambda:x)().cpu()` —
             # check the method name receiver-agnostically. If method is
             # in `_BANNED_METHOD_NAMES`, block. Otherwise, if method is
@@ -3615,7 +3615,7 @@ def check_solution(
             if fname in _BANNED_TL_CALLS:
                 report.add("D-banned-tl", "block",
                            f"banned triton call: {fname}", node.lineno)
-            # Codex round-7 #1: bare-call eager builtins force Tensor
+            # Bare-call eager builtins force Tensor
             # evaluation regardless of receiver type.
             if fname in _BANNED_EAGER_BUILTINS:
                 report.add(
@@ -3624,9 +3624,9 @@ def check_solution(
                     "(forces Tensor evaluation on host)",
                     node.lineno,
                 )
-            # Codex round-7/8: `.to("cpu")` / `.to(device="cpu")` /
+            # `.to("cpu")` / `.to(device="cpu")` /
             # `torch.empty(..., device="cpu")` — explicit host transfer.
-            # Round-8 R-P0-2: also resolve string-constant locals
+            # Also resolve string-constant locals
             # (`d = "cpu"; x.to(d)`).
             def _value_is_cpu(expr: ast.AST) -> str | None:
                 static = _eval_str_const(expr)
@@ -3637,12 +3637,12 @@ def check_solution(
                 return None
 
             # Any Tensor-returning method call OR a torch.* allocator can
-            # potentially target CPU (codex round-9 NEW-P0 #3:
-            # `x.new_empty(..., device='cpu')`).
+            # potentially target CPU
+            # (`x.new_empty(..., device='cpu')`).
             is_tensor_method_call = isinstance(node.func, ast.Attribute) and (
                 "." + node.func.attr in _TENSOR_RETURNING_METHOD_SUFFIX
             )
-            # codex round-23: also catch CPU transfer through aliases
+            # Also catch CPU transfer through aliases
             # — `move = x.to; move("cpu")` / `alloc = torch.empty;
             # alloc(..., device="cpu")`. Track names bound to tensor
             # methods / torch allocators in cpu_transfer_aliases.
@@ -3652,7 +3652,7 @@ def check_solution(
                 isinstance(node.func, ast.Name)
                 and node.func.id in _global_cpu_transfer_aliases
             )
-            # codex round-25 NEW-P0: computed call target — IfExp/BoolOp/
+            # Computed call target — IfExp/BoolOp/
             # Subscript whose branches all resolve to cpu-transfer.
             if not is_cpu_transfer_alias and isinstance(node.func, (ast.IfExp, ast.BoolOp, ast.Subscript, ast.Call)):
                 if _rhs_is_cpu_transfer(node.func):
@@ -3662,12 +3662,12 @@ def check_solution(
                 or fname == "to" or is_tensor_method_call
                 or is_cpu_transfer_alias
             ):
-                # codex round-23: positional args, including Starred
+                # Positional args, including Starred
                 # unpack of literal tuple `(*("cpu",))`.
                 for arg in node.args:
                     if isinstance(arg, ast.Starred):
                         starred_container: ast.AST | None = arg.value
-                        # codex round-27: resolve Name → bound Tuple/List.
+                        # Resolve Name → bound Tuple/List.
                         if isinstance(starred_container, ast.Name):
                             starred_container = _global_tuple_literals.get(starred_container.id)
                         if isinstance(starred_container, (ast.Tuple, ast.List)):
@@ -3697,7 +3697,7 @@ def check_solution(
                                 node.lineno,
                             )
                     elif kw.arg is None:
-                        # codex round-23/25: **kw unpacking — accept either
+                        # **kw unpacking — accept either
                         # a direct Dict literal, a bound dict-literal Name,
                         # `dict(device="cpu")`, or `outer["k"]` nested.
                         resolved = _resolve_to_dict_literal(kw.value)
@@ -3715,7 +3715,7 @@ def check_solution(
                                             f"banned device kwarg via **dict {hit!r}",
                                             node.lineno,
                                         )
-            # codex round-28/29: Attribute call to class method whose formal
+            # Attribute call to class method whose formal
             # flows to a CPU-sensitive position. (Uses _audit_helper_call
             # defined below for vararg/kwarg consistency.)
             _method_call_match = (
@@ -3723,9 +3723,9 @@ def check_solution(
                 and node.func.attr in _cpu_tainted_method_formals
             )
 
-            # codex round-27/29: helper fn propagation. Call to a fn
+            # Helper fn propagation. Call to a fn
             # (or alias) whose formal flows to a CPU-sensitive position.
-            # codex round-29: vararg/kwarg formal handling.
+            # Vararg/kwarg formal handling.
             def _audit_helper_call(fn_def_node, tainted: set[str], pos_formals: list[str], node, label: str) -> None:
                 vararg_name = fn_def_node.args.vararg.arg if fn_def_node and fn_def_node.args.vararg else None
                 kwarg_name = fn_def_node.args.kwarg.arg if fn_def_node and fn_def_node.args.kwarg else None
@@ -3797,7 +3797,7 @@ def check_solution(
                                 return m
                 return None
 
-            # codex round-28/29: closure helper — `maker()("cpu")` or
+            # Closure helper — `maker()("cpu")` or
             # `factory()("cpu")` where factory→maker→inner; recursively
             # unwrap fn returns to find a Name in _cpu_tainted_formals.
             def _resolve_closure_returns(c: ast.Call, depth: int = 0) -> list[str]:
@@ -3846,7 +3846,7 @@ def check_solution(
                 m_def = _find_method_def_by_name(method_name)
                 _audit_helper_call(m_def, tainted_m, pos_m, node, f"method {method_name}()")
 
-            # codex round-27: IIFE Lambda with cpu-tainted formal —
+            # IIFE Lambda with cpu-tainted formal —
             # `(lambda x, **kw: x.to(**kw))(inputs["x"], device="cpu")`.
             # Also handles `pick()(5, device="cpu")` where `pick` returns
             # a Lambda — we resolve via `_global_fn_returns`.
@@ -3882,7 +3882,7 @@ def check_solution(
                         for a in sub.args:
                             if isinstance(a, ast.Starred) and isinstance(a.value, ast.Name) and a.value.id in all_formals_lam:
                                 sensitive_lam.add(a.value.id)
-                        # codex round-29: call to tainted helper fn with
+                        # Call to tainted helper fn with
                         # formal as actual at a tainted slot.
                         if isinstance(sub.func, ast.Name):
                             callee = _resolve_fn_alias(sub.func.id)
@@ -3952,7 +3952,7 @@ def check_solution(
                                         f"cpu string flows via {kw.arg}=… into IIFE **{lam.args.kwarg.arg}",
                                         node.lineno,
                                     )
-                    # codex round-28: IIFE Lambda positional / kw-only
+                    # IIFE Lambda positional / kw-only
                     # defaults that themselves are "cpu" — formal binds
                     # to the default when actual is omitted.
                     pos_formals_with_defaults = pos_formals_lam[
@@ -3988,7 +3988,7 @@ def check_solution(
                                 node.lineno,
                             )
 
-            # Codex round-5 #1 + round-6 #2: any non-trivial Call.func
+            # Any non-trivial Call.func
             # (anything beyond a plain Name or simple Attribute) is
             # walked for banned references. Covers Subscript / Tuple /
             # List / IfExp / BoolOp / Lambda / Call nesting.
@@ -4000,7 +4000,7 @@ def check_solution(
                         f"indirect call target hides banned reference: {reason}",
                         node.lineno,
                     )
-            # Codex round-6 #3: deep-walk Call args + kwargs so that
+            # Deep-walk Call args + kwargs so that
             # `(lambda fs: fs[0](...))((torch.matmul,))` is caught.
             for arg in list(node.args) + [kw.value for kw in node.keywords]:
                 reason = _scan_rhs_for_banned(arg)
@@ -4010,7 +4010,7 @@ def check_solution(
                         f"call argument is banned: {reason}",
                         node.lineno,
                     )
-            # codex round-12 NEW-P0 #2: instance method / callable-object
+            # Instance method / callable-object
             # hides eager helper. `H().h(x)` / `H()(x)` — Call.func is
             # neither plain Name nor plain Attribute(Name). Fail closed
             # when any actual arg contains a Tensor expression we can see

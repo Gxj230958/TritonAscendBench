@@ -6,12 +6,12 @@ verdict JSONs land at /tmp/r10_verdict/<task_id>.json (or wherever the
 operator rsyncs them back to). This script reads those verdicts and
 writes provenance.golden.* fields into each task's meta.yaml.
 
-V9 architectural shift: when oracle_kernel_equivalence == VERIFIED, the
+Architectural shift: when oracle_kernel_equivalence == VERIFIED, the
 corpus oracle_pytorch.py is promoted to truth source for that task.
 Existing top-level `provenance:` keys (added_in / authors / last_modified)
 are preserved; this only adds/updates the nested `provenance.golden:` block.
 
-Manual operator workflow (V9 M2.1c):
+Manual operator workflow:
   # On dev machine after rsync /tmp/r10_verdict/ back:
   python3 scripts/apply_oracle_equivalence_verdict.py --verdict-dir /tmp/r10_verdict/
   # OR:
@@ -33,7 +33,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.automation.lib.atomic import atomic_write_yaml  # noqa: E402
+from ascendbench._util.atomic import atomic_write_yaml  # noqa: E402
 
 
 logging.basicConfig(
@@ -157,7 +157,7 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
             for sid, entry in per_shape.items()
         }
 
-    # V9 codex review 2026-05-27: clear stale ``golden_sha256`` whenever
+    # Clear stale ``golden_sha256`` whenever
     # the new verdict is NOT ``VERIFIED``. Without this, switching from
     # VERIFIED -> FAILED / BLOCKED / WRAPPER_*/ ORACLE_* would leave the
     # previous successful run's hash hanging in meta -- a real provenance
@@ -208,7 +208,7 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         res.promoted_to_truth = False
     elif overall == "FAILED" or overall == "MIXED":
         golden["golden_source"] = "fallback_to_gpu_capture_pending"
-        # Caller-side note: this task needs M3 source-2 GPU capture
+        # Caller-side note: this task needs source-2 GPU capture
     elif overall == "LAUNCH_BLOCKED":
         golden["golden_source"] = "blocked_kernel_launch"
         # Operator must triage launch_harness or upstream import

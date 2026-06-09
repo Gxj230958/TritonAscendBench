@@ -1289,7 +1289,7 @@ LLM cost: $X.XX
 
 ## 11. 开放问题(实施前 fill)
 
-- **GPFS 挂载点**:A / B 上 `TritonAscendBench` 的绝对路径(从用户 log 看 A 是 `/inspire/hdd/project/qianghuaxuexi/liuliming-liuliming/kernel/TritonAscendBench`)
+- **GPFS 挂载点**:A / B 上 bench 仓库的绝对路径(形如 `<remote>/kernel/triton-ascend-bench`)
 - **C 上 LLM 具体接口**:OpenAI-compatible? endpoint?model name?是否需要 token?
 - **B 到 A SSH 通否**:决定 Tier 1 起步还是直接 Tier 2
 - **B 到 C 是否能 HTTP 直连**:决定 §3.3 走 stdin-via-ssh 还是 `requests.post`(影响延迟和 escaping)

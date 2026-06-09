@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """freeze_source.py — lock upstream commit SHA + create vendored snapshot.
 
-Per v4.13 Phase 1.2 + R9 (Source drift mitigation).
+Per v4.13 Phase 1.2 (Source drift mitigation).
 
 Workflow:
 1. Read tasks/level{1,2,3}/<task_id>/meta.yaml
@@ -41,7 +41,7 @@ def freeze_task(task_dir: Path, vendored_root: Path) -> dict:
     upstream_path = upstream["path"]
     commit_sha = upstream["commit_sha"]
 
-    # Reject any angle-bracket placeholder (per codex P0-3).
+    # Reject any angle-bracket placeholder.
     if (
         not isinstance(commit_sha, str)
         or commit_sha.startswith("<")

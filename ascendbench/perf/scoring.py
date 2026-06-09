@@ -1,7 +1,7 @@
-"""scoring.py — primary metric per specs/scoring_spec.md + DESIGN-V2 §9.
+"""scoring.py — primary metric per specs/scoring_spec.md + the design spec §9.
 
 This is a GPU-triton → NPU-triton **migration** benchmark. Performance is
-scored as a **910B Roofline normalised efficiency** (DESIGN-V2 §5.6 / §9):
+scored as a **910B Roofline normalised efficiency** (the design spec §5.6 / §9):
 per shape the cost model gives per-class FLOPs ``W_c`` and per-resource
 bytes ``M_r``; the 910B peak table gives peak compute ``π_c`` and peak
 bandwidth ``β_r``; the theoretical-latency floor is
@@ -357,7 +357,7 @@ def perf_measurable(m: TaskMeasurement) -> bool:
     present (the W1.4 task-level ``s_t``, or the legacy positive-finite
     ``baseline_ns``/``measured_ns`` pair).
 
-    Post-AscendC (codex P0-1): a task with ok statuses but NO perf signal
+    Post-AscendC: a task with ok statuses but NO perf signal
     is perf-**unavailable**, NOT a failure. Callers must exclude it from
     the perf metric rather than ε-collapse it (which would make a correct
     fast solution indistinguishable from total failure).
@@ -430,7 +430,7 @@ def fastp_native(
 def _dedupe_by_task_id(
     measurements: Iterable[TaskMeasurement | ShapeMeasurement],
 ) -> list[TaskMeasurement | ShapeMeasurement]:
-    """Reject duplicate identity (codex round-2 P1, codex round-3 P1).
+    """Reject duplicate identity.
 
     For `TaskMeasurement`: duplicate `task_id` would inflate coverage
     above 1.0, so we raise.
@@ -493,7 +493,7 @@ def capped_geomean_native(
       the publish-gate's target (no-subset-escape). ``s_t_value`` collapses
       a ``blocked`` task to ``ε``.
 
-    Raises ValueError on duplicate task_id (codex round-2 P1).
+    Raises ValueError on duplicate task_id.
     """
     deduped = _dedupe_by_task_id(task_measurements)
 
@@ -610,7 +610,7 @@ def aggregate_perf(
     task_measurements: list[TaskMeasurement],
     eligible_size: int,
 ) -> dict:
-    """Honest perf aggregate (codex P0-1/P0-2, R9-1).
+    """Honest perf aggregate (R9-1).
 
     DESIGN §9 / P6: the perf metric runs over the **fixed** scored
     denominator. A task that genuinely *failed* (``blocked`` / a non-ok

@@ -478,7 +478,7 @@ is a deliberately-crafted trap, and is never score-eligible. `validate_tasks`
 In short: a missing or malformed `param_constraints` is *not an error to
 load* but *is an error to release*.
 
-### 5d. `provenance.golden` schema (baseline trust chain — V9 plan M1.2)
+### 5d. `provenance.golden` schema (baseline trust chain)
 
 The `provenance:` top-level block carries the *content* metadata
 historically (`added_in`, `authors`, `last_modified`). V9 adds a

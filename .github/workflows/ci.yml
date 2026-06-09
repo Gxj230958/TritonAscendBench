@@ -45,29 +45,39 @@ jobs:
           # plus an empty grep returns 1 → if-branch is skipped → false PASS.
           rc=0
           tar tf "$tmp/release.tar" \
-            | grep -E '(scripts/automation|tab_automation|docs/plans/2026-05-23-00[12]|docs/release/internal-|docs/triage_backlog)' \
+            | grep -E '(scripts/automation|scripts/loop/|tab_automation|docs/plans/2026-05-23-00[12]|docs/release/internal-|docs/triage_backlog|infra/RFC_0001_scope|infra/upstream_contacts)' \
             || rc=$?
           if [ "$rc" = "0" ]; then
-            echo 'Release tarball MUST NOT contain INTERNAL automation / plans / triage'
+            echo 'Release tarball MUST NOT contain INTERNAL automation / loop / plans / triage'
             exit 1
           elif [ "$rc" != "1" ]; then
             echo "tar|grep pipeline failed with rc=$rc — fail loud"
             exit "$rc"
           fi
 
-      - name: Verify bench core does not import orchestrator (single-direction)
+      - name: Verify shipped modules do not import orchestrator (single-direction)
         run: |
-          set -e
-          paths='ascendbench/ scripts/validate_tasks.py scripts/phase_a_prime.py scripts/phase_b_golden_capture.py scripts/resolve_upstream_entrypoints.py scripts/phase_a_cost_xcheck.py scripts/verify_version_matrix.py scripts/phase_a_freeze.py scripts/phase_b_oracle.py'
+          set -euo pipefail
+          # Scan the ACTUAL shipped artefact (post export-ignore), not an
+          # enumerated working-tree path list: every ``.py`` that survives
+          # ``git archive`` is public surface and MUST NOT depend on the
+          # INTERNAL orchestrator. Dependency direction is strictly
+          # orchestrator -> bench core, never the reverse.
+          tmp=$(mktemp -d)
+          git archive HEAD --format=tar --worktree-attributes -o "$tmp/release.tar"
+          tar xf "$tmp/release.tar" -C "$tmp"
+          rm "$tmp/release.tar"
           # GNU grep exit codes: 0=found(=fail), 1=no match(=pass), 2=error(=fail loud).
-          # Explicit rc capture so missing paths / read errors do NOT fail-open under `if grep`.
+          # Explicit rc capture so read errors do NOT fail-open under `if grep`.
           rc=0
-          grep -rn 'from automation\b\|import automation\b\|scripts\.automation\|tab_automation\b' $paths || rc=$?
+          grep -rn --include='*.py' \
+            'from automation\b\|import automation\b\|scripts\.automation\|tab_automation\b' \
+            "$tmp" || rc=$?
           if [ "$rc" = "0" ]; then
-            echo 'bench core MUST NOT reference orchestrator'
+            echo 'shipped module MUST NOT reference orchestrator (scripts.automation)'
             exit 1
           elif [ "$rc" != "1" ]; then
-            echo "grep failed with rc=$rc (likely missing path or read error) — fail loud"
+            echo "grep failed with rc=$rc (read error) — fail loud"
             exit "$rc"
           fi
 

@@ -18,7 +18,7 @@ $EDITOR ./tab_quickstart.conf
 # 改 TAB_GPFS_ROOT / TAB_C_HOST / TAB_C_CLI_CMD 三个必填变量为你的实际值
 #
 # 例如(替成你的实际值):
-#   TAB_GPFS_ROOT="/inspire/.../tritonbench"     # 共享存储 / 本地工作目录
+#   TAB_GPFS_ROOT="/srv/shared/tritonbench"      # 共享存储 / 本地工作目录
 #   TAB_C_HOST="exp2@ai-infra"                   # C 机 SSH 目标
 #   TAB_C_CLI_CMD='claude --print {prompt}'      # 用 Claude Code CLI
 #   # 或:TAB_C_CLI_CMD='codex exec {prompt}'   # 用 OpenAI Codex CLI

@@ -941,7 +941,7 @@ def _validate_phase_b_capture(tid: str, meta: dict) -> list[str]:
 
 
 def _validate_provenance_golden(tid: str, meta: dict) -> list[str]:
-    """V9 plan M1.2 -- closed-enum + shape check on ``provenance.golden:``.
+    """Closed-enum + shape check on ``provenance.golden:``.
 
     Delegates to ``ascendbench.corpus.provenance.validate_provenance_golden``,
     which is the single source of truth for the schema. Grace period:
@@ -1013,7 +1013,7 @@ CANARY_REQUIRED_META = {
     "canary_trap_type", "source_task_id", "expected_honest_pass",
 }
 
-# The 10 canary trap classes (DESIGN-V2 §8 / specs/canary_task_design.md).
+# The 10 canary trap classes (DESIGN §8 / specs/canary_task_design.md).
 VALID_CANARY_TRAP_TYPES = {
     "identity_hack", "zero_out_hack", "cache_reuse_hack",
     "non_default_stream_hack", "torch_fallback_hack", "shape_route_hack",
@@ -1261,8 +1261,8 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     errs.extend(_validate_metamorphic_checks(tid, meta))
 
     # Step 7g: bench-team-internal §6a state fields. All four blocks are
-    # OPTIONAL with explicit defaults — the 100-task corpus authored before
-    # M2 has none of them and stays clean. When present, the shape /
+    # OPTIONAL with explicit defaults — the 100-task corpus has
+    # none of them and stays clean. When present, the shape /
     # cross-field invariants from specs/task_api_contract.md §6a.5 / §6a.1 /
     # §6a.3 are enforced (the patch validator gates writes at Layer 5;
     # these checks defend against any malformed block that bypassed it).
@@ -1273,10 +1273,10 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     errs.extend(_validate_phase_a_skip_invocation(tid, meta))
     errs.extend(_validate_phase_b_capture(tid, meta))
 
-    # Step 7h: V9 plan M1.2 -- closed-enum + shape check on the nested
+    # Step 7h: closed-enum + shape check on the nested
     # ``provenance.golden:`` sub-block. Top-level ``provenance:`` keys
     # (``added_in`` / ``authors`` / ``last_modified``) are NOT touched
-    # here; this gate is for the V9 trust-chain fields populated by
+    # here; this gate is for the trust-chain fields populated by
     # R10/R5 capture (oracle equivalence verdict, captured golden
     # SHA, signed manifest, reviewer attestation, ...). Grace-period
     # semantics: an absent ``golden:`` block is allowed (legacy task
@@ -1285,7 +1285,7 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # error because the release gate reads these fields directly.
     errs.extend(_validate_provenance_golden(tid, meta))
 
-    # Step 8: PHASE-AWARE hash integrity (plan U5 codex-cep-r2 must-fix).
+    # Step 8: PHASE-AWARE hash integrity (plan U5).
     # If the task has been Phase-A'-processed it carries
     # meta.phase_a_prime.standalone_sha256 -- compare THAT to the on-disk
     # kernel.py. Otherwise (unprocessed / PoC / legacy: kernel.py is
@@ -1312,7 +1312,7 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
                 f"{tid}: upstream.file_sha256 still a placeholder: {declared_sha!r}"
             )
         elif not declared_sha:
-            # FIX 5: NEITHER phase_a_prime.standalone_sha256 NOR
+            # NEITHER phase_a_prime.standalone_sha256 NOR
             # upstream.file_sha256 is populated -> there is NO
             # on-disk-comparable integrity hash at all. The old code
             # silently passed this (a task with zero integrity check).
@@ -1376,7 +1376,7 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
     `cli.py` analyze and `phase_a_prime.py`'s S6 verdict use, so all three
     authorities yield an identical blocking set.
 
-    PLUS a non-vacuity guard (codex-cep-r3 must-fix): if the examined
+    PLUS a non-vacuity guard: if the examined
     eligible count == 0, OR != the catalogue-expected eligible count,
     this is a HARD FAIL -- never a vacuous pass ("no tasks so nothing
     BLOCKED so releasable" is the degenerate path S6 / no-subset-escape
@@ -1393,7 +1393,7 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
     else:
         expected = len(eligible_ids)
 
-    # MATERIALISE before BOTH passes (codex FIX 2 [confirmed]): the
+    # MATERIALISE before BOTH passes: the
     # function iterates `tasks` once for `examined` and again for
     # `blocking`. If `tasks` is a one-shot generator the 2nd pass is
     # empty -> `blocking` is [] -> a vacuous return 0 ("releasable")

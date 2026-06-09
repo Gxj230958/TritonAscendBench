@@ -143,7 +143,7 @@ def _import_audit_modules(baseline: set[str] | None = None) -> list[str]:
 
 
 def _capture_infer_closure() -> list[str]:
-    """codex r7 [confirmed] HOLE 3 -- snapshot every loaded module whose
+    """HOLE 3 -- snapshot every loaded module whose
     ``__file__`` resolves under an infer/ root (``infer/vllm`` /
     ``infer/sglang/python``). The S2 ``original`` side ALSO puts infer/
     on ``sys.path`` and imports the UNMODIFIED upstream kernel.py, so a
@@ -177,7 +177,7 @@ def _capture_infer_closure() -> list[str]:
 
 
 def _write_status(spec: dict, status: dict, side: str) -> None:
-    """Write the per-side status JSON. codex r7 [confirmed] HOLE 3: on
+    """Write the per-side status JSON. HOLE 3: on
     the ``original`` side ALWAYS stamp the live infer/ imported closure
     (success OR error -- a failing original that DID import upstream
     bytes still recorded the closure that shaped the verdict, exactly
@@ -269,7 +269,7 @@ def _move_to_device(obj, device: str):
     bare tensor) onto ``device``, preserving structure and non-tensor
     leaves verbatim.
 
-    BLOCKER 1 (codex r3 [confirmed]): real Triton GPU kernels REQUIRE
+    Real Triton GPU kernels REQUIRE
     CUDA tensors -- on a GPU host the authoritative S2 pass MUST hand
     the entrypoint CUDA inputs or it no-runs / errors and
     S2-gpu-authoritative is structurally unable to PASS. The
@@ -319,7 +319,7 @@ class ShapesIncompleteError(RuntimeError):
     """A required (NO-default) entrypoint parameter has no value in
     shapes.yaml/build_inputs. This is a benchmark GAP (shapes.yaml is
     incomplete), NOT a severing defect -- and CRITICALLY it must NEVER
-    be papered over with a silent positional shift (codex r5 ISSUE 1):
+    be papered over with a silent positional shift:
     skipping a missing param and shifting the remaining positional args
     can land e.g. ``is_causal=True`` in the ``b_seq_len`` slot, causing
     either a misleading crash OR (far worse) a wrong-but-"successful"
@@ -329,7 +329,7 @@ class ShapesIncompleteError(RuntimeError):
 def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict,
                         param_name_map: dict | None = None):
     """Map ``inputs`` onto ``fn``'s declared parameters STRICTLY BY NAME
-    -- never by silently skip+shift (the codex r5 ISSUE 1 soundness
+    -- never by silently skip+shift (the soundness
     hole). For each declared positional/keyword parameter:
 
       * present in ``inputs``           -> pass it (by keyword, so a
@@ -375,7 +375,7 @@ def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict,
             # wrong map -> wrong arg -> oracle-mismatch, never a
             # coincidental pass. ``bound`` records the TASK KEY (not the
             # wrapper name) so the in-place output reconstruction can
-            # index ``inputs[task_key]`` (codex r-pnm finding 3).
+            # index ``inputs[task_key]``.
             src_key = param_name_map[name]
             kwargs[name] = inputs[src_key]
             bound.append(src_key)
@@ -402,7 +402,7 @@ def _signature_adapter(fn, entrypoint_name: str,
     ``apply_logit_bias(logits, expanded_idx_mapping, ...)``) as a
     ``run(inputs: dict) -> dict`` callable WITHOUT changing numeric
     logic: it maps ``inputs[param_name]`` onto the entrypoint's declared
-    parameters STRICTLY BY NAME (codex r5 ISSUE 1 -- never a silent
+    parameters STRICTLY BY NAME (never a silent
     skip+positional-shift), then normalises the return into a dict so
     the two sides' manifests are structurally comparable.
 
@@ -807,7 +807,7 @@ def _run_side(args: argparse.Namespace) -> int:
 
         shapes_doc = json.loads(Path(spec["shapes_json"]).read_text())
         out_dir = Path(spec["out_dir"])
-        # BLOCKER 1: the parent passes device='cuda' for the
+        # The parent passes device='cuda' for the
         # S2-gpu-authoritative pass and device='cpu' for the
         # CPU/TRITON_INTERPRET smoke pass. On a GPU host the real
         # Triton kernel needs CUDA tensors; on a no-GPU host the smoke
@@ -902,7 +902,7 @@ def _run_side(args: argparse.Namespace) -> int:
                 "mutated_inputs": mutated,
             }
 
-        # Post-run sys.modules RE-SCAN (plan FIX 1): a kernel could
+        # Post-run sys.modules RE-SCAN: a kernel could
         # import vllm/sglang DURING run() in a way the meta_path guard
         # somehow missed (e.g. a pre-populated sys.modules entry). Catch
         # it here too -- belt and braces.
