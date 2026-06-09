@@ -22,7 +22,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt

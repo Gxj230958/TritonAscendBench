@@ -19,7 +19,7 @@ The split between top-level and nested fields is intentional:
 The full schema lives in ``specs/task_api_contract.md §5d``; this
 module is the single source of truth for parsing and closed-enum
 validation. Both ``ascendbench.corpus.dataset`` (loader-lenient) and
-``scripts.validate_tasks`` (validator-strict) consume it, so the
+``scripts.corpus.validate_tasks`` (validator-strict) consume it, so the
 in-corpus + release-gate views can never drift.
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ from typing import Any
 # Closed enums. Anything outside these sets is a
 # validator error. Open / operational fields (``verified_at``,
 # ``equivalence_per_shape``, ``golden_source``, ``tolerance_class_used``
-# — emitted by ``scripts/apply_oracle_equivalence_verdict.py``) are
+# — emitted by ``scripts/oracle/apply_oracle_equivalence_verdict.py``) are
 # preserved verbatim in ``ProvenanceGoldenSpec.extra`` so the data round-
 # trips, but they are NOT closed-enum checked here. They are operational
 # artifacts of the pipeline, not part of the schema contract.

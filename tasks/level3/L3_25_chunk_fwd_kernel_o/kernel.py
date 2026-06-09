@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/chunk_o.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 3b63b836a8cc561723c23db5a528a0b474d9cd78508d610f0b348c585a889a19
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

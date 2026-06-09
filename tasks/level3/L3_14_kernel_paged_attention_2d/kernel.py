@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/chunked_prefill_paged_decode.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 5c79f8c621e0f1cbc12b1af0d33788c5a740438ce5e7929d39e5f63d12099da0
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

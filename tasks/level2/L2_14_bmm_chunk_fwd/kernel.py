@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/ssd_bmm.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 6dd733f6c6a70a8c4a75c756f404000ab955ca743d6a33ddf2e464e741440607
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

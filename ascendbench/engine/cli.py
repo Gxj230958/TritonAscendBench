@@ -210,7 +210,7 @@ def _cmd_census(args) -> int:
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
     try:
-        from scripts.source_provenance_census import main as _main  # noqa: PLC0415
+        from scripts.provenance.census_source_provenance import main as _main  # noqa: PLC0415
     except ModuleNotFoundError:
         return _source_checkout_only("census")
 
@@ -222,7 +222,7 @@ def _cmd_oracle_pyref_precompute(args) -> int:
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
     try:
-        from scripts.oracle_pyref_precompute import main as _main  # noqa: PLC0415
+        from scripts.oracle.precompute_oracle_reference import main as _main  # noqa: PLC0415
     except ModuleNotFoundError:
         return _source_checkout_only("oracle-pyref-precompute")
 
@@ -236,7 +236,7 @@ def _cmd_apply_equivalence_verdict(args) -> int:
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
     try:
-        from scripts.apply_oracle_equivalence_verdict import main as _main  # noqa: PLC0415
+        from scripts.oracle.apply_oracle_equivalence_verdict import main as _main  # noqa: PLC0415
     except ModuleNotFoundError:
         return _source_checkout_only("apply-equivalence-verdict")
 
@@ -250,7 +250,7 @@ def _cmd_verify_commit_chain(args) -> int:
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
     try:
-        from scripts.verify_upstream_commit_chain import main as _main  # noqa: PLC0415
+        from scripts.provenance.verify_upstream_commit_chain import main as _main  # noqa: PLC0415
     except ModuleNotFoundError:
         return _source_checkout_only("verify-commit-chain")
 
@@ -264,7 +264,7 @@ def _cmd_r13c_gate(args) -> int:
     from pathlib import Path as _P
     _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent))
     try:
-        from scripts.provenance_release_planning_gate import main as _main  # noqa: PLC0415
+        from scripts.provenance.compute_release_planning_gate import main as _main  # noqa: PLC0415
     except ModuleNotFoundError:
         return _source_checkout_only("r13c-gate")
 
@@ -999,7 +999,7 @@ def _cmd_analyze(args) -> int:
     # depress valid submissions. The submission JSON cannot influence
     # this set.
     # Single source of truth: ascendbench.release_gate.eligibility (plan U7,
-    # shared with scripts/validate_tasks.py to prevent drift).
+    # shared with scripts/corpus/validate_tasks.py to prevent drift).
     from ascendbench.release_gate.eligibility import (
         compute_score_eligible,
         compute_upstream_oracle_required,

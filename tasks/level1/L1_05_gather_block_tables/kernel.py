@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/block_table.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): f7662f59feb24dcb8622092809f1fb8ece7790b6443f553f6779df3acf01f5ee
-Frozen by: scripts/phase_a_freeze.py
 """
 from collections.abc import Iterable
 import torch

@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fused_moe/experts/batched_deep_gemm_moe
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): aeb1706204c6c43622c6e60476d632ff1d1759415e65fdac53f49fd59870a42d
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

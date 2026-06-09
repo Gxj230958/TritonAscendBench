@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/ssd_chunk_state.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 3a81942a6853b21e69cbf7344f6a9504ff8a7b104a203827119ca11b53929f07
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 from ascendbench.frozen.deps.h_119bf34e8937.vllm_model_executor_layers_mamba_ops_triton_helpers import fast_exp  # Phase A': U2 pool-vendored triton helper

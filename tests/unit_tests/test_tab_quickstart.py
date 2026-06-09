@@ -359,11 +359,11 @@ def test_tab_quickstart_resolve_force_skips_prompt(harness, tmp_path):
     rl.parent.mkdir(parents=True, exist_ok=True)
     rl.write_text("PRE-EXISTING\n", encoding="utf-8")
 
-    # Build a stub bench repo that overrides scripts/resolve_upstream_entrypoints.py
+    # Build a stub bench repo that overrides scripts/verify/resolve_upstream_entrypoints.py
     # to emit deterministic verdict-class lines.
     stub_repo = tmp_path / "stub_bench_repo"
-    (stub_repo / "scripts").mkdir(parents=True)
-    (stub_repo / "scripts" / "resolve_upstream_entrypoints.py").write_text(
+    (stub_repo / "scripts" / "verify").mkdir(parents=True)
+    (stub_repo / "scripts" / "verify" / "resolve_upstream_entrypoints.py").write_text(
         textwrap.dedent(
             """\
             print('task=a shapes-incomplete')
@@ -1054,17 +1054,17 @@ def _stub_bench_repo(
     repo = tmp_path / "stub_bench"
     (repo / "scripts").mkdir(parents=True, exist_ok=True)
     _stub_python_script(
-        repo / "scripts" / "phase_b_golden_capture.py",
+        repo / "scripts" / "provenance" / "capture_golden_baselines.py",
         runner_log,
         exit_rc=goldens_rc,
     )
     _stub_python_script(
-        repo / "scripts" / "phase_a_prime.py",
+        repo / "scripts" / "verify" / "standalone_freeze_verifier.py",
         runner_log,
         exit_rc=verify_rc,
     )
     _stub_python_script(
-        repo / "scripts" / "validate_tasks.py",
+        repo / "scripts" / "corpus" / "validate_tasks.py",
         runner_log,
         exit_rc=release_gate_rc,
     )
@@ -1156,14 +1156,14 @@ def test_help_lists_runs_on_per_subcommand_includes_new_four(harness):
 
 
 def test_goldens_calls_phase_b_golden_capture(harness, tmp_path):
-    """`goldens` must invoke ``scripts/phase_b_golden_capture.py --all``."""
+    """`goldens` must invoke ``scripts/provenance/capture_golden_baselines.py --all``."""
     runner_log = harness["runner_log"]
     repo = _stub_bench_repo(tmp_path, runner_log)
     proc = _run(harness, "goldens", env_extra={"TAB_BENCH_REPO": str(repo)})
     assert proc.returncode == 0, (proc.stderr, proc.stdout)
     rows = _read_argv_log(runner_log)
     assert len(rows) == 1, f"expected one producer invocation, got: {rows}"
-    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
+    assert rows[0]["script"].endswith("capture_golden_baselines.py"), rows[0]
     assert rows[0]["argv"] == ["--all"], rows[0]
 
 
@@ -1182,14 +1182,14 @@ def test_goldens_forwards_dry_run_arg(harness, tmp_path):
 
 
 def test_verify_all_calls_phase_a_prime(harness, tmp_path):
-    """`verify-all` must invoke ``scripts/phase_a_prime.py --run --tier all``."""
+    """`verify-all` must invoke ``scripts/verify/standalone_freeze_verifier.py --run --tier all``."""
     runner_log = harness["runner_log"]
     repo = _stub_bench_repo(tmp_path, runner_log)
     proc = _run(harness, "verify-all", env_extra={"TAB_BENCH_REPO": str(repo)})
     assert proc.returncode == 0, (proc.stderr, proc.stdout)
     rows = _read_argv_log(runner_log)
     assert len(rows) == 1, rows
-    assert rows[0]["script"].endswith("phase_a_prime.py"), rows[0]
+    assert rows[0]["script"].endswith("standalone_freeze_verifier.py"), rows[0]
     assert rows[0]["argv"] == ["--run", "--tier", "all"], rows[0]
 
 
@@ -1296,8 +1296,8 @@ def test_pass_all_chains_three_steps(harness, tmp_path):
     rows = _read_argv_log(runner_log)
     assert len(rows) == 3, f"expected 3 producer calls, got: {rows}"
     # Order must be goldens -> verify-all -> release-gate.
-    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
-    assert rows[1]["script"].endswith("phase_a_prime.py"), rows[1]
+    assert rows[0]["script"].endswith("capture_golden_baselines.py"), rows[0]
+    assert rows[1]["script"].endswith("standalone_freeze_verifier.py"), rows[1]
     assert rows[2]["script"].endswith("validate_tasks.py"), rows[2]
     # And each got the expected argv.
     assert rows[0]["argv"] == ["--all"], rows[0]
@@ -1317,7 +1317,7 @@ def test_pass_all_fail_fast_stops_after_goldens_failure(harness, tmp_path):
     rows = _read_argv_log(runner_log)
     # Exactly one producer invocation (the failed goldens); no follow-ons.
     assert len(rows) == 1, f"fail-fast violated, got: {rows}"
-    assert rows[0]["script"].endswith("phase_b_golden_capture.py"), rows[0]
+    assert rows[0]["script"].endswith("capture_golden_baselines.py"), rows[0]
 
 
 def test_pass_all_forwards_dry_run_to_goldens_only(harness, tmp_path):
@@ -1392,7 +1392,7 @@ def test_goldens_warns_when_no_phase_b_required_tasks(harness, tmp_path):
     assert "nothing to capture" in combined, combined
     # And the producer must NOT have been invoked.
     assert _read_argv_log(runner_log) == [], (
-        "phase_b_golden_capture.py must NOT run when zero tasks need capture"
+        "capture_golden_baselines.py must NOT run when zero tasks need capture"
     )
 
 

@@ -7,7 +7,6 @@ Package: `sglang_fla_op_utils`  Submodule: `utils`
 Upstream repo: sglang
 Commit SHA: snapshot-no-git
 Package content SHA-256 prefix: e36d74582749
-Frozen by: scripts/phase_a_prime.py (U2 package vendoring)
 """
 
 # Adapt from https://github.com/fla-org/flash-linear-attention/blob/main/fla/utils.py

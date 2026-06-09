@@ -46,7 +46,7 @@ from ascendbench.engine.eval import _PERFORMANCE_STATUS_PRECEDENCE, evaluate
 REPO = Path(__file__).resolve().parents[2]
 
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
@@ -236,7 +236,7 @@ def test_r7_2_validate_golden_uses_shared_predicate():
     test ordering): `validate_tasks` imports `golden_artifact_usable` from
     `eligibility`, and `_validate_golden` no longer uses a bare
     `is_file()` on the golden artifacts."""
-    src = (REPO / "scripts" / "validate_tasks.py").read_text()
+    src = (REPO / "scripts" / "corpus" / "validate_tasks.py").read_text()
     assert "from ascendbench.release_gate.eligibility import" in src
     assert "golden_artifact_usable" in src
     # The `_validate_golden` body must call the shared predicate, not

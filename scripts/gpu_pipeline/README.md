@@ -39,7 +39,7 @@ upstream `vllm` / `sglang` checkouts** from a path *outside* this repo:
 <repo>/../infer/sglang
 ```
 
-(hard-coded in `scripts/resolve_upstream_entrypoints.py`). They are not
+(hard-coded in `scripts/verify/resolve_upstream_entrypoints.py`). They are not
 vendored. `00_setup_env.sh` checks for them and prints the exact clone
 commands if missing. Each must be a **clean, pinned git checkout** — the
 resolver is fail-closed and raises `StaleResolverCacheError` on a dirty
@@ -74,7 +74,7 @@ reports a green pipeline while the gate is red.
 
 ## The GPU-side components
 
-### cost-model GPU cross-check (`scripts/phase_a_cost_xcheck.py`)
+### cost-model GPU cross-check (`scripts/perf/cross_check_cost_model_gpu.py`)
 
 Per task it evaluates the analytic `W_c`/`M_r` formulas at each public
 eval shape (reusing `ascendbench.perf.cost_model` verbatim), runs the
@@ -105,11 +105,11 @@ non-score-eligible task (stub oracle / `PHASE-C-MANUAL` shapes, e.g.
 `L2_08_gumbel_sample`) is recorded `SKIPPED_NON_ELIGIBLE` and never
 cross-checked.
 
-### offline golden capture (`scripts/phase_b_golden_capture.py`)
+### offline golden capture (`scripts/provenance/capture_golden_baselines.py`)
 
 `eval.py` / `eligibility.py` read `tasks/.../golden/<shape_id>.safetensors`
 for the `upstream_oracle_required` tasks (whose PyTorch oracle is known
-to deviate from the frozen upstream kernel). `scripts/phase_b_golden_capture.py`
+to deviate from the frozen upstream kernel). `scripts/provenance/capture_golden_baselines.py`
 produces them: it must run **after** step 10 promote, and per
 `upstream_oracle_required` task it enumerates all eval shapes (public +
 sealed hidden), materialises inputs with the verified-runner seed via

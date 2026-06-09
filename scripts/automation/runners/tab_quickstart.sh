@@ -334,7 +334,7 @@ cmd_resolve() {
   # exactly where it stopped. --workers parallelises across N threads
   # (peak memory scales ~linearly with N because each in-flight task
   # holds at least one vllm-importing oracle subprocess).
-  (cd "$TAB_BENCH_REPO" && python3 scripts/resolve_upstream_entrypoints.py \
+  (cd "$TAB_BENCH_REPO" && python3 scripts/verify/resolve_upstream_entrypoints.py \
         --refresh-cache \
         --checkpoint-dir "$TAB_RESOLVE_CHECKPOINT_DIR" \
         --resume \
@@ -361,9 +361,9 @@ cmd_resolve() {
   if [[ -s "$cache_dst" ]]; then
     dist_src="$cache_dst"
   fi
-  python3 - "$dist_src" <<'PY' || true
-import collections, pathlib, sys
-sys.path.insert(0, "scripts")
+  TAB_REPO_ROOT="$REPO_ROOT" python3 - "$dist_src" <<'PY' || true
+import collections, os, pathlib, sys
+sys.path.insert(0, os.path.join(os.environ.get("TAB_REPO_ROOT", "."), "scripts"))
 from automation.lib.resolve_loader import load_resolve_artifact
 p = pathlib.Path(sys.argv[1])
 try:
@@ -539,7 +539,7 @@ PY
 # ---------------------------------------------------------------------------
 # Subcommand: goldens -- phase B golden capture (GPU host).
 #
-# Wraps ``scripts/phase_b_golden_capture.py --all``. Forwards any extra
+# Wraps ``scripts/provenance/capture_golden_baselines.py --all``. Forwards any extra
 # positional args (e.g. ``--dry-run`` for dev-machine enumeration,
 # ``--force`` to overwrite existing artifacts, ``--timeout SECONDS`` for
 # per-task wall-clock budget) verbatim to the producer.
@@ -579,7 +579,7 @@ cmd_goldens() {
   # path is writable, so PIPESTATUS[0] holds the producer's true rc.
   local rc=0
   set +e
-  python3 "$TAB_BENCH_REPO/scripts/phase_b_golden_capture.py" \
+  python3 "$TAB_BENCH_REPO/scripts/provenance/capture_golden_baselines.py" \
     --all "${extra_args[@]}" 2>&1 | tee "$log_file"
   rc=${PIPESTATUS[0]}
   set -e
@@ -602,7 +602,7 @@ cmd_goldens() {
 # ---------------------------------------------------------------------------
 # Subcommand: verify-all -- phase A' tiered batch (GPU host).
 #
-# Wraps ``scripts/phase_a_prime.py --run --tier <tier>``. Tier defaults
+# Wraps ``scripts/verify/standalone_freeze_verifier.py --run --tier <tier>``. Tier defaults
 # to ``all`` (runs T0+T1+T2+T3 in one sweep); per-tier values
 # (``T0``/``T1``/``T2``/``T3``) are accepted for incremental rehearsals.
 # Any other token is rejected with a clear fatal so an operator typo
@@ -631,7 +631,7 @@ cmd_verify_all() {
   # being eaten by set -e the moment the pipeline returns.
   local rc=0
   set +e
-  python3 "$TAB_BENCH_REPO/scripts/phase_a_prime.py" \
+  python3 "$TAB_BENCH_REPO/scripts/verify/standalone_freeze_verifier.py" \
     --run --tier "$tier" 2>&1 | tee "$log_file"
   rc=${PIPESTATUS[0]}
   set -e
@@ -652,7 +652,7 @@ cmd_verify_all() {
 # ---------------------------------------------------------------------------
 # Subcommand: release-gate -- static release-gate validation.
 #
-# Wraps ``scripts/validate_tasks.py --release-gate``. The release-gate
+# Wraps ``scripts/corpus/validate_tasks.py --release-gate``. The release-gate
 # mode fails if eligible-tasks intersect non-PASS tasks is non-empty
 # (DESIGN-V2 §4.4), so it's the canonical "is the corpus releasable
 # right now?" check.
@@ -670,7 +670,7 @@ cmd_release_gate() {
   # Same set -e dance as cmd_goldens / cmd_verify_all.
   local rc=0
   set +e
-  python3 "$TAB_BENCH_REPO/scripts/validate_tasks.py" \
+  python3 "$TAB_BENCH_REPO/scripts/corpus/validate_tasks.py" \
     --release-gate 2>&1 | tee "$log_file"
   rc=${PIPESTATUS[0]}
   set -e

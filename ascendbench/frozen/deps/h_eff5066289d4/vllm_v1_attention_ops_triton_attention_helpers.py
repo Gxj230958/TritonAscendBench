@@ -8,7 +8,6 @@ Source module: `vllm.v1.attention.ops.triton_attention_helpers`
 Upstream repo: vllm
 Commit SHA: snapshot-no-git
 Content SHA-256: eff5066289d4a5d3bbfd790a2391949c517e361a3e5162c37ab6b3749c3dff2f
-Frozen by: scripts/phase_a_prime.py (U2 pool vendoring)
 """
 
 # SPDX-License-Identifier: Apache-2.0

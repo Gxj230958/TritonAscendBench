@@ -25,7 +25,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
@@ -367,7 +367,7 @@ def test_phase_b_absent_passes(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_backward_compat_all_existing_tasks_pass():
-    """`python3 scripts/validate_tasks.py` over the real corpus reports
+    """`python3 scripts/corpus/validate_tasks.py` over the real corpus reports
     the SAME number of validation errors as before §6a-aware checks
     were added (no new false-positives from the §6a state-field
     validators). The corpus baseline is the 18 outstanding
@@ -376,7 +376,7 @@ def test_backward_compat_all_existing_tasks_pass():
     block today, so the new checks add zero errors.
     """
     proc = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "validate_tasks.py")],
+        [sys.executable, str(REPO / "scripts" / "corpus" / "validate_tasks.py")],
         capture_output=True,
         text=True,
         cwd=REPO,

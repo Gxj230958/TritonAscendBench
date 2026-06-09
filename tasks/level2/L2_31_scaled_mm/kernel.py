@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/quantization/compressed_tensors/triton_
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 4e4414e7a556b902fd9b3bec9140e7eb9c2a086a368c30df1e5dcef964a788af
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

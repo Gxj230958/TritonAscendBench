@@ -27,17 +27,18 @@ import sys
 from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parent.parent
-if str(_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS))
+_ORACLE_DIR = str(_SCRIPTS / "oracle")
+if _ORACLE_DIR not in sys.path:
+    sys.path.insert(0, _ORACLE_DIR)
 
-from oracle_equivalence_gpu_runner import (  # noqa: E402
+from run_oracle_equivalence_gpu import (  # noqa: E402
     REPO_ROOT,
     ShapeVerdict,
     TaskVerdict,
     _verify_one_task,
     serialize_verdict,
 )
-from oracle_pyref_precompute import _audit_task  # noqa: E402
+from precompute_oracle_reference import _audit_task  # noqa: E402
 
 
 def _blocked(task_id: str, overall: str, reason: str) -> TaskVerdict:
@@ -136,18 +137,18 @@ def main(argv: list[str] | None = None) -> int:
         # upstream_oracle_required tasks (it returns rc=1 by design elsewhere), so
         # prefilter golden to avoid noisy no-op runs.
         cert = [
-            ("phase_a_cost_xcheck.py", ["--apply"], "cost-xcheck"),
+            ("perf/cross_check_cost_model_gpu.py", ["--apply"], "cost-xcheck"),
             # formula auditor runs the oracle to measure real read/write bytes
             # against the analytic formula -- needs the daemon's large RAM (no
             # GPU/ncu; a big output shape OOMs the dev box). report-only, no meta write.
-            ("audit_cost_model_formulas.py", [], "formula-audit"),
+            ("perf/audit_cost_model_formulas.py", [], "formula-audit"),
         ]
         try:
             import yaml
 
             meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
             if meta.get("oracle_simplified") == "upstream_oracle_required":
-                cert.append(("phase_b_golden_capture.py", [], "golden"))
+                cert.append(("provenance/capture_golden_baselines.py", [], "golden"))
         except Exception:
             pass
         for script, extra, label in cert:

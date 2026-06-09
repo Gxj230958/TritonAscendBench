@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/batch_invariant.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 5c2380e9d03baa1c5049fcb17d5c40903684a32f779b8525159bc48ce362a08b
-Frozen by: scripts/phase_a_freeze.py
 """
 import math
 import os

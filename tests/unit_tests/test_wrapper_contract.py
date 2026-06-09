@@ -301,8 +301,8 @@ def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
     import sys
     import re
     import yaml
-    sys.path.insert(0, "scripts")
-    from oracle_equivalence_gpu_runner import _resolve_kernel_entrypoint
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "oracle"))
+    from run_oracle_equivalence_gpu import _resolve_kernel_entrypoint
     from ascendbench.input_spec.inputs import build_inputs
 
     td = Path(f"tasks/level3/{task_id}")

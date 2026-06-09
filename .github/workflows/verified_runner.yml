@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Verify version matrix lock
-        run: python scripts/verify_version_matrix.py
+        run: python scripts/provenance/verify_version_matrix.py
 
       - name: Build NPU runner image
         run: docker build -f infra/Dockerfile.npu -t tab-npu:verified .

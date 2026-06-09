@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/triton_decode_attention.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 0d0a54a4b57e0df2112d8f09d3801ad6fbfad2bfbce37a7c6428c7cb0930b040
-Frozen by: scripts/phase_a_freeze.py
 """
 '\nMemory-efficient attention for decoding.\nIt supports page size >= 1.\n'
 import logging

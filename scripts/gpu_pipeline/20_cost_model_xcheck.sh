@@ -16,7 +16,7 @@
 #             AND oracle_kernel_equivalence in {VERIFIED, CEILING_ACCEPTED}
 #                 (C2 oracle-equivalence)
 #
-# Implementation: scripts/phase_a_cost_xcheck.py. Per task it
+# Implementation: scripts/perf/cross_check_cost_model_gpu.py. Per task it
 #   1. evaluates the analytic W_c / M_r formulas at each public eval
 #      shape (reuses ascendbench.perf.cost_model verbatim);
 #   2. runs the promoted (Phase A' PASS) kernel.py on a live CUDA device
@@ -61,7 +61,7 @@ if [ "${1:-}" = "--task" ]; then
     TASK_FILTER="$2"
 fi
 
-XCHECK_SCRIPT="${REPO_ROOT}/scripts/phase_a_cost_xcheck.py"
+XCHECK_SCRIPT="${REPO_ROOT}/scripts/perf/cross_check_cost_model_gpu.py"
 [ -f "${XCHECK_SCRIPT}" ] || die "missing ${XCHECK_SCRIPT}"
 
 step_banner "B" "cost-model GPU cross-check"

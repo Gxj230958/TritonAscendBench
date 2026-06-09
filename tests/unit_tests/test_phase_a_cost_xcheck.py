@@ -1,4 +1,4 @@
-"""W4.2: cost-model GPU cross-check (scripts/phase_a_cost_xcheck.py) tests.
+"""W4.2: cost-model GPU cross-check (scripts/perf/cross_check_cost_model_gpu.py) tests.
 
 Covers: analytic W_c / M_r evaluation reuses cost_model.FormulaEnv; the
 tolerance reconciliation logic (within / over tol, the no-kernel-launch
@@ -21,7 +21,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "phase_a_cost_xcheck", REPO / "scripts" / "phase_a_cost_xcheck.py"
+    "phase_a_cost_xcheck", REPO / "scripts" / "perf" / "cross_check_cost_model_gpu.py"
 )
 xc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_cost_xcheck"] = xc

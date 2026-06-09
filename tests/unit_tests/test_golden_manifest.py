@@ -26,7 +26,7 @@ sys.path.insert(
     str(Path(__file__).resolve().parents[2]),
 )
 
-from scripts.golden_manifest import (
+from scripts.provenance.write_golden_manifest import (
     _canonical_json_bytes,
     build_envelope,
     build_manifest,
@@ -214,7 +214,7 @@ def test_sign_verify_round_trip(tmp_path, monkeypatch):
     monkeypatch.setenv("TAB_GPFS_ROOT", str(gpfs))
 
     # Patch the trust roots to contain only our test key.
-    from scripts import golden_manifest as gm
+    from scripts.provenance import write_golden_manifest as gm
 
     fake_roots = {
         "active_keys": [

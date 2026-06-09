@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/triton_reshape_and_cache_flash.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): a2792421a61c0b20acf5bb21dc9d5cfea8464da17f44a5eee4ed78c35e549bf3
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 from ascendbench.frozen.shim import FP8_DTYPE, get_fp8_min_max  # Phase A': quant symbols, symbol-aware (B-inert-shim)

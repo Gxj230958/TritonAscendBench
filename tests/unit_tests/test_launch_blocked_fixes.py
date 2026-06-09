@@ -377,7 +377,7 @@ def test_clear_conflicting_vllm_registrations_pops_duplicate_names(monkeypatch):
 
 def test_l2_10_shape_lint_passes_after_block_k_fix():
     lint = _load_script(
-        "scripts/lint_shapes_against_kernel.py",
+        "scripts/internal/lint_shapes_against_kernel.py",
         "lint_shapes_against_kernel_test",
     )
     td = REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
@@ -386,7 +386,7 @@ def test_l2_10_shape_lint_passes_after_block_k_fix():
 
 def test_shape_lint_flags_small_int8_tl_dot_block_k(tmp_path):
     lint = _load_script(
-        "scripts/lint_shapes_against_kernel.py",
+        "scripts/internal/lint_shapes_against_kernel.py",
         "lint_shapes_against_kernel_bad_test",
     )
     td = tmp_path / "L2_bad"

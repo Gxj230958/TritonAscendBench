@@ -7,7 +7,6 @@ Source module: `vllm.v1.kv_cache_interface_KVQuantMode`
 Upstream repo: vllm
 Commit SHA: snapshot-no-git
 Content SHA-256: 13fc183edba48fee053a923a5ea857d89f7156c5f090fec55d0cc2535a905fdb
-Frozen by: scripts/phase_a_prime.py (U2 pool vendoring)
 """
 
 from enum import IntEnum

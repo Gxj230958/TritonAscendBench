@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/sample/gumbel.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): b96066c1482edd6b890a7ac17eb77188480d6b081b0054cefae25e54cee15e37
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

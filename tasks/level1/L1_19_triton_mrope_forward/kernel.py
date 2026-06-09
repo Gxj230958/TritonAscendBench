@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/rotary_embedding/mrope.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): d5fc5ca640bf47fdfc27447bcc6b67b2294c9ac840bbc736fe75cc6098e2a51c
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

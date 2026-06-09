@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/causal_conv1d.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 7b70ef2305f03fe907a7baa30d72b852bfdc95c54a824a26e7826334d0cfec44
-Frozen by: scripts/phase_a_freeze.py
 """
 import numpy as np
 import torch

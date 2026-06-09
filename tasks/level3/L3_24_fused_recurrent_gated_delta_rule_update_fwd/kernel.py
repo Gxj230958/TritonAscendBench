@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/fla/fused_recurrent.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 3a36edee5c01e326541e525e2705152b90a96304dd2a43f22e1835b985166e17
-Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Optional, Tuple
 import torch

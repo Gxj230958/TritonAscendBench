@@ -31,7 +31,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+    "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
 )
 pap = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_prime"] = pap
@@ -255,13 +255,13 @@ def test_smoke_uses_triton_interpret_env(monkeypatch):
 
 
 def _load_subproc_runner():
-    """Import scripts/_pa_subproc_runner.py as a module (it is not a
+    """Import scripts/verify/severance_subprocess_runner.py as a module (it is not a
     package); cached in sys.modules so repeated calls are cheap."""
     import importlib.util as _ilu
 
     if "_pa_subproc_runner" in sys.modules:
         return sys.modules["_pa_subproc_runner"]
-    rp = REPO / "scripts" / "_pa_subproc_runner.py"
+    rp = REPO / "scripts" / "verify" / "severance_subprocess_runner.py"
     sp = _ilu.spec_from_file_location("_pa_subproc_runner", rp)
     mod = _ilu.module_from_spec(sp)
     sys.modules["_pa_subproc_runner"] = mod
@@ -453,7 +453,7 @@ def test_authoritative_runner_refuses_cuda_when_absent_no_silent_fake():
     }
     (work / "shapes.json").write_text(_json.dumps(_SHAPES))
     (work / "spec.json").write_text(_json.dumps(spec))
-    runner = REPO / "scripts" / "_pa_subproc_runner.py"
+    runner = REPO / "scripts" / "verify" / "severance_subprocess_runner.py"
     proc = _sp.run(
         [sys.executable, str(runner), "--side", "original",
          "--spec", str(work / "spec.json")],
@@ -927,7 +927,7 @@ def test_status_labels_shapes_incomplete_not_smoke_fail_or_severing():
 def _rue():
     _s = importlib.util.spec_from_file_location(
         "resolve_upstream_entrypoints",
-        REPO / "scripts" / "resolve_upstream_entrypoints.py",
+        REPO / "scripts" / "verify" / "resolve_upstream_entrypoints.py",
     )
     _m = importlib.util.module_from_spec(_s)
     sys.modules["resolve_upstream_entrypoints"] = _m
@@ -1074,7 +1074,7 @@ def test_param_name_map_baked_into_severed_run_and_binder():
     # original side: the shared binder
     import importlib.util as _ilu
     sp = _ilu.spec_from_file_location(
-        "_pa_subproc_runner", REPO / "scripts" / "_pa_subproc_runner.py"
+        "_pa_subproc_runner", REPO / "scripts" / "verify" / "severance_subprocess_runner.py"
     )
     sub = _ilu.module_from_spec(sp)
     sys.modules["_pa_subproc_runner"] = sub

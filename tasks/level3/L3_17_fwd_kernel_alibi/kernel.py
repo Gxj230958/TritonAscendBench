@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/prefix_prefill.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 9d100dab54dfacba94e9ee33154712703523980485b517c636e4f83ebc507410
-Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Any
 import torch

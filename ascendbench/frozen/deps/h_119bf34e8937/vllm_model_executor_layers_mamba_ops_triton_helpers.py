@@ -7,7 +7,6 @@ Source module: `vllm.model_executor.layers.mamba.ops.triton_helpers`
 Upstream repo: vllm
 Commit SHA: snapshot-no-git
 Content SHA-256: 119bf34e8937dd56165c19f07bb69dc5ff0a7012bc5db979b1edf32e1af7ccdd
-Frozen by: scripts/phase_a_prime.py (U2 pool vendoring)
 """
 
 # SPDX-License-Identifier: Apache-2.0

@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/nsa/transform_index.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): a2e8275471a89a8506fca08fb36370a3472996ae239db36ff9f15ef690c3458b
-Frozen by: scripts/phase_a_freeze.py
 """
 
 from typing import List, Optional

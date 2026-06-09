@@ -38,9 +38,9 @@ def _load_module(name: str, rel: str):
     return mod
 
 
-pcd = _load_module("phase_c_docs", "scripts/phase_c_docs.py")
-gts = _load_module("generate_task_scaffolds", "scripts/generate_task_scaffolds.py")
-vt = _load_module("validate_tasks", "scripts/validate_tasks.py")
+pcd = _load_module("phase_c_docs", "scripts/corpus/generate_shapes_and_contract.py")
+gts = _load_module("generate_task_scaffolds", "scripts/corpus/generate_task_scaffolds.py")
+vt = _load_module("validate_tasks", "scripts/corpus/validate_tasks.py")
 
 
 # --------------------------- fixtures ---------------------------
@@ -455,11 +455,11 @@ def test_corpus_contract_mirror_matches_meta(task_dir: Path):
 
     assert actual, (
         f"{task_dir.name}: contract.md has no param_constraints mirror "
-        f"marker — run `python3 scripts/phase_c_docs.py --refresh-mirror-only`")
+        f"marker — run `python3 scripts/corpus/generate_shapes_and_contract.py --refresh-mirror-only`")
     assert actual == expected, (
         f"{task_dir.name}: contract.md mirror is stale vs "
         f"meta.param_constraints — run "
-        f"`python3 scripts/phase_c_docs.py --refresh-mirror-only`")
+        f"`python3 scripts/corpus/generate_shapes_and_contract.py --refresh-mirror-only`")
 
 
 if __name__ == "__main__":  # pragma: no cover

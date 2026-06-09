@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/triton_ops/merge_state.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): bfd9c3d356b97939e4c19c4cc0446daeb45f0b9aece86c6460ea44ae400f7182
-Frozen by: scripts/phase_a_freeze.py
 """
 
 from typing import Optional, Tuple

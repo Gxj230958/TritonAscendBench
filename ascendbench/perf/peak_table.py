@@ -9,7 +9,7 @@ Roofline theoretical-latency baseline (the design spec §5.6 / §9)::
 ``W_c`` is per-compute-class FLOPs and ``M_r`` is per-resource bytes; both
 come from each task's cost model. This module supplies π_c and β_r.
 
-Style mirrors ``scripts/verify_version_matrix.py``: stdlib ``tomllib`` (with
+Style mirrors ``scripts/provenance/verify_version_matrix.py``: stdlib ``tomllib`` (with
 a ``tomli`` fallback) and stdlib ``logging``.
 """
 from __future__ import annotations

@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fused_moe/deep_gemm_utils.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 502a66386d0be6673d2f582daca0c10e56e2e8c4a0b94cb847c41d612c37e101
-Frozen by: scripts/phase_a_freeze.py
 """
 '\nTaken from https://github.com/ModelTC/LightLLM/blob/8ed97c74c18f11505b048b1ba00ba5c0cef8bff6/lightllm/common/fused_moe/deepep_scatter_gather.py\nand updated to fit vllm needs and terminology.\n'
 import torch

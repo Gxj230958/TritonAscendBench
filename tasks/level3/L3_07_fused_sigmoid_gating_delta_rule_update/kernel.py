@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/fla/fused_sigmoid_gating_recurrent.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): f4f26ea5cf979b75fd340665e65f1e2d33ab586a501928eb20b1b88f5ed84799
-Frozen by: scripts/phase_a_freeze.py
 """
 
 from typing import Optional

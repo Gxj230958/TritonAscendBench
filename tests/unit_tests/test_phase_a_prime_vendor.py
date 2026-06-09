@@ -12,7 +12,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+    "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
 )
 pap = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_prime"] = pap

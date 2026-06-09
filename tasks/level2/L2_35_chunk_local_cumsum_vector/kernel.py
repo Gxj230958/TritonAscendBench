@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/cumsum.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): d818215669b451868823202ac0bcea77e7a9d75957254c7c1060a73a55dc39b6
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)

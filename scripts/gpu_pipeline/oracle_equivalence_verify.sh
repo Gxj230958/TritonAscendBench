@@ -5,7 +5,7 @@
 # pipeline (00/10/20/30/40); run this on demand.
 #
 # Reads precomputed PyTorch reference artifacts (produced by dev-side
-# scripts/oracle_pyref_precompute.py) from tasks/<id>/r10_pyref/ and
+# scripts/oracle/precompute_oracle_reference.py) from tasks/<id>/r10_pyref/ and
 # compares against kernel.py upstream entrypoint on real GPU.
 #
 # Usage on GPU host:
@@ -126,7 +126,7 @@ _precompute_missing() {
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo "[stage 0] re-precomputing R10.a for ${#missing[@]} task(s): ${missing[*]}"
     for tid in "${missing[@]}"; do
-      python3 scripts/oracle_pyref_precompute.py --task "$tid" \
+      python3 scripts/oracle/precompute_oracle_reference.py --task "$tid" \
         --json-out "/tmp/oracle_pyref_audit_${tid}.json" \
         --report "docs/triage_backlog/2026-05-26-oracle-pyref-audit.md" \
         || echo "[stage 0] WARN: R10.a failed for $tid (continuing)" >&2
@@ -140,7 +140,7 @@ elif [[ "$_saw_all" -eq 1 ]]; then
   if [[ -z $(find tasks/level1 tasks/level2 tasks/level3 \
               -path '*/r10_pyref/ref_*.safetensors' -print -quit 2>/dev/null) ]]; then
     echo "[stage 0] no r10_pyref artifacts found anywhere; running CPU pre-compute first..."
-    python3 scripts/oracle_pyref_precompute.py --all --workers 8 \
+    python3 scripts/oracle/precompute_oracle_reference.py --all --workers 8 \
       --json-out /tmp/oracle_pyref_audit.json \
       --report docs/triage_backlog/2026-05-26-oracle-pyref-audit.md
   else
@@ -153,6 +153,6 @@ elif [[ "$_saw_all" -eq 1 ]]; then
   fi
 fi
 
-exec python3 scripts/oracle_equivalence_gpu_runner.py \
+exec python3 scripts/oracle/run_oracle_equivalence_gpu.py \
   --output-dir "$OUTPUT_DIR" \
   "${ARGS[@]}"

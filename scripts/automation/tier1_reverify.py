@@ -2,8 +2,8 @@
 
 User-facing CLI invoked on the GPU machine. Internally dispatches to:
 
-  --cmd resolve         -> scripts/resolve_upstream_entrypoints.py --task <T> --apply
-  --cmd phase_a_verify  -> scripts/phase_a_prime.py --verify <T>
+  --cmd resolve         -> scripts/verify/resolve_upstream_entrypoints.py --task <T> --apply
+  --cmd phase_a_verify  -> scripts/verify/standalone_freeze_verifier.py --verify <T>
 
 then runs ``scripts/automation/extract_verdict.py`` to materialise the
 9-field ``result.json`` + ``_provenance.json`` sidecar + ``DONE``
@@ -69,13 +69,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "resolve":
         sub_cmd = [
             sys.executable,
-            str(repo / "scripts" / "resolve_upstream_entrypoints.py"),
+            str(repo / "scripts" / "verify" / "resolve_upstream_entrypoints.py"),
             "--task", args.task_id, "--apply",
         ]
     else:  # phase_a_verify
         sub_cmd = [
             sys.executable,
-            str(repo / "scripts" / "phase_a_prime.py"),
+            str(repo / "scripts" / "verify" / "standalone_freeze_verifier.py"),
             "--verify", args.task_id,
         ]
 

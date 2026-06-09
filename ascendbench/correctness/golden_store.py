@@ -157,8 +157,8 @@ class GoldenStore:
     ) -> tuple[Path, Path] | None:
         """Return ``(inputs_path, ref_path)`` for the R10 oracle pyref or ``None``.
 
-        These are produced by ``scripts/oracle_pyref_precompute.py``
-        (M2.1a) and consumed by ``scripts/oracle_equivalence_gpu_runner.py``
+        These are produced by ``scripts/oracle/precompute_oracle_reference.py``
+        (M2.1a) and consumed by ``scripts/oracle/run_oracle_equivalence_gpu.py``
         (M2.1b). Returns ``None`` when the task dir is missing; the
         caller checks file existence (they may not be produced yet).
         """

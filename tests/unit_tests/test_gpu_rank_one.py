@@ -23,12 +23,12 @@ from pathlib import Path
 import pytest
 
 _REPO = Path(__file__).resolve().parents[2]
-for _p in (_REPO / "scripts", _REPO / "scripts" / "loop"):
+for _p in (_REPO / "scripts", _REPO / "scripts" / "loop", _REPO / "scripts" / "oracle"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
 from gpu_rank_one import _classify_overall  # noqa: E402
-from oracle_equivalence_gpu_runner import (  # noqa: E402
+from run_oracle_equivalence_gpu import (  # noqa: E402
     ShapeVerdict,
     TaskVerdict,
     serialize_verdict,

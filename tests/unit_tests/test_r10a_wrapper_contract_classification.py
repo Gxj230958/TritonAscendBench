@@ -21,7 +21,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PRECOMPUTE = REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"
+PRECOMPUTE = REPO_ROOT / "scripts" / "oracle" / "precompute_oracle_reference.py"
 
 
 @pytest.mark.parametrize(

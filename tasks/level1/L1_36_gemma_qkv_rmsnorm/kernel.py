@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/gemma4_fused_ops.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 169a498ad0326b55802e7382ce66102317fb3d66808d57d3daf601f741497c53
-Frozen by: scripts/phase_a_freeze.py
 """
 'Fused triton kernels for Gemma4 decoder layer operations.\n\nFuses standard RMSNorm + residual-add (+ optional scalar multiply) into\na single kernel pass to reduce kernel launch overhead.\n'
 from typing import Optional

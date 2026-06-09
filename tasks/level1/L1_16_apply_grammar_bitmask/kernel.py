@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/structured_outputs.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): ab2919f98f4f145936718f09660cf597d46183fcd74f95c72ac1b2c70e5c21c8
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

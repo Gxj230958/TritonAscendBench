@@ -9,7 +9,6 @@ Source path: `sglang/srt/lora/triton_ops/sgemm_lora_b.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): cb5365bab689adcca18ce70b6ed193a53f54bea137c24167ee9bb99a7100c4a5
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import torch

@@ -19,7 +19,7 @@ REPO_ROOT="$(cd "${_LIB_COMMON_DIR}/../.." && pwd)"
 export REPO_ROOT
 
 # INFER_ROOT = the frozen upstream vllm/sglang checkouts. The bench code
-# (scripts/resolve_upstream_entrypoints.py:69) hard-codes this as a sibling
+# (scripts/verify/resolve_upstream_entrypoints.py:69) hard-codes this as a sibling
 # of the repo: <repo>/../infer/{vllm,sglang}. It is NOT vendored into the
 # bench and MUST be present (clean pinned git checkout) for Phase A'.
 INFER_ROOT="$(cd "${REPO_ROOT}/.." && pwd)/infer"

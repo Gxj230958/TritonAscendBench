@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/moe/router.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): a2e48dbbc5d4db0f81202c8060fa45ab6ccf6f5d4bc930da9591258740171aeb
-Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Optional, Tuple
 import torch

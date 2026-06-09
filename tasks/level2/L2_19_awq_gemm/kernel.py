@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/quantization/awq_triton.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 7d11fdad7e630d2a90b5d99cad7c31b4fb501222b14d474f900266b6f5bfce78
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)

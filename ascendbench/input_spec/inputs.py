@@ -56,7 +56,7 @@ _DTYPES = {
 
 # Closed enum of legal dtype alias strings — the **single authority** the
 # `param_constraints.dtypes` subsection (WA.1, `specs/task_api_contract.md
-# §5.2`) is bound to. `scripts/validate_tasks.py` imports this so an unknown
+# §5.2`) is bound to. `scripts/corpus/validate_tasks.py` imports this so an unknown
 # dtype string (a typo) in `param_constraints` is statically rejected against
 # the very same table `build_inputs` materialises with — no second list to
 # drift. Kept as a `frozenset` so callers cannot mutate it.

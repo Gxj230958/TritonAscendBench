@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/sample/logprob.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 1e2e54e3327fa4379eecbb407e4c734e52b5eab4f4f83d71f4833d596db8fc5f
-Frozen by: scripts/phase_a_freeze.py
 """
 import numpy as np
 import torch

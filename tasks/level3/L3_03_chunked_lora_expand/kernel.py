@@ -9,7 +9,6 @@ Source path: `sglang/srt/lora/triton_ops/chunked_sgmv_expand.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): e4b90c63ab3a04d78c5a8dd9ed453ab9409ef9873ec889a161dfd76303dbac50
-Frozen by: scripts/phase_a_freeze.py
 """
 
 from typing import Optional

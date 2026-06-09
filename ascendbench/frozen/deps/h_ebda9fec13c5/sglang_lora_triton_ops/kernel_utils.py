@@ -7,7 +7,6 @@ Package: `sglang_lora_triton_ops`  Submodule: `kernel_utils`
 Upstream repo: sglang
 Commit SHA: snapshot-no-git
 Package content SHA-256 prefix: ebda9fec13c5
-Frozen by: scripts/phase_a_prime.py (U2 package vendoring)
 """
 
 import triton

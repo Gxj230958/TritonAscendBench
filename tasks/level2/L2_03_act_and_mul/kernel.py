@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/moe/moe_runner/triton_utils/fused_moe_triton_ker
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): a62c6efe1b70521c9b39ce0358f094c933a4da5b27b8356badd19ff24be97640
-Frozen by: scripts/phase_a_freeze.py
 """
 from __future__ import annotations
 import functools

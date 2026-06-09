@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/quantization/utils/fp8_utils.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): f2a3db8cc995bb2cbb38111ee1f84991f97f002cc04beb61572cb171f57ca02a
-Frozen by: scripts/phase_a_freeze.py
 """
 import functools
 import json

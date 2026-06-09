@@ -1,8 +1,8 @@
 """kernel_resolver.py -- shared helpers for picking the right host wrapper.
 
 Two near-identical resolvers run in
-``scripts/oracle_pyref_precompute.py`` (dev / CPU audit) and
-``scripts/oracle_equivalence_gpu_runner.py`` (GPU verify). They were
+``scripts/oracle/precompute_oracle_reference.py`` (dev / CPU audit) and
+``scripts/oracle/run_oracle_equivalence_gpu.py`` (GPU verify). They were
 silently divergent: when ``results/resolve_all.json`` cached a
 ``@triton.jit`` raw kernel as ``tried[0]`` (the common case for tasks
 where the original phase-A resolver could not invoke the host wrapper

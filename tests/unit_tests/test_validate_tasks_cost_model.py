@@ -19,7 +19,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
@@ -189,7 +189,7 @@ def test_sample_tasks_validate_clean_via_cli():
     # it is the one that validates clean end-to-end pre-WB.1.
     for task_id in ("L1_12_rms_norm",):
         proc = subprocess.run(
-            [sys.executable, str(REPO / "scripts" / "validate_tasks.py"),
+            [sys.executable, str(REPO / "scripts" / "corpus" / "validate_tasks.py"),
              "--task", task_id],
             cwd=str(REPO), capture_output=True, text=True,
         )

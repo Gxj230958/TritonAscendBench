@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fused_moe/experts/gpt_oss_triton_kernel
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 1a839b9706673f8a54e7d21818952a190a853cf7021a6a320d955ce66a927ed5
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import ascendbench.frozen.shim.modular_kernel as mk  # Phase A': off-path modular_kernel annotation shim (B-inert-shim)

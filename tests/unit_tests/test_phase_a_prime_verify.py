@@ -18,7 +18,7 @@ import torch
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
-    "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+    "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
 )
 pap = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_prime"] = pap
@@ -93,7 +93,7 @@ def test_s2result_no_gpu_status_is_unrun():
 def test_subproc_runner_severed_import_audit_blocks_on_leak(tmp_path):
     """The severed subprocess import-audit must flag a vllm leak as a
     BLOCKED signal (exit code 3), never silently pass."""
-    runner = REPO / "scripts" / "_pa_subproc_runner.py"
+    runner = REPO / "scripts" / "verify" / "severance_subprocess_runner.py"
     # A "kernel" that imports vllm at module load -> must leak.
     kp = tmp_path / "kernel.py"
     kp.write_text(
@@ -164,7 +164,7 @@ def test_c1_non_determinism_backdoor_rejected():
     # module (no tolerance_class fallback path at all).
     import ast as _ast
 
-    src = (REPO / "scripts" / "phase_a_prime.py").read_text()
+    src = (REPO / "scripts" / "verify" / "standalone_freeze_verifier.py").read_text()
     tree = _ast.parse(src)
     imported = set()
     for n in _ast.walk(tree):
@@ -189,7 +189,7 @@ def test_s3_autotune_pin_is_scoped_to_fresh_severed_runs():
     the S3 severed re-runs (a fresh pinned baseline + reruns), NEVER the S2
     equivalence pair, and the baseline MUST be the fresh pinned run -- not the
     unpinned S2-gpu ``g_out`` manifest."""
-    src = (REPO / "scripts" / "phase_a_prime.py").read_text()
+    src = (REPO / "scripts" / "verify" / "standalone_freeze_verifier.py").read_text()
 
     # Exactly the two S3 spawns (baseline + reruns) pin the autotune config;
     # the S2 equivalence pair keeps the real autotuner.
@@ -222,7 +222,7 @@ def test_severed_runtime_import_of_vllm_is_caught(tmp_path):
     AT RUNTIME (inside run(), AFTER the pre-scan) must STILL be caught
     by the meta_path leak guard ⇒ BLOCKED signal (exit 3), not just
     import-time leaks (plan FIX 1)."""
-    runner = REPO / "scripts" / "_pa_subproc_runner.py"
+    runner = REPO / "scripts" / "verify" / "severance_subprocess_runner.py"
     # No vllm at import time; vllm is imported INSIDE run() (after the
     # pre-run sys.modules scan would have passed).
     kp = tmp_path / "kernel.py"

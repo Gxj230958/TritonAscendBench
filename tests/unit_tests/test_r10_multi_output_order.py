@@ -58,7 +58,7 @@ def test_r10a_writes_output_key_order_metadata():
     proc = subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"),
+            str(REPO_ROOT / "scripts" / "oracle" / "precompute_oracle_reference.py"),
             "--task", MULTI_OUTPUT_TASK,
             "--json-out", "/tmp/_test_r10a.json",
             "--report", "/tmp/_test_r10a.md",
@@ -193,7 +193,7 @@ def test_multi_output_full_pipeline_with_kernel_tuple(tmp_path):
         proc = subprocess.run(
             [
                 sys.executable,
-                str(REPO_ROOT / "scripts" / "oracle_pyref_precompute.py"),
+                str(REPO_ROOT / "scripts" / "oracle" / "precompute_oracle_reference.py"),
                 "--task", MULTI_OUTPUT_TASK,
                 "--json-out", "/tmp/_test_r10_pipeline.json",
                 "--report", "/tmp/_test_r10_pipeline.md",

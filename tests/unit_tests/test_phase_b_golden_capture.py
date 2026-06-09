@@ -1,4 +1,4 @@
-"""Tests for scripts/phase_b_golden_capture.py -- offline golden capture
+"""Tests for scripts/provenance/capture_golden_baselines.py -- offline golden capture
 for upstream_oracle_required tasks (Phase B', GPU host).
 
 Covers the dev-machine-runnable surface: the score-eligible
@@ -28,7 +28,7 @@ REPO = Path(__file__).resolve().parents[2]
 # scripts/, not the importable package).
 _spec = importlib.util.spec_from_file_location(
     "phase_b_golden_capture",
-    REPO / "scripts" / "phase_b_golden_capture.py",
+    REPO / "scripts" / "provenance" / "capture_golden_baselines.py",
 )
 pbgc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_b_golden_capture"] = pbgc

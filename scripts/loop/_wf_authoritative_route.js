@@ -50,7 +50,7 @@ function routePrompt(t) {
 TASK: ${t.id} (${t.level}).
 
 STEP 1 -- AUTHORITATIVE TYPE. Run the bench's own classifier (do not guess):
-  cd ${ROOT} && python3 -c "import importlib.util,sys; sys.path.insert(0,'.'); s=importlib.util.spec_from_file_location('pap','scripts/phase_a_prime.py'); p=importlib.util.module_from_spec(s); sys.modules['pap']=p; s.loader.exec_module(p); from pathlib import Path; td=Path('tasks/${t.level}/${t.id}'); c=p.classify_task(td.name,(td/'kernel.py').read_text()); print('diagnostics:', c.diagnostics)"
+  cd ${ROOT} && python3 -c "import importlib.util,sys; sys.path.insert(0,'.'); s=importlib.util.spec_from_file_location('pap','scripts/verify/standalone_freeze_verifier.py'); p=importlib.util.module_from_spec(s); sys.modules['pap']=p; s.loader.exec_module(p); from pathlib import Path; td=Path('tasks/${t.level}/${t.id}'); c=p.classify_task(td.name,(td/'kernel.py').read_text()); print('diagnostics:', c.diagnostics)"
   -> "jit-only" diagnostic => no host-wrapper (jit_only). Else host_wrapper/mixed.
 
 STEP 2 -- READ: tasks/${t.level}/${t.id}/{meta.yaml (oracle.gpu_triton/pytorch, interface, param_constraints, output_allocation), oracle_pytorch.py (the reference), kernel.py (the frozen upstream + its host call site / how the @triton.jit is launched), shapes.yaml}, ascendbench/frozen/snapshots/${t.id}_*.py. Optionally the task's last daemon blocker via ssh -p "$LOOP_SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=no "$LOOP_SSH_HOST".

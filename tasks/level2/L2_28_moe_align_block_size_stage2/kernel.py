@@ -9,7 +9,6 @@ Source path: `sglang/jit_kernel/tests/test_moe_align_block_size.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 06564b45a3dfa6be2e2ca246182b3ba6a75c5c265e1c5a1bb2582e254424a38a
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import itertools

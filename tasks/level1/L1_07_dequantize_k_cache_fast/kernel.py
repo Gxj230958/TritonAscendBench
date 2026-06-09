@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/nsa/dequant_k_cache.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 2106420f2a25b69481596b1f2e79ab1043462244db46810d451d35d176cd02bc
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import triton

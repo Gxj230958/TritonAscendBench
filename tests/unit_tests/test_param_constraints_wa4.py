@@ -40,7 +40,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 
 # load validate_tasks.py (a script, not a package module).
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py")
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py")
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
 _spec.loader.exec_module(vt)

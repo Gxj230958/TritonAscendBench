@@ -109,7 +109,7 @@ def test_run_metamorphic_checks_rejects_unknown_name():
 def test_validate_tasks_imports_the_registry():
     """W2.3 → W2.4 hand-off: validate_tasks must use the adversarial
     registry as the single source of truth, not a local literal copy."""
-    import scripts.validate_tasks as vt
+    import scripts.corpus.validate_tasks as vt
 
     assert vt.KNOWN_METAMORPHIC_CHECKS is KNOWN_METAMORPHIC_CHECKS
 

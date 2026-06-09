@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/sample/min_p.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 88470a328d2d73d67b50fda2fc9fad7f9f6d9833f2a39a93cdba4fa7d636223d
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

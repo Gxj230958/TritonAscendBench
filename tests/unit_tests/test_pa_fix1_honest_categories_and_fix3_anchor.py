@@ -28,10 +28,10 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SCRIPTS = REPO / "scripts"
-_ORACLE_RUNNER = SCRIPTS / "_pa_oracle_check_runner.py"
+_ORACLE_RUNNER = SCRIPTS / "verify" / "oracle_consistency_anchor_runner.py"
 
 _spec = importlib.util.spec_from_file_location(
-    "phase_a_prime", SCRIPTS / "phase_a_prime.py"
+    "phase_a_prime", SCRIPTS / "verify" / "standalone_freeze_verifier.py"
 )
 pap = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_prime"] = pap
@@ -413,7 +413,7 @@ def test_stale_provenance_cache_is_never_silently_consumed(
 
     _rs = _ilu.spec_from_file_location(
         "resolve_upstream_entrypoints",
-        SCRIPTS / "resolve_upstream_entrypoints.py",
+        SCRIPTS / "verify" / "resolve_upstream_entrypoints.py",
     )
     _rue = _ilu.module_from_spec(_rs)
     sys.modules["resolve_upstream_entrypoints"] = _rue
@@ -757,7 +757,7 @@ def test_anchor_strength_is_not_overclaimed_as_proof():
     impossibility / 'PROVES it is the right operator', and MUST carry
     the honest 'not a formal impossibility proof' caveat. FAILS ON
     REVERT to the old 'PROVES it is the right operator' wording."""
-    rue_src = (SCRIPTS / "resolve_upstream_entrypoints.py").read_text()
+    rue_src = (SCRIPTS / "verify" / "resolve_upstream_entrypoints.py").read_text()
     ocr_src = _ORACLE_RUNNER.read_text()
     assert "PROVES it is the right operator with TWO" not in rue_src
     assert "not a formal impossibility proof" in rue_src.lower()

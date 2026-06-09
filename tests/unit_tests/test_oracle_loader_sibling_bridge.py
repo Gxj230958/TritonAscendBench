@@ -32,8 +32,8 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SCRIPTS = REPO / "scripts"
-_ORACLE_RUNNER = SCRIPTS / "_pa_oracle_check_runner.py"
-_SUBPROC_RUNNER = SCRIPTS / "_pa_subproc_runner.py"
+_ORACLE_RUNNER = SCRIPTS / "verify" / "oracle_consistency_anchor_runner.py"
+_SUBPROC_RUNNER = SCRIPTS / "verify" / "severance_subprocess_runner.py"
 
 # Load both runner modules so the unit-test cases can poke their
 # bridge primitives directly. The runners ship duplicated copies of the

@@ -9,7 +9,6 @@ Source path: `sglang/srt/lora/triton_ops/chunked_sgmv_shrink.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 23cb7b2a5868763fb0d5ab519a0e839ba992dd4ae43076ec8b288925c34823ec
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import torch

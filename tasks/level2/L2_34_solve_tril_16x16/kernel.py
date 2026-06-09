@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/solve_tril.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): d1a4ff27623a938825052500afa7e2aa24fadd2fa4c9be6376c9128824f86f82
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

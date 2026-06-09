@@ -23,6 +23,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "oracle"))
 
 
 @dataclass
@@ -83,7 +84,7 @@ def run(task: str, peak_table: str) -> RankVerdict:
     # (it reads TAB_RANK_TIMING at import time). Done here, not at module top,
     # so a plain `import gpu_rank_one` (e.g. in unit tests) does not mutate env.
     os.environ.setdefault("TAB_RANK_TIMING", "1")
-    import oracle_equivalence_gpu_runner as oeq
+    import run_oracle_equivalence_gpu as oeq
     import yaml
 
     from ascendbench.perf import peak_table as pt

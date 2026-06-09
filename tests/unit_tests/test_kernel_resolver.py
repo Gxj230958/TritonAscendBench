@@ -144,10 +144,10 @@ def test_l3_23_resolver_picks_host_wrapper():
     """End-to-end: both R10.a and R10.b resolvers prefer solve_tril."""
     import sys
 
-    sys.path.insert(0, "scripts")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "oracle"))
     import yaml
-    from oracle_equivalence_gpu_runner import _resolve_kernel_entrypoint as r1
-    from oracle_pyref_precompute import _resolve_kernel_entrypoint as r2
+    from run_oracle_equivalence_gpu import _resolve_kernel_entrypoint as r1
+    from precompute_oracle_reference import _resolve_kernel_entrypoint as r2
 
     td = Path("tasks/level3/L3_30_merge_16x16_to_32x32_inverse")
     meta = yaml.safe_load((td / "meta.yaml").read_text())

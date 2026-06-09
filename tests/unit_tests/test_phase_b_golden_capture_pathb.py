@@ -1,4 +1,4 @@
-"""Unit 2.4 tests for ``scripts/phase_b_golden_capture.py`` -- the
+"""Unit 2.4 tests for ``scripts/provenance/capture_golden_baselines.py`` -- the
 path-A / path-B dual-path capture flow + ``meta.phase_b_capture``
 state writes.
 
@@ -37,7 +37,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 _spec = importlib.util.spec_from_file_location(
     "phase_b_golden_capture",
-    REPO / "scripts" / "phase_b_golden_capture.py",
+    REPO / "scripts" / "provenance" / "capture_golden_baselines.py",
 )
 pbgc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_b_golden_capture"] = pbgc

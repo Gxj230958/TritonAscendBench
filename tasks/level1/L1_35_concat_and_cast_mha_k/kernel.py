@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/utils.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 6bae800d0cb2f1b4a2abb448bec90e2c4664d0b882e8bbcdfbe06a3bc8834cc1
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import triton

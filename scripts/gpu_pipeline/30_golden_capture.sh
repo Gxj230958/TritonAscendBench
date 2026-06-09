@@ -14,7 +14,7 @@
 # eval._resolve_golden + eligibility.golden_complete read exactly this
 # layout (a flat {tensor_key: tensor} safetensors dict per shape).
 #
-# This wrapper drives scripts/phase_b_golden_capture.py, which:
+# This wrapper drives scripts/provenance/capture_golden_baselines.py, which:
 #   1. enumerates the upstream_oracle_required tasks from trusted repo
 #      meta (eligibility.is_upstream_oracle_required);
 #   2. per task enumerates ALL eval shape ids -- public AND sealed
@@ -43,7 +43,7 @@ if [ "${1:-}" = "--task" ]; then
     TASK_FILTER="$2"
 fi
 
-CAPTURE_SCRIPT="${REPO_ROOT}/scripts/phase_b_golden_capture.py"
+CAPTURE_SCRIPT="${REPO_ROOT}/scripts/provenance/capture_golden_baselines.py"
 [ -f "${CAPTURE_SCRIPT}" ] || die "missing ${CAPTURE_SCRIPT}"
 
 step_banner "C" "offline golden capture (upstream_oracle_required)"

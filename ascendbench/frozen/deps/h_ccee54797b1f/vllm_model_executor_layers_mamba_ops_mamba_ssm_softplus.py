@@ -7,7 +7,6 @@ Source module: `vllm.model_executor.layers.mamba.ops.mamba_ssm_softplus`
 Upstream repo: vllm
 Commit SHA: snapshot-no-git
 Content SHA-256: ccee54797b1f149aae1105fe1df02755cd2bb6d728729b31c70d63c9a5c0d5ec
-Frozen by: scripts/phase_a_prime.py (U2 pool vendoring)
 """
 
 import triton

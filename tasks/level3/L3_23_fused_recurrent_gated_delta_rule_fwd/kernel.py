@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/fused_recurrent.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 3a2a3c5245acba127af326f0b3f287b352776a8eb1e1f6e40c24a767fae3c2ef
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import triton  # Phase A': was a vllm/sglang triton re-export (B-rewrite-public)

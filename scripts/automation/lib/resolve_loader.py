@@ -1,6 +1,6 @@
 """Unified loader for resolver artefacts.
 
-Supports three on-disk formats produced by ``scripts/resolve_upstream_entrypoints.py``
+Supports three on-disk formats produced by ``scripts/verify/resolve_upstream_entrypoints.py``
 historically and currently:
 
   1. Aggregate JSON: {"_provenance": {...}, "verdicts": [{task_id, status, reason, ...}, ...]}

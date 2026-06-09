@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/moe/ep_moe/kernels.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 4e5622e70e0050e5e9d66dae898eb3ce8f06678da90d81777414ab4337cb49b8
-Frozen by: scripts/phase_a_freeze.py
 """
 import logging
 import torch

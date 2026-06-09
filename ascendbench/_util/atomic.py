@@ -123,7 +123,7 @@ def atomic_write_yaml(path: os.PathLike[str] | str, data: Any) -> None:
     """Atomically write ``data`` as YAML to ``path``.
 
     Always uses ``sort_keys=False, allow_unicode=True`` (bench convention,
-    matches ``scripts/phase_a_prime.py:1071-1073``)."""
+    matches ``scripts/verify/standalone_freeze_verifier.py:1071-1073``)."""
     path = Path(path)
     payload = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
     _atomic_replace(path, payload)

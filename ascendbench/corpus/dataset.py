@@ -69,7 +69,7 @@ class TaskDef:
     # gate instead of crashing `load_task`. The default keeps direct
     # ``TaskDef(...)`` construction sites (canary adapter, test fixtures)
     # backward compatible. `loader-lenient / validator-strict`: presence and
-    # schema are enforced only by `scripts/validate_tasks.py`.
+    # schema are enforced only by `scripts/corpus/validate_tasks.py`.
     param_constraints: dict[str, Any] | None = None
     # Typed view of nested ``meta.provenance.golden:``
     # (the baseline trust chain). ``None`` when the nested block is
@@ -80,7 +80,7 @@ class TaskDef:
     # typed view of only the new nested ``golden:`` sub-block. Same
     # loader-lenient / validator-strict split as ``cost_model``:
     # presence and closed-enum shape are enforced by
-    # ``scripts.validate_tasks``, never by the loader.
+    # ``scripts.corpus.validate_tasks``, never by the loader.
     provenance_golden: ProvenanceGoldenSpec | None = None
 
     @property
@@ -158,7 +158,7 @@ def load_task(task_id: str) -> TaskDef:
     #     instead of crashing `load_task`.
     # This is a deliberate departure from `cost_model`'s eager-parse-then-raise
     # (see `cost_model` handling just above). Presence + schema enforcement
-    # is the job of `scripts/validate_tasks.py` ("validator-strict").
+    # is the job of `scripts/corpus/validate_tasks.py` ("validator-strict").
     raw_param_constraints = meta.get("param_constraints")
     param_constraints: dict[str, Any] | None = None
     if raw_param_constraints is not None:
@@ -279,7 +279,7 @@ def load_canary_task(canary_id: str) -> CanaryTaskDef:
     Raises ``FileNotFoundError`` if the directory is absent and ``KeyError`` if
     a required canary-schema field is missing. Static schema enforcement (incl.
     ``source_task_id`` pointing at a real task) is the job of
-    ``scripts/validate_tasks.py``'s `_canary` entry point — this loader stays
+    ``scripts/corpus/validate_tasks.py``'s `_canary` entry point — this loader stays
     lenient enough to surface a malformed canary to the validator.
     """
     task_dir = CANARY_ROOT / canary_id

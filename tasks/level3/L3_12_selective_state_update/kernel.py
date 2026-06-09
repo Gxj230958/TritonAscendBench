@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/mamba_ssm.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): e793eb34f3ef12f3e2ba8185d9fba389aee11f543bf36376297c20d4460c9373
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

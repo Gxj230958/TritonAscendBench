@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/nsa/quant_k_cache.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 23dccba0f293449067a25b90e4ac009ce4e1d424c3358aedd9396fd35c995fc6
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import torch

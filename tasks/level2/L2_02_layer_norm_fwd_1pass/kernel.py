@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/layernorm_gated.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 3433f2e3b87c2b2ccf8e9794ce40762c86a6da38a94ecee001f439ea0d0373dd
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/chunk_delta_h.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): e4a7ce7be733213d2a399f698eee83ec6ef02c02e876774447db575bbe59cbb2
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

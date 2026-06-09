@@ -4,8 +4,8 @@
 # Machine A (GPU host) one-time setup.
 #
 # Verifies the local GPU host can run:
-#   * bench scripts: scripts/phase_a_prime.py --verify,
-#     scripts/phase_b_golden_capture.py, scripts/resolve_upstream_entrypoints.py
+#   * bench scripts: scripts/verify/standalone_freeze_verifier.py --verify,
+#     scripts/provenance/capture_golden_baselines.py, scripts/verify/resolve_upstream_entrypoints.py
 #   * the automation daemon: scripts/automation/bench_evaluator_daemon.py
 #
 # Side effects (when --skip-install is NOT set):
@@ -181,7 +181,7 @@ echo "[ok] bench_evaluator_daemon importable"
 
 # ---- 7. bench CLI smoke tests ----------------------------------------------
 echo "[step] bench scripts --help smoke test"
-python3 scripts/phase_a_prime.py --help > /dev/null
+python3 scripts/verify/standalone_freeze_verifier.py --help > /dev/null
 echo "[ok] phase_a_prime.py importable"
 
 # ---- 8. final health-check line --------------------------------------------

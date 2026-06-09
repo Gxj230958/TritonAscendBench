@@ -45,7 +45,7 @@ if str(REPO) not in sys.path:
 
 # validate_tasks.py is a script, not an importable package module.
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
@@ -53,7 +53,7 @@ _spec.loader.exec_module(vt)
 
 # phase_a_prime.py is likewise a script.
 _pa_spec = importlib.util.spec_from_file_location(
-    "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+    "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
 )
 pap = importlib.util.module_from_spec(_pa_spec)
 sys.modules["phase_a_prime"] = pap

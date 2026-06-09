@@ -37,8 +37,8 @@ _HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib_common.sh
 source "${_HERE}/lib_common.sh"
 
-VT="${REPO_ROOT}/scripts/validate_tasks.py"
-VVM="${REPO_ROOT}/scripts/verify_version_matrix.py"
+VT="${REPO_ROOT}/scripts/corpus/validate_tasks.py"
+VVM="${REPO_ROOT}/scripts/provenance/verify_version_matrix.py"
 [ -f "${VT}" ] || die "missing ${VT}"
 # VVM is part of the release gate (its rc feeds the exit code below); a
 # missing script must hard-fail, never silently leave VVM_RC at 0.

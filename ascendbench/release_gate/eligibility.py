@@ -14,7 +14,7 @@ This module is **side-effect-light** by design (plan U7):
   * ZERO import-time I/O.
 
 Both ``cli.py`` (analyze / release_blocked) and
-``scripts/validate_tasks.py`` (release gate) import this module so the
+``scripts/corpus/validate_tasks.py`` (release gate) import this module so the
 score-eligible computation has a single source of truth and cannot
 drift between the two call sites (plan: "API surface parity").
 """
@@ -76,7 +76,7 @@ def compute_score_eligible(tasks: Iterable[_TaskLike]) -> set[str]:
     """Return the set of score-eligible ``task_id``s.
 
     This is the single authority used by both ``cli.py analyze`` and
-    ``scripts/validate_tasks.py --release-gate``. Behaviour is
+    ``scripts/corpus/validate_tasks.py --release-gate``. Behaviour is
     byte-identical to the previous inline ``cli.py`` loop.
     """
     return {t.task_id for t in tasks if is_score_eligible(t)}
@@ -232,7 +232,7 @@ def golden_integrity_chain_ok(task_dir, shape_ids: list[str]) -> bool:
         # Lazy-import the signature verifier so we don't take a
         # cryptography hard dep here.
         try:
-            from scripts.golden_manifest import (
+            from scripts.provenance.write_golden_manifest import (
                 build_envelope,
                 verify_envelope,
             )
@@ -261,7 +261,7 @@ def golden_integrity_chain_ok(task_dir, shape_ids: list[str]) -> bool:
         except OSError:
             return False
         # We don't know the key_id without provenance.golden -- iterate.
-        from scripts.golden_manifest import load_trust_roots
+        from scripts.provenance.write_golden_manifest import load_trust_roots
         for k in (load_trust_roots().get("active_keys") or []):
             kid = k.get("key_id")
             if kid and verify_envelope(envelope, sig_bytes, key_id=kid):

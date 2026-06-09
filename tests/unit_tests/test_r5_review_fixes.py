@@ -212,7 +212,7 @@ def test_r5_3_validate_tasks_catches_typo_map_key(tmp_path, monkeypatch):
 
     repo = Path(__file__).resolve().parents[2]
     spec = importlib.util.spec_from_file_location(
-        "validate_tasks_r5", repo / "scripts" / "validate_tasks.py")
+        "validate_tasks_r5", repo / "scripts" / "corpus" / "validate_tasks.py")
     vt = importlib.util.module_from_spec(spec)
     sys.modules["validate_tasks_r5"] = vt
     spec.loader.exec_module(vt)

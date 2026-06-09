@@ -43,7 +43,7 @@ logger = logging.getLogger("automation.lib.file_blocks")
 
 
 # ---------------------------------------------------------------------------
-# Module-level constants (mirror scripts/validate_tasks.py:147-167)
+# Module-level constants (mirror scripts/corpus/validate_tasks.py:147-167)
 # ---------------------------------------------------------------------------
 
 _HIGH_LEVEL_OP_NAMES = frozenset({

@@ -66,7 +66,7 @@ def npu_triton_impl(inputs: dict) -> dict:
 
 ## 5. Mandatory `meta.yaml` Fields
 
-The machine-readable schema is enforced by `scripts/validate_tasks.py` (`REQUIRED_META_TOP_LEVEL` + nested-structure checks). Required:
+The machine-readable schema is enforced by `scripts/corpus/validate_tasks.py` (`REQUIRED_META_TOP_LEVEL` + nested-structure checks). Required:
 
 ```yaml
 schema_version: "1.0"
@@ -214,7 +214,7 @@ two consumers treat a missing `cost_model` block differently *by design*:
   `TaskDef.cost_model = None`; a *malformed* block still raises. This keeps
   pre-W3.1 tasks (and any synthetic test fixture) loadable, and lets the
   Roofline path simply skip a task with no cost model rather than fail.
-- **Task validator (`scripts/validate_tasks.py`)** — *strict*. As of R1-4
+- **Task validator (`scripts/corpus/validate_tasks.py`)** — *strict*. As of R1-4
   `cost_model` is a **required** top-level `meta.yaml` key: a missing block is
   a hard validation error. The red→green transition for the 100-task corpus
   is carried by the validator (W3.1 backfills every task), never by the
@@ -461,7 +461,7 @@ differently *by design* — but the loader is **more** lenient here:
   allowed to load so it can reach the `task_status = blocked` gate (WA.4)
   rather than crash inside `load_task`. The loader stores the raw dict; it
   never builds a structured object.
-- **Task validator (`scripts/validate_tasks.py`)** — *strict*.
+- **Task validator (`scripts/corpus/validate_tasks.py`)** — *strict*.
   `param_constraints` is a **required** top-level `meta.yaml` key; a missing
   block is a hard validation error. The WA.1 validator layer checks only
   the **schema shape** (the six subsections exist and have the right
@@ -528,7 +528,7 @@ provenance:
 
 **Open / operational extras** (preserved verbatim by the loader, NOT
 closed-enum checked — these are pipeline artifacts written by
-`scripts/apply_oracle_equivalence_verdict.py` and similar):
+`scripts/oracle/apply_oracle_equivalence_verdict.py` and similar):
 `verified_at`, `tolerance_class_used`, `equivalence_per_shape`,
 `golden_source`.
 
@@ -559,7 +559,7 @@ compatibility.
 
 The following `meta.yaml` fields are **optional, bench-team-internal state**
 written by the automation orchestrator (`scripts/automation/`) and the phase
-runners (`scripts/phase_a_prime.py`, `scripts/phase_b_golden_capture.py`).
+runners (`scripts/verify/standalone_freeze_verifier.py`, `scripts/provenance/capture_golden_baselines.py`).
 They drive the three-verdict pipeline (`shapes-incomplete` / `oracle-mismatch`
 / unfixable) and the release-scope eligibility gate. All four field groups
 below are **optional with explicit defaults**: a task `meta.yaml` that
@@ -571,7 +571,7 @@ The fields are **not** added to `REQUIRED_META_TOP_LEVEL` (precedent: the
 existing `phase_a_prime` block has always been optional). Schema-shape
 checks for these fields, when they are present, live in the patch validator
 (`scripts/automation/lib/file_blocks.py` Layer 5) — that layer rejects a
-malformed write before it lands on disk. `scripts/validate_tasks.py`
+malformed write before it lands on disk. `scripts/corpus/validate_tasks.py`
 ignores absent / well-formed blocks.
 
 ### 6a.1 `phase_a_prime.skip_invocation`
@@ -582,7 +582,7 @@ ignores absent / well-formed blocks.
 | **required** | optional |
 | **default** | `false` (treated as absent) |
 | **written by** | orchestrator (`scripts/automation/fix_orchestrator.py`) on a `defer-to-golden` decision under the `oracle-mismatch` verdict |
-| **read by** | `scripts/phase_a_prime.py` `s2_verify_task` early-return; eligibility gate (`ascendbench/release_gate/eligibility.py`) |
+| **read by** | `scripts/verify/standalone_freeze_verifier.py` `s2_verify_task` early-return; eligibility gate (`ascendbench/release_gate/eligibility.py`) |
 
 **Semantics.** When `true`, the phase A' GPU S2 verify step **does not**
 invoke the operator in an isolated subprocess. Instead it records
@@ -603,7 +603,7 @@ distributed launcher, a custom CUDA build, or a private dependency).
 |-----------------|------------------------------|
 | **new value** | `SKIPPED_BY_DESIGN` |
 | **written by** | `phase_a_prime.update_meta_phase_a_prime` (existing writer) |
-| **read by** | eligibility gate; `scripts/validate_tasks.py` golden-presence check |
+| **read by** | eligibility gate; `scripts/corpus/validate_tasks.py` golden-presence check |
 
 **Semantics.** `SKIPPED_BY_DESIGN` is the truth-source delegation marker:
 phase A' deliberately did not run isolated invocation; the offline phase B
@@ -634,12 +634,12 @@ task.
   initial `{status: PENDING, upstream_callable: {module, function},
   reason: …}` on a `defer-to-golden` patch. `upstream_callable.{module,
   function}` are sourced from the dual-anchor resolver evidence.
-- `scripts/phase_b_golden_capture.py` updates `status` to `DONE` (sets
+- `scripts/provenance/capture_golden_baselines.py` updates `status` to `DONE` (sets
   `captured_at`) on a successful capture child or `FAILED` (sets `reason`)
   on a capture failure. The `upstream_callable` subblock is not rewritten
   by the capture script — it is the orchestrator's authored intent.
 
-**Readers.** Eligibility gate; `scripts/validate_tasks.py` golden-
+**Readers.** Eligibility gate; `scripts/corpus/validate_tasks.py` golden-
 directory presence check (a `DONE` capture implies a populated `golden/`
 directory).
 
@@ -700,7 +700,7 @@ the release pass-rate.
 
 These invariants tie the four field groups together. They are enforced
 at *write* time by the patch validator (Layer 5) and at *gate* time by
-the eligibility predicate. The validator (`scripts/validate_tasks.py`)
+the eligibility predicate. The validator (`scripts/corpus/validate_tasks.py`)
 does not re-derive them — a malformed cross-field combination cannot
 land in `meta.yaml` because the patch is rejected at Layer 5 before
 disk write.
@@ -738,7 +738,7 @@ but the bench writes only the `Z` form.
 
 ## 7. Validator
 
-`python scripts/validate_tasks.py` (per-task schema / hash validation; `--release-gate` runs the S6 gate) checks:
+`python scripts/corpus/validate_tasks.py` (per-task schema / hash validation; `--release-gate` runs the S6 gate) checks:
 - All 5 files present (`kernel.py` / `oracle_pytorch.py` / `meta.yaml` / `shapes.yaml` / `contract.md`)
 - `meta.yaml` matches schema; the top-level `cost_model` key is **required** (R1-4) — a missing block is a hard error. `cost_model.{flops,bytes}` (scalar or map form) parse under the shared evaluator and every formula evaluates against the task's `shapes.yaml` knob universe (§5.1). (The dataset *loader* stays lenient — a missing block yields `TaskDef.cost_model = None`; only the validator enforces presence. See §5.1.)
 - the top-level `param_constraints` key is **required** (WA.1) — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (WA.1 — the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (WA.4 — `dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `ascendbench.input_spec.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)

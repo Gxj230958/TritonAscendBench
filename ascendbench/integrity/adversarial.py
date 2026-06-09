@@ -22,7 +22,7 @@ W2.4 — two **separate** detection paths, with distinct result schemas:
 
 The metamorphic-check registry (:data:`KNOWN_METAMORPHIC_CHECKS`) is the
 single source of truth for which ``meta.runner_checks.metamorphic_checks``
-names are legal — ``scripts/validate_tasks.py`` imports it so an unknown
+names are legal — ``scripts/corpus/validate_tasks.py`` imports it so an unknown
 check name is rejected at validation time, not silently skipped at run
 time.
 """
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Metamorphic-check registry (W2.4 — authoritative source of truth)
 # ─────────────────────────────────────────────────────────────────────────────
 # Every legal `meta.runner_checks.metamorphic_checks` *name*. A task may
-# only declare a check listed here; `scripts/validate_tasks.py` imports
+# only declare a check listed here; `scripts/corpus/validate_tasks.py` imports
 # this set and rejects an unknown name at validation time (W2.3 used to
 # carry a bootstrap copy — it now imports this registry instead).
 #
@@ -69,7 +69,7 @@ KNOWN_METAMORPHIC_CHECKS: frozenset[str] = frozenset({
 def is_known_metamorphic_check(name: str) -> bool:
     """True if ``name`` is a registered metamorphic-check name.
 
-    The validator (`scripts/validate_tasks.py`) uses this — and the
+    The validator (`scripts/corpus/validate_tasks.py`) uses this — and the
     :data:`KNOWN_METAMORPHIC_CHECKS` set directly — as the single
     authority for which check names a task may declare.
     """
@@ -105,7 +105,7 @@ def run_metamorphic_checks(
 
     A check name absent from :data:`KNOWN_METAMORPHIC_CHECKS` is rejected
     here as a runtime backstop; the primary gate is the validator
-    (`scripts/validate_tasks.py`), which refuses an unknown name at
+    (`scripts/corpus/validate_tasks.py`), which refuses an unknown name at
     validation time.
     """
     out: list[MetamorphicResult] = []

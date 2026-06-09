@@ -56,22 +56,22 @@ The task bundle is built by a staged, idempotent pipeline:
 
 ```bash
 # Phase 0: validate every task against the spec schema.
-python scripts/validate_tasks.py --strict
-python scripts/verify_version_matrix.py
+python scripts/corpus/validate_tasks.py --strict
+python scripts/provenance/verify_version_matrix.py
 
 # Phase 0.5: scaffold the 100-task tree from docs/benchmark_select.md.
-python scripts/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
+python scripts/corpus/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
 
 # Phase A: vendor the upstream GPU triton kernel.py (Apache-2.0/BSD-3
 # attribution preserved; raw snapshot kept in ascendbench/frozen/snapshots/).
-python scripts/phase_a_freeze.py --limit 9999    # 93 frozen
+python scripts/verify/freeze_upstream_sources.py --limit 9999    # 93 frozen
 
 # Phase B: author the PyTorch ground-truth oracle_pytorch.py.
-python scripts/phase_b_oracle.py                 # 96 working refs
+python scripts/corpus/generate_oracle_from_kernel.py                 # 96 working refs
 
 # Phase C: emit size-knob shapes.yaml + contract.md; the oracle input
 # bridge is ascendbench.input_spec.inputs.build_inputs.
-python scripts/phase_c_docs.py                   # 92 (+5 PoC migrated)
+python scripts/corpus/generate_shapes_and_contract.py                   # 92 (+5 PoC migrated)
 ```
 
 The candidate **correctness grader runs without GPU/NPU**:

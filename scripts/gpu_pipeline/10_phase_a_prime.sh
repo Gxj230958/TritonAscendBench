@@ -46,7 +46,7 @@ if [ "${1:-}" = "--task" ]; then
     TASK_FILTER="$2"
 fi
 
-PA="${REPO_ROOT}/scripts/phase_a_prime.py"
+PA="${REPO_ROOT}/scripts/verify/standalone_freeze_verifier.py"
 [ -f "${PA}" ] || die "missing ${PA}"
 
 step_banner "A" "Phase A' GPU-authoritative reproducible-freeze"
@@ -70,7 +70,7 @@ else
         # so call it directly (the phase_a_prime delegate forwards only
         # --task/--all/--apply, not --refresh-cache).
         run_logged "pa_resolve" \
-            python3 "${REPO_ROOT}/scripts/resolve_upstream_entrypoints.py" \
+            python3 "${REPO_ROOT}/scripts/verify/resolve_upstream_entrypoints.py" \
             --refresh-cache --apply
     fi
     log_ok "entrypoint resolution complete"

@@ -25,7 +25,7 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent.parent
 _spec = importlib.util.spec_from_file_location(
     "resolve_upstream_entrypoints",
-    REPO / "scripts" / "resolve_upstream_entrypoints.py",
+    REPO / "scripts" / "verify" / "resolve_upstream_entrypoints.py",
 )
 rue = importlib.util.module_from_spec(_spec)
 sys.modules["resolve_upstream_entrypoints"] = rue
@@ -530,7 +530,7 @@ def test_phase_a_freeze_is_in_code_fingerprint_surface(tmp_path):
     reuses its commit-pin / repo-root / provenance helpers ON the
     verdict path (paf.REPO_ROOT/TASKS_ROOT/VLLM_ROOT/SGLANG_ROOT at
     module load + paf._commit_sha/_provenance_header in the status
-    flow). So ``scripts/phase_a_freeze.py`` is verdict-path CODE and
+    flow). So ``scripts/verify/freeze_upstream_sources.py`` is verdict-path CODE and
     MUST be a member of ``_PROVENANCE_CODE_FILES``.
 
     (a) Membership: dropping the 8th-file addition removes it from the
@@ -540,11 +540,11 @@ def test_phase_a_freeze_is_in_code_fingerprint_surface(tmp_path):
         surface the digest would be unchanged and this assertion
         breaks (the exact revert signature).
     """
-    paf = REPO / "scripts" / "phase_a_freeze.py"
+    paf = REPO / "scripts" / "verify" / "freeze_upstream_sources.py"
     surface = set(rue._PROVENANCE_CODE_FILES)
 
     assert paf in surface, (
-        "scripts/phase_a_freeze.py is NOT in _PROVENANCE_CODE_FILES "
+        "scripts/verify/freeze_upstream_sources.py is NOT in _PROVENANCE_CODE_FILES "
         "(ADOPT-2 reverted -- a byte change to a helper used on the "
         "verdict path would slip past a 'fresh' cache)"
     )
@@ -562,7 +562,7 @@ def test_phase_a_freeze_is_in_code_fingerprint_surface(tmp_path):
         mutated = rue.resolver_code_fingerprint()
         assert mutated != base, (
             "fingerprint did NOT change after byte-modifying "
-            "phase_a_freeze.py -- it is NOT in the verdict surface "
+            "freeze_upstream_sources.py -- it is NOT in the verdict surface "
             "(ADOPT-2 revert detected)"
         )
     finally:
@@ -1428,7 +1428,7 @@ def test_r9_fix2_unverifiable_before_missing_cache_no_regen(
     import importlib.util as _ilu
 
     pap_spec = _ilu.spec_from_file_location(
-        "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+        "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
     )
     pap = _ilu.module_from_spec(pap_spec)
     sys.modules["phase_a_prime"] = pap
@@ -1577,13 +1577,13 @@ def _fresh_pap():
 
     rue_spec = _ilu.spec_from_file_location(
         "resolve_upstream_entrypoints",
-        REPO / "scripts" / "resolve_upstream_entrypoints.py",
+        REPO / "scripts" / "verify" / "resolve_upstream_entrypoints.py",
     )
     rue_i = _ilu.module_from_spec(rue_spec)
     sys.modules["resolve_upstream_entrypoints"] = rue_i
     rue_spec.loader.exec_module(rue_i)
     pap_spec = _ilu.spec_from_file_location(
-        "phase_a_prime", REPO / "scripts" / "phase_a_prime.py"
+        "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
     )
     pap_i = _ilu.module_from_spec(pap_spec)
     sys.modules["phase_a_prime"] = pap_i
@@ -2119,7 +2119,7 @@ def test_blocked_reason_format_preserves_diagnostic_segments():
     candidate. A prefix would drop the first candidate segment."""
     import importlib.util as _ilu
     _s = _ilu.spec_from_file_location(
-        "per_task_diagnostic", REPO / "scripts" / "per_task_diagnostic.py"
+        "per_task_diagnostic", REPO / "scripts" / "internal" / "diagnose_blocked_tasks.py"
     )
     _ptd = _ilu.module_from_spec(_s)
     sys.modules["per_task_diagnostic"] = _ptd

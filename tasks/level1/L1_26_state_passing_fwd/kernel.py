@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/ssd_state_passing.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 36b8c8edba437916a5b789717c61fc22077de01e77892cb96dbff3b00a57410e
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

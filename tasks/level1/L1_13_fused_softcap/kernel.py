@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/logits_processor.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 546412f45e85c187a4f5f687c8131f256ff5266855e9daba0fe3ea74ac9f3741
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # Copyright 2023-2024 SGLang Team

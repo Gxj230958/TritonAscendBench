@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/mamba/ops/ssd_chunk_scan.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): af58095ccee5c173a56395cb8fba4174ed7b0bec32bffbd713b1bf80c0332123
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

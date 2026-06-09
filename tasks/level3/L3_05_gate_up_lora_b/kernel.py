@@ -9,7 +9,6 @@ Source path: `sglang/srt/lora/triton_ops/gate_up_lora_b.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): a7c838535f5b6a97ddc074add355ed04e8394c9ef4cd6b257ce1fbfd18174830
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import torch

@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/elementwise.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 62126ca8893757ae05a0d75da2087dec4cbf289f4af3d248fa84afe4fac739a9
-Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Optional, Tuple
 import torch

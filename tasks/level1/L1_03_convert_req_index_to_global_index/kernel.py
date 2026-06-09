@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/backends/mla/sparse_utils.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 3627a9ea84cdffcfc2caba93bcefc93c1c8dfbb711a1e63b4af9d87a4498ba65
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

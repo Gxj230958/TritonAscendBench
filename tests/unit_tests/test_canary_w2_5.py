@@ -46,7 +46,7 @@ CANARY_ID = "C1_identity_trap"
 
 # load validate_tasks.py as a module (it is a script, not a package member).
 _spec = importlib.util.spec_from_file_location(
-    "validate_tasks", REPO / "scripts" / "validate_tasks.py"
+    "validate_tasks", REPO / "scripts" / "corpus" / "validate_tasks.py"
 )
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt

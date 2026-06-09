@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.provenance_release_planning_gate import (
+from scripts.provenance.compute_release_planning_gate import (
     RARE_CLASS_SET,
     STATE_PROCEED,
     STATE_PROVISIONAL,

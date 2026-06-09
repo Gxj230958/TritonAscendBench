@@ -7,7 +7,6 @@ Package: `fla_ops`  Submodule: `solve_tril`
 Upstream repo: vllm
 Commit SHA: snapshot-no-git
 Package content SHA-256 prefix: af43637ae818
-Frozen by: scripts/phase_a_prime.py (U2 package vendoring)
 """
 
 # SPDX-License-Identifier: Apache-2.0

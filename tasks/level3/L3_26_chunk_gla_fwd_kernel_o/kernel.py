@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/kda.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 16ccf19821e32783c049d89faa3da6e6dc0ff4bda991e9b5d04b11cfb144f837
-Frozen by: scripts/phase_a_freeze.py
 """
 import torch
 import torch.nn as nn

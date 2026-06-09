@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/nsa/triton_kernel.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 58c0924b2c5f5ea3febeeb490fb64a9ee205d98ec142047dd1a6860a53680f28
-Frozen by: scripts/phase_a_freeze.py
 """
 from typing import Optional, Tuple
 import torch

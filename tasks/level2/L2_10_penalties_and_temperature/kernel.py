@@ -9,7 +9,6 @@ Source path: `vllm/v1/worker/gpu/sample/penalties.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): 55bb278813d9a70aa0d420e5fc580dd1dcb301e052faf0146bf76517329dcc8e
-Frozen by: scripts/phase_a_freeze.py
 """
 import numpy as np
 import torch

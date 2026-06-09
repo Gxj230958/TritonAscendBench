@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/triton_unified_attention.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): f41f855b762b7ef84c57e900b7fd5baa5dd001277401b7b84df3e4c2d634f1eb
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

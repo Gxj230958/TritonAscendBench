@@ -1,6 +1,6 @@
 """param_constraints.py — the shared ``param_constraints`` validation helper.
 
-WA.4 ②(a): ``scripts/validate_tasks.py``, ``ascendbench/engine/eval.py`` and
+WA.4 ②(a): ``scripts/corpus/validate_tasks.py``, ``ascendbench/engine/eval.py`` and
 the ``cli.py`` repo-authoritative status resolver all consult **one** helper
 so the pass/fail verdict for an operator's input contract
 (`specs/task_api_contract.md §5.2`) cannot drift between the three.

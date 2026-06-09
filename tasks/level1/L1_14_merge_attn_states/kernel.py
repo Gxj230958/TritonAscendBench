@@ -9,7 +9,6 @@ Source path: `vllm/v1/attention/ops/triton_merge_attn_states.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): ae8e9eea659064d6226537bd6ce13faaf77b975c1b700b4e951b38099d158814
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

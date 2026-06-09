@@ -3,8 +3,8 @@
 A long-running Python daemon that lives on the GPU machine. It polls a
 GPFS-shared directory-rename queue (``<gpfs>/queue/READY/*``), claims one
 ``run_id`` at a time, runs the requested bench sub-command locally
-(``scripts/phase_a_prime.py --verify`` or
-``scripts/resolve_upstream_entrypoints.py``), and writes the result back
+(``scripts/verify/standalone_freeze_verifier.py --verify`` or
+``scripts/verify/resolve_upstream_entrypoints.py``), and writes the result back
 to ``<gpfs>/results/<run_id>/`` as the 9-field ``result.json`` +
 ``_provenance.json`` sidecar + ``DONE`` read-barrier marker.
 
@@ -416,14 +416,14 @@ class BenchEvaluatorDaemon:
         if claim.cmd == "resolve":
             return [
                 sys.executable,
-                str(self.ctx.bench_root / "scripts" / "resolve_upstream_entrypoints.py"),
+                str(self.ctx.bench_root / "scripts" / "verify" / "resolve_upstream_entrypoints.py"),
                 "--task", claim.task_id,
                 "--apply",
             ]
         # phase_a_verify
         return [
             sys.executable,
-            str(self.ctx.bench_root / "scripts" / "phase_a_prime.py"),
+            str(self.ctx.bench_root / "scripts" / "verify" / "standalone_freeze_verifier.py"),
             "--verify", claim.task_id,
         ]
 

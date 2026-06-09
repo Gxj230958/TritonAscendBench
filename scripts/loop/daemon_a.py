@@ -301,7 +301,7 @@ def _run_verify_one(
     elif action == "resolve":
         cmd = [
             phase_python,
-            "scripts/phase_a_prime.py",
+            "scripts/verify/standalone_freeze_verifier.py",
             "--resolve-entrypoint",
             "--task",
             task_id,
@@ -312,7 +312,7 @@ def _run_verify_one(
     else:
         cmd = [
             phase_python,
-            "scripts/phase_a_prime.py",
+            "scripts/verify/standalone_freeze_verifier.py",
             "--verify",
             task_id,
         ]

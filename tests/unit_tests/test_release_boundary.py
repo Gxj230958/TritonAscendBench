@@ -54,6 +54,8 @@ def release_tarball(tmp_path):
 
 _INTERNAL_PATTERNS = re.compile(
     r"(scripts/automation/"
+    r"|scripts/loop/"
+    r"|scripts/internal/"
     r"|tab_automation/"
     r"|docs/plans/2026-05-23-001-"
     r"|docs/plans/2026-05-23-002-"
@@ -98,27 +100,27 @@ def test_release_tarball_excludes_internal_test_files(release_tarball):
 # are export-ignored and intentionally NOT listed here.
 _BENCH_CORE_PATHS = [
     "ascendbench",
-    "scripts/apply_oracle_equivalence_verdict.py",
-    "scripts/audit_cost_model_formulas.py",
-    "scripts/generate_task_scaffolds.py",
-    "scripts/golden_manifest.py",
-    "scripts/oracle_equivalence_gpu_runner.py",
-    "scripts/oracle_pyref_precompute.py",
-    "scripts/_pa_oracle_check_runner.py",
-    "scripts/_pa_subproc_runner.py",
-    "scripts/phase_a_cost_xcheck.py",
-    "scripts/phase_a_freeze.py",
-    "scripts/phase_a_prime.py",
-    "scripts/phase_b_golden_capture.py",
-    "scripts/phase_b_oracle.py",
-    "scripts/phase_c_docs.py",
-    "scripts/provenance_release_planning_gate.py",
-    "scripts/resolve_upstream_entrypoints.py",
-    "scripts/source_provenance_census.py",
-    "scripts/validate_corpus_consistency.py",
-    "scripts/validate_tasks.py",
-    "scripts/verify_upstream_commit_chain.py",
-    "scripts/verify_version_matrix.py",
+    "scripts/oracle/apply_oracle_equivalence_verdict.py",
+    "scripts/perf/audit_cost_model_formulas.py",
+    "scripts/corpus/generate_task_scaffolds.py",
+    "scripts/provenance/write_golden_manifest.py",
+    "scripts/oracle/run_oracle_equivalence_gpu.py",
+    "scripts/oracle/precompute_oracle_reference.py",
+    "scripts/verify/oracle_consistency_anchor_runner.py",
+    "scripts/verify/severance_subprocess_runner.py",
+    "scripts/perf/cross_check_cost_model_gpu.py",
+    "scripts/verify/freeze_upstream_sources.py",
+    "scripts/verify/standalone_freeze_verifier.py",
+    "scripts/provenance/capture_golden_baselines.py",
+    "scripts/corpus/generate_oracle_from_kernel.py",
+    "scripts/corpus/generate_shapes_and_contract.py",
+    "scripts/provenance/compute_release_planning_gate.py",
+    "scripts/verify/resolve_upstream_entrypoints.py",
+    "scripts/provenance/census_source_provenance.py",
+    "scripts/corpus/validate_corpus_consistency.py",
+    "scripts/corpus/validate_tasks.py",
+    "scripts/provenance/verify_upstream_commit_chain.py",
+    "scripts/provenance/verify_version_matrix.py",
 ]
 
 _ORCH_REFS = re.compile(r"\bfrom automation\b|\bimport automation\b|scripts\.automation|\btab_automation\b")
@@ -257,14 +259,14 @@ def test_ci_bench_core_single_direction_grep_matches_step_logic():
     """
     paths = [
         "ascendbench/",
-        "scripts/validate_tasks.py",
-        "scripts/phase_a_prime.py",
-        "scripts/phase_b_golden_capture.py",
-        "scripts/resolve_upstream_entrypoints.py",
-        "scripts/phase_a_cost_xcheck.py",
-        "scripts/verify_version_matrix.py",
-        "scripts/phase_a_freeze.py",
-        "scripts/phase_b_oracle.py",
+        "scripts/corpus/validate_tasks.py",
+        "scripts/verify/standalone_freeze_verifier.py",
+        "scripts/provenance/capture_golden_baselines.py",
+        "scripts/verify/resolve_upstream_entrypoints.py",
+        "scripts/perf/cross_check_cost_model_gpu.py",
+        "scripts/provenance/verify_version_matrix.py",
+        "scripts/verify/freeze_upstream_sources.py",
+        "scripts/corpus/generate_oracle_from_kernel.py",
     ]
     cmd = [
         "grep",

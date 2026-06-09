@@ -9,7 +9,6 @@ Source path: `sglang/srt/lora/triton_ops/qkv_lora_b.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 151793ef5fbd2910c1e5ffe6d95d6d6f48df73a6459d17239526ab83dac39191
-Frozen by: scripts/phase_a_freeze.py
 """
 
 import torch

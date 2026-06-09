@@ -9,7 +9,6 @@ Source path: `vllm/model_executor/layers/fla/ops/wy_fast.py`
 Upstream repo: vLLM
 Commit SHA: 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19
 File SHA-256 (this vendored copy): c9fc8259db0a8746dc04f1d799cb73333457118cf89a0bdce8dde8a80a28cd96
-Frozen by: scripts/phase_a_freeze.py
 """
 
 # SPDX-License-Identifier: Apache-2.0

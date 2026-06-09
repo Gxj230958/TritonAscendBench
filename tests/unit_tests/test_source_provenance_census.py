@@ -17,7 +17,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from scripts.source_provenance_census import (
+from scripts.provenance.census_source_provenance import (
     _CATEGORY_RISK,
     _classify_tolerance_source,
     _gpu_skip_in_text,
@@ -134,7 +134,7 @@ def test_census_task_basic_fields(tmp_path):
     }
     td = _write_meta(tmp_path, meta)
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         return_value=True,
     ):
         rec = census_task(td)
@@ -196,7 +196,7 @@ def test_census_task_kernel_with_gpu_skip_pattern_reports_it(tmp_path):
 
 def test_census_on_real_corpus_task_l1_12_rms_norm():
     """L1_12_rms_norm is category=norm -> HIGH risk."""
-    from scripts.source_provenance_census import census_task as ct, TASKS_ROOT
+    from scripts.provenance.census_source_provenance import census_task as ct, TASKS_ROOT
 
     td = TASKS_ROOT / "level1" / "L1_12_rms_norm"
     if not td.is_dir():

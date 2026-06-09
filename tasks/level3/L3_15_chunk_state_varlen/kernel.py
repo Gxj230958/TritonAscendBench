@@ -9,7 +9,6 @@ Source path: `sglang/srt/layers/attention/mamba/ops/ssd_chunk_state.py`
 Upstream repo: SGLang
 Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): dc2fed284d4fba3328b45e531a21ce61e94bc5895470acaa9a5ceb1a0fed1d24
-Frozen by: scripts/phase_a_freeze.py
 """
 import math
 import torch

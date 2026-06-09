@@ -2,7 +2,7 @@
 
 > v0 — per v4.13 Phase 1.4 + R7-6
 
-Categories of failures when `scripts/extract_kernel.py` tries to pull a kernel from `infer/vllm` or `infer/sglang` upstream.
+Categories of failures when `scripts/internal/extract_upstream_kernel.py` tries to pull a kernel from `infer/vllm` or `infer/sglang` upstream.
 
 | Failure | Cause | Resolution |
 |---------|-------|-----------|
@@ -18,7 +18,7 @@ Categories of failures when `scripts/extract_kernel.py` tries to pull a kernel f
 ## Resolution Workflow
 
 ```
-1. python scripts/extract_kernel.py --task L1_xx --from infer/vllm
+1. python scripts/internal/extract_upstream_kernel.py --task L1_xx --from infer/vllm
 2. If extraction fails:
    - Categorize per taxonomy above
    - Write resolution note to tasks/_extraction_log/L1_xx.md

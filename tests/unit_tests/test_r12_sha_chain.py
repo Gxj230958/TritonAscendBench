@@ -21,7 +21,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from scripts.verify_upstream_commit_chain import (
+from scripts.provenance.verify_upstream_commit_chain import (
     VERDICT_BACKLOG,
     VERDICT_EXCLUDED_SNAPSHOT,
     VERDICT_NEEDS_MANUAL,
@@ -88,7 +88,7 @@ def test_missing_test_capture_sha_returns_no_test_verdict(tmp_path):
     isn't written -> NO_TEST_CAPTURE_SHA (not a failure)."""
     td = _write_task(tmp_path, commit_sha="a" * 40, test_capture_sha=None)
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         return_value=True,
     ):
         v = verify_task(td)
@@ -101,7 +101,7 @@ def test_missing_test_capture_sha_reports_kernel_reachability(tmp_path):
     is reported so callers can surface unreachable-upstream cases."""
     td = _write_task(tmp_path, commit_sha="a" * 40, test_capture_sha=None)
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         return_value=False,
     ):
         v = verify_task(td)
@@ -118,7 +118,7 @@ def test_matching_shas_both_reachable_returns_verified(tmp_path):
     sha = "1234567890" * 4  # 40 chars
     td = _write_task(tmp_path, commit_sha=sha, test_capture_sha=sha)
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         return_value=True,
     ):
         v = verify_task(td)
@@ -137,7 +137,7 @@ def test_diverging_shas_both_reachable_returns_needs_manual(tmp_path):
     test = "2" * 40
     td = _write_task(tmp_path, commit_sha=kernel, test_capture_sha=test)
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         return_value=True,
     ):
         v = verify_task(td)
@@ -161,7 +161,7 @@ def test_diverging_shas_one_unreachable_returns_backlog(tmp_path):
         return sha == kernel  # only kernel sha is reachable
 
     with patch(
-        "scripts.verify_upstream_commit_chain._git_object_reachable",
+        "scripts.provenance.verify_upstream_commit_chain._git_object_reachable",
         side_effect=fake_reach,
     ):
         v = verify_task(td)
