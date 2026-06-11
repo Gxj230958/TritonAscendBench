@@ -1,5 +1,7 @@
 # Task API Contract
 
+> 中文版：[../zh/reference/task_api_contract.md](../zh/reference/task_api_contract.md)
+
 > Authoritative scoring model: `docs/DESIGN.md §4` (two-objective — correctness gate + 910B Roofline-normalized performance). GPU-Triton → 910B NPU-Triton migration; no AscendC baseline.
 
 

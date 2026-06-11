@@ -1,5 +1,7 @@
 # Reward Hacking by-Design Defense
 
+> 中文版：[../zh/reference/reward_hack_defense.md](../zh/reference/reward_hack_defense.md)
+
 > Principle IDs (`§5b.N`) are this catalogue's own stable numbering.
 
 ## Core Principle

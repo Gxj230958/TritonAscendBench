@@ -1,5 +1,7 @@
 # TritonAscendBench — Architecture
 
+> 中文版：[zh/ARCHITECTURE.md](zh/ARCHITECTURE.md)
+
 How TAB is built and how an evaluation flows: the "how it works" companion to
 the [README](../README.md).
 

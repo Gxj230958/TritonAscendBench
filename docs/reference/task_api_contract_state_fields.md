@@ -1,5 +1,7 @@
 # Task State Fields — bench-written meta.yaml state machine
 
+> 中文版：[../zh/reference/task_api_contract_state_fields.md](../zh/reference/task_api_contract_state_fields.md)
+
 > Full schema + writer/state-machine narrative for the bench-written
 > `meta.yaml` state fields. The task contract (`task_api_contract.md` §6a)
 > carries the thin read-only field reference; this document holds the

@@ -1,5 +1,7 @@
 # TritonAscendBench — Design Rationale & Scoring Model
 
+> 中文版：[zh/DESIGN.md](zh/DESIGN.md)
+
 > What TAB measures, and why. For the machine-facing scoring detail see
 > [`docs/reference/scoring_spec.md`](reference/scoring_spec.md); this document
 > is the design rationale that spec implements.

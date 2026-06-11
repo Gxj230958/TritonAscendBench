@@ -1,5 +1,7 @@
 # Correctness Model
 
+> 中文版：[../zh/reference/correctness_model.md](../zh/reference/correctness_model.md)
+
 How TritonAscendBench decides an operator's output is **correct** — the
 precision-alignment standard a ported kernel is graded against, and the error
 models that justify each tolerance.

@@ -1,5 +1,7 @@
 # AST Denylist / Allowlist
 
+> 中文版：[../zh/reference/ast_denylist.md](../zh/reference/ast_denylist.md)
+
 ## Strategy
 
 **Positive AST node allowlist** + **dynamic AttrLookup denylist** + **runtime import hook**.

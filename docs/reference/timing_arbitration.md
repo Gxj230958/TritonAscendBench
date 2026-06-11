@@ -1,5 +1,7 @@
 # Timing Arbitration Spec
 
+> 中文版：[../zh/reference/timing_arbitration.md](../zh/reference/timing_arbitration.md)
+
 
 ## Authoritative Timing Source
 

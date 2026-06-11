@@ -1,5 +1,7 @@
 # TritonAscendBench (TAB)
 
+> 中文版：[README.zh.md](README.zh.md)
+
 > A **Migration Benchmark** for porting GPU Triton kernels to Huawei Ascend 910B via `triton-ascend`.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)

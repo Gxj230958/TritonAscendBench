@@ -1,5 +1,7 @@
 # Submission Throttling + Sybil Detection
 
+> 中文版：[../zh/reference/submission_throttling.md](../zh/reference/submission_throttling.md)
+
 ## Rate Limits (Per Task Per Org Identity)
 
 | Mode | Limit |

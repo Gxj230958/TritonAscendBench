@@ -1,5 +1,7 @@
 # Extraction Failure Taxonomy
 
+> 中文版：[../zh/reference/extraction_failure_taxonomy.md](../zh/reference/extraction_failure_taxonomy.md)
+
 Categories of failures when `scripts/internal/extract_upstream_kernel.py` tries to pull a kernel from `infer/vllm` or `infer/sglang` upstream.
 
 | Failure | Cause | Resolution |

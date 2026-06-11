@@ -1,5 +1,7 @@
 # Tolerance Policy
 
+> 中文版：[../zh/reference/tolerance_policy.md](../zh/reference/tolerance_policy.md)
+
 > Authoritative scoring model: `docs/DESIGN.md §4`. GPU-Triton → 910B NPU-Triton migration; no AscendC baseline. Tolerance classes here gate **correctness** only; S2 equivalence uses strict bit-exact, not these classes.
 
 

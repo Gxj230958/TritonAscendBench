@@ -1,5 +1,7 @@
 # Artifact Provenance (Broker Model)
 
+> 中文版：[../zh/reference/artifact_provenance.md](../zh/reference/artifact_provenance.md)
+
 > Verified-runner deployment design — future work (`docs/DESIGN.md §6`). The
 > shipped layer ignores submitter-provided binary artifacts and enforces
 > source-level static checks (`ascendbench/integrity/static_checker.py`).

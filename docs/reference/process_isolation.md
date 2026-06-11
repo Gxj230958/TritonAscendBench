@@ -1,5 +1,7 @@
 # Process Isolation Architecture
 
+> 中文版：[../zh/reference/process_isolation.md](../zh/reference/process_isolation.md)
+
 > Two isolation layers. The **shipped** dev-runnable layer
 > (`ascendbench/integrity/process_isolation.py`) enforces the host-independent
 > subset on any machine: subprocess isolation, safetensors-only ABI, and
