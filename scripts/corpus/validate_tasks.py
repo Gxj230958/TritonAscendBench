@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """validate_tasks.py -- schema validator for every task in tasks/.
 
-Per specs/task_api_contract.md §5-7 + R14-P1-2.
+Per docs/reference/task_api_contract.md §5-7 + .
 
 Checks:
 - All 6 mandatory files present
@@ -15,7 +15,7 @@ Checks:
 - kernel.py exports the resolved gpu_triton entrypoint (phase-aware)
 - upstream_oracle_required tasks: a complete golden/ artifact set is required
 - runner_checks.metamorphic_checks names are in the known-check registry
-- cost_model schema + formula evaluability (W1.2)
+- cost_model schema + formula evaluability
 - param_constraints required + schema-shape valid (WA.1; canary tasks exempt)
 - file_sha256 matches the on-disk kernel.py if set
 
@@ -74,16 +74,16 @@ REQUIRED_META_TOP_LEVEL = {
     "upstream", "interface", "oracle", "tolerance_class",
     "oracle_simplified", "runner_checks",
     "is_canary", "is_hidden_only",   # `in_s_native` removed (no AscendC)
-    # W1.2 / R1-4: `cost_model` is a required top-level key — a missing block
+    #  / : `cost_model` is a required top-level key — a missing block
     # is a validation error. The red→green transition for the full corpus is
     # carried by this validator layer (Phase 1-2 the corpus validator is red
-    # until W3.1 backfills all 100 tasks' cost_model). The dataset *loader*
+    # until  backfills all 100 tasks' cost_model). The dataset *loader*
     # stays backward compatible (`TaskDef.cost_model = None` on a missing
     # block) so shared loader paths are not broken — the two layers do not
     # contradict: only `validate_tasks` enforces presence.
     "cost_model",
     # WA.1: `param_constraints` (the operator input contract, six subsections
-    # — `specs/task_api_contract.md §5.2`) is a required top-level key, with
+    # — `docs/reference/task_api_contract.md §5.2`) is a required top-level key, with
     # the SAME loader-lenient / validator-strict split as `cost_model`. A
     # missing block is a validation error. `is_canary` tasks are EXEMPT —
     # `_param_constraints_required` removes the key for them before the
@@ -95,7 +95,7 @@ REQUIRED_META_TOP_LEVEL = {
 # `param_constraints` is required for every real task EXCEPT canary tasks
 # (`is_canary: true`) — a canary reuses its source task's solution, is a
 # deliberately-crafted trap, and is never score-eligible. Removing the key
-# from the required set for canaries keeps the W2.5 canary detection chain
+# from the required set for canaries keeps the  canary detection chain
 # open. Every other top-level key in `REQUIRED_META_TOP_LEVEL` stays required.
 _CANARY_EXEMPT_REQUIRED_KEYS = frozenset({"param_constraints"})
 
@@ -113,18 +113,18 @@ PLACEHOLDER_PATTERNS = ("<frozen-snapshot>", "<TBD>", "<set-by-", "<fill-after-"
 
 # `meta.oracle.gpu_triton` carries this sentinel until the dual-anchor
 # resolver / phase_a_prime fills the verified upstream entrypoint
-# (specs/task_api_contract.md §2). While it is still the placeholder the
+# (docs/reference/task_api_contract.md §2). While it is still the placeholder the
 # kernel-export check only validates the field FORMAT -- it does not yet
 # require kernel.py to export anything (otherwise the 94/100 unresolved
 # tasks would all false-positive). See `_validate_kernel_export`.
 GPU_TRITON_PLACEHOLDER = "kernel.py::placeholder"
 
 # High-level torch ops forbidden in the body of an `upstream_oracle_required`
-# oracle (specs/task_api_contract.md §6, L195). Such a task's oracle must be
+# oracle (docs/reference/task_api_contract.md §6, L195). Such a task's oracle must be
 # expanded into low-level primitives -- a one-line `F.softmax` would make the
 # oracle an *independent* (and possibly diverging) truth source.
 #
-# The check is AST-based and **alias-resolving** (W2.3 / R9-3): it parses the
+# The check is AST-based and **alias-resolving** : it parses the
 # module's `import` / `from ... import` statements to map every local name to
 # its canonical dotted path, then resolves each *call*'s function to a
 # canonical `torch...`-rooted symbol. A high-level op is therefore caught no
@@ -135,7 +135,7 @@ GPU_TRITON_PLACEHOLDER = "kernel.py::placeholder"
 # no high-level call is still fine (L1_13 / L1_14 import F but hand-roll the
 # math).
 #
-# R12-1: the high-level-op family covers BOTH forms of every op — the
+# : the high-level-op family covers BOTH forms of every op — the
 # lowercase `torch.nn.functional` *function* (`silu`) AND the Capitalised
 # `torch.nn` *nn.Module class* (`SiLU`). The latter is invoked as a
 # construct-then-call expression — `torch.nn.SiLU()(x)`,
@@ -156,7 +156,7 @@ _HIGH_LEVEL_OP_NAMES = frozenset({
 })
 
 # Capitalised `torch.nn` *module/class* leaves — the `nn.Module` form of the
-# same high-level ops (R12-1). `torch.nn.SiLU()(x)` is semantically identical
+# same high-level ops . `torch.nn.SiLU()(x)` is semantically identical
 # to `torch.nn.functional.silu(x)`: both are forbidden in an
 # `upstream_oracle_required` oracle body. The detection covers the
 # construct-then-call pattern `torch.nn.SiLU()(x)` and import aliases
@@ -175,11 +175,11 @@ _HIGH_LEVEL_OP_MODULES = frozenset({
     "torch.nn.functional",
 })
 
-# specs/task_api_contract.md §6a.3 — canonical dotted Python module path
+# docs/reference/task_api_contract.md §6a.3 — canonical dotted Python module path
 # (non-empty sequence of valid Python identifiers separated by single dots).
-# Same pattern the patch validator (`scripts/automation/lib/file_blocks.py`)
-# enforces at write time; pre-compiled so the post-write corpus validator
-# does not regress to a different shape.
+# Same pattern the bench-internal write-guard enforces at write time;
+# pre-compiled so the post-write corpus validator does not regress to a
+# different shape.
 _CANONICAL_DOTTED_PATH_RE = re.compile(
     r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$"
 )
@@ -219,7 +219,7 @@ _HIGH_LEVEL_NN_CLASS_MODULES = frozenset({
 })
 
 # Known metamorphic-transformation check names. The authoritative registry
-# lives in `ascendbench.integrity.adversarial.KNOWN_METAMORPHIC_CHECKS` (W2.4)
+# lives in `ascendbench.integrity.adversarial.KNOWN_METAMORPHIC_CHECKS`
 # and is imported above — `validate_tasks` owns only the *validation* of
 # `meta.runner_checks.metamorphic_checks` against that single source of
 # truth, no longer a local bootstrap copy.
@@ -257,7 +257,7 @@ def _shapes_knob_names(task_dir: Path) -> set[str]:
 def _validate_cost_model(tid: str, meta: dict, task_dir: Path) -> list[str]:
     """Validate ``meta.yaml.cost_model``.
 
-    R1-4: ``cost_model`` is a **required** top-level key — its absence is
+    : ``cost_model`` is a **required** top-level key — its absence is
     already reported by the :data:`REQUIRED_META_TOP_LEVEL` check (Step 2).
     This function only validates the block when present: schema (scalar /
     map form, with the scalar form's required companion ``flops_class`` /
@@ -286,7 +286,7 @@ def _validate_param_constraints(tid: str, meta: dict) -> list[str]:
     Checks only the **shape** of the operator input contract: that the block
     is a mapping, that every key is one of the six known subsections, and
     that each present subsection has the right container type and the coarse
-    per-element structure (`specs/task_api_contract.md §5.2`). The
+    per-element structure (`docs/reference/task_api_contract.md §5.2`). The
     five-subsection *semantic* checks — ``dims`` predicates against the knob
     universe, materialised-tensor ``tensor_invariants``, etc. — are run by
     :func:`_validate_param_constraints_semantic` (WA.4).
@@ -402,7 +402,7 @@ def _module_exports(src: str, name: str) -> bool:
 
 
 def _resolve_import_aliases(tree: ast.AST) -> dict[str, str]:
-    """Map every locally-bound name to its canonical dotted path (R9-3).
+    """Map every locally-bound name to its canonical dotted path .
 
     Walks the module's ``import`` / ``from ... import`` statements so a
     call's function can later be resolved to a canonical ``torch...``
@@ -475,7 +475,7 @@ def _canonical_call_path(fn: ast.AST, aliases: dict[str, str]) -> str | None:
 def _is_high_level_canonical(canonical: str) -> bool:
     """True if a canonical ``torch``-rooted path names a high-level op.
 
-    Covers both op forms (R12-1):
+    Covers both op forms :
 
     * lowercase ``torch.nn.functional`` / ``torch`` *function* leaf —
       ``torch.nn.functional.silu``, ``torch.softmax``;
@@ -496,7 +496,7 @@ def _is_high_level_canonical(canonical: str) -> bool:
 def _high_level_oracle_ops(src: str) -> list[str]:
     """Return any forbidden high-level torch ops *called* in an oracle body.
 
-    AST-based and **alias-resolving** (R9-3 / R12-1): every ``import`` is
+    AST-based and **alias-resolving** : every ``import`` is
     parsed into a canonical-path alias map, then each ``Call`` is resolved
     to a canonical ``torch``-rooted dotted path. A call is a forbidden
     high-level op when its canonical path names one of the high-level op
@@ -509,7 +509,7 @@ def _high_level_oracle_ops(src: str) -> list[str]:
       lowercase function: ``F.silu(x)``, ``torch.softmax(x)``,
       ``import torch.nn.functional as G; G.silu(x)``,
       ``from torch.nn.functional import silu as s; s(x)``.
-    * **module/class form** (R12-1) — the call's ``func`` is *itself a
+    * **module/class form**  — the call's ``func`` is *itself a
       ``Call``* (the ``nn.Module`` constructor), i.e. the
       construct-then-call expression ``torch.nn.SiLU()(x)`` or
       ``from torch.nn import SiLU as S; S()(x)``. The constructor's own
@@ -517,7 +517,7 @@ def _high_level_oracle_ops(src: str) -> list[str]:
       ``torch.nn`` class family.
 
     A bare ``import torch.nn.functional`` with no high-level call still
-    does not trip the check (specs/task_api_contract.md §6 / L195).
+    does not trip the check (docs/reference/task_api_contract.md §6 / L195).
     """
     try:
         tree = ast.parse(src)
@@ -533,7 +533,7 @@ def _high_level_oracle_ops(src: str) -> list[str]:
         if canonical is not None and _is_high_level_canonical(canonical):
             hits.append(canonical)
             continue
-        # Module/class form (R12-1): `torch.nn.SiLU()(x)` — the outer
+        # Module/class form : `torch.nn.SiLU()(x)` — the outer
         # call's func is the constructor Call `torch.nn.SiLU()`. Resolve
         # the constructor's own func and check the nn.Module class family.
         if isinstance(node.func, ast.Call):
@@ -664,9 +664,9 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
 def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
     """golden/ layout completeness for upstream_oracle_required tasks.
 
-    R4-3: an `upstream_oracle_required` task has NO PyTorch oracle that
+    : an `upstream_oracle_required` task has NO PyTorch oracle that
     can serve as golden — its only golden source is the offline-collected
-    `golden/<shape_id>.safetensors` artifact set (W4.3 Phase-4 GPU
+    `golden/<shape_id>.safetensors` artifact set ( Phase-4 GPU
     capture). This is the static "missing provider golden" gate: such a
     task MUST ship a complete `golden/` directory covering every public +
     hidden eval shape. A missing `golden/` directory, or a `golden/` that
@@ -675,8 +675,8 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
     This is NOT phase-gated on the directory's prior existence (the old
     "validate only if golden/ exists" rule let a task that NEVER produced
     a `golden/` validate clean forever — the promised static gate would
-    then be absent). Like R1-4's `cost_model` requirement: the full
-    corpus is expected RED on this check until W4.3 Phase 4 collects the
+    then be absent). Like 's `cost_model` requirement: the full
+    corpus is expected RED on this check until  Phase 4 collects the
     artifacts; the validator layer carries that red→green transition.
 
     The golden requirement applies ONLY to **score-eligible**
@@ -720,21 +720,21 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
 
     golden_dir = task_dir / "golden"
     if not golden_dir.is_dir():
-        # R4-3: a `golden/` directory is REQUIRED for an
+        # : a `golden/` directory is REQUIRED for an
         # `upstream_oracle_required` task — its absence is the "missing
-        # provider golden" error, no longer a silently-clean pre-W4.3
+        # provider golden" error, no longer a silently-clean pre-
         # state.
         errs.append(
             f"{tid}: upstream_oracle_required task has no golden/ "
             f"directory (the offline upstream-kernel golden is the only "
             f"golden source for this tier — a complete "
             f"golden/<shape_id>.safetensors set is required; collected by "
-            f"W4.3 Phase 4)"
+            f" Phase 4)"
         )
         return errs
 
-    # R7-2: an artifact must be USABLE, not merely present. Reuse the
-    # shared `eligibility.golden_artifact_usable` predicate (R4-2) — the
+    # : an artifact must be USABLE, not merely present. Reuse the
+    # shared `eligibility.golden_artifact_usable` predicate  — the
     # exact "exists AND safetensors loads" check `eval._resolve_golden`
     # and `eligibility.golden_complete` apply at runtime. A bare
     # `is_file()` check let a corrupt / truncated / text-pasted
@@ -756,7 +756,7 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
 
 
 def _validate_release_scope(tid: str, meta: dict) -> list[str]:
-    """`release_scope` block shape (specs/task_api_contract.md §6a.5).
+    """`release_scope` block shape (docs/reference/task_api_contract.md §6a.5).
 
     Absent / well-formed blocks pass. When ``release_scope.excluded`` is
     ``True``:
@@ -812,7 +812,7 @@ def _validate_release_scope(tid: str, meta: dict) -> list[str]:
 def _validate_phase_a_skip_invocation(tid: str, meta: dict) -> list[str]:
     """`phase_a_prime.skip_invocation` cross-field invariants.
 
-    specs/task_api_contract.md §6a.1 + §6a.6 #1:
+    docs/reference/task_api_contract.md §6a.1 + §6a.6 #1:
 
       ``skip_invocation == true``
           ⇒ ``status == "SKIPPED_BY_DESIGN"``
@@ -868,7 +868,7 @@ def _validate_phase_a_skip_invocation(tid: str, meta: dict) -> list[str]:
 def _validate_phase_b_capture(tid: str, meta: dict) -> list[str]:
     """`phase_b_capture` block shape + cross-field invariants.
 
-    specs/task_api_contract.md §6a.3 + §6a.6 #3/#4:
+    docs/reference/task_api_contract.md §6a.3 + §6a.6 #3/#4:
 
     * ``status`` ∈ {``PENDING``, ``DONE``, ``FAILED``};
     * ``DONE`` ⇒ ``upstream_callable.module`` is a canonical dotted
@@ -966,7 +966,7 @@ def _validate_metamorphic_checks(tid: str, meta: dict) -> list[str]:
 
     Each declared check name (string item, or dict item's ``name``) must be a
     member of :data:`KNOWN_METAMORPHIC_CHECKS`. An unknown name is rejected at
-    validation time rather than silently skipped at runtime (the W2.4 runtime
+    validation time rather than silently skipped at runtime (the  runtime
     path can only execute checks it has a transformation for).
     """
     rc = meta.get("runner_checks") or {}
@@ -992,7 +992,7 @@ def _validate_metamorphic_checks(tid: str, meta: dict) -> list[str]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Canary task validation (W2.5 — dedicated `_canary` entry point)
+# Canary task validation ( — dedicated `_canary` entry point)
 # ─────────────────────────────────────────────────────────────────────────────
 # The main scan walks ONLY `tasks/level{1,2,3}/` (and skips every `_`-prefixed
 # dir). A malformed canary would therefore have no static gate at all — so
@@ -1005,7 +1005,7 @@ CANARY_REQUIRED_FILES = {
     "meta.yaml", "shapes.yaml", "contract.md", "oracle_pytorch.py",
 }
 
-# Canary-only meta keys (W2.5 canary schema), on top of a small shared core.
+# Canary-only meta keys ( canary schema), on top of a small shared core.
 CANARY_REQUIRED_META = {
     "schema_version", "task_id", "level", "name",
     "tolerance_class", "oracle_simplified", "oracle",
@@ -1013,7 +1013,7 @@ CANARY_REQUIRED_META = {
     "canary_trap_type", "source_task_id", "expected_honest_pass",
 }
 
-# The 10 canary trap classes (DESIGN §8 / specs/canary_task_design.md).
+# The 10 canary trap classes (DESIGN.md).
 VALID_CANARY_TRAP_TYPES = {
     "identity_hack", "zero_out_hack", "cache_reuse_hack",
     "non_default_stream_hack", "torch_fallback_hack", "shape_route_hack",
@@ -1040,7 +1040,7 @@ def validate_canary_task(
 ) -> list[str]:
     """Validate one `tasks/_canary/<canary_id>/` against the canary schema.
 
-    Checks (W2.5):
+    Checks :
       * the canary required files are present (no `kernel.py` — a canary has
         no own solution);
       * meta.yaml carries every canary-schema key;
@@ -1126,7 +1126,7 @@ def validate_canary_task(
 
 
 def run_canary_validation(strict: bool) -> list[str]:
-    """Validate every canary under `tasks/_canary/` — the W2.5 entry point."""
+    """Validate every canary under `tasks/_canary/` — the  entry point."""
     if not CANARY_ROOT.is_dir():
         return []
     policy_classes = _load_policy_classes()
@@ -1218,7 +1218,7 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     if "@triton.jit" not in kernel_text:
         errs.append(f"{tid}: kernel.py contains no @triton.jit")
 
-    # Step 7b: cost_model schema + formula check (W1.2). Optional pre-W3.1;
+    # Step 7b: cost_model schema + formula check . Optional pre-;
     # validated strictly when present. Accepts both the scalar and the map
     # form for `flops` / `bytes`; confirms every formula is parseable and
     # evaluable under the shared cost_model evaluator.
@@ -1236,34 +1236,34 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # `dims` predicates, `dtypes` / `dists` agreement, `scalars` value
     # domains and materialised-tensor `tensor_invariants` are enforced here.
     # `is_canary` tasks are exempt (canary reuses its source solution and is
-    # never score-eligible — keeps the W2.5 canary detection chain open).
+    # never score-eligible — keeps the  canary detection chain open).
     if meta.get("is_canary") is not True:
         errs.extend(
             _validate_param_constraints_semantic(tid, meta, task_dir))
 
-    # Step 7c: oracle_pytorch.py / contract.md consistency (W2.3). oracle
+    # Step 7c: oracle_pytorch.py / contract.md consistency . oracle
     # exports `run`; contract.md references the task id; an
     # upstream_oracle_required oracle body has no high-level torch ops.
     errs.extend(_validate_oracle_and_contract(tid, meta, task_dir))
 
-    # Step 7d: kernel.py exports the resolved gpu_triton entrypoint (W2.3),
+    # Step 7d: kernel.py exports the resolved gpu_triton entrypoint ,
     # PHASE-AWARE -- format-only while gpu_triton is still the placeholder.
     errs.extend(_validate_kernel_export(tid, meta, task_dir))
 
     # Step 7e: golden/ layout completeness for SCORE-ELIGIBLE
-    # upstream_oracle_required tasks (W2.3). A non-score-eligible
+    # upstream_oracle_required tasks . A non-score-eligible
     # upstream_oracle_required task (stub oracle / PHASE-C-MANUAL) has no
     # capturable offline golden and is exempt.
     errs.extend(_validate_golden(tid, meta, task_dir))
 
     # Step 7f: metamorphic_checks names must be in the known-check registry
-    # (W2.3). The authoritative registry is built later by W2.4.
+    # . The authoritative registry is built later by .
     errs.extend(_validate_metamorphic_checks(tid, meta))
 
     # Step 7g: bench-team-internal §6a state fields. All four blocks are
     # OPTIONAL with explicit defaults — the 100-task corpus has
     # none of them and stays clean. When present, the shape /
-    # cross-field invariants from specs/task_api_contract.md §6a.5 / §6a.1 /
+    # cross-field invariants from docs/reference/task_api_contract.md §6a.5 / §6a.1 /
     # §6a.3 are enforced (the patch validator gates writes at Layer 5;
     # these checks defend against any malformed block that bypassed it).
     # `release_scope.excluded == true` does NOT short-circuit `validate_task`
@@ -1420,7 +1420,7 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
         )
         return 2
 
-    # W1.5: composite release predicate -- shared with cli.py analyze
+    # : composite release predicate -- shared with cli.py analyze
     # and phase_a_prime.py's S6 verdict (identical blocking set).
     from ascendbench.release_gate.eligibility import compute_release_blocking
 
@@ -1464,7 +1464,7 @@ def main() -> int:
     parser.add_argument(
         "--canary", action="store_true",
         help="Validate ONLY the `tasks/_canary/` trap tasks against the "
-             "canary schema (W2.5). The main scan walks only level1/2/3, so "
+             "canary schema . The main scan walks only level1/2/3, so "
              "this is the dedicated static gate for canary tasks; it also "
              "runs by default at the end of a full scan.",
     )
@@ -1474,7 +1474,7 @@ def main() -> int:
         return run_release_gate()
 
     if args.canary:
-        # Dedicated canary-only mode (W2.5).
+        # Dedicated canary-only mode .
         canary_errs = run_canary_validation(args.strict)
         if canary_errs:
             print(f"\n{len(canary_errs)} canary validation error(s)",
@@ -1502,7 +1502,7 @@ def main() -> int:
             if args.strict and errs:
                 return 1
 
-    # W2.5: a full scan (no `--task` filter) also validates the `_canary`
+    # : a full scan (no `--task` filter) also validates the `_canary`
     # trap tasks — malformed canaries must not slip past the static gate.
     if not args.task:
         all_errs.extend(run_canary_validation(args.strict))

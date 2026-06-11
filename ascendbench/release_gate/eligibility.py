@@ -47,7 +47,7 @@ def is_score_eligible(task: _TaskLike) -> bool:
       * ``meta.yaml.release_scope.excluded`` is ``True`` — the
         orchestrator has explicitly marked the task unfixable by the
         LLM patch flow and removed it from release scoring
-        (``specs/task_api_contract.md`` §6a.5). The task still exists
+        (``docs/reference/task_api_contract.md`` §6a.5). The task still exists
         in the corpus (no subset escape — the denominator is NOT
         reduced by silently dropping the task here; the eligibility
         gate alone subtracts it from the scored set).
@@ -82,11 +82,11 @@ def compute_score_eligible(tasks: Iterable[_TaskLike]) -> set[str]:
     return {t.task_id for t in tasks if is_score_eligible(t)}
 
 
-# ── W4.3 ④: self-reported analyze-denominator authority ──────────────
+# ──  ④: self-reported analyze-denominator authority ──────────────
 #
 # `meta.yaml.oracle_simplified == "upstream_oracle_required"` marks a
 # task whose golden output can only come from running the frozen
-# upstream kernel offline (`specs/task_api_contract.md` §oracle_simplified
+# upstream kernel offline (`docs/reference/task_api_contract.md` §oracle_simplified
 # enum). In `self-reported` mode the verified runner has no provider
 # golden for such a task, so it is `task_status = unsupported` and is
 # excluded from that mode's scored denominator.
@@ -112,17 +112,17 @@ def compute_upstream_oracle_required(tasks: Iterable[_TaskLike]) -> set[str]:
 
     Derived purely from trusted repo ``meta`` — this is the fixed set
     ``cli.py analyze`` subtracts from the score-eligible set to obtain the
-    ``self-reported`` denominator (W4.3 ④). It is intentionally NOT
+    ``self-reported`` denominator ( ④). It is intentionally NOT
     influenced by any submission-reported ``task_status``.
     """
     return {t.task_id for t in tasks if is_upstream_oracle_required(t)}
 
 
-# ── W4.3 (R3-2 / R4-2): verified-mode offline-golden completeness ─────
+# ──  : verified-mode offline-golden completeness ─────
 #
 # In `verified` mode an `upstream_oracle_required` task is graded against
 # the offline `golden/<shape_id>.safetensors` artifacts (collected on the
-# GPU machine in W4.3 Phase 4). When that artifact set is missing or does
+# GPU machine in  Phase 4). When that artifact set is missing or does
 # not cover every eval shape (public AND hidden), the task cannot be
 # graded — it is fail-closed `task_status = "blocked"`.
 #
@@ -130,7 +130,7 @@ def compute_upstream_oracle_required(tasks: Iterable[_TaskLike]) -> set[str]:
 # the golden files), never from a submission-reported `task_status`, so a
 # hand-edited result cannot fake an "evaluated"/"blocked" verdict.
 #
-# R4-2: the "golden usable" predicate below is the SINGLE shared check
+# : the "golden usable" predicate below is the SINGLE shared check
 # both `eligibility` (`golden_complete` / `compute_verified_blocked`) and
 # `eval._resolve_golden` consume verbatim. Both must agree on whether a
 # task's golden is loadable — a path-exists-only check in one and a
@@ -142,7 +142,7 @@ def compute_upstream_oracle_required(tasks: Iterable[_TaskLike]) -> set[str]:
 
 
 def golden_artifact_usable(path) -> bool:
-    """True iff ``path`` is a usable offline-golden artifact (R4-2).
+    """True iff ``path`` is a usable offline-golden artifact .
 
     The single shared "golden usable" predicate: the file must exist AND
     ``safetensors.torch.load_file`` must read it without raising. A
@@ -302,7 +302,7 @@ def golden_complete(task: _TaskLike) -> bool:
 
     Reads ``shapes.yaml`` to enumerate the public + hidden shape ids and
     checks ``tasks/.../golden/<shape_id>.safetensors`` exists AND is
-    loadable for each (R4-2: the same usability check ``eval`` applies, so
+    loadable for each (: the same usability check ``eval`` applies, so
     the two cannot disagree). An empty / missing shape set, a missing
     ``golden/`` directory, or any missing / corrupt artifact returns
     ``False``. Any OS error is treated as incomplete (conservative,
@@ -323,7 +323,7 @@ def golden_complete(task: _TaskLike) -> bool:
 def compute_verified_blocked(tasks: Iterable[_TaskLike]) -> set[str]:
     """Return the set of ``task_id``s that are ``blocked`` in verified
     mode — ``upstream_oracle_required`` tasks whose offline ``golden/``
-    artifact set is missing or incomplete (W4.3 / R3-2).
+    artifact set is missing or incomplete .
 
     Derived purely from trusted repo state (the presence of the golden
     files). On the dev machine no ``golden/`` directory exists, so every
@@ -383,7 +383,7 @@ def release_status_pass(meta: dict | None) -> bool:
 
     A missing ``phase_a_prime`` block or status is treated as NOT PASS.
 
-    ``specs/task_api_contract.md`` §6a refinements:
+    ``docs/reference/task_api_contract.md`` §6a refinements:
 
     * ``phase_a_prime.status == "SKIPPED_BY_DESIGN"`` is also accepted
       as the phase A' clause — the operator cannot be invoked

@@ -3,7 +3,7 @@
 WA.4 ②(a): ``scripts/corpus/validate_tasks.py``, ``ascendbench/engine/eval.py`` and
 the ``cli.py`` repo-authoritative status resolver all consult **one** helper
 so the pass/fail verdict for an operator's input contract
-(`specs/task_api_contract.md §5.2`) cannot drift between the three.
+(`docs/reference/task_api_contract.md §5.2`) cannot drift between the three.
 
 :func:`check_param_constraints` is the single entrypoint. It returns a
 :class:`ParamConstraintsResult` — a clean ``ok`` / not-``ok`` verdict plus a
@@ -51,11 +51,11 @@ logger = logging.getLogger(__name__)
 
 
 # The five semantic `param_constraints` subsections that carry the operator
-# input contract (`specs/task_api_contract.md §5.2`).
+# input contract (`docs/reference/task_api_contract.md §5.2`).
 _SEMANTIC_SUBSECTIONS = ("dims", "dtypes", "dists", "scalars",
                          "tensor_invariants")
 
-# The six `param_constraints` subsections (`specs/task_api_contract.md §5.2`).
+# The six `param_constraints` subsections (`docs/reference/task_api_contract.md §5.2`).
 # `scaffold` is the sentinel; the other five carry the semantic contract.
 _SUBSECTIONS = (*_SEMANTIC_SUBSECTIONS, "scaffold")
 
@@ -105,15 +105,14 @@ def resolve_task_status(
     This is the SINGLE fixed-priority arbiter shared by ``cli.py``'s
     ``_authoritative_task_status`` and ``eval.evaluate``. Both must feed it
     the same trusted-repo-derived booleans so the verdict cannot drift. The
-    priority is fixed (high → low, first match wins) — `docs/plans/
-    2026-05-21-operator-param-validity-impl.md` WA.4 ②(b):
+    priority is fixed (high → low, first match wins):
 
     1. ``is_canary`` ⇒ ``evaluated``. A canary is exempt from the
        ``param_constraints`` gate (it reuses its source task's solution and
        is never score-eligible).
     2. ``self_reported_unsupported`` ⇒ ``unsupported``. A self-reported-mode
        ``upstream_oracle_required`` task has no provider golden — it is
-       deliberately out of that mode's denominator (W4.3). The
+       deliberately out of that mode's denominator . The
        ``param_constraints`` gate must **not** pull it back in as ``blocked``.
     3. ``verified_golden_incomplete`` ⇒ ``blocked``. A verified-mode task
        whose offline ``golden/`` set is missing / incomplete keeps the
@@ -225,7 +224,7 @@ def validate_schema_shape(raw: dict[str, Any], *, tid: str = "task") -> list[str
     materialised — that is :func:`_validate_semantics`.
 
     The ``scaffold`` key is **mandatory** on every block — scaffold and
-    non-scaffold alike (R7-1). It is one of the six required subsections and
+    non-scaffold alike . It is one of the six required subsections and
     is the single sentinel the generator / validator / eval gate (WA.4 /
     WA.5) all key off; a block with no ``scaffold`` key would otherwise be
     silently treated as non-scaffold and never flagged. A missing ``scaffold``
@@ -235,7 +234,7 @@ def validate_schema_shape(raw: dict[str, Any], *, tid: str = "task") -> list[str
     For a **non-scaffold** block (``scaffold`` is ``false``) the corpus must
     additionally be *schema-closed*: all five semantic subsections (``dims`` /
     ``dtypes`` / ``dists`` / ``scalars`` / ``tensor_invariants``) must be
-    present (R4-1). An empty container (``[]`` / ``{}``) is allowed — it is an
+    present . An empty container (``[]`` / ``{}``) is allowed — it is an
     *explicit* declaration that the operator carries no constraint of that
     kind — but the key itself may not be silently absent, otherwise a
     half-reconciled block ``slips`` through validation. A ``scaffold: true``
@@ -259,7 +258,7 @@ def validate_schema_shape(raw: dict[str, Any], *, tid: str = "task") -> list[str
         errs.append(f"{tid}: param_constraints has unknown subsections "
                     f"{sorted(unknown)} (allowed: {sorted(_SUBSECTIONS)})")
 
-    # R4-1 — a non-scaffold block must declare all five semantic subsections
+    #  — a non-scaffold block must declare all five semantic subsections
     # (an empty container is fine; a missing key is not — it would let a
     # half-reconciled block pass undetected).
     if raw.get("scaffold") is not True:
@@ -367,7 +366,7 @@ def validate_schema_shape(raw: dict[str, Any], *, tid: str = "task") -> list[str
                     errs.append(f"{tid}: param_constraints.tensor_invariants"
                                 f"[{i}] has unknown keys {sorted(extra)}")
 
-    # R7-1 — `scaffold` is one of the six required subsections and is the
+    #  — `scaffold` is one of the six required subsections and is the
     # single un-reconciled-draft sentinel. It must be present and boolean on
     # every block; a missing key would otherwise be silently treated as
     # non-scaffold and never reported.
@@ -440,7 +439,7 @@ def _input_specs(shapes_doc: dict[str, Any]) -> dict[str, Any]:
 # `build_inputs` (`ascendbench/input_spec/inputs.py`) dispatches on exactly these
 # keys. A tensor input carries none of them (it has `dims` and friends). The
 # `dtypes` / `dists` subsections only constrain real tensor inputs, so a
-# non-tensor input declared there is a schema misuse (R7-2 / R7-3).
+# non-tensor input declared there is a schema misuse .
 _NON_TENSOR_INPUT_KEYS = ("scalar", "derive", "scalar_seq", "scalar_knob")
 
 
@@ -469,7 +468,7 @@ def _validate_dtypes(
     input (a ``scalar`` / ``scalar_seq`` / ``derive`` / ``scalar_knob``) has no
     materialised dtype, so declaring one under ``dtypes`` is a schema misuse
     and is rejected rather than silently accepted via a default-dtype
-    fallback (R7-2).
+    fallback .
     """
     errs: list[str] = []
     inputs = _input_specs(shapes_doc)
@@ -516,7 +515,7 @@ def _validate_dists(
     constrains **tensor** inputs — a non-tensor input has no materialised
     distribution, so declaring one under ``dists`` is a schema misuse and is
     rejected rather than silently passing through a missing-``dist``
-    fallback to ``randn`` (R7-3).
+    fallback to ``randn`` .
     """
     errs: list[str] = []
     inputs = _input_specs(shapes_doc)
@@ -559,13 +558,12 @@ def _validate_scalars(
     A predicate-string rule is evaluated against a symbol table that merges
     the shape row's knobs with the materialised ``scalar`` / ``scalar_seq``
     value, so a constraint may reference knobs alongside the scalar itself —
-    e.g. ``L1_31``'s ``"sum(mrope_section) == D // 2"`` (`docs/plans/
-    2026-05-21-operator-param-validity-impl.md` WA.1). This mirrors the
+    e.g. ``L1_31``'s ``"sum(mrope_section) == D // 2"`` . This mirrors the
     knob-keyed ``dims`` predicate evaluation. A ``{derive: ...}`` rule is
     reconciled against ``shapes.yaml.inputs[name]`` by
     :func:`_validate_derive_rule` — the formula must be a legal numeric
     expression, the ``shapes.yaml`` input must itself be a ``derive`` form,
-    and the two formulas must be structurally equivalent (R1-4).
+    and the two formulas must be structurally equivalent .
     """
     errs: list[str] = []
     inputs = _input_specs(shapes_doc)
@@ -609,7 +607,7 @@ def _validate_scalars(
 def _validate_derive_rule(
     name: str, rule: dict[str, Any], spec: dict[str, Any], tid: str,
 ) -> list[str]:
-    """Reconcile a ``scalars.{name}.derive`` rule with ``shapes.yaml`` (R1-4).
+    """Reconcile a ``scalars.{name}.derive`` rule with ``shapes.yaml`` .
 
     A ``{derive: ...}`` rule in ``param_constraints.scalars`` declares that
     the scalar input is *derived* from the knobs. The validator must confirm
@@ -751,7 +749,7 @@ def _validate_tensor_invariants(
 
     The tensors are built once per representative shape row through
     :func:`ascendbench.input_spec.inputs.build_inputs`; each enumerated invariant
-    type dispatches to its checker (`specs/task_api_contract.md §5.2`).
+    type dispatches to its checker (`docs/reference/task_api_contract.md §5.2`).
     """
     errs: list[str] = []
     rows = _knob_rows(shapes_doc)

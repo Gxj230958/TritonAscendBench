@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parent.parent.parent
 
 
 def _matrix():
-    return tomllib.loads((REPO / "infra" / "version_matrix.toml").read_text())
+    return tomllib.loads((REPO / "ascendbench" / "policies" / "version_matrix.toml").read_text())
 
 
 def test_gpu_capture_section_exists_with_required_fields():
@@ -51,7 +51,7 @@ def test_pending_means_not_release_pass():
     """A pending capture value must NOT be a release-PASS. We assert
     the documented invariant text is present (S6/U7 treats pending as
     non-releasable)."""
-    raw = (REPO / "infra" / "version_matrix.toml").read_text()
+    raw = (REPO / "ascendbench" / "policies" / "version_matrix.toml").read_text()
     assert "NOT release-PASS" in raw or "not release-PASS" in raw
 
 

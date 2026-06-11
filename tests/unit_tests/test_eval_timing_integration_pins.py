@@ -1,4 +1,4 @@
-"""R1 codex-review regression tests — cross-W integration gaps.
+"""Pinned regressions: eval/timing integration gaps (cross-module).
 
 Covers the four cross-W-item gaps the R1 review found that the per-W-item
 suites did not pin:

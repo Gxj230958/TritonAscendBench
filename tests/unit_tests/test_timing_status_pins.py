@@ -1,4 +1,4 @@
-"""R2 codex-review regression tests — four MUST-FIX gaps.
+"""Pinned regressions: performance_status promotion + event-timer order.
 
 Pins the four R2 review findings so a regression re-surfaces as a test
 failure:

@@ -1,6 +1,6 @@
 """dataset.py — TaskDef loader.
 
-Reads `tasks/level{1,2,3}/<task_id>/` per `specs/task_api_contract.md`:
+Reads `tasks/level{1,2,3}/<task_id>/` per `docs/reference/task_api_contract.md`:
 - meta.yaml      (mandatory metadata)
 - shapes.yaml    (public shapes)
 - contract.md    (human-readable contract)
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-# Canary trap tasks live here (W2.5 / the design spec §6.8). `iter_all_tasks()`
+# Canary trap tasks live here (see DESIGN.md). `iter_all_tasks()`
 # deliberately skips every `_`-prefixed directory, so canaries are NEVER
 # score-eligible. They are discovered ONLY through `iter_canary_tasks()`.
 # TAB_CANARY_ROOT lets the sealed (gitignored) maintainer canary copy live
@@ -57,11 +57,11 @@ class TaskDef:
     oracle_module_name: str = "oracle_pytorch"
     # Normalised performance cost model (the design spec §5.6). ``None`` when the
     # task's meta.yaml omits `cost_model` — the loader stays backward
-    # compatible so pre-W3.1 tasks (most of the first 100, no cost_model yet)
+    # compatible so pre- tasks (most of the first 100, no cost_model yet)
     # still load; the red→green transition is carried by `validate_tasks`,
     # never by the loader.
     cost_model: CostModel | None = None
-    # Operator input contract (WA.1, `specs/task_api_contract.md §5.2`).
+    # Operator input contract (WA.1, `docs/reference/task_api_contract.md §5.2`).
     # Stored as the **raw dict** straight from `meta.yaml.param_constraints`
     # — the loader does NOT parse it into a structured object and does NOT
     # validate it. ``None`` when the block is absent. A malformed block is
@@ -149,7 +149,7 @@ def load_task(task_id: str) -> TaskDef:
             raise CostModelError(f"{task_id}: {e}") from e
 
     # `param_constraints` is FULLY lenient at the loader level (WA.1,
-    # `specs/task_api_contract.md §5.2`). Unlike `cost_model` above — which
+    # `docs/reference/task_api_contract.md §5.2`). Unlike `cost_model` above — which
     # eager-parses and raises on a malformed block — `param_constraints` is
     # kept as the raw dict and NEVER validated / parsed here:
     #   * missing  -> `TaskDef.param_constraints = None`;
@@ -208,7 +208,7 @@ def iter_all_tasks() -> list[TaskDef]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Canary discovery (W2.5 — the design spec §6.8 / §8)
+# Canary discovery (see DESIGN.md)
 # ─────────────────────────────────────────────────────────────────────────────
 # Canary trap tasks live under `tasks/_canary/`. Because `iter_all_tasks()`
 # skips `_`-prefixed directories by design, a canary can never leak into the
@@ -314,7 +314,7 @@ def load_canary_task(canary_id: str) -> CanaryTaskDef:
 def iter_canary_tasks() -> list[CanaryTaskDef]:
     """Discover and load every canary trap task under `tasks/_canary/`.
 
-    This is the canary-discovery enumerator (W2.5). It is the ONLY path that
+    This is the canary-discovery enumerator . It is the ONLY path that
     surfaces canaries — `iter_all_tasks()` skips them by design. Canaries
     discovered here are fed to `adversarial.check_canaries` and never enter the
     score-eligible set computed by `eligibility.compute_score_eligible`.

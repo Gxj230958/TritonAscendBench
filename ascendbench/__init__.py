@@ -16,7 +16,7 @@ Subpackages:
     policies      — tolerance / ceiling / sanity / floor / trust config data
 
 Root: manifest (SolutionManifest), triton_compat; frozen/ + upstream_shims/ severance runtime.
-The task DATA lives separately in tasks/. See specs/ for the protocol.
+The task DATA lives separately in tasks/. See docs/reference/ for the protocol.
 """
 
 __version__ = "0.1.0"

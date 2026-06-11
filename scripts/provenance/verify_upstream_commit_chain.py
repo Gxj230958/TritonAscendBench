@@ -312,8 +312,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--report",
         default=str(
-            REPO_ROOT / "docs" / "triage_backlog"
-            / "2026-05-27-r12-sha-chain.md"
+            REPO_ROOT / "build" / "upstream-commit-chain.md"
         ),
         help="markdown report path",
     )

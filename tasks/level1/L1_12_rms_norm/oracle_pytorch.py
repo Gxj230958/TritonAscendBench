@@ -1,12 +1,12 @@
 """Oracle reference for L1_12_rms_norm_kernel.
 
-Per v4.13 §oracle_pytorch_simplified_3_tier: this oracle is tier-1
+This oracle is tier-1
 (`simple_pytorch_ok`) — the formula is well-defined and a straightforward
 PyTorch implementation matches the GPU kernel semantics to within the
 declared tolerance class.
 
 Tier: simple_pytorch_ok
-Tolerance class: vector_reduce  (see specs/tolerance_policy.md)
+Tolerance class: vector_reduce  (see docs/reference/tolerance_policy.md)
 
 Runs on CPU (or any device); does NOT depend on triton, CUDA, or NPU.
 """

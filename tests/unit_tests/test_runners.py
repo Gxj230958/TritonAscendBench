@@ -126,12 +126,12 @@ def test_runner_scripts_in_export_ignore_scope():
     export-ignore patterns so they never ship in the release tarball."""
     gitattrs = (_REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
     # The automation tree is excluded as a directory pattern; the runbook
-    # is excluded by the internal-*.md glob under docs/release/.
+    # is excluded by the docs/release/ directory rule.
     assert "scripts/automation/" in gitattrs, (
         "scripts/automation/ must be export-ignored in .gitattributes"
     )
-    assert "docs/release/internal-*.md" in gitattrs, (
-        "docs/release/internal-*.md must be export-ignored in .gitattributes"
+    assert "docs/release/" in gitattrs, (
+        "docs/release/ must be export-ignored in .gitattributes"
     )
     # Sanity: every runner script lives under scripts/automation/.
     for script in _BASH_SCRIPTS:

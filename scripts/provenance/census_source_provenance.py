@@ -360,15 +360,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--report",
         default=str(
-            REPO_ROOT / "docs" / "triage_backlog"
-            / "2026-05-27-census-report.md"
+            REPO_ROOT / "build" / "census-report.md"
         ),
     )
     p.add_argument(
         "--json-out",
         default=str(
-            REPO_ROOT / "docs" / "triage_backlog"
-            / "2026-05-27-census-detail.json"
+            REPO_ROOT / "build" / "census-detail.json"
         ),
     )
     args = p.parse_args(argv)

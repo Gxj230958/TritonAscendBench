@@ -1,6 +1,6 @@
 """static_checker.py — Layer A–F static defense for solution.py.
 
-Per `specs/ast_denylist.md` v0 (R11-P1-8 / R12-P1-6 / R14-P1-5):
+Layered static defense for solution.py:
 
     Layer A — Import denylist
     Layer B — AST node-type allowlist (positive)
@@ -15,6 +15,7 @@ Returns a CheckReport with `(layer, severity, message, line)` findings.
 from __future__ import annotations
 
 import ast
+import logging
 import re
 import sys
 from dataclasses import dataclass, field
@@ -25,8 +26,14 @@ try:
 except ModuleNotFoundError:  # pragma: no cover — runtime fallback for 3.10
     import tomli as tomllib  # type: ignore[no-redef]
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_VERSION_MATRIX = REPO_ROOT / "infra" / "version_matrix.toml"
+logger = logging.getLogger(__name__)
+
+# version_matrix.toml ships as package data under ``ascendbench/policies/`` so
+# the import allowlist resolves in an installed wheel. Resolved relative to this
+# module (works for source, editable, and wheel installs).
+DEFAULT_VERSION_MATRIX = (
+    Path(__file__).resolve().parent.parent / "policies" / "version_matrix.toml"
+)
 
 
 @dataclass
@@ -50,7 +57,7 @@ class CheckReport:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Layer A — Import denylist (specs/ast_denylist.md §Layer A)
+# Layer A — Import denylist
 # ─────────────────────────────────────────────────────────────────────────────
 _DENYLIST_IMPORT_EXACT = {
     "functools.partial", "functools.partialmethod",
@@ -113,8 +120,8 @@ _DEFAULT_IMPORT_ALLOWLIST = {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Layer B — AST node-type allowlist (specs/ast_denylist.md §Layer B)
-# ast.MatMult intentionally NOT in allowlist (R14-P1-5).
+# Layer B — AST node-type allowlist
+# ast.MatMult intentionally NOT in allowlist .
 # ─────────────────────────────────────────────────────────────────────────────
 _AST_ALLOW: set[type] = {
     ast.Module, ast.Expr, ast.Expression,
@@ -330,8 +337,16 @@ REQUIRED_OPS = {
 
 
 def load_allowlist(version_matrix_path: Path = DEFAULT_VERSION_MATRIX) -> set[str]:
-    """Load import allowlist from version_matrix.toml or fall back to defaults."""
+    """Load import allowlist from version_matrix.toml, merged onto the built-in
+    defaults. The table ships as package data, so a missing file means a broken
+    install — log it (rather than silently degrading) and fall back to the
+    defaults-only allowlist, which is the more restrictive (fail-safe) set. A
+    malformed table raises, by design."""
     if not version_matrix_path.exists():
+        logger.warning(
+            "version_matrix.toml not found at %s; using defaults-only import "
+            "allowlist (broken install?)", version_matrix_path
+        )
         return set(_DEFAULT_IMPORT_ALLOWLIST)
     data = tomllib.loads(version_matrix_path.read_text())
     extra = data.get("import_allowlist", {}).get("modules", [])
@@ -4181,7 +4196,7 @@ def _check_call_allow_either(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Layer E — Runtime audit hook (specs/ast_denylist.md §Layer E, DESIGN §6.4)
+# Layer E — Runtime audit hook
 # ─────────────────────────────────────────────────────────────────────────────
 # The static layers (A–D/F) scan the candidate source AST. Layer E is the
 # *runtime fallback* line: a `sys.addaudithook` callback that traps

@@ -1,6 +1,6 @@
 """Unit tests for ascendbench.corpus.kernel_resolver.
 
-Codex 2026-05-27 review caught that R10.a/R10.b resolvers were
+The kernel resolvers were
 returning ``@triton.jit``-decorated raw kernels when
 ``results/resolve_all.json::tried[0]`` was a JIT entry, then GPU
 verify would fail with stale unrelated tracebacks. The fix is to
@@ -120,8 +120,8 @@ def test_enumerate_extracts_required_params(tmp_path):
     )
     kp = _write_kernel(tmp_path, src)
     defs = dict(enumerate_non_jit_module_defs(kp))
-    assert defs["f"] == ["a", "b"]  # c has default
-    assert defs["g"] == ["x"]  # self stripped
+    assert defs["f"] == ["a", "b"] # c has default
+    assert defs["g"] == ["x"] # self stripped
 
 
 # ─────────────────────────────────────────────────────────────────────

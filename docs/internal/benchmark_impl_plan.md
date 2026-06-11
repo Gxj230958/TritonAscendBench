@@ -1427,11 +1427,11 @@ def fast_fail_prefilter(out_c, out_o, tolerance_class):
     tol = tolerance_policy.lookup(tolerance_class)
     flat_c, flat_o = out_c.flatten(), out_o.flatten()
     n = flat_c.numel()
-    
+
     # 抽样 raw element（runner secret RNG 选 sample index，candidate 不可预测）
     sample_idx = runner_secret_rng.choice(n, size=min(1000, n), replace=False)
     sampled_c, sampled_o = flat_c[sample_idx], flat_o[sample_idx]
-    
+
     # 用同一容差判抽样
     if not torch.allclose(sampled_c, sampled_o, **tol):
         return FAIL_QUICK  # fast-fail（不要等 full allclose）

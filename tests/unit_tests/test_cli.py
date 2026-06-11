@@ -1,6 +1,6 @@
 """Smoke tests for `tab` CLI subcommands.
 
-codex round-2 R-P0-2: validate-submission / package / static-check / analyze
+validate-submission / package / static-check / analyze
 must all be executable, not stubbed return-2.
 """
 from __future__ import annotations
@@ -128,7 +128,7 @@ def test_analyze_smoke(tmp_path):
 
 
 def test_analyze_does_not_use_static_check_as_correctness(tmp_path):
-    """codex round-3 N-P0-1 regression test.
+    """regression test.
 
     A result with `static_checks_passed=True` but no real correctness
     (status fields set to error) must NOT show up as coverage=1.0.
@@ -187,7 +187,7 @@ def test_analyze_filters_to_catalogue(tmp_path):
 
 
 def test_validate_submission_rejects_missing_manifest(tmp_path):
-    """codex round-3 R-P0-2: missing manifest.yaml must fail validation."""
+    """missing manifest.yaml must fail validation."""
     sol_dir = tmp_path / "sol"
     _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
@@ -203,7 +203,7 @@ def test_validate_submission_rejects_missing_manifest(tmp_path):
 
 
 def test_validate_submission_rejects_malformed_yaml(tmp_path):
-    """codex round-3 R-P0-2: malformed manifest.yaml content must reject."""
+    """malformed manifest.yaml content must reject."""
     import tarfile
     sol_dir = tmp_path / "sol"
     _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
@@ -221,7 +221,7 @@ def test_validate_submission_rejects_malformed_yaml(tmp_path):
 
 
 def test_validate_submission_rejects_empty_manifest(tmp_path):
-    """codex round-4 REGRESSION-P0: empty manifest.yaml (yaml -> None) must reject."""
+    """empty manifest.yaml (yaml -> None) must reject."""
     import tarfile
     sol_dir = tmp_path / "sol"
     _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
@@ -239,7 +239,7 @@ def test_validate_submission_rejects_empty_manifest(tmp_path):
 
 
 def test_submit_refuses_invalid_package(tmp_path):
-    """codex round-4 P1: submit must run validate-submission first."""
+    """submit must run validate-submission first."""
     sol_dir = tmp_path / "sol"
     _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     pkg = tmp_path / "sub.tar.gz"
@@ -253,7 +253,7 @@ def test_submit_refuses_invalid_package(tmp_path):
 
 
 def test_validate_result_rejects_old_schema(tmp_path):
-    """codex round-4 P1: result JSON without the five status fields must reject."""
+    """result JSON without the five status fields must reject."""
     old = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -281,8 +281,8 @@ def test_validate_result_accepts_full_schema(tmp_path):
     assert r.returncode == 0
 
 
-def test_round6_analyze_rejects_non_dict(tmp_path):
-    """codex round-6 P1: `verified_results` must be a JSON object."""
+def test_analyze_rejects_non_dict(tmp_path):
+    """`verified_results` must be a JSON object."""
     (tmp_path / "v.json").write_text("[]")     # list, not dict
     out_path = tmp_path / "score.json"
     r = _run_tab(
@@ -294,16 +294,16 @@ def test_round6_analyze_rejects_non_dict(tmp_path):
     assert "error" in doc
 
 
-def test_round10_validate_result_rejects_non_dict_toplevel(tmp_path):
-    """codex round-10 P1 #3: top-level JSON must be a mapping."""
+def test_validate_result_rejects_non_dict_toplevel(tmp_path):
+    """#3: top-level JSON must be a mapping."""
     (tmp_path / "r.json").write_text("[]")
     r = _run_tab("validate-result", str(tmp_path / "r.json"))
     assert r.returncode == 1
     assert "mapping" in r.stderr.lower() or "object" in r.stderr.lower()
 
 
-def test_round10_analyze_rejects_non_list_results(tmp_path):
-    """codex round-10 P1 #3: results: null / scalar must not iterate."""
+def test_analyze_rejects_non_list_results(tmp_path):
+    """#3: results: null / scalar must not iterate."""
     bad = {"results": None}
     (tmp_path / "v.json").write_text(json.dumps(bad))
     out_path = tmp_path / "score.json"
@@ -315,8 +315,8 @@ def test_round10_analyze_rejects_non_list_results(tmp_path):
     assert "TypeError" not in r.stderr
 
 
-def test_round9_analyze_rejects_non_dict_result_entry(tmp_path):
-    """codex round-9 P1: `results: [1]` (non-dict element) must not crash."""
+def test_analyze_rejects_non_dict_result_entry(tmp_path):
+    """`results: [1]` (non-dict element) must not crash."""
     bad = {"results": [1, "string", None, {"task_id": "t1"}]}
     (tmp_path / "v.json").write_text(json.dumps(bad))
     out_path = tmp_path / "score.json"
@@ -330,8 +330,8 @@ def test_round9_analyze_rejects_non_dict_result_entry(tmp_path):
     assert doc["missing_task_id_count"] >= 3
 
 
-def test_round9_validate_result_rejects_non_string_task_id(tmp_path):
-    """codex round-9 P1: task_id must be a non-empty string."""
+def test_validate_result_rejects_non_string_task_id(tmp_path):
+    """task_id must be a non-empty string."""
     bad = {
         "task_id": [],                       # list, not string
         "static_checks_passed": True,
@@ -348,8 +348,8 @@ def test_round9_validate_result_rejects_non_string_task_id(tmp_path):
     assert "task_id" in r.stderr
 
 
-def test_round8_analyze_handles_missing_task_id(tmp_path):
-    """codex round-8 P1: result without task_id must not KeyError."""
+def test_analyze_handles_missing_task_id(tmp_path):
+    """result without task_id must not KeyError."""
     verified = {
         "results": [
             {
@@ -376,8 +376,8 @@ def test_round8_analyze_handles_missing_task_id(tmp_path):
     assert doc["missing_task_id_count"] == 1
 
 
-def test_round7_run_suite_rejects_invalid_level(tmp_path):
-    """codex round-7 P1: --level must reject `abc` / `-1`."""
+def test_run_suite_rejects_invalid_level(tmp_path):
+    """--level must reject `abc` / `-1`."""
     out_path = tmp_path / "suite.json"
     r = _run_tab(
         "run-suite", "--level", "abc",
@@ -388,8 +388,8 @@ def test_round7_run_suite_rejects_invalid_level(tmp_path):
     assert "invalid choice" in r.stderr.lower() or "choices" in r.stderr.lower()
 
 
-def test_round7_validate_result_rejects_bool_as_score(tmp_path):
-    """codex round-7 P1: `aggregate_score: true` (bool, not int)."""
+def test_validate_result_rejects_bool_as_score(tmp_path):
+    """`aggregate_score: true` (bool, not int)."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -406,8 +406,8 @@ def test_round7_validate_result_rejects_bool_as_score(tmp_path):
     assert "aggregate_score" in r.stderr
 
 
-def test_round7_validate_result_rejects_str_static_checks_passed(tmp_path):
-    """codex round-7 P1: `static_checks_passed: 'yes'`."""
+def test_validate_result_rejects_str_static_checks_passed(tmp_path):
+    """`static_checks_passed: 'yes'`."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": "yes",
@@ -424,8 +424,8 @@ def test_round7_validate_result_rejects_str_static_checks_passed(tmp_path):
     assert "static_checks_passed" in r.stderr
 
 
-def test_round7_validate_result_handles_unhashable_status(tmp_path):
-    """codex round-7 P1: status as list should not crash."""
+def test_validate_result_handles_unhashable_status(tmp_path):
+    """status as list should not crash."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -442,8 +442,8 @@ def test_round7_validate_result_handles_unhashable_status(tmp_path):
     assert "correctness_status" in r.stderr
 
 
-def test_round7_validate_result_rejects_non_string_flags(tmp_path):
-    """codex round-7 P1: performance_flags must be list[str]."""
+def test_validate_result_rejects_non_string_flags(tmp_path):
+    """performance_flags must be list[str]."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -460,8 +460,8 @@ def test_round7_validate_result_rejects_non_string_flags(tmp_path):
     assert "performance_flags" in r.stderr
 
 
-def test_round7_tar_symlink_rejected(tmp_path):
-    """codex round-7 P1: symlink/hardlink entries must be refused."""
+def test_tar_symlink_rejected(tmp_path):
+    """symlink/hardlink entries must be refused."""
     import tarfile
 
     sol_dir = tmp_path / "sol"
@@ -484,8 +484,8 @@ def test_round7_tar_symlink_rejected(tmp_path):
     )
 
 
-def test_round6_validate_result_rejects_nan_score(tmp_path):
-    """codex round-6 NEW-P0 #5: aggregate_score must be finite."""
+def test_validate_result_rejects_nan_score(tmp_path):
+    """#5: aggregate_score must be finite."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -506,7 +506,7 @@ def test_round6_validate_result_rejects_nan_score(tmp_path):
 
 
 def test_validate_result_rejects_invalid_status_values(tmp_path):
-    """codex round-5 P1: enum + type validation across all status fields."""
+    """enum + type validation across all status fields."""
     bad = {
         "task_id": "t1",
         "static_checks_passed": True,
@@ -559,7 +559,7 @@ def test_validate_submission_accepts_well_formed(tmp_path):
 
 
 def test_tab_run_does_not_crash_on_skeleton_solution(tmp_path):
-    """codex round-2 N-P0-1 regression: `tab run` must not raise TypeError."""
+    """regression: `tab run` must not raise TypeError."""
     sol_dir = tmp_path / "sol"
     _run_tab("init-solution", "L1_12_rms_norm", "--out", str(sol_dir))
     # Skeleton solution will fail static check but the CLI must exit

@@ -1,6 +1,6 @@
 """WA.4: param_constraints semantic validation + status resolver + eval gate.
 
-Covers the WA.4 deliverables (`docs/plans/2026-05-21-operator-param-validity-impl.md`):
+Covers the WA.4 deliverables:
 
 * ① the five-subsection **semantic** checks — `dims` predicates against the
   knob universe, `dtypes` / `dists` agreement with `shapes.yaml.inputs`,
@@ -934,7 +934,7 @@ def test_eval_and_cli_analyze_agree_on_task_status(
 
 
 # ===========================================================================
-# R7 — validator schema-strictness fixes (codex review R7).
+# R7 — validator schema-strictness fixes.
 #
 #   R7-1  `validate_schema_shape` requires the `scaffold` key on every block;
 #         a missing key (silently treated as non-scaffold) is a schema error.

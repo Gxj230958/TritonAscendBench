@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""phase_a_freeze.py — Phase A batch freeze: vendor upstream GPU triton sources.
+"""freeze_upstream_sources.py — Phase A batch freeze: vendor upstream GPU triton sources.
 
 Iterates over tasks/level{1,2,3}/<task_id>/, resolves each task's
-upstream.path against /data1/code/agentic-rl/kernel/infer/{vllm,sglang}/,
+upstream.path against the configured upstream checkout root (vllm/sglang),
 locates the file that defines the kernel function named in meta.yaml,
 vendors the FULL upstream source file as kernel.py (with provenance
 header), and updates meta.yaml's commit_sha / file_sha256 / vendored

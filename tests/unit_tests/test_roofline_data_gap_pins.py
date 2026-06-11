@@ -1,4 +1,4 @@
-"""R10 codex-review regression tests.
+"""Pinned regressions: Roofline-data-gap exclusion is metadata-authoritative.
 
 Pins the R10 MUST-FIX so a regression re-surfaces as a test failure:
 
@@ -112,7 +112,7 @@ class TestR10AggregatePerf:
 # R10-1 — analyze: a hand-edited result with s_t stripped cannot escape.
 # ──────────────────────────────────────────────────────────────────────────
 # A FULLY verified peak table — `vector` / `interconnect` are positive
-# (unlike the real `infra/peak_table_910b.toml`, where they are still
+# (unlike the real `ascendbench/policies/peak_table_910b.toml`, where they are still
 # `[unverified]` placeholders). With this table the eligible
 # ('hbm', 'vector') tasks are authoritatively `roofline_data_complete=True`.
 def _all_verified_peaks(_path=None, *, require_verified=False):

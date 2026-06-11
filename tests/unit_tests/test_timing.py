@@ -2,7 +2,7 @@
 
 Covers the W1.3 reshape: `measure` now drives a per-trial input factory
 (fresh input per measured trial) and `arbitrate_timing` applies the
-specs/timing_arbitration.md rule table.
+docs/reference/timing_arbitration.md rule table.
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def test_measure_runs_n_repeat_times_with_fresh_inputs():
     # 2 warmup (indices -1,-2) + 5 measured (0..4) = 7 factory/run calls.
     assert len(calls) == 7
     # Warmup uses negative indices, measured uses 0..n_repeat-1 — warmup
-    # and measured inputs never coincide (R16-P1 fresh-input guarantee).
+    # and measured inputs never coincide (fresh-input guarantee).
     assert sorted(seen_indices) == [-2, -1, 0, 1, 2, 3, 4]
 
 

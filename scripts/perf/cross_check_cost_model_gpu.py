@@ -217,7 +217,7 @@ _DTYPE_BYTES: dict[str, float] = {
 def _representative_dtype_size(shapes_doc: dict[str, Any]) -> float | None:
     """Element byte width of the first declared tensor input.
 
-    Mirrors ``eval._representative_dtype_size`` (``specs/task_api_contract.md``
+    Mirrors ``eval._representative_dtype_size`` (``docs/reference/task_api_contract.md``
     §5.1): the first ``inputs`` entry carrying ``dims`` (a tensor spec, in
     YAML declaration order) gives the representative ``dtype_size``.
 
@@ -958,12 +958,10 @@ def cross_check_task(task: TaskDef, *, dry_run: bool) -> TaskXCheck:
         # necessarily a formula error: H200's large L2 absorbs small output
         # writeback, DRAM burst granularity adds a few-% over-fetch, and
         # gather/attention traffic is data-dependent. cost_model is NOT a release
-        # gate and scoring uses the formula value (not this status). Per-task
-        # classification: docs/reviews/2026-06-05-costmodel-nonpass-analysis.md.
+        # gate and scoring uses the formula value (not this status).
         reason = (
             "GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a "
-            "formula error -- see docs/reviews/2026-06-05-costmodel-nonpass-"
-            "analysis.md). "
+            "formula error). "
             f"{len(failing)}/{len(gate)} {kind}"
             f"gpu_xcheck_tol={cost_model.gpu_xcheck_tol}: "
             + "; ".join(f"{s.shape_id}: {s.note}" for s in failing)

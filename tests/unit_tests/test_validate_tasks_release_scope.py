@@ -1,7 +1,7 @@
 """M2 Unit 2.5: validate_tasks.py schema checks for the four §6a state
 field groups.
 
-Covers (specs/task_api_contract.md §6a.1 / §6a.3 / §6a.5 / §6a.6):
+Covers the task-state cross-field invariants (§6a.1 / §6a.3 / §6a.5 / §6a.6):
 
 * `release_scope.excluded == True` requires `reason`, `excluded_at`
   (ISO 8601), `excluded_by` — but does NOT short-circuit `validate_task`

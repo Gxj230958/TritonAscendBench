@@ -44,7 +44,7 @@ def test_one_ulp_difference_fails_no_escape():
 
 def test_dtype_mismatch_fails_no_fp32_cast_escape():
     """fp16 vs fp32 (numerically near) MUST fail -- S2 does NOT route
-    through tolerance.compare's fp32 cast (plan codex-r2 scenario)."""
+    through tolerance.compare's fp32 cast (plan -r2 scenario)."""
     a = {"o": torch.ones(4, dtype=torch.float16)}
     b = {"o": torch.ones(4, dtype=torch.float32)}
     ok, why = pap.s2_smoke_compare(a, b)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""verify_version_matrix.py — sanity-check infra/version_matrix.toml.
+"""verify_version_matrix.py — sanity-check ascendbench/policies/version_matrix.toml.
 
-Per specs/process_isolation.md. Catches:
+Sanity-check the recorded host stack. Catches:
 - Missing required recorded-stack fields
 - Unparseable TOML
 - Unresolved placeholder values (`<TBD>`, `<frozen-...>`, etc.)
@@ -18,7 +18,7 @@ except ModuleNotFoundError:                              # 3.10 fallback
     import tomli as tomllib                              # type: ignore[no-redef]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_PATH = REPO_ROOT / "infra" / "version_matrix.toml"
+DEFAULT_PATH = REPO_ROOT / "ascendbench" / "policies" / "version_matrix.toml"
 
 REQUIRED_KEYS = [
     ("npu", "cann"),

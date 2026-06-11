@@ -1,6 +1,6 @@
 """trusted_shim — C-level host timer compiled at install time.
 
-Per `specs/process_isolation.md` + `specs/timing_arbitration.md`:
+Per the process-isolation model + `docs/reference/timing_arbitration.md`:
 
 - The trusted runner process spawns the candidate as a subprocess.
 - The shim's `host_clock_ns()` is the only timing primitive the runner

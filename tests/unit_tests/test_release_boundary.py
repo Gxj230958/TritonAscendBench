@@ -57,10 +57,14 @@ _INTERNAL_PATTERNS = re.compile(
     r"|scripts/loop/"
     r"|scripts/internal/"
     r"|tab_automation/"
-    r"|docs/plans/2026-05-23-001-"
-    r"|docs/plans/2026-05-23-002-"
-    r"|docs/release/internal-"
-    r"|docs/triage_backlog/)"
+    r"|docs/plans/"
+    r"|docs/reviews/"
+    r"|docs/triage_backlog/"
+    r"|docs/brainstorms/"
+    r"|docs/architecture/"
+    r"|docs/release/"
+    r"|docs/internal/"
+    r"|infra/)"
 )
 
 
@@ -216,10 +220,14 @@ def test_gitattributes_covers_all_internal_artefact_classes():
     required_rules = [
         "scripts/automation/",
         "tab_automation/",
-        "docs/plans/2026-05-23-001-",
-        "docs/plans/2026-05-23-002-",
-        "docs/release/internal-",
+        "docs/plans/",
+        "docs/reviews/",
         "docs/triage_backlog/",
+        "docs/brainstorms/",
+        "docs/architecture/",
+        "docs/release/",
+        "docs/internal/",
+        "infra/",
         "tests/unit_tests/test_release_boundary.py",
         "tests/unit_tests/test_*automation*.py",
     ]

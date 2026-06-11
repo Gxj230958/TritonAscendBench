@@ -62,7 +62,7 @@ corrected(no+1) vs naive: max_abs_diff = 0.00e+00 (exact)
 
 Per cross-block pair the error is a constant `exp(+slope)` ratio — the signature of a
 decay off-by-one, not fp noise. Full script:
-`triton-ascend-bench/docs/verification/L2_24_lightning_attn_offbyone_proof.py`.
+`triton-ascend-bench/docs/findings/L2_24_lightning_attn_offbyone_proof.py`.
 
 ## Why CI missed it
 

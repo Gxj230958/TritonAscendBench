@@ -1,6 +1,6 @@
 """cost_model.py — `meta.yaml.cost_model` schema + shared formula evaluator.
 
-The design spec §5.6 / `specs/task_api_contract.md` §5: every task may declare a
+The design spec §5.6 / `docs/reference/task_api_contract.md` §5: every task may declare a
 performance cost model so scoring can build the Roofline theoretical-latency
 baseline ``t_ref = max(max_c W_c/π_c, max_r M_r/β_r)`` (§9).
 
@@ -31,7 +31,7 @@ Formulas are size-knob expressions over the same parameterisation as
 ``shapes.yaml`` (``B`` / ``L`` / ``D`` / …) plus a fixed set of *derived
 symbols* (currently ``dtype_size``; see ``task_api_contract.md`` §5). A single
 shared :class:`FormulaEnv` defines exactly which symbols are legal and supplies
-helper builtins; ``dataset.py`` / ``validate_tasks.py`` / W4.2 all reuse the
+helper builtins; ``dataset.py`` / ``validate_tasks.py`` /  all reuse the
 same evaluator so the symbol set can never drift between call sites.
 
 **Safe evaluation** — formulas are *not* run through :func:`eval`. They are
@@ -45,7 +45,7 @@ by WA.2 so the numeric path and the ``param_constraints`` predicate path share
 one evaluator. ``cost_model`` keeps the public surface below
 (:class:`FormulaEnv` / :func:`evaluate_formula` / :func:`parse_cost_model` /
 :class:`CostModelError`) unchanged and is layered on :func:`expr.eval_numeric`
-— the W1.2 numeric contract (values, signatures, exception behaviour) is
+— the  numeric contract (values, signatures, exception behaviour) is
 preserved exactly.
 """
 from __future__ import annotations
@@ -65,8 +65,8 @@ logger = logging.getLogger(__name__)
 #
 # A cost-model formula is evaluated against `knobs` (size knobs from
 # shapes.yaml: B/L/D/…) PLUS this fixed set of derived symbols. Keeping the
-# derived-symbol set in one place is the whole point of W1.2: dataset.py,
-# validate_tasks.py and the W4.2 GPU cross-check all import it from here, so a
+# derived-symbol set in one place is the whole point of : dataset.py,
+# validate_tasks.py and the  GPU cross-check all import it from here, so a
 # formula that validates is guaranteed to be evaluable everywhere.
 #
 # `dtype_size` is the element size (bytes) of the task's primary dtype; it lets
@@ -77,7 +77,7 @@ logger = logging.getLogger(__name__)
 DERIVED_SYMBOL_DEFAULTS: dict[str, float] = {
     # fp16/bf16 element size; the validator only needs *a* finite value to
     # confirm the formula evaluates — real per-task dtype_size is supplied by
-    # the W1.4 scoring path.
+    # the  scoring path.
     "dtype_size": 2.0,
 }
 
@@ -97,7 +97,7 @@ class CostModelError(ExprError):
 
     Subclasses :class:`ascendbench.input_spec.expr.ExprError` (WA.2): the
     AST-whitelist safety core raises ``ExprError``, and the cost-model layer
-    re-raises it as ``CostModelError`` so the W1.2 exception contract — every
+    re-raises it as ``CostModelError`` so the  exception contract — every
     cost-model failure is a ``CostModelError`` — is preserved unchanged.
     """
 
@@ -206,7 +206,7 @@ def evaluate_formula(formula: str, symbols: Mapping[str, Any]) -> float:
     shared AST-whitelist numeric evaluator (WA.2). No :func:`eval`, no
     attribute access, no subscripts, no arbitrary builtins. The wrapper exists
     only to re-raise the core's :class:`ExprError` as :class:`CostModelError`,
-    keeping the W1.2 exception contract intact for every cost-model call site.
+    keeping the  exception contract intact for every cost-model call site.
 
     Args:
         formula: the size-knob expression string.
@@ -247,7 +247,7 @@ def _normalise_field(
     key. ``companion`` is the raw value of that sibling field (or ``None`` when
     the task did not author it).
 
-    R5-3: the **map** form keys the class/resource itself, so every map key
+    : the **map** form keys the class/resource itself, so every map key
     is held to the SAME legal set the scalar companion is — a ``flops`` map
     key must be a :data:`VALID_FLOPS_CLASSES` value, a ``bytes`` map key a
     :data:`VALID_BYTES_RESOURCES` value. A typo'd key (e.g. ``"vecotr"``) is
@@ -287,7 +287,7 @@ def _normalise_field(
                     f"cost_model.{field_name}: map key {key!r} must be a "
                     f"non-empty string"
                 )
-            # R5-3: a map key names a peak-table compute class / resource,
+            # : a map key names a peak-table compute class / resource,
             # so it must be in the same legal set the scalar companion is.
             if key not in allowed:
                 raise CostModelError(

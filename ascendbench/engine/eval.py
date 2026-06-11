@@ -16,11 +16,11 @@ Pipeline:
          d. Re-verify the timing pass's runner-sampled outputs against
             golden (sampled-output cheat-path closure).
          e. Arbitrate the timing-pass durations per
-            specs/timing_arbitration.md.
+            docs/reference/timing_arbitration.md.
     5. Score via scoring.capped_geomean_native
     6. Emit round_result.json
 
-W1.3: this module only *orchestrates* the two passes and records the
+: this module only *orchestrates* the two passes and records the
 returned ``durations`` / ``sampled_outputs`` — it never times candidate
 code in the parent process (timing is host-`CLOCK_MONOTONIC_RAW` inside
 the timing-pass child's trusted-shim segment).
@@ -41,13 +41,13 @@ from ascendbench.perf import scoring
 logger = logging.getLogger(__name__)
 
 
-# R6-3: explicit precedence for `performance_status`. The graded verdicts
+# : explicit precedence for `performance_status`. The graded verdicts
 # form a strict severity ordering — a more severe verdict must never be
 # overwritten by a milder one. `error` (a harness/run failure) is handled
 # separately by the callers (it is a "did not grade" verdict, orthogonal
 # to this graded-perf scale) and is therefore NOT in this ladder.
 #
-# specs/timing_arbitration.md grades `host_ns < 1 µs` as `quarantined`; a
+# docs/reference/timing_arbitration.md grades `host_ns < 1 µs` as `quarantined`; a
 # run that is both drift-flagged (`suspicious`) AND sub-µs must end up
 # `quarantined`, not stuck at `suspicious`. `_raise_performance_status`
 # below takes the MORE severe of the current and proposed verdicts so
@@ -61,18 +61,18 @@ _PERFORMANCE_STATUS_PRECEDENCE: dict[str, int] = {
 
 def _raise_performance_status(result: "TaskEvalResult", proposed: str) -> None:
     """Escalate ``result.performance_status`` to ``proposed`` iff ``proposed``
-    is strictly more severe (R6-3).
+    is strictly more severe .
 
     Precedence: ``ok < suspicious < quarantined``. ``error`` is outside this
     ladder — it means "perf was never graded" and is set only on the
     not-run / harness-failure paths; arbitration and runtime diagnostics
     never feed ``error`` here. If the current status is ``error`` (still the
     default, perf has not been promoted off it) this is a no-op: only the
-    explicit R1-1/R2-1 promotion lifts ``error`` to ``ok``, and that gate is
+    explicit / promotion lifts ``error`` to ``ok``, and that gate is
     intentionally separate from severity escalation.
 
     This is the single chokepoint for *raising* the verdict — timing
-    arbitration, sampled-output drift, and the W2.4 non-default-stream
+    arbitration, sampled-output drift, and the  non-default-stream
     diagnostic all route through it, so none of them can downgrade a
     ``quarantined`` run back to ``suspicious`` (or ``suspicious`` to ``ok``).
     """
@@ -84,7 +84,7 @@ def _raise_performance_status(result: "TaskEvalResult", proposed: str) -> None:
         return
     if cur_rank is None:
         # Current verdict is outside the ladder (`error`): perf has not
-        # been promoted off its default. Do not escalate — the R1-1/R2-1
+        # been promoted off its default. Do not escalate — the /
         # promotion owns the error→ok transition.
         return
     if new_rank > cur_rank:
@@ -99,18 +99,18 @@ class ShapeRunResult:
     measured_ns: float | None
     baseline_ns: float | None
     metamorphic_results: list = field(default_factory=list)
-    # W1.3: per-trial host_ns from the timing pass (the timing-pass child
-    # measured these with CLOCK_MONOTONIC_RAW). The W1.4 producer schema
-    # derives median/p99/cv from this series; W1.3 only carries it.
+    # : per-trial host_ns from the timing pass (the timing-pass child
+    # measured these with CLOCK_MONOTONIC_RAW). The  producer schema
+    # derives median/p99/cv from this series;  only carries it.
     durations: list[float] = field(default_factory=list)
-    # R1-3: per-trial NPU event-timer ns (timing pass). `None` on the dev
+    # : per-trial NPU event-timer ns (timing pass). `None` on the dev
     # machine (no NPU); aligned with `durations` so the timing-arbitration
     # host/event-drift cross-check can pool the two together.
     event_ns: list[float] | None = None
-    # W1.3: count of runner-sampled timing-pass outputs re-verified
+    # : count of runner-sampled timing-pass outputs re-verified
     # against golden (cheat-path closure receipt).
     sampled_outputs_checked: int = 0
-    # ── W1.4 producer schema (DESIGN §6.6 / §9) ─────────────────────────
+    # ──  producer schema (DESIGN §6.6 / §9) ─────────────────────────
     # Roofline theoretical-latency floor t_ref and measured latency t_npu
     # (the durations' median). `e` is the per-shape efficiency
     # min(P_CAP, t_ref/t_npu). All `None` until the Roofline path runs
@@ -148,11 +148,11 @@ class TaskEvalResult:
     performance_status: str = "error"  # "ok" | "suspicious" | "quarantined" | "error"
     performance_flags: list[str] = field(default_factory=list)
     fallback_detected: bool = False
-    # W1.4: task-level Roofline score s_t = geomean of the per-shape
+    # : task-level Roofline score s_t = geomean of the per-shape
     # efficiencies e (DESIGN §9). `None` until the Roofline path produced
     # an `e` for every graded shape.
     s_t: float | None = None
-    # R9-1: True iff the Roofline path had complete benchmark data for
+    # : True iff the Roofline path had complete benchmark data for
     # this task — a cost model AND verified π/β for every compute-class /
     # resource the cost model references. Set False by `_apply_roofline`
     # when the `cost_model` is absent, or a referenced peak is still an
@@ -164,9 +164,9 @@ class TaskEvalResult:
     # True iff every referenced peak is vendor-official / on-device-measured.
     # Gates absolute efficiency claims (not ranking). Set by _apply_roofline.
     absolute_verified: bool = False
-    # W1.4 / W4.3: orthogonal evaluability status. W1.4 only introduces it
+    #  / : orthogonal evaluability status.  only introduces it
     # (always "evaluated" here); the unsupported / blocked producers land
-    # in W4.3.
+    # in .
     task_status: str = scoring.TASK_STATUS_EVALUATED
     # E1: harness/orchestration error reason -- populated only when phase-2b
     # grading hits a non-candidate (harness) failure; never silently dropped.
@@ -186,13 +186,13 @@ class TaskEvalResult:
         ]
 
     def task_measurement(self) -> scoring.TaskMeasurement:
-        """W1.4: collapse this task to the single ``TaskMeasurement``
+        """: collapse this task to the single ``TaskMeasurement``
         scoring consumes for the cross-task geomean. The task-level
         Roofline ``s_t`` (per-shape ``e`` geomean) and ``task_status`` are
         carried through so ``capped_geomean_native`` scores or skips the
         task per DESIGN §9."""
         # DESIGN §9 provenance: baseline_ns = t_ref, measured_ns = t_npu.
-        # R5-4: the pair MUST come from the SAME representative shape — the
+        # : the pair MUST come from the SAME representative shape — the
         # first shape that has BOTH a t_ref and a t_npu. Taking the first
         # non-null t_ref and the first non-null t_npu independently could
         # splice values from two different shapes into a fake provenance
@@ -237,9 +237,9 @@ def _verify_sampled_outputs(
     This closes the correctness-pass → timing-pass cheat path: a candidate
     that returns a cached/correct answer only in the correctness pass and
     a wrong-but-fast answer in the timing pass is caught here (per
-    specs/timing_arbitration.md "for correctness verification").
+    docs/reference/timing_arbitration.md "for correctness verification").
 
-    R8-2 — fail-closed: re-running the trusted oracle on a sampled trial's
+     — fail-closed: re-running the trusted oracle on a sampled trial's
     timing input must not be allowed to disable the anti-cheat by simply
     erroring. Any oracle re-run exception is treated as a **verification
     failure** (``mismatch=True``), exactly as a real output drift would be:
@@ -270,7 +270,7 @@ def _verify_sampled_outputs(
                 _inputs.build_inputs(shapes_doc, shape_id,
                                      seed=meas_seed + t))
         except Exception as e:
-            # R8-2: fail-closed — an unverifiable sampled trial invalidates
+            # : fail-closed — an unverifiable sampled trial invalidates
             # the performance result rather than being silently skipped.
             logger.warning("sampled-output golden re-run failed "
                             "(%s t=%d) — fail-closed: %s", shape_id, t, e)
@@ -293,7 +293,7 @@ def _verify_sampled_outputs_offline(
     golden_dict: dict,
     tol_cls,
 ) -> dict:
-    """R4-1: re-verify the timing pass's runner-sampled outputs against the
+    """: re-verify the timing pass's runner-sampled outputs against the
     OFFLINE golden, for an ``upstream_oracle_required`` task in verified
     mode.
 
@@ -305,7 +305,7 @@ def _verify_sampled_outputs_offline(
     trial's output must therefore match ``golden_dict``.
 
     The candidate cannot tell a sampled trial apart from a non-sampled one
-    (the indices are runner-secret, R3-3), so it cannot return a fast-but-
+    (the indices are runner-secret, ), so it cannot return a fast-but-
     wrong answer only on the timed-but-non-sampled trials: any such cheat
     has an unbounded chance of landing on a sampled trial and being caught
     here. ``mismatch=True`` then invalidates the performance result.
@@ -313,7 +313,7 @@ def _verify_sampled_outputs_offline(
     Returns ``{"checked": int, "mismatch": bool, "errors": int}``.
     ``errors`` is always 0 here — this path compares against an already
     loaded static ``golden_dict`` and never re-runs an oracle, so the
-    R8-2 fail-closed oracle-error case cannot arise; the key is present
+     fail-closed oracle-error case cannot arise; the key is present
     only so both ``_verify_sampled_outputs*`` share one return schema.
     """
     by_trial: dict[int, dict[str, torch.Tensor]] = {}
@@ -341,17 +341,17 @@ def _verify_sampled_outputs_offline(
 
 def _apply_runtime_diagnostics(
     result: TaskEvalResult, two, backend: str = "npu") -> None:
-    """W2.4: fold the child-side profiler diagnostics into the run status.
+    """: fold the child-side profiler diagnostics into the run status.
 
     The candidate child profiled one call per shape and shipped up three
-    signals on the W1.0 carrier fields:
+    signals on the  carrier fields:
 
     * ``fallback_signal`` — the candidate produced no NPU/triton kernel
       event and silently fell back to the generic torch path (C7). Any
       shape with ``fallback_signal=True`` sets ``fallback_detected=True``
-      and adds the ``torch_fallback`` performance flag. (W2.2 then
+      and adds the ``torch_fallback`` performance flag. ( then
       normalises ``fallback_detected`` to a correctness fail before
-      scoring — that lives in eval's W2.2 hook, not here.)
+      scoring — that lives in eval's  hook, not here.)
     * ``stream_nondefault`` — work ran on a non-default stream (B2),
       escaping host timing. Any such shape adds the ``invalid_stream``
       flag and downgrades ``performance_status`` to ``suspicious``.
@@ -414,14 +414,14 @@ def _apply_runtime_diagnostics(
     if nondefault:
         if "invalid_stream" not in result.performance_flags:
             result.performance_flags.append("invalid_stream")
-        # R6-3: escalate to `suspicious` via the precedence helper — it is
+        # : escalate to `suspicious` via the precedence helper — it is
         # a no-op when the verdict is already as severe or more severe
         # (`quarantined`), and never rolls back.
         _raise_performance_status(result, "suspicious")
 
 
 def _normalise_fallback_to_correctness_fail(result: TaskEvalResult) -> None:
-    """W2.2 hook: normalise a detected torch-fallback to a correctness fail.
+    """ hook: normalise a detected torch-fallback to a correctness fail.
 
     DESIGN §6.3 / §6.7: a candidate that produced no NPU/triton kernel
     event silently fell back to the generic torch path. Such a solution
@@ -432,7 +432,7 @@ def _normalise_fallback_to_correctness_fail(result: TaskEvalResult) -> None:
     ``fallback_signal``), the run's ``correctness_status`` is forced to
     ``"fail"`` *before* scoring.
 
-    This consumes the W2.4 producer signal: only an explicit
+    This consumes the  producer signal: only an explicit
     ``fallback_signal is True`` per shape sets ``fallback_detected``.
     A ``None`` signal (the dev machine has no NPU, so the profiler never
     measured) is "not measured on this host" — it never sets
@@ -478,7 +478,7 @@ def _run_task_metamorphic(
     tol_cls=None,
     backend: str = "npu",
 ) -> list:
-    """W2.4 / R7-3: run the task's declared metamorphic checks for real.
+    """ / : run the task's declared metamorphic checks for real.
 
     ``meta.runner_checks.metamorphic_checks`` names the metamorphic
     transformations for this *real* task. When the runner can supply a
@@ -528,7 +528,7 @@ def _build_metamorphic_context(
     tol_cls,
     backend: str = "npu",
 ):
-    """Build the :class:`adversarial.MetamorphicContext` for a task (R7-3).
+    """Build the :class:`adversarial.MetamorphicContext` for a task .
 
     The context bundles a representative shape's built inputs, a
     ``run_candidate`` callable that runs the candidate once in an isolated
@@ -575,7 +575,7 @@ def _build_metamorphic_context(
     )
 
 
-# R2-3: byte width of every dtype `inputs.py` can materialise. Used to
+# : byte width of every dtype `inputs.py` can materialise. Used to
 # derive the representative cost-model `dtype_size` from a task's inputs
 # block so a non-fp16 task (e.g. float32) scores against the right
 # element size instead of the fp16 default (2.0).
@@ -593,16 +593,16 @@ _DTYPE_BYTES: dict[str, float] = {
 
 def _representative_dtype_size(shapes_doc: dict) -> float | None:
     """Derive the cost model's representative ``dtype_size`` (element bytes)
-    from a task's ``shapes.yaml`` ``inputs`` block (R2-3).
+    from a task's ``shapes.yaml`` ``inputs`` block .
 
-    Rule (documented here and in ``specs/task_api_contract.md`` §5.1): the
+    Rule (documented here and in ``docs/reference/task_api_contract.md`` §5.1): the
     representative element size is the byte width of the **first declared
     tensor input** — i.e. the first ``inputs`` entry that is a tensor spec
     (carries ``dims``), in YAML declaration order, skipping the non-tensor
     forms (``scalar`` / ``derive`` / ``scalar_seq`` / ``scalar_knob``) which
     have no element size. A task authors its primary operand first, so this
     picks the dominant dtype for the common single-dtype task. Per-input
-    precise handling for genuinely mixed-dtype tasks is W3.1's long tail;
+    precise handling for genuinely mixed-dtype tasks is 's long tail;
     until then this one representative value is fed to ``compute_t_ref`` /
     ``FormulaEnv``.
 
@@ -642,7 +642,7 @@ def _apply_roofline(
     shapes_doc: dict,
     peak_table_path: Path | str | None = None,
 ) -> None:
-    """W1.4: fill each shape's Roofline ``t_ref`` / ``W_c`` / ``M_r`` /
+    """: fill each shape's Roofline ``t_ref`` / ``W_c`` / ``M_r`` /
     ``efficiency`` and aggregate the task-level ``s_t``.
 
     Per DESIGN §9 the per-shape efficiency ``e = min(P_CAP, t_ref/t_npu)``
@@ -651,7 +651,7 @@ def _apply_roofline(
     shape produced an ``e``; a missing cost model, unverified peaks, or a
     shape with no timing leaves ``s_t = None``.
 
-    R9-2 — fail-closed, but *per-task scoped*. The peak table is loaded
+     — fail-closed, but *per-task scoped*. The peak table is loaded
     WITHOUT ``require_verified``; the verification check is then applied
     only to the π/β keys **this task's normalised ``cost_model`` actually
     references**. The table-wide ``require_verified=True`` load used to
@@ -670,7 +670,7 @@ def _apply_roofline(
     """
     cost_model = task.cost_model
     if cost_model is None:
-        # No cost model (pre-W3.1 task) — no Roofline score. This is a
+        # No cost model (pre- task) — no Roofline score. This is a
         # benchmark-data gap (cost-model backfill not done), not a
         # candidate failure: flag it so scoring excludes the task from
         # the perf geomean instead of ε-collapsing the candidate.
@@ -680,7 +680,7 @@ def _apply_roofline(
     from ascendbench.perf import peak_table
 
     try:
-        # R9-2: load WITHOUT require_verified — the whole-table check
+        # : load WITHOUT require_verified — the whole-table check
         # would reject any task the moment an unrelated peak is an
         # [unverified] placeholder. Per-task verification is applied
         # below against only the keys this cost model references.
@@ -695,12 +695,12 @@ def _apply_roofline(
         result.roofline_data_complete = False
         return
 
-    # R9-2: verify only the compute-class / resource keys THIS task's
+    # : verify only the compute-class / resource keys THIS task's
     # normalised cost model references. A peak is usable iff it is
     # present and positive-finite; a 0.0 / non-finite value is an
     # `[unverified]` placeholder. A task that references such a key is a
     # genuine Roofline-data gap (e.g. a `vector`-class task while the
-    # vector π is still pending a 910B measurement — the expected W1.1
+    # vector π is still pending a 910B measurement — the expected
     # data limitation); a task that only references verified keys
     # (`fp16_cube` / `int8` / `hbm`) is unaffected.
     import math as _math
@@ -738,7 +738,7 @@ def _apply_roofline(
                 for r in cost_model.bytes)
     )
 
-    # R2-3: derive the representative element size from the task's inputs
+    # : derive the representative element size from the task's inputs
     # dtype so a non-2-byte task (float32 / int64 / …) feeds the right
     # `dtype_size` into the cost-model formulas. `None` (scalar-only inputs
     # block) means "use the fp16 default" — passing `dtype_size=None` to
@@ -793,7 +793,7 @@ def _apply_roofline(
             logger.warning("s_t geomean failed for %s: %s", result.task_id, e)
 
 
-# W4.3: the `oracle_simplified` tier whose golden output can only be
+# : the `oracle_simplified` tier whose golden output can only be
 # obtained by running the frozen upstream kernel offline (no PyTorch
 # oracle / closed-form formula). Such a task has no provider golden in
 # self-reported mode; in verified mode the golden is the offline
@@ -818,7 +818,7 @@ def _resolve_golden(
     mode: str,
     eval_shape_ids: list[str],
 ) -> tuple[str, str, dict[str, dict] | None]:
-    """W4.3 (R3-1 / R3-2): route the golden source by ``oracle_simplified``
+    """ : route the golden source by ``oracle_simplified``
     x ``mode`` and derive the task-level ``task_status``.
 
     Returns ``(task_status, golden_kind, offline_golden)``:
@@ -834,7 +834,7 @@ def _resolve_golden(
       cover every graded shape). Fail-closed.
 
     The offline golden artifacts (``golden/<shape_id>.safetensors``) are
-    collected on the GPU machine in W4.3 Phase 4; on the dev machine the
+    collected on the GPU machine in  Phase 4; on the dev machine the
     directory does not exist, so every verified-mode upstream task routes
     to ``blocked`` — the expected pre-Phase-4 state.
     """
@@ -842,7 +842,7 @@ def _resolve_golden(
         tier = task.oracle_tier
     except (KeyError, TypeError, AttributeError):
         # A task whose meta omits `oracle_simplified` is treated as a
-        # plain PyTorch-oracle task (back-compat with pre-W4.3 metas).
+        # plain PyTorch-oracle task (back-compat with pre- metas).
         tier = ""
 
     if tier != _UPSTREAM_ORACLE_TIER:
@@ -969,24 +969,24 @@ def evaluate(
 
     `task_def` lets a caller inject an already-loaded :class:`TaskDef`
     instead of resolving `task_id` through `load_task` (which only scans
-    `tasks/level{1,2,3}/`). The W2.5 canary runner uses this to grade a
+    `tasks/level{1,2,3}/`). The  canary runner uses this to grade a
     `tasks/_canary/` task — discovered by its dedicated enumerator — with
     the submission's solution for the canary's bound `source_task_id`.
     When omitted the behaviour is unchanged: `load_task(task_id)`.
 
-    W2.1: `mode` selects which eval shapes phase-2b grades.
+    : `mode` selects which eval shapes phase-2b grades.
 
     * ``"self-reported"`` — only the public shapes are graded; the task's
       ``hidden_shapes`` are never materialised or injected.
     * ``"verified"`` — public **and** hidden shapes are graded. The runner
       (this trusted parent) materialises every hidden shape's inputs from
       the task's own ``shapes.yaml.hidden_shapes`` section and injects them
-      down the W1.0 IPC. The candidate child still receives only the
-      sanitised minimal set (W1.0 / DESIGN §3.3) — materialised inputs and
+      down the  IPC. The candidate child still receives only the
+      sanitised minimal set ( / DESIGN §3.3) — materialised inputs and
       ``solution.py``, never the shapes document — so injecting a hidden
       shape's inputs does not leak the hidden knobs to the candidate.
 
-    W4.3 (R3-1 / R3-2): the golden source and ``task_status`` are routed
+     : the golden source and ``task_status`` are routed
     by ``oracle_simplified`` x ``mode`` (see :func:`_resolve_golden`):
 
     * non-``upstream_oracle_required`` task (``simple_pytorch_ok`` /
@@ -998,7 +998,7 @@ def evaluate(
       per-shape timing) is left ``None``.
     * ``upstream_oracle_required`` + ``verified`` — the runner loads the
       offline golden from ``tasks/.../golden/<shape_id>.safetensors``
-      (W4.3 Phase-4 GPU artifacts). Complete ⇒ grade against the offline
+      ( Phase-4 GPU artifacts). Complete ⇒ grade against the offline
       golden, ``task_status = "evaluated"``; missing / incomplete ⇒
       fail-closed ``task_status = "blocked"`` with null perf. On the dev
       machine no ``golden/`` directory exists, so verified-mode upstream
@@ -1042,7 +1042,7 @@ def evaluate(
     # Correctness is graded against the correctness pass; the timing
     # pass's runner-sampled outputs are re-verified against golden, and
     # its host-CLOCK_MONOTONIC_RAW durations are arbitrated per
-    # specs/timing_arbitration.md. The parent never times candidate code.
+    # docs/reference/timing_arbitration.md. The parent never times candidate code.
     try:
         import importlib.util
 
@@ -1065,9 +1065,9 @@ def evaluate(
         )
         if gradeable:
             shapes_doc = yaml.safe_load(shapes_txt)
-            # W2.1: the graded eval-shape set depends on `mode`. The runner
+            # : the graded eval-shape set depends on `mode`. The runner
             # always holds the complete shapes.yaml (public + hidden); the
-            # candidate child never gets the document either way (W1.0 —
+            # candidate child never gets the document either way ( —
             # only materialised inputs cross the IPC). In verified mode the
             # hidden shapes are graded too; in self-reported mode they are
             # neither materialised nor injected.
@@ -1076,7 +1076,7 @@ def evaluate(
             if mode == "verified":
                 eval_shape_ids += list(hid)
 
-            # W4.3 (R3-1 / R3-2): route the golden source and task_status
+            #  : route the golden source and task_status
             # by `oracle_simplified` x `mode`. An `upstream_oracle_required`
             # task has no PyTorch oracle that can serve as golden:
             #   * self-reported ⇒ task_status="unsupported" (no provider
@@ -1107,7 +1107,7 @@ def evaluate(
                         "incomplete (tasks/.../golden/)")
                 return result
 
-            # R7-1: load/execute `oracle_pytorch.py` ONLY on the
+            # : load/execute `oracle_pytorch.py` ONLY on the
             # `golden_kind == "oracle"` path. An `upstream_oracle_required`
             # task graded in verified mode has already resolved its golden
             # to the offline `golden/<shape_id>.safetensors` artifact set
@@ -1125,7 +1125,7 @@ def evaluate(
 
             tol_cls = tolerance.load_policy().get(task.tolerance_class)
 
-            # W1.0/W1.3/W2.1: the runner materialises every graded shape's
+            # //: the runner materialises every graded shape's
             # inputs (public always; hidden too in verified mode) and
             # injects them down the IPC. Correctness pass gets one dict
             # per shape (seed=0); the timing pass gets a per-trial
@@ -1149,12 +1149,12 @@ def evaluate(
                 )
                 for sid in eval_shape_ids
             }
-            # R3-3: `run_two_pass` no longer takes a `seed` — the
+            # : `run_two_pass` no longer takes a `seed` — the
             # runner-secret sampling seed is generated fresh per call from
             # a CSPRNG inside `run_two_pass`, strictly distinct from the
             # deterministic input-generation `meas_seed`.
             #
-            # R4-1: for an `upstream_oracle_required` task graded in
+            # : for an `upstream_oracle_required` task graded in
             # verified mode the offline golden is captured on the seed-0
             # input — i.e. the same input as `correctness_inputs[sid]`.
             # Hand `run_two_pass` that fixed input per shape: it then
@@ -1171,7 +1171,7 @@ def evaluate(
                 golden_fixed_inputs=golden_fixed_inputs, backend=backend)
             cand = two.correctness
 
-            # W2.4 / R7-3: metamorphic checks for this real task. The
+            #  / : metamorphic checks for this real task. The
             # runner builds a real transformation registry — each declared
             # check transforms a representative shape's inputs, re-runs the
             # candidate in isolation, and verifies a structural invariant.
@@ -1185,22 +1185,22 @@ def evaluate(
                 rep_shape_id=eval_shape_ids[0] if eval_shape_ids else None,
                 tol_cls=tol_cls, backend=backend)
 
-            # R6-3: a sampled-output mismatch on ANY shape escalates the
+            # : a sampled-output mismatch on ANY shape escalates the
             # task-level `performance_status` to `suspicious` — but only
-            # after the R1-1/R2-1 promotion lifts the "error" default to
+            # after the / promotion lifts the "error" default to
             # "ok". Recorded across the per-shape loop, applied below.
             sampled_outputs_drift = False
 
             for sid in eval_shape_ids:
                 reason: str | None = None
                 passed = False
-                # W4.3 (R3-1): the golden output for this shape. For a
+                #  : the golden output for this shape. For a
                 # non-upstream task it is the in-process PyTorch oracle on
                 # the correctness-pass input; for an `upstream_oracle_
                 # required` task graded in verified mode it is the offline
                 # `golden/<shape_id>.safetensors` artifact loaded by
                 # `_resolve_golden`. Used for correctness grading AND
-                # (R4-1) for re-verifying the timing pass's runner-sampled
+                #  for re-verifying the timing pass's runner-sampled
                 # outputs — the offline-golden path's sampled trials were
                 # forced onto the seed-0 input the artifact covers, so
                 # both golden kinds reverify (no unverified cheat path).
@@ -1237,15 +1237,15 @@ def evaluate(
                             break
                     passed = okk
 
-                # --- W1.3: carry the timing pass's durations -----------
-                # R1-3: also carry the per-trial NPU event-timer series
+                # --- : carry the timing pass's durations -----------
+                # : also carry the per-trial NPU event-timer series
                 # (None on the dev machine — host-only timing).
                 tscr = two.timing.per_shape.get(sid)
                 durations = list(tscr.durations) if tscr else []
                 event_ns = (list(tscr.event_ns)
                             if tscr and tscr.event_ns else None)
 
-                # --- W1.3 / R4-1: sampled-output cheat-path closure ----
+                # ---  / : sampled-output cheat-path closure ----
                 # The timing pass shipped up outputs for a runner-secret
                 # subset of measured trials. Re-verify every one against
                 # golden; any mismatch invalidates the performance result.
@@ -1261,11 +1261,11 @@ def evaluate(
                 #     Each sampled output is then compared against the
                 #     offline `golden/<shape_id>.safetensors` artifact.
                 # A candidate cannot tell a sampled trial apart from a
-                # non-sampled one (runner-secret indices, R3-3), so it
+                # non-sampled one (runner-secret indices, ), so it
                 # cannot return a fast-but-wrong answer only on the timed
-                # trials without risking the sampled check (R4-1).
+                # trials without risking the sampled check .
                 #
-                # R8-2 — fail-closed: the sampled-output anti-cheat must
+                #  — fail-closed: the sampled-output anti-cheat must
                 # never be disabled by a trial simply being unverifiable.
                 # `_verify_sampled_outputs` already raises `mismatch=True`
                 # on any oracle re-run exception; here we additionally
@@ -1284,13 +1284,13 @@ def evaluate(
                             tscr.sampled_outputs, shapes_doc, sid,
                             meas_seed, omod, tol_cls)
                     sampled_checked = drift["checked"]
-                    # R8-2: sampled outputs present but 0 verified — the
+                    # : sampled outputs present but 0 verified — the
                     # anti-cheat could not run; fail-closed, never `ok`.
                     unverified = sampled_checked == 0
                     if drift["mismatch"] or unverified:
-                        # R6-3: only record the flag here; the
+                        # : only record the flag here; the
                         # `performance_status` escalation is applied AFTER
-                        # the R1-1/R2-1 promotion (which lifts the "error"
+                        # the / promotion (which lifts the "error"
                         # default to "ok") via `_raise_performance_status`,
                         # so drift + a sub-µs run both escalate by
                         # precedence and the more severe verdict wins.
@@ -1300,7 +1300,7 @@ def evaluate(
                             result.performance_flags.append(
                                 "measured_outputs_drift")
 
-                # --- W1.4: durations-derived disclosure stats ----------
+                # --- : durations-derived disclosure stats ----------
                 # median / p99 / cv / trials (DESIGN §6.6). The median is
                 # the t_npu the Roofline path scores against below.
                 dstats = scoring.duration_stats(durations)
@@ -1326,7 +1326,7 @@ def evaluate(
                     "ok" if all(r.correctness_passed for r in ran)
                     else "fail")
 
-                # R2-1: the timing pass is a SEPARATE subprocess from the
+                # : the timing pass is a SEPARATE subprocess from the
                 # correctness pass — it can time out, crash, or fail to
                 # load entirely while the correctness pass succeeded. A
                 # `performance_status` promotion off the "error" default
@@ -1358,7 +1358,7 @@ def evaluate(
                         else:
                             result.runtime_status = "error"
 
-                # R1-1: a clean two-pass run — the candidate ran and the
+                # : a clean two-pass run — the candidate ran and the
                 # timing pass produced a clean per-shape host-timing
                 # series — promotes the performance verdict off its
                 # "error" default to "ok". `performance_status` defaults
@@ -1366,14 +1366,14 @@ def evaluate(
                 # Roofline steps below are escalate-only (via
                 # `_raise_performance_status`: ok → suspicious →
                 # quarantined, never a roll-back).
-                # R2-1: the promotion is gated on `timing_ok` — a
+                # : the promotion is gated on `timing_ok` — a
                 # timing pass that timed out / crashed / shipped no
                 # per-shape timing data must NOT yield an ok/ok/ok
                 # verdict with an empty timing series.
                 if result.performance_status == "error" and timing_ok:
                     result.performance_status = "ok"
 
-                # R6-3: now that the verdict has been promoted off the
+                # : now that the verdict has been promoted off the
                 # "error" default, apply the sampled-output drift verdict
                 # via the precedence helper. It escalates "ok" to
                 # "suspicious"; a later sub-µs arbitration can still
@@ -1382,18 +1382,18 @@ def evaluate(
                 if sampled_outputs_drift:
                     _raise_performance_status(result, "suspicious")
 
-                # --- W1.3 / R1-3: timing arbitration ------------------
+                # ---  / : timing arbitration ------------------
                 # Pool every shape's host_ns series and apply the
-                # specs/timing_arbitration.md rules. The verdict maps onto
+                # docs/reference/timing_arbitration.md rules. The verdict maps onto
                 # the EXISTING result fields (runtime/performance_status,
                 # performance_flags) — no new timing_status field.
                 #
-                # R1-3: the host/event-drift rule is now end-to-end
+                # : the host/event-drift rule is now end-to-end
                 # connected. The NPU event-timer series travels up from
                 # the timing-pass child; it is pooled aligned with the
                 # host durations (a shape with no event timer pads `None`,
                 # which `arbitrate_timing` skips). `stream_nondefault` is
-                # the W2.4 profiler verdict — drift > 10% AND a non-default
+                # the  profiler verdict — drift > 10% AND a non-default
                 # stream ⇒ invalid_timing. On the dev machine there is no
                 # NPU, so `event_ns` is all-None and arbitration degrades
                 # to host-only; on the 910B the channel is live.
@@ -1423,7 +1423,7 @@ def evaluate(
                     )
                     if arb.runtime_status:
                         result.runtime_status = arb.runtime_status
-                    # R6-3: route the arbitration verdict through the
+                    # : route the arbitration verdict through the
                     # precedence helper. `arbitrate_timing` only ever
                     # emits "quarantined" — strictly more severe than
                     # "suspicious" — so a run that is both drift-flagged
@@ -1438,7 +1438,7 @@ def evaluate(
                         if flag not in result.performance_flags:
                             result.performance_flags.append(flag)
 
-                # --- W2.4: child-side runtime defense diagnostics -----
+                # --- : child-side runtime defense diagnostics -----
                 # Fold the candidate child's profiler signals (fallback /
                 # non-default stream / kernel-event) into the run status:
                 # a fallback sets fallback_detected + the torch_fallback
@@ -1447,7 +1447,7 @@ def evaluate(
                 # quarantined task is already marked.
                 _apply_runtime_diagnostics(result, two, backend=backend)
 
-                # --- W2.2: fallback → correctness-fail normalisation ---
+                # --- : fallback → correctness-fail normalisation ---
                 # A detected torch-fallback (fallback_detected, set just
                 # above only on an explicit child-side fallback_signal=True)
                 # forces correctness_status="fail" before scoring: a
@@ -1456,7 +1456,7 @@ def evaluate(
                 # (dev machine, profiler not measured) never reaches here.
                 _normalise_fallback_to_correctness_fail(result)
 
-                # --- W1.4: Roofline scoring -------------------------------
+                # --- : Roofline scoring -------------------------------
                 # Per-shape t_ref / W_c / M_r / e and the task-level s_t
                 # (geomean of the per-shape e, DESIGN §9). The per-shape
                 # efficiency math lives in `scoring`; the e → s_t geomean
@@ -1476,7 +1476,7 @@ def evaluate(
 
     shape_meas = result.shape_measurements()
     if shape_meas:
-        # W1.4: `aggregate_score` is this task's Roofline score s_t when
+        # : `aggregate_score` is this task's Roofline score s_t when
         # the Roofline path produced one (DESIGN §9); otherwise it falls
         # back to the legacy per-shape capped geomean so a task without a
         # cost model still reports a diagnostic number.

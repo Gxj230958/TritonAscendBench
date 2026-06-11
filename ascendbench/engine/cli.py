@@ -42,15 +42,15 @@ def main() -> int:
     p_run.add_argument("task_id")
     p_run.add_argument("--solution", required=True)
     p_run.add_argument("--backend", default="npu", choices=["npu", "gpu"])
-    # W2.1: single-task `tab run` is the bring-up / smoke entrypoint and must
-    # be able to run verified mode so W2.1 / W4.3 single-task tests can grade
+    # : single-task `tab run` is the bring-up / smoke entrypoint and must
+    # be able to run verified mode so  /  single-task tests can grade
     # hidden shapes. self-reported grades public shapes only; verified also
     # grades the task's sealed `shapes.yaml.hidden_shapes` section.
     p_run.add_argument("--mode", default="self-reported",
                        choices=["self-reported", "verified"])
     p_run.add_argument("--peak-table", default=None,
-                       help="peak table TOML (default 910B; H200 self-check "
-                            "passes infra/peak_table_h200.toml)")
+                       help="peak table TOML (default: packaged 910B table; "
+                            "pass your own table for a GPU/other-device self-check)")
     p_run.add_argument("--out", default="round_result.json")
 
     p_suite = sub.add_parser("run-suite", help="evaluate many tasks")
@@ -64,7 +64,7 @@ def main() -> int:
     p_suite.add_argument("--backend", default="npu", choices=["npu", "gpu"])
     p_suite.add_argument("--mode", default="self-reported",
                          choices=["self-reported", "verified"])
-    # W2.1: `--shapes-overlay` is DEPRECATED and has no effect. The hidden
+    # : `--shapes-overlay` is DEPRECATED and has no effect. The hidden
     # shapes' single source of truth is each task's own
     # `shapes.yaml.hidden_shapes` section (DESIGN §3.3 / §5.2); verified mode
     # reads hidden shapes from there. The flag is kept only so old invocations
@@ -72,8 +72,8 @@ def main() -> int:
     p_suite.add_argument("--shapes-overlay",
                          help=argparse.SUPPRESS)
     p_suite.add_argument("--peak-table", default=None,
-                         help="peak table TOML (default 910B; H200 self-check "
-                              "passes infra/peak_table_h200.toml)")
+                         help="peak table TOML (default: packaged 910B table; "
+                              "pass your own table for a GPU/other-device self-check)")
     p_suite.add_argument("--out", default="suite_results.json")
 
     p_pkg = sub.add_parser("package")
@@ -304,7 +304,7 @@ def _cmd_init_solution(args) -> int:
 
 
 def _metamorphic_result_json(m) -> dict:
-    """Serialise one MetamorphicResult for a round_result.json (W2.4).
+    """Serialise one MetamorphicResult for a round_result.json .
 
     Metamorphic results live under each shape's ``metamorphic_results``
     array — distinct from the submission-level ``canary_findings`` array.
@@ -317,11 +317,11 @@ def _metamorphic_result_json(m) -> dict:
 
 
 def _shape_result_json(r) -> dict:
-    """Serialise one ShapeRunResult for a round_result.json (W1.4/W2.4).
+    """Serialise one ShapeRunResult for a round_result.json .
 
     Discloses the Roofline provenance (t_ref / t_npu / per-class W /
     per-resource M / efficiency), the durations-derived stats
-    (median / p99 / cv / trials) DESIGN §6.6 requires, and the W2.4
+    (median / p99 / cv / trials) DESIGN §6.6 requires, and the
     per-shape ``metamorphic_results`` (the metamorphic detection path —
     canary findings are emitted separately at submission level).
     """
@@ -343,7 +343,7 @@ def _shape_result_json(r) -> dict:
         "cv": r.cv,
         "trials": r.trials,
         "roofline_error": r.roofline_error,
-        # W2.4: metamorphic path — distinct schema from canary findings.
+        # : metamorphic path — distinct schema from canary findings.
         "metamorphic_results": [
             _metamorphic_result_json(m) for m in r.metamorphic_results
         ],
@@ -351,14 +351,14 @@ def _shape_result_json(r) -> dict:
 
 
 def _round_result_json(result, canary_findings=None) -> dict:
-    """Assemble the round_result.json payload from a TaskEvalResult (W1.4/W2.4).
+    """Assemble the round_result.json payload from a TaskEvalResult .
 
     Emits the task-level Roofline ``s_t``, the DESIGN §9 provenance pair
     (``baseline_ns`` = t_ref / ``measured_ns`` = t_npu), the orthogonal
     ``task_status`` field, per-shape Roofline + timing detail with each
-    shape's W2.4 ``metamorphic_results``, and a submission-level
+    shape's  ``metamorphic_results``, and a submission-level
     ``canary_findings`` array (distinct schema; empty for a real task —
-    canary traps are separate ``_canary`` tasks, W2.5).
+    canary traps are separate ``_canary`` tasks, ).
     """
     tm = result.task_measurement()
     from ascendbench.integrity.adversarial import canary_finding_json
@@ -374,12 +374,12 @@ def _round_result_json(result, canary_findings=None) -> dict:
         "performance_status": result.performance_status,
         "performance_flags": result.performance_flags,
         "fallback_detected": result.fallback_detected,
-        # W1.4: task-level Roofline score + provenance + evaluability.
+        # : task-level Roofline score + provenance + evaluability.
         "s_t": result.s_t,
         "baseline_ns": tm.baseline_ns,
         "measured_ns": tm.measured_ns,
         "task_status": result.task_status,
-        # R9-1: diagnostic — whether the Roofline benchmark data was
+        # : diagnostic — whether the Roofline benchmark data was
         # complete for this task. `analyze` recomputes this authoritatively
         # from repo metadata, so the emitted value is informational only.
         "roofline_data_complete": result.roofline_data_complete,
@@ -387,7 +387,7 @@ def _round_result_json(result, canary_findings=None) -> dict:
         # efficiency claims). Recomputed authoritatively by `analyze`.
         "absolute_verified": result.absolute_verified,
         "shape_results": [_shape_result_json(r) for r in result.shape_results],
-        # W2.4: canary findings — their OWN schema, never folded into the
+        # : canary findings — their OWN schema, never folded into the
         # per-shape metamorphic_results.
         "canary_findings": [
             canary_finding_json(c) for c in (canary_findings or [])
@@ -402,7 +402,7 @@ def _round_result_json(result, canary_findings=None) -> dict:
 def _cmd_run(args) -> int:
     from ascendbench.engine.eval import evaluate
 
-    # W2.1: thread `--mode` through. verified grades the task's sealed
+    # : thread `--mode` through. verified grades the task's sealed
     # hidden shapes alongside the public ones; self-reported grades public
     # only.
     result = evaluate(args.task_id, Path(args.solution),
@@ -477,10 +477,10 @@ def _cmd_run_suite(args) -> int:
                 })
                 continue
             try:
-                # W2.1: `--mode` decides whether hidden shapes are graded.
+                # : `--mode` decides whether hidden shapes are graded.
                 r = evaluate(task.task_id, sol_py, backend=args.backend,
                              mode=args.mode, peak_table_path=args.peak_table)
-                # W1.4: same round_result schema as `tab run` — task-level
+                # : same round_result schema as `tab run` — task-level
                 # s_t + baseline_ns/measured_ns provenance + per-shape detail.
                 per_task.append(_round_result_json(r))
             except Exception as exc:
@@ -490,12 +490,12 @@ def _cmd_run_suite(args) -> int:
                     "correctness_status": "error",
                 })
 
-        # W2.5: run the dedicated canary suite. Canary trap tasks live under
+        # : run the dedicated canary suite. Canary trap tasks live under
         # `tasks/_canary/`, which `iter_all_tasks()` skips — they never enter
         # `per_task` / the scored denominator. The independent enumerator
         # `iter_canary_tasks()` discovers them; each canary is run with the
         # submission's solution for its bound `source_task_id` and judged by
-        # `check_canaries`. The findings join the W2.4 escalation chain below.
+        # `check_canaries`. The findings join the  escalation chain below.
         from ascendbench.integrity.adversarial import canary_finding_json, run_canary_suite
 
         try:
@@ -506,7 +506,7 @@ def _cmd_run_suite(args) -> int:
                            type(exc).__name__, exc)
             suite_canary_findings = []
 
-        # W2.4: submission-level canary escalation. Pool every (real-task)
+        # : submission-level canary escalation. Pool every (real-task)
         # result's `canary_findings` plus the dedicated canary-suite findings
         # and aggregate — `canary_caught > 0` flips the whole submission to
         # `suspicious` for manual review (DESIGN §6.8).
@@ -515,7 +515,7 @@ def _cmd_run_suite(args) -> int:
             extra_findings=[canary_finding_json(f) for f in suite_canary_findings],
         )
 
-        # W2.1: the deprecated `--shapes-overlay` flag is intentionally NOT
+        # : the deprecated `--shapes-overlay` flag is intentionally NOT
         # emitted — hidden shapes are sealed inside each task's shapes.yaml,
         # there is no overlay artifact in the suite contract.
         out_doc = {
@@ -523,7 +523,7 @@ def _cmd_run_suite(args) -> int:
             "backend": args.backend,
             "n_tasks": len(per_task),
             "results": per_task,
-            # W2.4 canary escalation chain.
+            #  canary escalation chain.
             "canary_caught": canary["canary_caught"],
             "suspicious": canary["suspicious"],
             "canary_findings": canary["canary_findings"],
@@ -679,7 +679,7 @@ def _cmd_validate_result(args) -> int:
     Must require all five status fields
     AND validate their enum values + container types per scoring_spec.md.
 
-    W1.4 schema migration: accepts the new producer fields — task-level
+     schema migration: accepts the new producer fields — task-level
     ``s_t``, the DESIGN §9 provenance pair ``baseline_ns`` / ``measured_ns``,
     the orthogonal ``task_status`` field, and per-shape ``shape_results``
     (each with Roofline ``t_ref`` / ``t_npu`` / ``efficiency`` and the
@@ -719,7 +719,7 @@ def _cmd_validate_result(args) -> int:
 
     errors: list[str] = []
 
-    # W1.4: task_status is optional for back-compat (older results predate
+    # : task_status is optional for back-compat (older results predate
     # it); when present it must be a valid enum. Default to "evaluated".
     task_status = doc.get("task_status", "evaluated")
     if task_status not in VALID_TASK_STATUS:
@@ -729,7 +729,7 @@ def _cmd_validate_result(args) -> int:
         )
         task_status = "evaluated"   # continue checks under a sane default
 
-    # W1.4: optional numeric perf fields. They may be a finite number or
+    # : optional numeric perf fields. They may be a finite number or
     # null — for an "evaluated" task null means timing was unavailable; for
     # unsupported/blocked null is the expected "no valid perf data" state.
     # Either way the validator only type-checks the non-null case.
@@ -748,7 +748,7 @@ def _cmd_validate_result(args) -> int:
         if _num in doc:
             _check_optional_number(_num)
 
-    # W1.4: per-shape detail — a list of objects when present.
+    # : per-shape detail — a list of objects when present.
     shape_results = doc.get("shape_results")
     if shape_results is not None and not isinstance(shape_results, list):
         errors.append(
@@ -778,14 +778,14 @@ def _cmd_validate_result(args) -> int:
                 errors.append(
                     f"shape_results[{i}].trials must be an int or null"
                 )
-            # W2.4: per-shape metamorphic_results — a list of objects.
+            # : per-shape metamorphic_results — a list of objects.
             mr = sr.get("metamorphic_results")
             if mr is not None and not isinstance(mr, list):
                 errors.append(
                     f"shape_results[{i}].metamorphic_results must be a list"
                 )
 
-    # W2.4: submission-level canary findings — a list of objects, kept
+    # : submission-level canary findings — a list of objects, kept
     # distinct from per-shape metamorphic_results. `canary_caught` /
     # `suspicious` must be consistent when present.
     canary_findings = doc.get("canary_findings")
@@ -938,7 +938,7 @@ def _cmd_analyze(args) -> int:
       catalogue size). `*_native` metric names are retained for output
       schema stability and now denote the NPU-triton track.
 
-    R2-4 (W4.3 ④ -- denominator authority): the per-task ``task_status``
+     ( ④ -- denominator authority): the per-task ``task_status``
     is taken from TRUSTED REPO METADATA, never verbatim from the result.
     The suite JSON's top-level ``mode`` is the sole authority:
 
@@ -1010,7 +1010,7 @@ def _cmd_analyze(args) -> int:
     catalogue_ids = {t.task_id for t in all_tasks}
     score_eligible_ids = compute_score_eligible(all_tasks)
 
-    # R2-4 (W4.3 ④): the suite JSON's TOP-LEVEL `mode` is the sole
+    #  ( ④): the suite JSON's TOP-LEVEL `mode` is the sole
     # denominator authority. An invalid / missing `mode` defaults to
     # "self-reported" — the stricter denominator (it excludes the
     # upstream-oracle tasks), so a malformed suite doc cannot widen the
@@ -1024,17 +1024,17 @@ def _cmd_analyze(args) -> int:
     # provider golden, so they are excluded from that mode's denominator
     # and forced to task_status="unsupported"; in verified mode they have
     # offline golden and score normally (task_status="evaluated"), unless
-    # the golden artifact set is missing/incomplete (R3-2 — "blocked").
+    # the golden artifact set is missing/incomplete ( — "blocked").
     upstream_oracle_ids = compute_upstream_oracle_required(all_tasks)
     if mode == "self-reported":
         scored_denominator_ids = score_eligible_ids - upstream_oracle_ids
     else:
-        # R2-4: verified-mode denominator is the fixed |S| — a "blocked"
+        # : verified-mode denominator is the fixed |S| — a "blocked"
         # task_status does NOT move a task out of the scored set.
         scored_denominator_ids = set(score_eligible_ids)
     s_native_size = len(scored_denominator_ids)
 
-    # R3-2: in verified mode, an `upstream_oracle_required` task whose
+    # : in verified mode, an `upstream_oracle_required` task whose
     # offline `golden/` artifacts are missing/incomplete is `blocked`.
     # Derived purely from trusted repo state (the presence of the golden
     # files), never from the result JSON. Computed only for verified mode
@@ -1104,11 +1104,11 @@ def _cmd_analyze(args) -> int:
             param_constraints_failed=_param_constraints_failed(tid),
         )
 
-    # R9-1: a task's Roofline data is "complete" iff repo state can score
+    # : a task's Roofline data is "complete" iff repo state can score
     # it — it has a `cost_model` AND every π/β that cost model references
     # is verified (positive-finite) in the 910B peak table. This is
     # derived purely from trusted repo metadata (`meta.cost_model` + the
-    # `infra/` peak table), NEVER from the result JSON: a submitter must
+    # the packaged peak table), NEVER from the result JSON: a submitter must
     # not be able to mark its own task "data-incomplete" to escape the ε
     # denominator (no-subset-escape). When the peak table itself cannot
     # be loaded, no task is scorable — every task is data-incomplete.
@@ -1210,11 +1210,11 @@ def _cmd_analyze(args) -> int:
     non_eligible_count = 0
     missing_task_id_count = 0
     duplicate_task_id_count = 0
-    # R2-4: count results whose self-reported `task_status` disagrees with
+    # : count results whose self-reported `task_status` disagrees with
     # the repo-derived authoritative value. Pure diagnostics — a mismatch
     # never moves a task into / out of the scored denominator.
     task_status_mismatch_count = 0
-    # R2-4: results for `upstream_oracle_required` tasks excluded from the
+    # : results for `upstream_oracle_required` tasks excluded from the
     # self-reported denominator by the fixed repo-derived formula (these
     # tasks have no provider golden in that mode).
     upstream_oracle_excluded_count = 0
@@ -1236,7 +1236,7 @@ def _cmd_analyze(args) -> int:
             non_eligible_count += 1
             continue
         if tid not in scored_denominator_ids:
-            # R2-4 (W4.3 ④): score-eligible but excluded from THIS mode's
+            #  ( ④): score-eligible but excluded from THIS mode's
             # denominator by the fixed repo-derived formula — a
             # self-reported `upstream_oracle_required` task (no provider
             # golden). Its result is not scored and is not a failure.
@@ -1249,7 +1249,7 @@ def _cmd_analyze(args) -> int:
         if tid in seen_ids:
             # Duplicate worst-case propagation
             # covers ALL status fields, not just correctness/aggregate.
-            # W1.4: the per-task Roofline score is `s_t` (lower = worse);
+            # : the per-task Roofline score is `s_t` (lower = worse);
             # `task_status` worst-case follows DESIGN — a blocked/unsupported
             # duplicate must not be masked by an evaluated one.
             duplicate_task_id_count += 1
@@ -1262,7 +1262,7 @@ def _cmd_analyze(args) -> int:
                 new_rt = r.get("runtime_status", "error")
                 if new_rt != "ok" and prev.runtime_status == "ok":
                     prev.runtime_status = new_rt
-                # R7-4: merge `performance_status` on the SAME
+                # : merge `performance_status` on the SAME
                 # `ok < suspicious < quarantined` precedence ladder
                 # `eval._raise_performance_status` uses, not the old
                 # `ok → non-ok` rule. A first result `suspicious` plus a
@@ -1280,15 +1280,15 @@ def _cmd_analyze(args) -> int:
                     prev.performance_status = new_pf
                 if r.get("fallback_detected"):
                     prev.fallback_detected = True
-                # R2-4: `task_status` is repo-authoritative — a duplicate
+                # : `task_status` is repo-authoritative — a duplicate
                 # result's reported `task_status` does NOT change the
-                # merged value (the cheat W4.3 ④ closes). `prev.task_status`
+                # merged value (the cheat  ④ closes). `prev.task_status`
                 # was already set from `_authoritative_task_status(tid)`.
                 # We still cross-check the duplicate's reported value.
                 if (r.get("task_status", TASK_STATUS_EVALUATED)
                         != prev.task_status):
                     task_status_mismatch_count += 1
-                # W1.4: keep the smaller (worse) Roofline s_t.
+                # : keep the smaller (worse) Roofline s_t.
                 new_st = r.get("s_t")
                 if (isinstance(new_st, (int, float))
                         and not isinstance(new_st, bool)
@@ -1308,7 +1308,7 @@ def _cmd_analyze(args) -> int:
         else:
             flags = []
 
-        # W1.4: assemble from the real Roofline producer fields — no more
+        # : assemble from the real Roofline producer fields — no more
         # `measured_ns=1.0` schema-shim. `s_t` is the per-task Roofline
         # score (geomean of per-shape e); `task_status` decides whether
         # scoring includes the task at all. A non-finite / absent `s_t`
@@ -1320,7 +1320,7 @@ def _cmd_analyze(args) -> int:
             s_t = float(raw_st)
         else:
             s_t = None
-        # R2-4: `task_status` is taken from the repo-derived authority for
+        # : `task_status` is taken from the repo-derived authority for
         # the suite's `mode`, NOT verbatim from the result. The result's
         # own `task_status` is only consistency-checked — a mismatch is
         # counted and reported but does not change the scored denominator.
@@ -1339,7 +1339,7 @@ def _cmd_analyze(args) -> int:
             baseline_ns=_finite_or_none(r.get("baseline_ns")),
             s_t=s_t,
             task_status=task_status,
-            # R9-1: repo-authoritative — derived from `meta.cost_model` +
+            # : repo-authoritative — derived from `meta.cost_model` +
             # the 910B peak table, never the result JSON. A task whose
             # Roofline data is incomplete is honestly excluded from the
             # perf geomean by `aggregate_perf`, not ε-collapsed.
@@ -1349,7 +1349,7 @@ def _cmd_analyze(args) -> int:
             absolute_verified=_authoritative_absolute_verified(tid),
         ))
 
-    # R2-4: denominator = the mode-aware scored set, frozen from repo
+    # : denominator = the mode-aware scored set, frozen from repo
     # metadata (`scored_denominator_ids`): verified ⇒ |S|; self-reported
     # ⇒ |S| − upstream_oracle_required. Fall back to the measurement
     # count only when there is no eligible set at all (CI smoke with
@@ -1360,7 +1360,7 @@ def _cmd_analyze(args) -> int:
     # a fabricated ε-collapsed number.
     perf = aggregate_perf(task_measurements, eligible_size=effective_denom)
 
-    # W2.4: submission-level canary escalation. `analyze` re-aggregates the
+    # : submission-level canary escalation. `analyze` re-aggregates the
     # canary findings from the trusted suite JSON (a `run-suite` doc may
     # already carry `canary_caught`; we recompute from `canary_findings`
     # so the verdict is authoritative even on hand-assembled inputs).
@@ -1394,9 +1394,9 @@ def _cmd_analyze(args) -> int:
 
     score_doc = {
         "submitter": args.submitter,
-        # R2-4: the mode the denominator authority resolved to.
+        # : the mode the denominator authority resolved to.
         "mode": mode,
-        # W2.4 canary escalation chain — suspicious gates manual review.
+        #  canary escalation chain — suspicious gates manual review.
         "canary_caught": canary["canary_caught"],
         "suspicious": canary["suspicious"],
         "canary_findings": canary["canary_findings"],
@@ -1404,23 +1404,23 @@ def _cmd_analyze(args) -> int:
         # set (real working oracle, not PHASE-C-MANUAL) — the release-gate
         # blocking set is a subset of it.
         "n_score_eligible_tasks": len(score_eligible_ids),
-        # R2-4: the mode-aware scored denominator — verified: |S|;
+        # : the mode-aware scored denominator — verified: |S|;
         # self-reported: |S| minus the upstream_oracle_required set. Frozen
         # from repo metadata; the perf / coverage aggregates use this.
         "n_scored_denominator_tasks": s_native_size,
         "n_native_measurements": len(task_measurements),
         "non_catalogue_task_count": non_catalogue_count,
         "non_eligible_task_count": non_eligible_count,
-        # R2-4: results dropped from the self-reported denominator by the
+        # : results dropped from the self-reported denominator by the
         # fixed upstream_oracle_required formula (repo-derived).
         "upstream_oracle_excluded_count": upstream_oracle_excluded_count,
-        # R2-4: results whose self-reported `task_status` disagreed with
+        # : results whose self-reported `task_status` disagreed with
         # the repo-derived authority (diagnostic only — does not move the
         # denominator).
         "task_status_mismatch_count": task_status_mismatch_count,
         "missing_task_id_count": missing_task_id_count,
         "duplicate_task_id_count": duplicate_task_id_count,
-        # W4.3 ④ / R8-1: `non_evaluated` counts every task_status that is
+        #  ④ / : `non_evaluated` counts every task_status that is
         # not "evaluated" (diagnostic). The two are NOT treated alike by
         # scoring: `blocked` tasks STAY in the fixed |S| denominator and
         # are scored as failures (ε); only `unsupported` tasks leave the
@@ -1438,7 +1438,7 @@ def _cmd_analyze(args) -> int:
         "capped_geomean_native": perf["capped_geomean_native"],
         "fastp_native_at_1_0": perf["fastp_native_at_1_0"],
         "fastp_native_at_1_5": perf["fastp_native_at_1_5"],
-        # R9-1: tasks honestly excluded from the perf geomean because
+        # : tasks honestly excluded from the perf geomean because
         # their Roofline benchmark data is not yet complete (missing
         # cost model / referenced peak still an [unverified] placeholder)
         # — NOT ε-collapsed against the candidate's score.
@@ -1502,7 +1502,7 @@ def _unpack_submission(pkg: Path, dest: Path) -> Path:
 
 
 def _aggregate_suite_canaries(per_task: list, extra_findings: list | None = None) -> dict:
-    """W2.4: roll every result's ``canary_findings`` into a submission verdict.
+    """: roll every result's ``canary_findings`` into a submission verdict.
 
     Pools the per-result ``canary_findings`` arrays, rebuilds
     :class:`adversarial.CanaryFinding` objects, and aggregates them via
@@ -1510,7 +1510,7 @@ def _aggregate_suite_canaries(per_task: list, extra_findings: list | None = None
     the count of triggered canaries; any triggered canary makes the whole
     submission ``suspicious`` (DESIGN §6.8 / §8).
 
-    `extra_findings` (W2.5) are canary-finding dicts produced by the
+    `extra_findings`  are canary-finding dicts produced by the
     dedicated `_canary/`-suite runner — they are pooled alongside the
     per-result findings so the dedicated canary path joins the same
     submission-level escalation chain.
@@ -1554,7 +1554,7 @@ def _aggregate_suite_canaries(per_task: list, extra_findings: list | None = None
 def _finite_or_none(value) -> float | None:
     """Coerce a JSON value to a finite float, or ``None``.
 
-    W1.4: round_result.json perf fields (``s_t`` / ``baseline_ns`` /
+    : round_result.json perf fields (``s_t`` / ``baseline_ns`` /
     ``measured_ns``) may legitimately be ``null`` (no timing, or a
     non-"evaluated" task). A ``bool`` or a non-finite number is rejected
     to ``None`` so it cannot smuggle a NaN into scoring.

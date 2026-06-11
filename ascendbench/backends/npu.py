@@ -13,9 +13,9 @@ except ImportError:
 
 
 class EventTimer:
-    """R6-1: an NPU event timer that BRACKETS one externally-made call.
+    """: an NPU event timer that BRACKETS one externally-made call.
 
-    `specs/timing_arbitration.md` records the NPU `Event` start/end around
+    `docs/reference/timing_arbitration.md` records the NPU `Event` start/end around
     the *same* measured invocation that host time and the profiler see —
     it never re-runs the candidate to take a separate event sample. This
     context manager makes that contract explicit:
@@ -31,7 +31,7 @@ class EventTimer:
     only add a redundant synchronize to host_ns and bias small-kernel latency.
     The candidate `fn` is invoked exactly once — by the caller, inside the
     `with` block — so a stateful candidate cannot be handed a second, untimed
-    call (R6-1 / re-closes the R5-2 stateful-candidate hole).
+    call ( / re-closes the  stateful-candidate hole).
 
     On the dev machine there is no NPU; `NpuBackend.event_timer()` returns
     `None` and the caller degrades to host-only timing.
@@ -111,14 +111,14 @@ class NpuBackend:
         return torch.npu.get_device_name(0)
 
     def event_timer(self) -> EventTimer | None:
-        """W1.3 / R1-3 / R6-1 timing cross-check seam
-        (specs/timing_arbitration.md).
+        """ /  /  timing cross-check seam
+        (docs/reference/timing_arbitration.md).
 
         The host `CLOCK_MONOTONIC_RAW` timer is authoritative; the NPU
         event timer is a secondary signal used only to detect work hidden
         on a non-default stream.
 
-        R6-1: this returns an :class:`EventTimer` *context manager*, not a
+        : this returns an :class:`EventTimer` *context manager*, not a
         callable that runs `fn` itself. The event `record()` calls bracket
         the SAME single measured `fn(inp)` invocation that host time and
         the profiler observe — the timing-pass child does::
@@ -131,11 +131,11 @@ class NpuBackend:
         The timer records only; the caller owns the surrounding device syncs.
 
         The candidate is never invoked a second time merely to take an
-        event sample (that re-opened the R5-2 stateful-candidate hole —
+        event sample (that re-opened the  stateful-candidate hole —
         each measured input was executed twice). One measured trial is now
         exactly one candidate call, host-timed AND event-bracketed.
 
-        R1-3: the resulting `event_ns` series travels up the status.json
+        : the resulting `event_ns` series travels up the status.json
         and the trusted parent feeds it to
         `timing.arbitrate_timing(event_ns=...)`, so the "host/event drift
         > 10% + non-default stream ⇒ invalid_timing" rule is reachable on
@@ -152,7 +152,7 @@ class NpuBackend:
         return EventTimer()
 
     def profile_call(self, fn: Callable, inputs: object) -> dict:
-        """W2.4 runtime-defense profiler seam.
+        """ runtime-defense profiler seam.
 
         Runs ``fn(inputs)`` **exactly once** under an NPU profiler and
         reports — alongside that single call's return value — three
@@ -162,7 +162,7 @@ class NpuBackend:
           call. The caller MUST consume this rather than re-invoking
           ``fn``: a re-invocation would let a stateful candidate behave
           honestly on the profiled call and cheat on the call that is
-          actually graded/timed (R5-1 / R5-2).
+          actually graded/timed .
         * ``kernel_event_present`` — did the call dispatch at least one
           real NPU/triton kernel? An empty-kernel cheat (B5) lands here.
         * ``stream_nondefault`` — did any work run on a non-default
@@ -222,7 +222,7 @@ class NpuBackend:
         NPU/triton kernel events and non-default-stream activity. It
         returns ``(output, kernel_event_present, stream_nondefault)`` —
         ``output`` is that single call's return value so the caller never
-        re-invokes `fn` (R5-1 / R5-2).
+        re-invokes `fn` .
         """
         raise RuntimeError("NPU profiler only available on the 910B machine")
 

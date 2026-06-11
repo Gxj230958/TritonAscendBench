@@ -107,14 +107,14 @@ if is_done "setup_pip"; then
     log_skip "pip install already completed (marker present; FORCE=1 to redo)"
 else
     step_banner "0.1" "install the bench (host-compatible)"
-    log_info "host GPU stack vs infra/version_matrix.toml:"
+    log_info "host GPU stack vs ascendbench/policies/version_matrix.toml:"
     # Compare the host's actual torch/triton/python/cuda + Python deps
     # against what version_matrix.toml records. A mismatch is a WARNING,
     # not a hard fail: the bench runs on the host stack by design. The
     # operator must still be told so a baseline captured on this host is
     # accompanied by a version_matrix.toml update reflecting the real
     # stack. tomllib is stdlib on python>=3.11; no third-party dep.
-    VM_REPORT="$(python3 - "${REPO_ROOT}/infra/version_matrix.toml" <<'PY'
+    VM_REPORT="$(python3 - "${REPO_ROOT}/ascendbench/policies/version_matrix.toml" <<'PY'
 import importlib
 import sys
 from pathlib import Path

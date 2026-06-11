@@ -1,6 +1,6 @@
 """peak_table.py — 910B Roofline π/β peak table loader.
 
-Loads ``infra/peak_table_910b.toml`` and exposes the 910B per-compute-class
+Loads the packaged ``ascendbench/policies/peak_table_910b.toml`` and exposes the 910B per-compute-class
 peak compute (π_c) and per-resource peak bandwidth (β_r) used by scoring's
 Roofline theoretical-latency baseline (the design spec §5.6 / §9)::
 
@@ -25,8 +25,12 @@ except ModuleNotFoundError:  # Python 3.10 fallback
 
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_PEAK_TABLE_PATH = REPO_ROOT / "infra" / "peak_table_910b.toml"
+# Ships as package data under ``ascendbench/policies/`` so the installed wheel
+# is self-sufficient (no source checkout required). Resolved relative to this
+# module, which works for source, editable, and wheel installs alike.
+DEFAULT_PEAK_TABLE_PATH = (
+    Path(__file__).resolve().parent.parent / "policies" / "peak_table_910b.toml"
+)
 
 # Keys required by the design spec §5.6: cube fp16/bf16, int8, vector compute
 # classes and HBM / cross-device-interconnect resources. The loader fails
@@ -68,7 +72,7 @@ def load_compute_peaks(
     """Return ``{compute_class: π_c}`` in FLOP/s (resp. OP/s for int8).
 
     Args:
-        path: peak table TOML path; defaults to ``infra/peak_table_910b.toml``.
+        path: peak table TOML path; defaults to the packaged 910B table.
         require_verified: when True, raise :class:`PeakTableError` if any
             π_c is non-positive (an ``[unverified]`` placeholder). When
             False (default) such classes are still returned (value ``0.0``)
@@ -112,7 +116,7 @@ def load_resource_peaks(
     """Return ``{resource: β_r}`` in byte/s.
 
     Args:
-        path: peak table TOML path; defaults to ``infra/peak_table_910b.toml``.
+        path: peak table TOML path; defaults to the packaged 910B table.
         require_verified: when True, raise :class:`PeakTableError` if any
             β_r is non-positive (an ``[unverified]`` placeholder).
 

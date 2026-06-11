@@ -1,4 +1,4 @@
-"""R5 codex-review regression tests — four review findings.
+"""Pinned regressions: single-call diagnosis/grading (no second candidate call).
 
 Pins the R5 review findings so a regression re-surfaces as a test
 failure:

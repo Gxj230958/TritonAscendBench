@@ -70,9 +70,9 @@ def test_matching_inf_positions_ok():
 
 
 def test_int64_dtype_strict_equality():
-    """codex round-2 P1: integer dtypes must not go through float32 allclose.
+    """integer dtypes must not go through float32 allclose.
 
-    Reproduces the codex case: int64(16777216) vs int64(16777217) differ
+    Reproduces the case: int64(16777216) vs int64(16777217) differ
     by 1, but float32 can only represent 16777216 (24-bit mantissa). With
     a float-cast allclose they would erroneously be 'equal'.
     """
@@ -108,7 +108,7 @@ def test_bool_dtype_strict_equality():
 
 
 def test_sampled_path_still_runs_full_allclose():
-    """codex P1-3: sampled fast-fail must NOT be the final verdict.
+    """P1-3: sampled fast-fail must NOT be the final verdict.
 
     Construct a 2000-element tensor with a single NaN in the last
     position; force `sample_fraction` so small that statistically the
@@ -130,6 +130,6 @@ def test_sampled_path_still_runs_full_allclose():
     res = compare(a, e, cls)
     assert not res.passed, (
         "tolerance.compare reported pass on a sampled-fraction window "
-        "even though the full tensor contains a NaN — codex P1-3 attack."
+        "even though the full tensor contains a NaN — P1-3 attack."
     )
     assert "nan" in (res.reason or "").lower()

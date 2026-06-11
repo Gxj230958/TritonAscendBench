@@ -1,11 +1,11 @@
 # 910B Roofline peak table — per-compute-class π_c / per-resource β_r
 #
 # Purpose: Roofline theoretical-latency baseline for scoring
-#   t_ref = max( max_c W_c/π_c , max_r M_r/β_r )   (DESIGN-V2 §5.6 / §9)
+#   t_ref = max( max_c W_c/π_c , max_r M_r/β_r )   (DESIGN.md)
 # where W_c = FLOPs of compute-class c, π_c = 910B peak compute for that class;
 #       M_r = bytes of resource r,   β_r = peak bandwidth of that resource.
 #
-# Locked at the same level as infra/version_matrix.toml (design spec §5.6).
+# Locked alongside version_matrix.toml in ascendbench/policies/ (design spec §5.6).
 # Refined in granularity from the coarse-grained peak_* fields in version_matrix.toml [hardware.910b].
 #
 # Data-source annotation convention:

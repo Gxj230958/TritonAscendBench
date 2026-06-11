@@ -26,7 +26,7 @@ test clobbers that key with its own instance, a *later* test's
 own module-level ``rue``) no longer affects the instance the
 production code actually uses -- the patched ``build_infer_state`` /
 ``run_resolver`` spies are silently bypassed. This made
-``test_r9_fix2_unverifiable_before_missing_cache_no_regen`` pass in
+``test_unverifiable_before_missing_cache_no_regen`` pass in
 isolation but FAIL in the full suite (its part-3
 ``pap_called["run_resolver"] == 0`` assertion fired because the
 unpatched real ``build_infer_state`` saw a clean+pinned ``infer/`` and

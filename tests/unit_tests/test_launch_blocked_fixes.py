@@ -375,47 +375,6 @@ def test_clear_conflicting_vllm_registrations_pops_duplicate_names(monkeypatch):
                 sys.modules[key] = val
 
 
-def test_l2_10_shape_lint_passes_after_block_k_fix():
-    lint = _load_script(
-        "scripts/internal/lint_shapes_against_kernel.py",
-        "lint_shapes_against_kernel_test",
-    )
-    td = REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
-    assert lint.lint_task(td) == []
-
-
-def test_shape_lint_flags_small_int8_tl_dot_block_k(tmp_path):
-    lint = _load_script(
-        "scripts/internal/lint_shapes_against_kernel.py",
-        "lint_shapes_against_kernel_bad_test",
-    )
-    td = tmp_path / "L2_bad"
-    td.mkdir()
-    (td / "kernel.py").write_text(
-        "import triton.language as tl\n"
-        "def wrap():\n"
-        "    tl.dot(0, 0)\n"
-    )
-    (td / "shapes.yaml").write_text(
-        yaml.safe_dump(
-            {
-                "public_shapes": [{"id": "P1", "knobs": {"B": 2, "D": 16, "N": 8}}],
-                "hidden_shapes": [],
-                "inputs": {
-                    "A": {"dims": ["B", "D"], "dtype": "int8", "dist": "randint:0:8"},
-                    "B": {"dims": ["N", "D"], "dtype": "int8", "dist": "randint:0:8"},
-                    "As": {"dims": ["B", "1"], "dtype": "float32", "dist": "rand"},
-                    "Bs": {"dims": ["1", "1"], "dtype": "float32", "dist": "rand"},
-                    "block_size": {"scalar_seq": [8, 8]},
-                },
-            },
-            sort_keys=False,
-        )
-    )
-    findings = lint.lint_task(td)
-    assert any(f.code == "int8_tl_dot_block_k_lt_32" for f in findings)
-
-
 def test_l2_34_shapes_and_oracle_follow_wrapper_contract():
     td = (
         REPO / "tasks" / "level2"

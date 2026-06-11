@@ -65,8 +65,7 @@ DEFAULT_SHAPES = ["P1", "P2"]
 # Full-shape C2 verification toggle (env: TAB_C2_ALL_SHAPES, default "1" = on). Grades EVERY
 # public+hidden shape, not just the 2 anchors, so a large-shape-only divergence the 2-anchor
 # grade structurally cannot see is surfaced (this is what found the L2_03 launcher fp32->bf16
-# downcast and the dtype-ceiling shapes -- see docs/reviews/2026-06-03-full-shape-c2-
-# verification.md). Set TAB_C2_ALL_SHAPES=0 for the fast 2-anchor grade. A sweep-only shape
+# downcast and the dtype-ceiling shapes). Set TAB_C2_ALL_SHAPES=0 for the fast 2-anchor grade. A sweep-only shape
 # that fails to build/run is skipped (honest ungraded gap), never an ALIGNED_READY-killing
 # RUNTIME_ERROR -- the runner's expected-vs-graded shape diff reports the gap.
 _C2_ALL_SHAPES = os.environ.get("TAB_C2_ALL_SHAPES", "1") == "1"
@@ -652,7 +651,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--report",
-        default="docs/triage_backlog/2026-05-26-oracle-pyref-audit.md",
+        default="build/oracle-pyref-audit.md",
         help="audit report md path",
     )
     p.add_argument(

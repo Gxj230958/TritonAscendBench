@@ -15,12 +15,12 @@ normalized and scaled by `weight`.
 ## What you must NOT do
 
 - Call CPU PyTorch for the actual normalization (allowed only for shape/contiguity setup).
-- Import anything outside `infra/version_matrix.toml`'s pinned allowlist.
+- Import anything outside `ascendbench/policies/version_matrix.toml`'s pinned allowlist.
 - Read or `os.stat` any file under `tasks/` from inside the solution.
 - Use `ctypes`, `cffi`, `torch.utils.cpp_extension.load_inline`, or any non-broker `.so` load.
 - Branch on shape values to short-circuit toward a precomputed answer.
 
-(Full denylist: see `specs/ast_denylist.md`.)
+(Static import/call/attribute restrictions apply.)
 
 ## Inputs available to your kernel
 
@@ -40,7 +40,7 @@ Accumulation **must be in float32** regardless of input dtype.
 
 ## Tolerance class
 
-`vector_reduce` — see `specs/tolerance_policy.md` and
+`vector_reduce` — see `docs/reference/tolerance_policy.md` and
 `ascendbench/policies/tolerance_policy.yaml` (atol 1e-3, rtol 1e-3).
 
 ## Metamorphic checks (runner-enforced)

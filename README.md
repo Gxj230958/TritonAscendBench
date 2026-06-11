@@ -2,7 +2,6 @@
 
 > A **Migration Benchmark** for porting GPU Triton kernels to Huawei Ascend 910B via `triton-ascend`.
 
-[![Status](https://img.shields.io/badge/Plan-v4.13_FROZEN-brightgreen)](docs/benchmark_impl_plan.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
 [![Tasks](https://img.shields.io/badge/Tasks-101-blue)](tasks/)
 
@@ -59,7 +58,7 @@ The task bundle is built by a staged, idempotent pipeline:
 python scripts/corpus/validate_tasks.py --strict
 python scripts/provenance/verify_version_matrix.py
 
-# Phase 0.5: scaffold the 100-task tree from docs/benchmark_select.md.
+# Phase 0.5: scaffold the 101-task tree from docs/kernel-select.md.
 python scripts/corpus/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
 
 # Phase A: vendor the upstream GPU triton kernel.py (Apache-2.0/BSD-3
@@ -85,11 +84,11 @@ needs the 910B machine — see **Pipeline Status** below.
 
 | Level | Tasks | Type | Hardware |
 |-------|-------|------|----------|
-| **L1** | 40 | Single-op / elementwise / reduce / quant / sample | NPU Vector |
-| **L2** | 38 | Fused / Cube matmul / LoRA / MoE EP / Mamba step | NPU Cube + Vector |
-| **L3** | 23 | Full Flash Attention / Fused MoE / Mamba chunk pipeline | NPU full pipeline |
+| **L1** | 36 | Single-op / elementwise / reduce / quant / sample | NPU Vector |
+| **L2** | 35 | Fused / Cube matmul / LoRA / MoE EP / Mamba step | NPU Cube + Vector |
+| **L3** | 30 | Full Flash Attention / Fused MoE / Mamba chunk pipeline | NPU full pipeline |
 
-Selection rationale: see [`docs/benchmark_select.md`](docs/benchmark_select.md).
+Selection rationale: see [`docs/kernel-select.md`](docs/kernel-select.md).
 
 ## Scoring
 
@@ -109,7 +108,7 @@ $$\text{FastP}(p) = \frac{|\{t \in \text{catalogue} : \text{correct} \land t_{\t
   retained for output-schema stability; `_native` = the NPU-triton
   track (not AscendC). Capped at 5×, floor ε=0.01.
 
-Full scoring spec: [`specs/scoring_spec.md`](specs/scoring_spec.md).
+Full scoring spec: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spec.md).
 
 ## Two-Tier Leaderboard
 
@@ -122,22 +121,20 @@ Full scoring spec: [`specs/scoring_spec.md`](specs/scoring_spec.md).
 
 29 by-design defense principles across 7 layers (Process / Code / Correctness / Sanity / Submission / Test-set / Cross-cutting), covering 31 attack categories.
 
-Full defense spec: [`specs/reward_hack_defense.md`](specs/reward_hack_defense.md).
 
 ## Documentation
 
-- [Selection rationale (100 tasks)](docs/benchmark_select.md) — v3.1
-- [Implementation plan v4.13 FROZEN](docs/benchmark_impl_plan.md) — 19 codex review rounds
-- [Task API contract](specs/task_api_contract.md)
-- [Tolerance policy](specs/tolerance_policy.md)
+- [Selection rationale](docs/kernel-select.md)
+- [Task API contract](docs/reference/task_api_contract.md)
+- [Tolerance policy](docs/reference/tolerance_policy.md)
+- [Findings](docs/findings/) — upstream bugs surfaced while building the corpus
 
 ## Project Status
 
 | Component | Status |
 |-----------|--------|
-| Plan | ✅ FROZEN v4.13 |
 | Repo skeleton + 13 provider modules | ✅ Done |
-| 101 task directories (L1=40, L2=38, L3=23) | ✅ Done |
+| 101 task directories (L1=36, L2=35, L3=30) | ✅ Done |
 | Phase A — frozen upstream `kernel.py` | ✅ 101/101 real upstream kernels (3 v3.2 errata slots re-tasked from CSV) |
 | Phase B — `oracle_pytorch.py` ground truth | ✅ 99 working references; 1 manual (L1_24); 1 RNG stub (L1_21) |
 | Phase C — `shapes.yaml` + `contract.md` | ✅ 99 executable via `inputs.build_inputs` |

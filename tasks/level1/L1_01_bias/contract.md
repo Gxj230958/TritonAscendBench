@@ -60,8 +60,8 @@ Public: 5 (tiny_one_req → batch_4_speculative). Hidden: 4.
 
 ## Static checks
 
-- AST denylist (see `specs/ast_denylist.md`)
-- Import allowlist (`infra/version_matrix.toml`)
+- AST denylist (static import/call/attribute restrictions)
+- Import allowlist (`ascendbench/policies/version_matrix.toml`)
 - `constexpr_match` — `LOGITS_BLOCK_SIZE` and `BLOCK_SIZE` must be `tl.constexpr` with the same names as upstream
 
 <!-- param_constraints mirror: auto-generated -->

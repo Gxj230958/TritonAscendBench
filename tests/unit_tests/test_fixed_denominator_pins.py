@@ -1,4 +1,4 @@
-"""R8 codex-review regression tests.
+"""Pinned regressions: blocked stays in the fixed scoring denominator.
 
 Pins the two R8 MUST-FIX findings so a regression re-surfaces as a test
 failure:
@@ -49,7 +49,7 @@ def _run_tab(*args: str) -> subprocess.CompletedProcess:
 # ---------------------------------------------------------------------------
 class TestR8_1BlockedInDenominator:
     def test_codex_repro_1_evaluated_1_blocked_fixed_denom(self):
-        """codex repro: 1 evaluated + 1 verified-blocked eligible task.
+        """repro: 1 evaluated + 1 verified-blocked eligible task.
 
         The score must be computed against the FIXED |S| = 2 — geomean of
         {s_t=1.0 (evaluated), ε (blocked)} = sqrt(1.0 * 0.01) = 0.1. If

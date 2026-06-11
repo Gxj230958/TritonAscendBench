@@ -2,15 +2,15 @@
 
 Implements:
 - Metamorphic check runner (per task's `meta.runner_checks.metamorphic_checks`)
-- Canary trap detection (per `specs/canary_task_design.md` C1–C10)
-- Hidden adversarial shape rotation (R18-S5; sealed shape access protocol)
+- Canary trap detection (C1–C10 trap classes)
+- Hidden adversarial shape rotation (; sealed shape access protocol)
 - The authoritative metamorphic-check registry (`KNOWN_METAMORPHIC_CHECKS`)
 
 Canary traps (live inside `tasks/_canary/`) are tasks that look like real
 ones but have a known wrong oracle or impossible shape. A submitter that
 passes them is flagged as gaming the runner.
 
-W2.4 — two **separate** detection paths, with distinct result schemas:
+ — two **separate** detection paths, with distinct result schemas:
 
 * :func:`run_metamorphic_checks` runs declared transformations against a
   *real* task and yields :class:`MetamorphicResult` records the runner
@@ -37,18 +37,18 @@ from typing import Any, Callable
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Metamorphic-check registry (W2.4 — authoritative source of truth)
+# Metamorphic-check registry ( — authoritative source of truth)
 # ─────────────────────────────────────────────────────────────────────────────
 # Every legal `meta.runner_checks.metamorphic_checks` *name*. A task may
 # only declare a check listed here; `scripts/corpus/validate_tasks.py` imports
-# this set and rejects an unknown name at validation time (W2.3 used to
+# this set and rejects an unknown name at validation time ( used to
 # carry a bootstrap copy — it now imports this registry instead).
 #
 # Membership ≠ a registered transformation callable. The runner supplies
 # the actual transform+rerun+compare callable per task and passes it to
 # `run_metamorphic_checks`; this set governs which *names* are admissible.
 # `differential_perturbation_general` is the design-plan baseline generic
-# check (W2.4); the rest are the task-specific checks the corpus declares.
+# check ; the rest are the task-specific checks the corpus declares.
 KNOWN_METAMORPHIC_CHECKS: frozenset[str] = frozenset({
     "differential_perturbation_general",
     "empty_allowed_is_noop_stage1",
@@ -128,7 +128,7 @@ def run_metamorphic_checks(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Metamorphic transformation registry (W2.4 / R7-3 — real transformations)
+# Metamorphic transformation registry ( /  — real transformations)
 # ─────────────────────────────────────────────────────────────────────────────
 # A metamorphic check is: transform the candidate's inputs, re-run the
 # candidate, and verify the output satisfies a structural invariant. The
@@ -520,7 +520,7 @@ def build_metamorphic_transformations(
     ctx: "MetamorphicContext",
 ) -> dict[str, "Callable[[], MetamorphicResult]"]:
     """Build the ``{check_name: callable}`` transformation registry for a
-    task's declared metamorphic checks (R7-3).
+    task's declared metamorphic checks .
 
     Each entry is a zero-arg closure :func:`run_metamorphic_checks` calls.
     A check whose name maps to a generic structural family
@@ -603,7 +603,7 @@ def canary_finding_json(f: CanaryFinding) -> dict[str, Any]:
 
     Canary findings carry their OWN schema — keyed by ``canary_id`` and
     ``severity`` — and are emitted in a dedicated ``canary_findings``
-    array, kept distinct from per-task ``metamorphic_results`` (W2.4 §3).
+    array, kept distinct from per-task ``metamorphic_results`` ( §3).
     """
     return {
         "canary_id": f.canary_id,
@@ -615,7 +615,7 @@ def canary_finding_json(f: CanaryFinding) -> dict[str, Any]:
 
 @dataclass
 class CanaryAggregate:
-    """Submission-level canary verdict (W2.4 escalation chain).
+    """Submission-level canary verdict ( escalation chain).
 
     `canary_caught` is the count of *triggered* canary findings across the
     whole submission. ``canary_caught > 0`` escalates the submission to
@@ -636,7 +636,7 @@ def aggregate_canary_findings(
 
     Counts the triggered findings; any triggered canary (``canary_caught
     > 0``) flips ``suspicious`` so the submission is held for manual
-    review. This is the W2.4 canary escalation chain `cli run-suite` /
+    review. This is the  canary escalation chain `cli run-suite` /
     `analyze` invoke for submission-level aggregation.
     """
     caught = sum(1 for f in findings if f.triggered)
@@ -648,7 +648,7 @@ def aggregate_canary_findings(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Canary suite runner (W2.5 — discovery → bound-solution run → check_canaries)
+# Canary suite runner ( — discovery → bound-solution run → check_canaries)
 # ─────────────────────────────────────────────────────────────────────────────
 # `iter_all_tasks()` skips `_`-prefixed dirs, so canaries never enter the
 # score-eligible set. The runner below is the independent path: it discovers

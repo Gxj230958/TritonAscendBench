@@ -237,8 +237,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--json-out",
         default=str(
-            REPO_ROOT / "docs" / "triage_backlog"
-            / "2026-05-27-r13c-gate.json"
+            REPO_ROOT / "build" / "release-planning-gate.json"
         ),
     )
     args = p.parse_args(argv)

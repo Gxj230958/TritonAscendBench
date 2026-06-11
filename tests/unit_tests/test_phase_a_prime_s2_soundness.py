@@ -1,4 +1,4 @@
-"""Phase A' S2 SOUNDNESS tests (codex r2 HOLE A / B / C).
+"""Phase A' S2 soundness tests.
 
 These exercise the *real* (GPU-free) S2 machinery -- S2-smoke runs on
 CPU via ``TRITON_INTERPRET``, staging is pure temp-file work, and the
@@ -224,7 +224,7 @@ def test_smoke_does_real_comparison_not_a_flag():
 
 def test_smoke_uses_triton_interpret_env(monkeypatch):
     """S2-smoke must put TRITON_INTERPRET=1 in the ACTUAL subprocess
-    environment (BLOCKER 3 -- codex r3 [confirmed]: the old test only
+    environment (BLOCKER 3 the old test only
     spied that interpret=True was *passed*; it would still pass if the
     `env["TRITON_INTERPRET"]="1"` export at phase_a_prime.py were
     deleted). We spy on the real `subprocess.run` and assert the env
@@ -326,7 +326,7 @@ def _drive_run_side(device: str, monkeypatch, recorder: list):
 
 
 def test_authoritative_pass_actually_moves_inputs_to_cuda(monkeypatch):
-    """BLOCKER 1 / HOLE 3 (codex r3+r4 [confirmed]): the
+    """BLOCKER 1 / HOLE 3: the
     S2-gpu-authoritative pass must ACTUALLY move every input tensor onto
     the cuda device BEFORE the entrypoint runs (real Triton GPU kernels
     no-run/error on CPU tensors -> S2-gpu-authoritative structurally
@@ -466,12 +466,12 @@ def test_authoritative_runner_refuses_cuda_when_absent_no_silent_fake():
 
 
 def test_placeholder_meta_is_blocked_not_unrun(tmp_path):
-    """BLOCKER 2 (codex r3 [confirmed]): a task whose
+    """BLOCKER 2: a task whose
     meta.oracle.gpu_triton points at kernel.py::placeholder (with NO
     `placeholder` callable defined) must resolve to
     BLOCKED(no-upstream-entrypoint), NEVER UNRUN(needs-gpu). The old
     generator unconditionally labelled every non-U1-blocked task
-    UNRUN(needs-gpu) -- the overclaim codex flagged."""
+    UNRUN(needs-gpu) -- the overclaim flagged."""
     # Resolvable entrypoint -> WOULD reach the CUDA gate -> UNRUN.
     td_ok = _mk_task(
         "import torch\ndef ent(x):\n    x.add_(1.0)\n",
@@ -515,7 +515,7 @@ def test_placeholder_meta_is_blocked_not_unrun(tmp_path):
             reason="S2-smoke passed (CPU); UNRUN(needs-gpu).",
         )
 
-    # MUST-FIX 1 (codex r2 [confirmed]): the hardened resolver verdict
+    # MUST-FIX 1: the hardened resolver verdict
     # is the single source of truth for a meta-pre-set task. Inject a
     # PER-TASK resolver verdict (mirrors what the REAL resolver returns
     # for each): the resolvable task genuinely passes the hardened
@@ -540,7 +540,7 @@ def test_placeholder_meta_is_blocked_not_unrun(tmp_path):
         verify_fn=_vf, resolver_verdict_fn=_rvf,
     )
     # Only the RESOLVABLE task triggers a real verify; the ::placeholder
-    # task is pre-filtered (no smoke run) -- codex r4 "keep that part".
+    # task is pre-filtered (no smoke run) -- "keep that part".
     assert calls == [td_ok.name], calls
     assert "| T_PH | " in md
     ph_row = next(
@@ -561,7 +561,7 @@ def test_placeholder_meta_is_blocked_not_unrun(tmp_path):
 
 
 def test_render_status_runs_real_s2_smoke_not_static_guess(monkeypatch):
-    """HOLE 1 (codex r4 [confirmed]): _render_status_md must DERIVE a
+    """HOLE 1: _render_status_md must DERIVE a
     resolvable task's status from the REAL s2_verify_task verdict, NOT
     a static UNRUN(needs-gpu) guess. A smoke MISMATCH must surface as
     BLOCKED(smoke-fail) (NOT an overclaimed UNRUN); a smoke PASS as
@@ -571,7 +571,7 @@ def test_render_status_runs_real_s2_smoke_not_static_guess(monkeypatch):
     td = _mk_task("import torch\ndef ent(x):\n    x.add_(1.0)\n")
     tc = pap.classify_task(td.name, (td / "kernel.py").read_text())
 
-    # MUST-FIX 1 (codex r2 [confirmed]): inject a resolver verdict that
+    # MUST-FIX 1: inject a resolver verdict that
     # AGREES the entrypoint genuinely passes the hardened anchor so the
     # single-source-of-truth override falls through to the real
     # `verify_fn` -- this test exercises the S2 status-MAPPING logic
@@ -621,7 +621,7 @@ def test_render_status_runs_real_s2_smoke_not_static_guess(monkeypatch):
 
 
 def test_resolver_mirrors_runner_resolution(tmp_path):
-    """HOLE 2 (codex r4 [confirmed]): _resolve_upstream_entrypoint must
+    """HOLE 2: _resolve_upstream_entrypoint must
     agree with what _pa_subproc_runner._resolve_entrypoint would
     actually do for the ORIGINAL side (real kernel.py, no synthesised
     run). We build a real module for each construct, run the runner's
@@ -729,9 +729,9 @@ def test_compare_ignores_process_local_pointers_for_layout():
                   "stride": [1], "storage_offset": 0}
 
 
-# ───────── codex r5 ISSUE 1: no silent skip+positional-shift ─────────
+# ───────── ISSUE 1: no silent skip+positional-shift ─────────
 def test_signature_adapter_missing_required_param_is_explicit_blocked():
-    """codex r5 ISSUE 1 (real S2-harness soundness bug). When
+    """ISSUE 1 (real S2-harness soundness bug). When
     shapes.yaml omits a NO-default entrypoint parameter, the adapter
     must NOT silently skip it and SHIFT the remaining positional args
     (which lands e.g. a bool in a tensor slot -> a misleading crash OR,
@@ -778,7 +778,7 @@ def test_signature_adapter_missing_required_param_is_explicit_blocked():
 
 
 def test_synth_run_template_missing_required_param_is_explicit_blocked():
-    """codex r5 ISSUE 1: the SYNTHESISED severed run() must mirror the
+    """ISSUE 1: the SYNTHESISED severed run() must mirror the
     adapter -- map BY NAME, hard-error on a missing no-default param,
     NEVER silently skip+shift. FAILS ON REVERT: the old template body
     ``_args = [inputs[p] for p in _params if p in inputs]`` would
@@ -813,9 +813,9 @@ def test_synth_run_template_missing_required_param_is_explicit_blocked():
     assert mod.run({"k": 2, "o": 3, "q": 1}) == {"_out0": 1}
 
 
-# ───────── codex r5 ISSUE 2: L2_10 inputs are INT8 per contract ──────
+# ───────── ISSUE 2: L2_10 inputs are INT8 per contract ──────
 def test_L2_10_w8a8_inputs_are_int8_per_contract():
-    """codex r5 ISSUE 2 (fixture dtype bug). L2_10 is a W8A8 *INT8*
+    """ISSUE 2 (fixture dtype bug). L2_10 is a W8A8 *INT8*
     block matmul -- contract.md requires ``A_int8``/``B_int8`` and the
     kernel does ``tl.dot(int8, int8) -> int32``. shapes.yaml previously
     produced int64 (-> 'Unsupported lhs dtype int64' smoke error, a
@@ -848,9 +848,9 @@ def test_L2_10_w8a8_inputs_are_int8_per_contract():
     assert int(inp["A"].min()) >= -128 and int(inp["A"].max()) <= 127
 
 
-# ───── codex r5 ISSUE 3: shapes-incomplete != smoke-fail/severing ────
+# ───── ISSUE 3: shapes-incomplete != smoke-fail/severing ────
 def test_status_labels_shapes_incomplete_not_smoke_fail_or_severing():
-    """codex r5 ISSUE 3 (status over-description = overclaim). A task
+    """ISSUE 3 (status over-description = overclaim). A task
     whose entrypoint RESOLVES but whose shapes.yaml omits a required
     no-default param (the honest L3_04 category after ISSUE 1) MUST be
     labelled ``BLOCKED(shapes-incomplete)`` and described as a benchmark
@@ -865,7 +865,7 @@ def test_status_labels_shapes_incomplete_not_smoke_fail_or_severing():
             ln for ln in md.splitlines() if ln.startswith(f"| {tid} | ")
         )
 
-    # MUST-FIX 1 (codex r2 [confirmed]): inject a resolver verdict that
+    # MUST-FIX 1: inject a resolver verdict that
     # AGREES the entrypoint passes the hardened anchor so the
     # single-source-of-truth override falls through to the real
     # `verify_fn` -- this test exercises the S2 status-MAPPING
@@ -923,7 +923,7 @@ def test_status_labels_shapes_incomplete_not_smoke_fail_or_severing():
     assert "S2 PASS requires a GPU regardless" in md_sf
 
 
-# ── codex r6 residual #2 [confirmed]: write-back on live re-resolve ──
+# ── residual #2 [confirmed]: write-back on live re-resolve ──
 def _rue():
     _s = importlib.util.spec_from_file_location(
         "resolve_upstream_entrypoints",
@@ -938,7 +938,7 @@ def _rue():
 def test_writeback_fresh_verdict_updates_only_that_task(
     tmp_path, monkeypatch,
 ):
-    """codex r6 residual #2 [confirmed] -- FAIL ON REVERT.
+    """residual #2 [confirmed] -- FAIL ON REVERT.
 
     After a forced live per-task re-resolve, the canonical cache's
     THAT-task entry MUST be updated with fresh ``input_fp`` +
@@ -1016,7 +1016,7 @@ def test_writeback_fresh_verdict_updates_only_that_task(
 
 
 def test_writeback_honors_pa_no_cache_regen(tmp_path, monkeypatch):
-    """codex r6 residual #2 [confirmed] -- FAIL ON REVERT.
+    """residual #2 [confirmed] -- FAIL ON REVERT.
 
     With ``PA_NO_CACHE_REGEN=1`` the write-back MUST NOT persist (cache
     bytes unchanged) -- the caller still gets the correct fresh verdict
@@ -1061,7 +1061,7 @@ def test_param_name_map_baked_into_severed_run_and_binder():
     tensor under a different key (e.g. wrapper `weight` <- shapes `w`), used
     IDENTICALLY by the severed synthesised run() (baked) and the original
     side's binder. bound records the TASK key so in-place output recon
-    indexes inputs correctly (codex finding 3). No map => unchanged."""
+    indexes inputs correctly. No map => unchanged."""
     import ast as _ast
     # severed side: baked into synthesise_standalone_run
     out = pap.synthesise_standalone_run(

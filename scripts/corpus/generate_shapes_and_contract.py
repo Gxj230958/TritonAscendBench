@@ -20,7 +20,7 @@ oracle:
 For **all 100 tasks** (PoCs and stub-oracle tasks included) this generator
 also seeds a ``scaffold: true`` ``param_constraints`` skeleton into
 ``meta.yaml`` — the operator input contract (WA.1 /
-``specs/task_api_contract.md §5.2``). The skeleton is merged into the
+``docs/reference/task_api_contract.md §5.2``). The skeleton is merged into the
 existing ``meta.yaml`` without disturbing any other field; a task whose
 ``param_constraints`` block already exists with ``scaffold: false`` (a
 human-reconciled block) is left untouched (the meta-skip path).
@@ -28,8 +28,7 @@ human-reconciled block) is left untouched (the meta-skip path).
 The shapes.yaml / contract.md *body* is still skipped for the 5
 hand-curated PoCs and the stub-oracle tasks (their oracle is a stub); the
 ``param_constraints`` seeding and the contract.md constraint-mirror refresh
-are **not** skipped for them — see WA.5 in
-``docs/plans/2026-05-21-operator-param-validity-impl.md``.
+are **not** skipped for them.
 """
 from __future__ import annotations
 
@@ -893,10 +892,8 @@ Concrete per-shape tensors are built by
 
 ## Metamorphic checks
 
-TODO(phase-c-review): enumerate runner-enforced invariants
-(`specs/canary_task_design.md`). Candidate generic checks: permutation
-invariance, zero-input ⇒ zero-output, scale equivariance — confirm per
-task before enabling.
+Candidate runner-enforced invariants to confirm per task: permutation
+invariance, zero-input ⇒ zero-output, scale equivariance.
 
 ## Shape coverage
 

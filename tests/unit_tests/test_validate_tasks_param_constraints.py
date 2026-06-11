@@ -1,6 +1,6 @@
 """WA.1: param_constraints schema — loader + validator tests.
 
-Covers the WA.1 deliverables (`docs/plans/2026-05-21-operator-param-validity-impl.md`):
+Covers the WA.1 deliverables:
 
 * the dataset loader is **fully lenient** — a missing block yields
   ``TaskDef.param_constraints = None``; a malformed block is kept verbatim as

@@ -45,7 +45,7 @@ jobs:
           # plus an empty grep returns 1 → if-branch is skipped → false PASS.
           rc=0
           tar tf "$tmp/release.tar" \
-            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation|docs/plans/2026-05-23-00[12]|docs/release/internal-|docs/triage_backlog|infra/RFC_0001_scope|infra/upstream_contacts)' \
+            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation|docs/plans/|docs/reviews/|docs/triage_backlog/|docs/brainstorms/|docs/architecture/|docs/release/|docs/internal/|infra/|specs/)' \
             || rc=$?
           if [ "$rc" = "0" ]; then
             echo 'Release tarball MUST NOT contain INTERNAL automation / loop / plans / triage'
@@ -185,7 +185,7 @@ jobs:
         # Dockerfile.gpu has no default BASE_IMAGE. The self-hosted GPU
         # runner must define a TAB_GPU_BASE_IMAGE repository variable
         # pointing at an image with torch>=2.9 / triton>=3.5 / CUDA 12.6.
-        run: docker build -f infra/Dockerfile.gpu --build-arg BASE_IMAGE=${{ vars.TAB_GPU_BASE_IMAGE }} -t tab-gpu:ci .
+        run: docker build -f docker/Dockerfile.gpu --build-arg BASE_IMAGE=${{ vars.TAB_GPU_BASE_IMAGE }} -t tab-gpu:ci .
       - name: Run 5-task PoC smoke
         run: |
           docker run --rm --gpus all -v $(pwd)/results:/workspace/results tab-gpu:ci \

@@ -87,7 +87,7 @@ clear_markers() {
 # ---------------------------------------------------------------------------
 # Environment prechecks
 # ---------------------------------------------------------------------------
-# require_python -- the bench mandates python3 (CLAUDE.md). Confirm >= 3.11.
+# require_python -- the bench mandates python3. Confirm >= 3.11.
 require_python() {
     command -v python3 >/dev/null 2>&1 || die "python3 not found on PATH"
     python3 - <<'PY' || die "python3 must be >= 3.11 (pyproject requires-python)"

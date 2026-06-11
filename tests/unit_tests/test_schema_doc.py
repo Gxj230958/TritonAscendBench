@@ -1,7 +1,7 @@
 """Schema-doc text assertions for M2 Unit 2.1.
 
 The four bench-team-internal field groups are defined in
-``specs/task_api_contract.md`` §6a. This test guards against accidental
+``docs/reference/task_api_contract.md`` §6a. This test guards against accidental
 deletion / rename of those documented schema sections — a code reviewer
 adding the corresponding validator / eligibility logic must be able to
 point at the spec, and `git grep` for these field names must hit the spec
@@ -21,7 +21,7 @@ import pytest
 
 # Repository root is two levels above the tests/unit_tests/ directory.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_SPEC = _REPO_ROOT / "specs" / "task_api_contract.md"
+_SPEC = _REPO_ROOT / "docs" / "internal" / "specs" / "task_api_contract_state_fields.md"
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def spec_text() -> str:
 def test_section_6a_present(spec_text: str) -> None:
     """The new §6a section header must exist."""
     assert "## 6a. Task State Fields" in spec_text, (
-        "specs/task_api_contract.md must declare §6a "
+        "the internal task-state-fields doc must declare §6a "
         "'Task State Fields (bench-team-internal writes)'"
     )
 
@@ -50,7 +50,7 @@ def test_section_6a_present(spec_text: str) -> None:
 def test_field_name_documented(spec_text: str, field_name: str) -> None:
     """Each of the four field groups must be name-mentioned in the spec."""
     assert field_name in spec_text, (
-        f"specs/task_api_contract.md must mention '{field_name}'"
+        f"the internal task-state-fields doc must mention '{field_name}'"
     )
 
 
@@ -68,7 +68,7 @@ def test_field_name_documented(spec_text: str, field_name: str) -> None:
 def test_subsection_header_present(spec_text: str, subsection_header: str) -> None:
     """Every documented field group must have its own subsection header."""
     assert subsection_header in spec_text, (
-        f"specs/task_api_contract.md must contain subsection header: "
+        f"the internal task-state-fields doc must contain subsection header: "
         f"{subsection_header!r}"
     )
 
@@ -179,7 +179,10 @@ def test_cross_field_invariants_documented(spec_text: str) -> None:
 def test_iso_8601_format_documented(spec_text: str) -> None:
     """The ISO 8601 timestamp format must be explicit in §6a."""
     section_start = spec_text.index("## 6a. Task State Fields")
-    section_end = spec_text.index("## 7. Validator")
+    try:
+        section_end = spec_text.index("## 7. Validator")
+    except ValueError:
+        section_end = len(spec_text)  # §6a moved to the internal state-fields doc (runs to EOF)
     section_6a = spec_text[section_start:section_end]
     # The Z (UTC) form documented as the writer's format.
     assert "YYYY-MM-DDTHH:MM:SSZ" in section_6a, (
@@ -188,9 +191,10 @@ def test_iso_8601_format_documented(spec_text: str) -> None:
     )
 
 
-def test_validator_section_references_6a(spec_text: str) -> None:
-    """§7 must explain that §6a fields are NOT in REQUIRED_META_TOP_LEVEL."""
-    body = _slice_section(spec_text, "## 7. Validator")
+def test_validator_section_references_6a() -> None:
+    """§7 of the PUBLIC contract must explain that §6a fields are NOT in REQUIRED_META_TOP_LEVEL."""
+    public = (_REPO_ROOT / "docs" / "reference" / "task_api_contract.md").read_text(encoding="utf-8")
+    body = _slice_section(public, "## 7. Validator")
     assert "REQUIRED_META_TOP_LEVEL" in body, (
         "§7 must reference REQUIRED_META_TOP_LEVEL"
     )
@@ -205,7 +209,7 @@ def test_no_chinese_in_spec(spec_text: str) -> None:
     """Spec doc is English-only (CLAUDE.md project rule)."""
     chinese_chars = re.findall(r"[一-龥]", spec_text)
     assert not chinese_chars, (
-        f"specs/task_api_contract.md must be English-only "
+        f"the internal task-state-fields doc must be English-only "
         f"(found {len(chinese_chars)} CJK chars: {chinese_chars[:10]!r}...)"
     )
 
@@ -213,7 +217,10 @@ def test_no_chinese_in_spec(spec_text: str) -> None:
 def test_no_process_noise_in_new_section(spec_text: str) -> None:
     """§6a must not contain process noise (codex / round-N / V-numbered)."""
     section_start = spec_text.index("## 6a. Task State Fields")
-    section_end = spec_text.index("## 7. Validator")
+    try:
+        section_end = spec_text.index("## 7. Validator")
+    except ValueError:
+        section_end = len(spec_text)  # §6a moved to the internal state-fields doc (runs to EOF)
     section_6a = spec_text[section_start:section_end]
     forbidden = re.findall(
         r"\b(codex|claude|gemini|round[-_ ]?[0-9]+|"

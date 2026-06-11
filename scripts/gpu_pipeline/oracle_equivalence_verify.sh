@@ -64,7 +64,6 @@ cd "$REPO_ROOT"
 
 # Parse the verify args to find an explicit task selector. We don't
 # consume the args -- they are forwarded verbatim to the python runner.
-# Codex review 2026-05-27:
 #   * ``--task-list all`` is supported by the python runner as a
 #     synonym for --all; treat it that way here too so we don't try
 #     to precompute a task literally named ``all``.
@@ -128,7 +127,7 @@ _precompute_missing() {
     for tid in "${missing[@]}"; do
       python3 scripts/oracle/precompute_oracle_reference.py --task "$tid" \
         --json-out "/tmp/oracle_pyref_audit_${tid}.json" \
-        --report "docs/triage_backlog/2026-05-26-oracle-pyref-audit.md" \
+        --report "build/oracle-pyref-audit.md" \
         || echo "[stage 0] WARN: R10.a failed for $tid (continuing)" >&2
     done
   fi
@@ -142,7 +141,7 @@ elif [[ "$_saw_all" -eq 1 ]]; then
     echo "[stage 0] no r10_pyref artifacts found anywhere; running CPU pre-compute first..."
     python3 scripts/oracle/precompute_oracle_reference.py --all --workers 8 \
       --json-out /tmp/oracle_pyref_audit.json \
-      --report docs/triage_backlog/2026-05-26-oracle-pyref-audit.md
+      --report build/oracle-pyref-audit.md
   else
     # Legacy artifacts may have ref_* but no inputs_*.sidecar.json (H2);
     # refresh per-task so R10.b doesn't block them as INPUT_DRIFT.

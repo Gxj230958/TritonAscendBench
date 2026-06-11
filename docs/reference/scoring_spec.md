@@ -17,7 +17,7 @@ No ε on coverage; missing/failed tasks contribute 0 to the numerator but are **
 910B and the source GPU differ in peak capability, so absolute latency is not cross-hardware comparable; performance is normalized against the 910B Roofline. For task `t`, shape `s`:
 
 - `W_c(t,s)` = FLOPs of compute class `c`, `M_r(t,s)` = bytes of data resource `r` (HBM / inter-device comm) — from the per-task cost model, cross-validated against an instrumented GPU-Triton reference run (fail-closed; `task_api_contract.md §cost_model`);
-- `π_c` / `β_r` = 910B peak compute / bandwidth for that class / resource (`infra/` peak table);
+- `π_c` / `β_r` = 910B peak compute / bandwidth for that class / resource (packaged `ascendbench/policies/peak_table_910b.toml`);
 - **Roofline ideal latency** (standard Roofline lower bound; assumes ideal resource overlap → tightest theoretical floor; fully serialized non-overlap would instead be the sum):
 
 $$t_{ref}(t,s) = \max\!\Big(\max_c \tfrac{W_c}{\pi_c},\ \max_r \tfrac{M_r}{\beta_r}\Big)$$
@@ -77,7 +77,7 @@ release_status == PASS  ⟺  phase_a_prime.status == PASS
 
 $$\text{hardware\_utilization} = \max\!\Big(\frac{\text{achieved}_{HBM}}{\beta_{HBM}} \times 100,\ \frac{\text{achieved}_{FLOPS}}{\pi_{class}} \times 100\Big)\,\%$$
 
-910B peaks (`π_class`, `β`) are sourced from the `infra/` peak table (illustratively HBM ≈ 1.6 TB/s, FP16 cube ≈ 256 TFLOPS, INT8 ≈ 512 TOPS — authoritative values live in `infra/`). This is the empirical counterpart of the analytic `t_ref`; diagnostic, not a ranking key.
+910B peaks (`π_class`, `β`) are sourced from the packaged peak table (illustratively HBM ≈ 1.6 TB/s, FP16 cube ≈ 256 TFLOPS, INT8 ≈ 512 TOPS — authoritative values live in the packaged table). This is the empirical counterpart of the analytic `t_ref`; diagnostic, not a ranking key.
 
 ## Result JSON Schema (per task per run)
 
@@ -90,7 +90,7 @@ $$\text{hardware\_utilization} = \max\!\Big(\frac{\text{achieved}_{HBM}}{\beta_{
   "container_digest": "sha256:...",
   "hardware_id": "910B-A2-card-0",
   "software_hash": {"cann": "8.5.0", "torch_npu": "2.8.0", "triton_ascend": "3.2.0"},
-  "version_matrix_sha": "<from infra/version_matrix.toml>",
+  "version_matrix_sha": "<from ascendbench/policies/version_matrix.toml>",
   "commit_sha_repo": "<bench repo>",
   "commit_sha_upstream": {"vllm": "...", "sglang": "..."},
 

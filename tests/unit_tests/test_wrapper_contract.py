@@ -71,7 +71,7 @@ def test_multi_branch_different_ranks(tmp_path):
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Starred unpack (the codex-flagged pattern)
+# Starred unpack (the -flagged pattern)
 # ─────────────────────────────────────────────────────────────────────
 
 
@@ -178,7 +178,7 @@ def test_check_silent_when_input_not_referenced(tmp_path):
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Alias tracking (V9 codex review 2026-05-27)
+# Alias tracking (V9 review 2026-05-27)
 # ─────────────────────────────────────────────────────────────────────
 
 
@@ -253,7 +253,7 @@ def test_l3_22_oracle_helper_exposes_k_rank_4():
     """End-to-end on real corpus: the L3_22 oracle helper's alias chain
     must surface its k rank. The oracle was re-authored to a 4-D layout
     ([B, H, L, D]) so the alias-tracked unpack now exposes k.ndim==4.
-    This still exercises the alias-tracking path codex flagged on
+    This still exercises the alias-tracking path flagged on
     2026-05-27 -- if alias tracking were missing the helper would return
     an empty accepted_ranks."""
     oracle = Path(

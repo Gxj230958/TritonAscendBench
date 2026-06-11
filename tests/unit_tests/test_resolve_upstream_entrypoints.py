@@ -170,7 +170,7 @@ def test_correct_entrypoint_picked_and_applied_when_both_pass(
 ):
     """oracle-consistent + S2-smoke UNRUN  ->  picked AND written."""
     td = _make_task(tmp_path, "L1_03_op", _KERNEL_WITH_WRAPPER)
-    # codex r6: oracle_consistency_check now returns a 3-tuple
+    # oracle_consistency_check now returns a 3-tuple
     # (consistent, detail, upstream_closure). A synthetic fixture task
     # imports nothing under infer/ -> the closure is honestly [] (the
     # resolver maps that to the stable empty-closure sentinel).
@@ -178,7 +178,7 @@ def test_correct_entrypoint_picked_and_applied_when_both_pass(
         rue, "oracle_consistency_check",
         lambda d, e: (True, f"shape=P1 :: {e} ✓ within elementwise", []),
     )
-    # codex r7 HOLE 3: s2_smoke_with_entrypoint now returns a 3-tuple
+    # HOLE 3: s2_smoke_with_entrypoint now returns a 3-tuple
     # (status, reason, s2_original_upstream_closure). A synthetic
     # fixture imports nothing under infer/ on the S2-original side ->
     # the closure is honestly [] (resolver maps to empty sentinel).
@@ -262,7 +262,7 @@ def test_no_candidate_leaves_placeholder(tmp_path, monkeypatch):
 def test_already_set_entrypoint_reverified_under_current_anchor(
     tmp_path, monkeypatch
 ):
-    """MUST-FIX 1 (codex r2 [confirmed]): a task whose meta ALREADY
+    """MUST-FIX 1: a task whose meta ALREADY
     points at a non-placeholder entrypoint (the 5 pre-existing OR a task
     an earlier --apply run resolved) is RE-VERIFIED under the CURRENT
     (hardened) oracle anchor -- it is NOT short-circuited to a
@@ -356,7 +356,7 @@ def test_numeric_mismatch_only_for_real_value_divergence():
 
 
 def test_structure_mismatch_is_wrong_operator_not_env_limitation():
-    """MUST-FIX 2 (codex r3 [confirmed]) -- FAIL ON REVERT.
+    """MUST-FIX 2 -- FAIL ON REVERT.
 
     The hardened oracle-anchor rejects a candidate of the WRONG
     ARITY/STRUCTURE with ``STRUCTURE MISMATCH: ... ⇒ wrong operator``
@@ -394,7 +394,7 @@ def test_structure_mismatch_is_wrong_operator_not_env_limitation():
 
 
 def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path):
-    """MUST-FIX 1 (codex r3 [confirmed]) -- FAIL ON REVERT.
+    """MUST-FIX 1 -- FAIL ON REVERT.
 
     A cache written by ``write_resolver_cache`` carries a provenance
     stamp whose ``code_fingerprint`` equals the CURRENT
@@ -420,12 +420,12 @@ def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path):
     )
     verdicts, stale = rue.load_resolver_cache(cache)
     assert stale is None, stale  # genuinely fresh
-    # ADOPT-1 (codex r5 [confirmed]): the writer stamps each verdict
+    # ADOPT-1: the writer stamps each verdict
     # with a per-task ``input_fp``. ``_R`` is a synthetic task ("T1")
     # with no on-disk dir, so input_fp is None (the read side treats a
     # None/missing input_fp as STALE -- never silently trusts an
     # unprovenanced per-task verdict).
-    # codex r6 [confirmed]: the writer ALSO stamps ``upstream_fp``; a
+    # the writer ALSO stamps ``upstream_fp``; a
     # verdict object that predates the field (this synthetic stub)
     # defaults to the STABLE empty-closure sentinel -- a recorded,
     # validatable value, NEVER None-by-accident.
@@ -455,7 +455,7 @@ def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path):
 
 
 def test_complete_verdict_surface_is_fingerprinted(tmp_path):
-    """MUST-FIX (codex r4 [confirmed]) -- FAIL ON REVERT.
+    """MUST-FIX -- FAIL ON REVERT.
 
     The resolver VERDICT/category also depends on the input builder,
     the tolerance comparator, and the tolerance-policy YAML:
@@ -524,7 +524,7 @@ def test_complete_verdict_surface_is_fingerprinted(tmp_path):
 
 # ── ADOPT-2: phase_a_freeze.py is verdict-path CODE (8th file) ────────
 def test_phase_a_freeze_is_in_code_fingerprint_surface(tmp_path):
-    """ADOPT-2 (codex r5 [confirmed]) -- FAIL ON REVERT.
+    """ADOPT-2 -- FAIL ON REVERT.
 
     ``phase_a_prime.py:58`` does ``import phase_a_freeze as paf`` and
     reuses its commit-pin / repo-root / provenance helpers ON the
@@ -572,7 +572,7 @@ def test_phase_a_freeze_is_in_code_fingerprint_surface(tmp_path):
 
 # ── ADOPT-1: per-task input_fp invalidates ONLY the changed task ─────
 def test_per_task_input_fp_detects_stale_task_input(tmp_path):
-    """ADOPT-1 (codex r5 [confirmed]) -- FAIL ON REVERT.
+    """ADOPT-1 -- FAIL ON REVERT.
 
     A cached verdict carries an ``input_fp`` = sha256 over THAT task's
     own verdict-deciding inputs (kernel.py / meta.yaml / shapes.yaml /
@@ -631,7 +631,7 @@ def test_per_task_input_fp_detects_stale_task_input(tmp_path):
 
 
 def test_write_resolver_cache_embeds_per_task_input_fp(tmp_path):
-    """ADOPT-1 (codex r5 [confirmed]) -- FAIL ON REVERT.
+    """ADOPT-1 -- FAIL ON REVERT.
 
     ``write_resolver_cache`` MUST stamp each verdict with an
     ``input_fp`` that equals the CURRENT
@@ -675,7 +675,7 @@ def test_write_resolver_cache_embeds_per_task_input_fp(tmp_path):
 def test_write_resolver_cache_embeds_upstream_fp_and_infer_state(
     tmp_path,
 ):
-    """codex r6 [confirmed] -- FAIL ON REVERT (write side).
+    """-- FAIL ON REVERT (write side).
 
     ``write_resolver_cache`` MUST stamp EVERY verdict with an
     ``upstream_fp`` (the per-task imported infer/ closure hash, or the
@@ -709,7 +709,7 @@ def test_write_resolver_cache_embeds_upstream_fp_and_infer_state(
     v1 = payload["verdicts"][1]
     assert v0["upstream_fp"] == real_ufp, (
         "an explicit per-task upstream_fp was DROPPED on write -- the "
-        "live-upstream provenance is not persisted (codex r6 reverted)"
+        "live-upstream provenance is not persisted"
     )
     assert v1["upstream_fp"] == rue._EMPTY_UPSTREAM_CLOSURE_FP, (
         "a verdict with no upstream_fp was NOT defaulted to the stable "
@@ -718,15 +718,15 @@ def test_write_resolver_cache_embeds_upstream_fp_and_infer_state(
     )
     assert "infer_state" in payload["_provenance"], (
         "infer_state NOT embedded in _provenance -- the global belt "
-        "guard is gone (codex r6 reverted)"
+        "guard is gone"
     )
 
 
-# ── codex r6 [confirmed]: upstream IS now provenance-covered ─────────
+# ── upstream IS now provenance-covered ─────────
 # (the EARLIER REJECT was WRONG -- a concrete counterexample overturned
 # it; this test asserts the NEW correct invariant, NOT the old one.)
 def test_upstream_closure_and_infer_state_are_provenance_validated():
-    """codex r6 [confirmed] -- CORRECTED invariant (the prior
+    """-- CORRECTED invariant (the prior
     ``test_infer_source_trees_are_deliberately_not_fingerprinted``
     asserted the WRONG invariant and is replaced by THIS).
 
@@ -734,7 +734,7 @@ def test_upstream_closure_and_infer_state_are_provenance_validated():
     INSUFFICIENT: the resolver executes LIVE upstream bytes
     (oracle-consistency + S2 original side put infer/ on sys.path and
     import/run it); meta.yaml only RECORDS the pin -- nothing enforced
-    live==pin. codex r6 counterexample: removing the ``cbor2`` import in
+    live==pin. counterexample: removing the ``cbor2`` import in
     ``infer/vllm/vllm/utils/hashing.py`` flips L1_02's verdict
     (missing-dep:cbor2 BLOCKED -> resolvable) with NO change to
     kernel.py / meta.yaml / shapes.yaml / oracle / the code-fp / the
@@ -768,7 +768,7 @@ def test_upstream_closure_and_infer_state_are_provenance_validated():
     #    the empty-closure sentinel, and the global infer_state builder.
     assert callable(rue.upstream_closure_fingerprint), (
         "upstream_closure_fingerprint MISSING -- the per-task imported "
-        "closure is no longer provenance-hashed (codex r6 hole REOPENED)"
+        "closure is no longer provenance-hashed"
     )
     assert isinstance(rue._EMPTY_UPSTREAM_CLOSURE_FP, str) and (
         rue._EMPTY_UPSTREAM_CLOSURE_FP.startswith(
@@ -782,7 +782,7 @@ def test_upstream_closure_and_infer_state_are_provenance_validated():
     stamp = rue.build_provenance_stamp()
     assert "infer_state" in stamp, (
         "infer_state dropped from the provenance stamp -- the GLOBAL "
-        "belt-and-suspenders guard (codex r6) is GONE; an infer/ "
+        "belt-and-suspenders guard is GONE; an infer/ "
         "checkout swap / uncommitted edit OUTSIDE a task's closure "
         "would silently validate fresh"
     )
@@ -794,10 +794,10 @@ def test_upstream_closure_and_infer_state_are_provenance_validated():
 def test_upstream_closure_fingerprint_detects_infer_byte_change(
     tmp_path,
 ):
-    """codex r6 [confirmed] -- FAIL ON REVERT (counterexample closed).
+    """-- FAIL ON REVERT (counterexample closed).
 
     Editing a file under infer/ that a task's verdict path imports
-    (the codex r6 counterexample: a 1-line change to
+    (the counterexample: a 1-line change to
     ``infer/vllm/vllm/utils/hashing.py``) MUST flip that task's
     ``upstream_fp``. Proven directly + deterministically against a
     writable infer-root surrogate (the real ``infer/`` is root-owned
@@ -829,11 +829,10 @@ def test_upstream_closure_fingerprint_detects_infer_byte_change(
         before = rue.upstream_closure_fingerprint([str(hp)])
         assert before != rue._EMPTY_UPSTREAM_CLOSURE_FP, (
             "a real imported infer/ file hashed to the EMPTY sentinel "
-            "-- the closure is not actually being hashed (codex r6 "
-            "hole REOPENED)"
+            "-- the closure is not actually being hashed"
         )
 
-        # THE codex r6 counterexample edit: remove the cbor2 import
+        # THE counterexample edit: remove the cbor2 import
         # (1-line change -> would flip the verdict in production).
         hp.write_text(
             original.replace("import cbor2\n", "# cbor2 removed\n")
@@ -841,7 +840,7 @@ def test_upstream_closure_fingerprint_detects_infer_byte_change(
         after = rue.upstream_closure_fingerprint([str(hp)])
         assert after != before, (
             "editing infer/vllm/.../hashing.py did NOT change the "
-            "per-task upstream_fp -- the codex r6 counterexample is "
+            "per-task upstream_fp -- the counterexample is "
             "NOT closed: a stale cached verdict would be silently "
             "consumed after a verdict-flipping infer/ edit "
             "(upstream-closure provenance reverted)"
@@ -867,7 +866,7 @@ def test_upstream_closure_fingerprint_detects_infer_byte_change(
 
 
 def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
-    """codex r6 [confirmed] -- FAIL ON REVERT (global belt).
+    """-- FAIL ON REVERT (global belt).
 
     ``load_resolver_cache`` MUST report a non-None staleness when the
     embedded global ``infer_state`` no longer equals the CURRENT
@@ -897,7 +896,7 @@ def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
     assert stale2 == "infer-state-mismatch", (
         f"infer_state tamper NOT detected ({stale2}) -- a cache built "
         f"under a DIFFERENT live upstream would be silently consumed "
-        f"(codex r6 global belt reverted)"
+        f""
     )
 
     # A cache with NO infer_state (predates the guard) is untrusted.
@@ -908,13 +907,13 @@ def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
     assert stale3 == "no-infer-state", stale3
 
 
-# ── codex r7 [confirmed] HOLE 1+2+3 fail-on-revert ───────────────────
+# ── HOLE 1+2+3 fail-on-revert ───────────────────
 
 
 def test_hole1_nongit_infer_state_is_fail_closed_not_fail_open(
     tmp_path, monkeypatch
 ):
-    """codex r7 [confirmed] HOLE 1 -- FAIL ON REVERT.
+    """HOLE 1 -- FAIL ON REVERT.
 
     The OLD ``_git_root_state`` recorded ``<not-a-git-repo>`` as a
     NORMAL comparable state, so on a non-git / git-broken infer/ box
@@ -967,7 +966,7 @@ def test_hole1_nongit_infer_state_is_fail_closed_not_fail_open(
 def test_hole2_dirty_infer_tree_is_fail_closed_clean_required(
     tmp_path, monkeypatch
 ):
-    """codex r7 [confirmed] HOLE 2 -- FAIL ON REVERT.
+    """HOLE 2 -- FAIL ON REVERT.
 
     The OLD dirty-state guard only hashed porcelain TEXT and appended a
     ``+dirty`` marker as if a dirty tree were a comparable state -- so
@@ -1042,7 +1041,7 @@ def test_hole2_dirty_infer_tree_is_fail_closed_clean_required(
 def test_hole3_s2_original_only_infer_import_is_in_upstream_fp(
     tmp_path, monkeypatch
 ):
-    """codex r7 [confirmed] HOLE 3 -- FAIL ON REVERT.
+    """HOLE 3 -- FAIL ON REVERT.
 
     The per-task ``upstream_fp`` previously hashed ONLY the ORACLE
     subprocess's infer/ closure. The S2 *original* side ALSO imports
@@ -1112,11 +1111,11 @@ def test_hole3_s2_original_only_infer_import_is_in_upstream_fp(
         rue.VLLM_ROOT = saved_vllm
 
 
-# ── codex r8 [confirmed] FIX 1+2 fail-on-revert ──────────────────────
+# ── FIX 1+2 fail-on-revert ──────────────────────
 
 
 def test_expected_infer_pins_match_meta_consensus():
-    """codex r8 [confirmed] FIX 1 -- the AUTHORITATIVE expected pin per
+    """FIX 1 -- the AUTHORITATIVE expected pin per
     infer/ root is the corpus meta-consensus (version_matrix defers the
     per-commit pin to tasks/*/meta.yaml). Sanity: each managed root
     resolves to a single real 40-hex commit (NOT an UNVERIFIABLE
@@ -1133,7 +1132,7 @@ def test_expected_infer_pins_match_meta_consensus():
 def test_hole4_clean_but_wrong_commit_infer_is_fail_closed(
     tmp_path, monkeypatch
 ):
-    """codex r8 [confirmed] FIX 1 / HOLE 4 -- FAIL ON REVERT.
+    """FIX 1 / HOLE 4 -- FAIL ON REVERT.
 
     The OLD ``_git_root_state`` returned the live clean HEAD verbatim
     and ``load_resolver_cache`` only checked cached==live SELF-
@@ -1201,7 +1200,7 @@ def test_hole4_clean_but_wrong_commit_infer_is_fail_closed(
 def test_fix2_unverifiable_checked_before_regenerable_no_regen(
     tmp_path, monkeypatch
 ):
-    """codex r8 [confirmed] FIX 2 -- FAIL-CLOSED ORDERING, FAIL ON
+    """FIX 2 -- FAIL-CLOSED ORDERING, FAIL ON
     REVERT.
 
     The OLD order checked ``code_fingerprint`` (a REGENERABLE
@@ -1263,7 +1262,7 @@ def test_fix2_unverifiable_checked_before_regenerable_no_regen(
 
 
 def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path):
-    """codex r8 [confirmed] FIX 2 -- the regenerable auto-regen path
+    """FIX 2 -- the regenerable auto-regen path
     MUST stay intact for a code-fp drift on a VERIFIABLE clean-pinned
     infer/ (the legitimate "resolver code changed, regenerate" case).
     A code-fp mismatch with a clean+pinned live infer/ must still
@@ -1287,13 +1286,13 @@ def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path):
     )
 
 
-# ── codex r9 [confirmed] EDGE FIXES 1/2/3 -- FAIL ON REVERT ───────────
+# ── EDGE FIXES 1/2/3 -- FAIL ON REVERT ───────────
 
 
-def test_r9_fix1_missing_managed_root_is_fail_closed_not_omitted(
+def test_missing_managed_root_is_fail_closed_not_omitted(
     tmp_path, monkeypatch
 ):
-    """codex r9 [confirmed] FIX 1 -- FAIL ON REVERT.
+    """FIX 1 -- FAIL ON REVERT.
 
     The OLD ``build_infer_state`` only recorded a root when
     ``root.is_dir()``; a MISSING managed root (one the corpus
@@ -1358,10 +1357,10 @@ def test_r9_fix1_missing_managed_root_is_fail_closed_not_omitted(
     )
 
 
-def test_r9_fix2_unverifiable_before_missing_cache_no_regen(
+def test_unverifiable_before_missing_cache_no_regen(
     tmp_path, monkeypatch
 ):
-    """codex r9 [confirmed] FIX 2 -- FAIL ON REVERT.
+    """FIX 2 -- FAIL ON REVERT.
 
     The r8 code computed the LIVE-infer UNVERIFIABLE guard only AFTER
     the ``missing`` / ``unparseable`` / ``no-provenance`` EARLY RETURNS
@@ -1452,8 +1451,8 @@ def test_r9_fix2_unverifiable_before_missing_cache_no_regen(
     )
 
 
-def test_r9_fix2_regenerable_path_intact_on_clean_pinned(tmp_path):
-    """codex r9 [confirmed] FIX 2 -- the legitimate REGENERABLE path
+def test_regenerable_path_intact_on_clean_pinned(tmp_path):
+    """FIX 2 -- the legitimate REGENERABLE path
     (code-fp drift on a verifiable clean+pinned infer/) MUST still
     auto-regen. With the real clean+pinned infer/ here, a code-fp
     mismatch returns the regenerable ``"fingerprint-mismatch"`` (NOT a
@@ -1477,10 +1476,10 @@ def test_r9_fix2_regenerable_path_intact_on_clean_pinned(tmp_path):
     )
 
 
-def test_r9_fix3_malformed_managed_commit_sha_is_fail_closed(
+def test_malformed_managed_commit_sha_is_fail_closed(
     tmp_path, monkeypatch
 ):
-    """codex r9 [confirmed] FIX 3 -- FAIL ON REVERT.
+    """FIX 3 -- FAIL ON REVERT.
 
     The OLD ``expected_infer_pins`` SILENTLY DROPPED a managed repo's
     ``upstream.commit_sha`` that was neither a valid 40-hex SHA nor the
@@ -1547,11 +1546,11 @@ def test_r9_fix3_malformed_managed_commit_sha_is_fail_closed(
     )
     assert "no-meta-pin" in pins["sglang"], pins["sglang"]
 
-    # codex r10 MUST-FIX 2(b) [confirmed] -- a managed task REFERENCED
+    # MUST-FIX 2(b) [confirmed] -- a managed task REFERENCED
     # this root; its pin came back malformed (UNVERIFIABLE). The r9-era
     # assertion here ("must NOT be in the managed set -- it already
     # fails closed via its own sentinel") was the residual double
-    # fail-open codex r10 [confirmed]: the "fails closed via its own
+    # fail-open the "fails closed via its own
     # sentinel" claim ONLY holds when the root EXISTS on disk (so
     # ``_git_root_state`` runs). A bad-pin-AND-missing root skipped BOTH
     # the is_dir() branch AND the (excluded) managed branch -> SILENT
@@ -1559,7 +1558,7 @@ def test_r9_fix3_malformed_managed_commit_sha_is_fail_closed(
     # managed regardless of whether its pin resolved, so it fails closed
     # (missing-root) when also absent -- never silently omitted.
     assert "vllm" in rue._managed_root_names(), (
-        "codex r10 MUST-FIX 2(b) reverted: a root a managed task "
+        "MUST-FIX 2(b) reverted: a root a managed task "
         "references but whose pin is UNVERIFIABLE (malformed) MUST be "
         "in the managed set so a bad-pin-AND-missing root fails closed "
         "(missing-root), never silently omitted from build_infer_state"
@@ -1571,8 +1570,7 @@ def _fresh_pap():
     ``_load_resolver_module()`` resolves to a fresh
     ``resolve_upstream_entrypoints`` -- so this test exercises the
     PRODUCTION memo in isolation WITHOUT depending on the conftest
-    autouse memo reset (codex r10 MUST-FIX 1 requires the production
-    code, not the test fixture, to be what makes correctness hold)."""
+    autouse memo reset."""
     import importlib.util as _ilu
 
     rue_spec = _ilu.spec_from_file_location(
@@ -1594,7 +1592,7 @@ def _fresh_pap():
 def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     tmp_path,
 ):
-    """codex r10 MUST-FIX 1 [confirmed PRODUCTION bug] -- FAIL ON
+    """MUST-FIX 1 [confirmed PRODUCTION bug] -- FAIL ON
     REVERT, and does NOT rely on the conftest memo reset.
 
     The OLD ``_RESOLVER_CACHE_MEM`` was a bare unkeyed process-global:
@@ -1644,8 +1642,7 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     v2 = pap._load_resolver_verdicts()
     assert set(v2) == {"TASK_B"}, (
         f"stale memo served {set(v2)} after RESOLVE_CACHE was repointed "
-        f"-- the bare-unkeyed-global production bug is back (codex r10 "
-        f"MUST-FIX 1 reverted)"
+        f"-- the bare-unkeyed-global production bug is back"
     )
     assert pap._RESOLVER_CACHE_MEM[0] != memo_key_a, (
         "memo key did not change after a path change -- not "
@@ -1662,10 +1659,10 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     assert set(v3) == {"TASK_B2"}, (
         f"stale memo served {set(v3)} after the cache FILE was "
         f"regenerated in place -- memo not keyed on the cache file "
-        f"identity (codex r10 MUST-FIX 1 reverted)"
+        f"identity"
     )
 
-    # 3b. codex r11 MUST-FIX 1 [confirmed] -- SAME-SIZE + MTIME-RESTORED
+    # 3b. MUST-FIX 1 [confirmed] -- SAME-SIZE + MTIME-RESTORED
     #     content edit. This is the tamper case ``(st_mtime_ns,
     #     st_size)`` ALONE cannot catch: edit the cache file to a
     #     DIFFERENT verdict-set via an EQUAL-LENGTH in-place byte
@@ -1711,8 +1708,7 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
         f"stale memo served {set(v3b)} after a SAME-SIZE + "
         f"MTIME-RESTORED content edit -- the memo key trusts "
         f"(st_mtime_ns, st_size) alone instead of a CONTENT hash of "
-        f"the cache bytes (codex r11 MUST-FIX 1 reverted: any content "
-        f"change MUST invalidate)"
+        f"the cache bytes"
     )
 
     # 4. PROVENANCE CHANGE (code-fp) with the file/path unchanged ->
@@ -1738,18 +1734,18 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     # raise (a bare global would have kept TASK_B2 and served it).
     assert pap._RESOLVER_CACHE_MEM is None, (
         "memo retained after a fail-closed raise -- a stale provenance "
-        "memo can still be served (codex r10 MUST-FIX 1 reverted)"
+        "memo can still be served"
     )
 
 
 def test_r10_mustfix1_memo_hit_serves_same_object_when_key_stable(
     tmp_path,
 ):
-    """codex r10 MUST-FIX 1 -- the keyed memo is still a REAL memo: a
+    """MUST-FIX 1 -- the keyed memo is still a REAL memo: a
     second call with an UNCHANGED path / cache file / provenance MUST
     serve the SAME cached dict (the JSON read + 101-entry rebuild is
     genuinely skipped). Proves the provenance key did not turn the memo
-    into a no-op (codex r10 point 6 honesty check)."""
+    into a no-op."""
     pap, rue = _fresh_pap()
     cache = tmp_path / "c.json"
 
@@ -1773,7 +1769,7 @@ def test_r10_mustfix1_memo_hit_serves_same_object_when_key_stable(
 
 
 def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
-    """codex r12 MUST-FIX [confirmed] -- FAIL ON REVERT (the parse-vs
+    """MUST-FIX [confirmed] -- FAIL ON REVERT (the parse-vs
     -store TOCTOU).
 
     The load+memoize path used to read the cache file THREE times:
@@ -1901,14 +1897,13 @@ def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
         f"is NOT sha256(content-A)={sha_a!r}. The stored verdicts are "
         f"content-A's but the key hashes other bytes -- a later access "
         f"whose live bytes match that hash would be served STALE "
-        f"content-A verdicts as fresh (codex r12 MUST-FIX reverted: "
-        f"the post-parse key recompute / 3-read split is back)."
+        f"content-A verdicts as fresh."
     )
     assert content_part != sha_b, (
         f"memo store TOCTOU: stored key content_part == "
         f"sha256(content-B) while verdicts are content-A -- exactly "
         f"the A-verdicts-under-B-key stale serve the single-snapshot "
-        f"fix eliminates (codex r12 MUST-FIX reverted)."
+        f"fix eliminates."
     )
 
     # STRUCTURAL guard: ZERO cache reads occur AFTER the post-parse
@@ -1926,7 +1921,7 @@ def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
 def test_r10_mustfix2a_blank_absent_managed_commit_sha_fail_closed(
     tmp_path, monkeypatch
 ):
-    """codex r10 MUST-FIX 2(a) [confirmed] -- FAIL ON REVERT.
+    """MUST-FIX 2(a) [confirmed] -- FAIL ON REVERT.
 
     A MANAGED repo whose ``upstream.commit_sha`` is blank / whitespace
     / quoted-empty / an ABSENT key is JUST AS UNVERIFIABLE as a
@@ -2001,7 +1996,7 @@ def test_r10_mustfix2a_blank_absent_managed_commit_sha_fail_closed(
 def test_r10_mustfix2b_badpin_and_missing_root_fail_closed(
     tmp_path, monkeypatch
 ):
-    """codex r10 MUST-FIX 2(b) [confirmed] -- FAIL ON REVERT.
+    """MUST-FIX 2(b) [confirmed] -- FAIL ON REVERT.
 
     The r9 ``_managed_root_names()`` only included VALID-SHA-pin roots.
     A root a managed task REFERENCES but whose pin is UNVERIFIABLE

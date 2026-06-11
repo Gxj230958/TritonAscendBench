@@ -1,7 +1,7 @@
 """W2.4 — Layer E runtime audit-hook tests for static_checker.
 
 `install_runtime_audit_hook` installs the `sys.addaudithook` runtime
-fallback the candidate child uses (specs/ast_denylist.md §Layer E). The
+fallback the candidate child uses (static-checker Layer E). The
 hook itself raises `RuntimeAuditViolation` on a blocked event; the
 installer is idempotent.
 """

@@ -1,6 +1,6 @@
 """tolerance.py — apply numeric tolerance per `tolerance_policy.yaml`.
 
-Tolerance classes (full list in `specs/tolerance_policy.md`):
+Tolerance classes (full list in `docs/reference/tolerance_policy.md`):
     elementwise_fp16, elementwise_exact_or_inf_safe,
     vector_reduce_fp16, cube_matmul_fp16, cube_matmul_int8,
     flash_attention_fp16, int8_w8a8, fp8_software_emulated, ...

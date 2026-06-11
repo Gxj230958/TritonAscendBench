@@ -16,7 +16,7 @@ The split between top-level and nested fields is intentional:
   populated by the R10/R5 capture pipelines and verified by the release
   gate. Every field is written by a script, never by hand.
 
-The full schema lives in ``specs/task_api_contract.md §5d``; this
+The full schema lives in ``docs/reference/task_api_contract.md §5d``; this
 module is the single source of truth for parsing and closed-enum
 validation. Both ``ascendbench.corpus.dataset`` (loader-lenient) and
 ``scripts.corpus.validate_tasks`` (validator-strict) consume it, so the

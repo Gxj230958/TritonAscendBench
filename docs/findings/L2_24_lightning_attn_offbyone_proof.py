@@ -11,7 +11,7 @@ which algebraically reduces to exp(-s * ((t - s) - 1)) -- ONE decay step short
 (weight too large by exp(+s)). The textbook / canonical (OpenNLPLab) form uses
 array = arange(0, BLOCK) with no +1, giving exp(-s * (t - s)).
 
-Run: python3 docs/verification/L2_24_lightning_attn_offbyone_proof.py
+Run: python3 docs/findings/L2_24_lightning_attn_offbyone_proof.py
 Expected: kernel(+1) diverges O(1) from the naive reference; the no-+1 variant
 matches it to 0.00.
 """

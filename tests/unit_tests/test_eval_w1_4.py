@@ -60,9 +60,9 @@ _TASK = SimpleNamespace(cost_model=_COST_MODEL)
 
 def test_apply_roofline_fills_per_shape_fields(monkeypatch):
     monkeypatch.setattr(peak_table, "load_peak_table", _verified_peaks)
-    # P1: W = 2*4 = 8, π = 1e9 -> t_ref = 8e-9 s ; baseline_ns = 8 ns
-    # P2: W = 4*8 = 32, π = 1e9 -> t_ref = 32e-9 s ; baseline_ns = 32 ns
-    result = _make_result({"P1": [16.0], "P2": [16.0]})  # durations in ns
+    # : W = 2*4 = 8, π = 1e9 -> t_ref = 8e-9 s; baseline_ns = 8 ns
+    # : W = 4*8 = 32, π = 1e9 -> t_ref = 32e-9 s; baseline_ns = 32 ns
+    result = _make_result({"P1": [16.0], "P2": [16.0]}) # durations in ns
     _eval._apply_roofline(result, _TASK, _SHAPES_DOC)
 
     p1, p2 = result.shape_results
@@ -72,8 +72,8 @@ def test_apply_roofline_fills_per_shape_fields(monkeypatch):
     assert p2.w_per_class == {"vector": pytest.approx(32.0)}
     # baseline_ns is t_ref converted s->ns (8e-9 s * 1e9 = 8 ns);
     # measured_ns is t_npu (durations median, ns).
-    assert p1.baseline_ns == pytest.approx(8.0)   # ns
-    assert p1.measured_ns == pytest.approx(16.0)  # ns
+    assert p1.baseline_ns == pytest.approx(8.0) # ns
+    assert p1.measured_ns == pytest.approx(16.0) # ns
     # disclosure stats present.
     assert p1.median == pytest.approx(16.0) and p1.trials == 1
 
@@ -82,8 +82,8 @@ def test_s_t_is_geomean_of_per_shape_e(monkeypatch):
     """The headline W1.4 invariant: a multi-shape task's s_t equals the
     geometric mean of its per-shape efficiencies e."""
     monkeypatch.setattr(peak_table, "load_peak_table", _verified_peaks)
-    # P1: baseline_ns = 8 ns,  t_npu = 16 ns -> e = 8/16  = 0.5
-    # P2: baseline_ns = 32 ns, t_npu = 16 ns -> e = 32/16 = 2.0
+    # : baseline_ns = 8 ns, t_npu = 16 ns -> e = 8/16 = 0.5
+    # : baseline_ns = 32 ns, t_npu = 16 ns -> e = 32/16 = 2.0
     result = _make_result({"P1": [16.0], "P2": [16.0]})
     _eval._apply_roofline(result, _TASK, _SHAPES_DOC)
 
@@ -96,7 +96,7 @@ def test_s_t_is_geomean_of_per_shape_e(monkeypatch):
 
 def test_s_t_single_shape_equals_its_efficiency(monkeypatch):
     monkeypatch.setattr(peak_table, "load_peak_table", _verified_peaks)
-    # P1 only: baseline_ns = 8 ns, t_npu = 32 ns -> e = 0.25.
+    # only: baseline_ns = 8 ns, t_npu = 32 ns -> e = 0.25.
     result = _make_result({"P1": [32.0]})
     _eval._apply_roofline(result, _TASK, _SHAPES_DOC)
     assert result.s_t == pytest.approx(0.25)
@@ -131,9 +131,9 @@ def test_partial_roofline_not_scored(monkeypatch):
     """A shape with no timing (empty durations) yields no e; the task s_t
     stays None rather than scoring a partial Roofline."""
     monkeypatch.setattr(peak_table, "load_peak_table", _verified_peaks)
-    result = _make_result({"P1": [16.0], "P2": []})  # P2 has no durations
+    result = _make_result({"P1": [16.0], "P2": []}) # has no durations
     _eval._apply_roofline(result, _TASK, _SHAPES_DOC)
-    # P1 got an e, P2 did not -> not all graded shapes scored -> s_t None.
+    # got an e, did not -> not all graded shapes scored -> s_t None.
     assert result.shape_results[0].efficiency is not None
     assert result.shape_results[1].efficiency is None
     assert result.s_t is None
@@ -157,8 +157,8 @@ def test_baseline_ns_unit_seconds_to_ns(monkeypatch):
     r = _make_result({"P1": [1000.0]})
     _eval._apply_roofline(r, task, doc)
     p1 = r.shape_results[0]
-    assert p1.t_ref == pytest.approx(1e-6)           # seconds (unchanged)
-    assert p1.baseline_ns == pytest.approx(1000.0)   # ns = t_ref * 1e9
+    assert p1.t_ref == pytest.approx(1e-6) # seconds (unchanged)
+    assert p1.baseline_ns == pytest.approx(1000.0) # ns = t_ref * 1e9
     assert p1.efficiency == pytest.approx(1.0)
     assert r.s_t == pytest.approx(1.0)
     # task-level provenance pair is ns, not seconds.
@@ -206,8 +206,8 @@ def test_absolute_verified_when_all_peaks_official(monkeypatch):
 
 
 def test_peak_table_path_threads_to_loaders(monkeypatch):
-    """_apply_roofline forwards peak_table_path to both peak loaders, so the
-    H200 self-check can score against infra/peak_table_h200.toml."""
+    """_apply_roofline forwards peak_table_path to both peak loaders, so a custom
+    peak table (e.g. a GPU self-check table) threads through unchanged."""
     seen = {}
     monkeypatch.setattr(
         peak_table, "load_peak_table",
@@ -220,9 +220,9 @@ def test_peak_table_path_threads_to_loaders(monkeypatch):
                          {"hbm": "nvidia-official"}))[1])
     result = _make_result({"P1": [16.0]})
     _eval._apply_roofline(result, _TASK, _SHAPES_DOC,
-                          peak_table_path="infra/peak_table_h200.toml")
-    assert seen["table"] == "infra/peak_table_h200.toml"
-    assert seen["prov"] == "infra/peak_table_h200.toml"
+                          peak_table_path="/tmp/custom_peak.toml")
+    assert seen["table"] == "/tmp/custom_peak.toml"
+    assert seen["prov"] == "/tmp/custom_peak.toml"
 
 
 def test_task_measurement_carries_s_t_and_status(monkeypatch):

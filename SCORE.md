@@ -33,8 +33,8 @@ silently fix them — that refusal is what makes the discovered bugs credible.
 > compile-compat, not numerical.)
 
 Backing artifacts:
-- `docs/verification/L2_24_lightning_attn_offbyone_proof.py` (the 0.28 → 0.00 proof)
-- `docs/upstream_reports/vllm_lightning_attn_crossblock_decay_offbyone.md` (filed bug)
+- `docs/findings/L2_24_lightning_attn_offbyone_proof.py` (the 0.28 → 0.00 proof)
+- `docs/findings/vllm_lightning_attn_crossblock_decay_offbyone.md` (filed bug)
 
 ## Rigour bar — what qualifies a task for the SECONDARY number
 

@@ -1,4 +1,4 @@
-"""R7 codex-review regression tests.
+"""Pinned regressions: offline-golden grading bypasses the stand-in oracle.
 
 Pins the R7 review findings so a regression re-surfaces as a test
 failure:

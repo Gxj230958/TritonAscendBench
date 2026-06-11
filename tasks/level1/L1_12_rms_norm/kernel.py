@@ -5,8 +5,7 @@ Upstream repo: vllm-project/vllm
 Commit SHA: <frozen-snapshot>   # PoC: vendored snapshot, see meta.yaml.upstream
 File SHA-256: see meta.yaml.upstream.file_sha256
 
-Extracted by scripts/extract_kernel.py at Phase 1.1.
-Per v4.13 spec, this kernel.py is read-only and hash-verified by `tab` evaluator.
+This kernel.py is a read-only, hash-verified upstream snapshot.
 """
 
 import torch

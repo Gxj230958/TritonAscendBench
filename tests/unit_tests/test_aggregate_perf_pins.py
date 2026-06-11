@@ -1,4 +1,4 @@
-"""R9 codex-review regression tests.
+"""Pinned regressions: aggregate_perf fixed-denominator semantics.
 
 Pins the two R9 MUST-FIX findings so a regression re-surfaces as a test
 failure:
@@ -157,7 +157,7 @@ class TestR9AggregatePerf:
 # R9-2 — _apply_roofline: per-task π/β verification, not whole-table.
 # ──────────────────────────────────────────────────────────────────────────
 # A peak table with ONE unverified placeholder (`vector` π = 0.0) and the
-# rest verified — mirrors the real `infra/peak_table_910b.toml` state.
+# rest verified — mirrors the real `ascendbench/policies/peak_table_910b.toml` state.
 def _mixed_peaks(_path=None, *, require_verified=False):
     compute = {"fp16_cube": 256e12, "bf16_cube": 0.0, "int8": 512e12,
                "vector": 0.0}

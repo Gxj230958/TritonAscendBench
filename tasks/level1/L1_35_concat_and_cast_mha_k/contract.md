@@ -52,10 +52,8 @@ Concrete per-shape tensors are built by
 
 ## Metamorphic checks
 
-TODO(phase-c-review): enumerate runner-enforced invariants
-(`specs/canary_task_design.md`). Candidate generic checks: permutation
-invariance, zero-input ⇒ zero-output, scale equivariance — confirm per
-task before enabling.
+Candidate runner-enforced invariants to confirm per task: permutation
+invariance, zero-input ⇒ zero-output, scale equivariance.
 
 ## Shape coverage
 

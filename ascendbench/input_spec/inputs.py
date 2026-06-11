@@ -31,7 +31,7 @@ WA.3 adds three non-tensor refinements to the materialisation layer:
 * **literal sequences** — a list literal (``L2_10`` ``block_size``,
   ``L1_31`` ``mrope_section``) moves to the dedicated ``scalar_seq`` key.
   ``scalar`` / ``derive`` values are constrained to JSON scalars so they
-  match the W1.0 sidecar IPC type boundary; ``scalar_seq`` is a new IPC
+  match the  sidecar IPC type boundary; ``scalar_seq`` is a new IPC
   type carrying a list of JSON scalars.
 * **dist normalisation** — :func:`parse_dist_spec` is the single shared
   bridge between the ``shapes.yaml`` ``dist`` string DSL and the
@@ -55,7 +55,7 @@ _DTYPES = {
 }
 
 # Closed enum of legal dtype alias strings — the **single authority** the
-# `param_constraints.dtypes` subsection (WA.1, `specs/task_api_contract.md
+# `param_constraints.dtypes` subsection (WA.1, `docs/reference/task_api_contract.md
 # §5.2`) is bound to. `scripts/corpus/validate_tasks.py` imports this so an unknown
 # dtype string (a typo) in `param_constraints` is statically rejected against
 # the very same table `build_inputs` materialises with — no second list to
@@ -77,7 +77,7 @@ DTYPE_ALIASES = frozenset(_DTYPES.keys())
 # string DSL stays the authoritative `shapes.yaml` authoring form.
 
 #: Closed dist-kind enum — bound to the `build_inputs` distribution
-#: vocabulary and to the `specs/task_api_contract.md §5.2` dist-kind table.
+#: vocabulary and to the `docs/reference/task_api_contract.md §5.2` dist-kind table.
 DIST_KINDS = frozenset({
     "randn", "randn_inf", "randn_inf_excl",
     "rand", "ones", "zeros", "eye", "tril", "randint",
@@ -439,7 +439,7 @@ def _resolve_dtype(name: str) -> "torch.dtype":
     """Resolve a ``shapes.yaml`` dtype alias to a ``torch.dtype`` — fail-loud.
 
     The dtype alias must be a key of the shared :data:`DTYPE_ALIASES` table
-    (`specs/task_api_contract.md §5.2`). WA.4 ③: an unknown alias (a typo) is
+    (`docs/reference/task_api_contract.md §5.2`). WA.4 ③: an unknown alias (a typo) is
     a hard :class:`DistSpecError`-style failure — there is **no** silent
     fallback to ``float32``, which would have materialised oracle and
     candidate at a dtype neither the task author nor the validator intended.
@@ -805,7 +805,7 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
 
 
 # JSON-representable non-tensor scalar types accepted in an inputs dict.
-# `scalar` / `derive` values must be one of these — the W1.0 sidecar IPC
+# `scalar` / `derive` values must be one of these — the  sidecar IPC
 # carries no pickle (`inputs.py` `split_inputs`, `process_isolation.py`
 # `_merge`), so a non-JSON scalar (e.g. a list under `scalar`) cannot cross
 # the channel. WA.3 ② makes that boundary a hard error at materialisation.
@@ -818,7 +818,7 @@ def _materialise_scalar(name: str, spec: dict[str, Any],
 
     WA.3 ① / ②: the value of a ``scalar`` (a literal) or a ``derive`` rule
     (a knob expression evaluated through :func:`expr.eval_numeric`) must be a
-    JSON scalar — the W1.0 sidecar IPC type boundary. A ``scalar_seq`` is a
+    JSON scalar — the  sidecar IPC type boundary. A ``scalar_seq`` is a
     list of JSON scalars (the dedicated key for list literals such as
     ``L2_10`` ``block_size`` and ``L1_31`` ``mrope_section``).
 
@@ -1019,7 +1019,7 @@ def shape_ids(shapes_doc: dict[str, Any]) -> tuple[list[str], list[str]]:
     return pub, hid
 
 
-# --- W1.0: inputs materialisation for the process-isolation IPC ----------
+# --- : inputs materialisation for the process-isolation IPC ----------
 #
 # The runner (trusted parent) materialises a shape's inputs ONCE, then ships
 # them to the candidate child over the narrow safetensors+sidecar channel so

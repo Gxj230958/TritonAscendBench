@@ -320,9 +320,8 @@ def main(argv: list[str] | None = None) -> int:
         "--report",
         type=Path,
         default=REPO_ROOT
-        / "docs"
-        / "triage_backlog"
-        / "2026-05-26-oracle-equivalence-applied.md",
+        / "build"
+        / "oracle-equivalence-applied.md",
         help="human-readable summary report path",
     )
     p.add_argument(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """generate_task_scaffolds.py — batch-create task directories.
 
-Parses the L1/L2/L3 markdown tables in docs/npu/benchmark_select.md and
+Parses the L1/L2/L3 markdown tables in docs/kernel-select.md and
 generates a scaffold under tasks/level{1,2,3}/<task_id>/ for every entry
 that does not already exist on disk.
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-SELECT_MD = REPO_ROOT.parent / "docs" / "npu" / "benchmark_select.md"
+SELECT_MD = REPO_ROOT / "docs" / "kernel-select.md"
 
 DIFFICULTY_MAP = {
     "低": "low",
@@ -283,7 +283,7 @@ PLACEHOLDER_CONTRACT = '''# Contract — {task_id} (SCAFFOLD)
 
 > **TODO(scaffold)**: replace this contract with the frozen upstream
 > kernel's behavioural contract. Until then, this file documents only
-> the metadata that has been parsed from `docs/npu/benchmark_select.md`.
+> the metadata that has been parsed from `docs/kernel-select.md`.
 
 ## Identity
 
@@ -296,7 +296,7 @@ PLACEHOLDER_CONTRACT = '''# Contract — {task_id} (SCAFFOLD)
 
 > {rationale}
 
-(Verbatim from `docs/npu/benchmark_select.md`.)
+(Verbatim from `docs/kernel-select.md`.)
 
 ## Required semantics
 
@@ -310,8 +310,7 @@ stage ordering invariants — mirror `tasks/level1/L1_01_bias/contract.md`.
 
 ## Metamorphic checks
 
-TODO(scaffold): list runner-enforced invariants per
-`specs/canary_task_design.md`.
+TODO(scaffold): list runner-enforced invariants per task.
 
 ## Shape coverage
 
@@ -416,7 +415,7 @@ oracle:
 
 tolerance_class: "{row.tolerance_class}"
 
-# cost_model — constant placeholder block (W1.2 made `cost_model` a
+# cost_model — constant placeholder block ( made `cost_model` a
 # required top-level key; this generator backfills it). The scalar form
 # names a real peak-table compute class / resource so `validate_tasks`'
 # schema + formula check passes. The constant `1` formulas reference no
@@ -430,7 +429,7 @@ cost_model:
   gpu_xcheck_tol: 0.05
 
 # param_constraints — operator input contract (WA.1,
-# specs/task_api_contract.md §5.2). `scaffold: true` is the single
+# docs/reference/task_api_contract.md §5.2). `scaffold: true` is the single
 # sentinel the validator / eval gate consult: the block is schema-shape
 # valid but flags the task as not yet hand-reconciled (WB.1 backfills the
 # five subsections). The contract.md mirror section is kept in sync.

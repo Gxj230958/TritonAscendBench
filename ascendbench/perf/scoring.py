@@ -1,4 +1,4 @@
-"""scoring.py — primary metric per specs/scoring_spec.md + the design spec §9.
+"""scoring.py — primary metric per docs/reference/scoring_spec.md + the design spec §9.
 
 This is a GPU-triton → NPU-triton **migration** benchmark. Performance is
 scored as a **910B Roofline normalised efficiency** (the design spec §5.6 / §9):
@@ -29,10 +29,10 @@ ratio so older call paths keep working.
 the full scored task set, not just attempted ones. Failures contribute
 ε to the geomean, NOT zero. Ranking eligibility: coverage ≥ 0.70.
 
-``task_status`` (``evaluated`` / ``unsupported`` / ``blocked``, DESIGN §5.7
-/ W4.3) is orthogonal to the four ok/fail statuses: it says whether a task
+``task_status`` (``evaluated`` / ``unsupported`` / ``blocked``, see DESIGN.md
+/ ) is orthogonal to the four ok/fail statuses: it says whether a task
 *could* be evaluated in this mode, not how it scored. The two non-evaluated
-states are NOT interchangeable for the denominator (W4.3 ④ / R8-1):
+states are NOT interchangeable for the denominator ( ④ / ):
 
 * ``unsupported`` — a self-reported-mode ``upstream_oracle_required`` task
   has no provider golden, so it is **out of the scored set** entirely:
@@ -65,7 +65,7 @@ from ascendbench.perf.cost_model import CostModel, CostModelError, FormulaEnv
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Constants from specs/scoring_spec.md
+# Constants from docs/reference/scoring_spec.md
 # ─────────────────────────────────────────────────────────────────────────────
 P_CAP = 5.0                      # speedup cap per spec §sanity_bounds
 EPSILON = 0.01                   # epsilon contribution for failed shapes/tasks
@@ -78,16 +78,16 @@ VALID_CORRECTNESS = {"ok", "fail", "error"}
 VALID_RUNTIME = {"ok", "timeout", "oom", "compile_fail", "invalid_timing", "error"}
 VALID_PERFORMANCE = {"ok", "suspicious", "quarantined", "error"}
 
-# W1.4 / W4.3: `task_status` is an INDEPENDENT field, orthogonal to the four
+# `task_status` is an INDEPENDENT field, orthogonal to the four
 # ok/fail statuses above. It records whether the task was evaluable *at all*
 # in the run's mode (DESIGN §5.7):
 #   * "evaluated"   — graded normally; numeric perf fields are meaningful.
 #   * "unsupported" — no provider golden for this mode (self-reported mode,
-#                     the upstream_oracle_required tasks). W4.3 semantics.
+#                     the upstream_oracle_required tasks).  semantics.
 #   * "blocked"     — golden missing where it should exist (verified mode,
-#                     fail-closed). W4.3 semantics.
-# W1.4 only introduces the field (default "evaluated"); the unsupported /
-# blocked producers land in W4.3. Scoring already skips non-"evaluated"
+#                     fail-closed).  semantics.
+#  only introduces the field (default "evaluated"); the unsupported /
+# blocked producers land in . Scoring already skips non-"evaluated"
 # tasks so the field is wired end-to-end now.
 VALID_TASK_STATUS = {"evaluated", "unsupported", "blocked"}
 TASK_STATUS_EVALUATED = "evaluated"
@@ -99,7 +99,7 @@ TASK_STATUS_BLOCKED = "blocked"
 class TaskMeasurement:
     """One task's aggregated result across its shapes.
 
-    W1.4: `s_t` is the task-level Roofline score — the geomean of the
+    : `s_t` is the task-level Roofline score — the geomean of the
     per-shape efficiencies ``e``, aggregated in ``eval.py`` (DESIGN §9).
     When `s_t` is present, scoring consumes it directly. `measured_ns` /
     `baseline_ns` are kept for back-compat and provenance: per DESIGN §9
@@ -107,7 +107,7 @@ class TaskMeasurement:
     is absent `s_t_value` falls back to the legacy ``baseline_ns/measured_ns``
     ratio so older call paths still produce a number.
 
-    `task_status` (DESIGN §5.7 / W4.3) records whether the task was
+    `task_status` (DESIGN §5.7 / ) records whether the task was
     evaluable at all in the run's mode; a non-"evaluated" task carries no
     valid perf numbers and is skipped by every aggregate (not ε-collapsed).
     """
@@ -119,11 +119,11 @@ class TaskMeasurement:
     fallback_detected: bool = False
     measured_ns: float | None = None
     baseline_ns: float | None = None
-    # W1.4: task-level Roofline score = geomean of per-shape e (DESIGN §9).
+    # : task-level Roofline score = geomean of per-shape e (DESIGN §9).
     s_t: float | None = None
-    # W1.4 / W4.3: orthogonal evaluability status. Default "evaluated".
+    #  / : orthogonal evaluability status. Default "evaluated".
     task_status: str = TASK_STATUS_EVALUATED
-    # R9-1: True iff the Roofline path had the data it needs to score this
+    # : True iff the Roofline path had the data it needs to score this
     # task — a cost model AND verified π/β for every compute-class/resource
     # the cost model references. False is a *benchmark-data* gap (the
     # cost_model is missing, or a referenced peak is still an
@@ -159,7 +159,7 @@ class TaskMeasurement:
     @property
     def in_scored_set(self) -> bool:
         """True iff this task is part of this mode's scored denominator
-        (W4.3 ④ / R8-1).
+        ( ④ / ).
 
         ``evaluated`` and ``blocked`` are both in the set: ``evaluated``
         scores on its real perf signal, ``blocked`` scores as a failure
@@ -184,7 +184,7 @@ class ShapeMeasurement:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# W1.4 — Roofline theoretical-latency baseline + per-shape efficiency.
+#  — Roofline theoretical-latency baseline + per-shape efficiency.
 # ─────────────────────────────────────────────────────────────────────────────
 class RooflineError(ValueError):
     """Raised when a Roofline ``t_ref`` cannot be computed from a sound
@@ -354,7 +354,7 @@ def geomean(values: Iterable[float]) -> float:
 def perf_measurable(m: TaskMeasurement) -> bool:
     """True iff this task can yield a real Roofline efficiency: all
     statuses ok, the task was ``evaluated``, AND a usable perf signal is
-    present (the W1.4 task-level ``s_t``, or the legacy positive-finite
+    present (the  task-level ``s_t``, or the legacy positive-finite
     ``baseline_ns``/``measured_ns`` pair).
 
     Post-AscendC: a task with ok statuses but NO perf signal
@@ -366,7 +366,7 @@ def perf_measurable(m: TaskMeasurement) -> bool:
         return False
     if not m.all_statuses_ok:
         return False
-    # W1.4: a pre-aggregated Roofline s_t is itself a usable perf signal.
+    # : a pre-aggregated Roofline s_t is itself a usable perf signal.
     if m.s_t is not None:
         return math.isfinite(m.s_t) and m.s_t > 0
     if m.measured_ns is None or m.baseline_ns is None:
@@ -379,7 +379,7 @@ def perf_measurable(m: TaskMeasurement) -> bool:
 def s_t_value(m: TaskMeasurement, p_cap: float = P_CAP, eps: float = EPSILON) -> float:
     """Per-task Roofline score with epsilon-fill on failure (DESIGN §9).
 
-    W1.4: when `m.s_t` is present it is the geomean of the per-shape
+    : when `m.s_t` is present it is the geomean of the per-shape
     Roofline efficiencies (aggregated in ``eval.py``); scoring consumes it
     directly, clamped to ``[eps, p_cap]``. When `m.s_t` is absent the
     legacy ``baseline_ns/measured_ns`` ratio path is used so older call
@@ -388,7 +388,7 @@ def s_t_value(m: TaskMeasurement, p_cap: float = P_CAP, eps: float = EPSILON) ->
     NaN / Inf collapse to ε (`min(p_cap, nan) == p_cap` on most platforms —
     a gaming vector).
 
-    W4.3 ④ / R8-1: a ``blocked`` task has no usable golden — it is scored
+     ④ / : a ``blocked`` task has no usable golden — it is scored
     as a **failure** (``ε``), since it stays in the fixed ``|S|``
     denominator and must not escape it. An ``unsupported`` task is out of
     the scored set entirely; ``capped_geomean_native`` drops it before
@@ -398,7 +398,7 @@ def s_t_value(m: TaskMeasurement, p_cap: float = P_CAP, eps: float = EPSILON) ->
         return eps
     if not m.all_statuses_ok:
         return eps
-    # W1.4: prefer the pre-aggregated task-level Roofline score.
+    # : prefer the pre-aggregated task-level Roofline score.
     if m.s_t is not None:
         if not math.isfinite(m.s_t) or m.s_t <= 0:
             return eps
@@ -480,7 +480,7 @@ def capped_geomean_native(
     disables the "missing task = ε" rule and is only safe when caller has
     already padded the list to |S_native|.
 
-    W4.3 ④ / R8-1: the two non-evaluated ``task_status`` values are NOT
+     ④ / : the two non-evaluated ``task_status`` values are NOT
     treated alike:
 
     * ``unsupported`` — out of this mode's scored set (no provider golden):
@@ -509,7 +509,7 @@ def capped_geomean_native(
             )
             s = s_t_value(tm, p_cap=p_cap, eps=eps)
         else:
-            # W4.3 ④ / R8-1: only `unsupported` leaves the scored set; a
+            #  ④ / : only `unsupported` leaves the scored set; a
             # `blocked` task stays in the denominator and `s_t_value`
             # collapses it to ε (a failure, not a denominator escape).
             if not m.in_scored_set:
@@ -542,7 +542,7 @@ def fastp_at_threshold(
     """Fraction of S_native tasks with s_t ≥ threshold.
 
     Missing tasks (s_native_size > len(task_measurements)) count as
-    threshold-not-met. W4.3 ④ / R8-1: ``unsupported`` tasks are out of the
+    threshold-not-met.  ④ / : ``unsupported`` tasks are out of the
     scored set — excluded from both numerator and denominator. ``blocked``
     tasks stay in the fixed ``|S|`` denominator and count as
     threshold-not-met (``s_t_value`` collapses them to ``ε < threshold``);
@@ -571,7 +571,7 @@ def native_coverage(
 
     coverage = #{t ∈ S_native : correctness_t == "ok" ∧ ¬fallback_t} / |S_native|
 
-    W2.2: the gate predicate explicitly excludes ``fallback_detected``
+    : the gate predicate explicitly excludes ``fallback_detected``
     (DESIGN §6.3 / §6.7) — a correct-but-fallback solution must not clear
     the correctness gate. ``eval`` already normalises ``fallback_detected``
     to ``correctness_status="fail"`` before emit, so on a well-formed
@@ -579,7 +579,7 @@ def native_coverage(
     ``¬fallback_detected`` conjunct here is a deliberate second line of
     defence in case a result reaches scoring without that normalisation.
 
-    W4.3 ④ / R8-1: ``unsupported`` tasks (no provider golden for this
+     ④ / : ``unsupported`` tasks (no provider golden for this
     mode) are out of the scored set — excluded from both the numerator and
     the ``|S_native|`` denominator. ``blocked`` tasks stay in the fixed
     ``|S_native|`` denominator and are counted as **not correct** (a
@@ -610,13 +610,13 @@ def aggregate_perf(
     task_measurements: list[TaskMeasurement],
     eligible_size: int,
 ) -> dict:
-    """Honest perf aggregate (R9-1).
+    """Honest perf aggregate .
 
     DESIGN §9 / P6: the perf metric runs over the **fixed** scored
     denominator. A task that genuinely *failed* (``blocked`` / a non-ok
     correctness / runtime / performance status / a detected torch
     fallback) is a real failure — it stays in the fixed ``|S|``
-    denominator and is scored as ``ε`` (R8-1: no-subset-escape; failures
+    denominator and is scored as ``ε`` (: no-subset-escape; failures
     are NOT silently dropped). The earlier "no ``perf_measurable`` task ⇒
     short-circuit to ``unavailable`` with null metrics" rule wrongly
     discarded that ε-fill: a corpus of all-failed candidates would have
@@ -666,7 +666,7 @@ def aggregate_perf(
     # `all_statuses_ok == False` (or not `is_evaluated`) and is kept —
     # `s_t_value` ε-collapses it.
     #
-    # R10-1: a status-ok task with no perf signal is a Roofline-data gap
+    # : a status-ok task with no perf signal is a Roofline-data gap
     # *only* when `roofline_data_complete is False` — i.e. the repo
     # metadata (the authority) says the cost model is missing or a
     # referenced peak is still an `[unverified]` placeholder. A status-ok

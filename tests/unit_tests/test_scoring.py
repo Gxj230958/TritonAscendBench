@@ -1,6 +1,5 @@
-"""Unit tests for ascendbench.perf.scoring per specs/scoring_spec.md.
+"""Unit tests for ascendbench.perf.scoring per docs/reference/scoring_spec.md.
 
-Post-codex P1-2 fix:
 - P_CAP = 5 (not 10)
 - Failed task contributes ε=0.01 to geomean (NOT excluded)
 - All failures → geomean = ε, not 0
@@ -198,7 +197,7 @@ class TestNativeCoverage:
 
 
 class TestDeduplication:
-    """codex round-2 P1: duplicate task_id must error, not silently inflate."""
+    """duplicate task_id must error, not silently inflate."""
 
     def test_duplicate_task_id_raises_in_geomean(self):
         m = [

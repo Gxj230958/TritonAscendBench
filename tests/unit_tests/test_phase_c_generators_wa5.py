@@ -1,7 +1,7 @@
 """WA.5: generator updates — phase_c_docs.py + generate_task_scaffolds.py.
 
 Covers the WA.5 deliverables
-(`docs/plans/2026-05-21-operator-param-validity-impl.md` line 82-91):
+(WA.5):
 
 * ``phase_c_docs`` merges a ``scaffold: true`` ``param_constraints`` skeleton
   into ``meta.yaml`` without disturbing any other field;

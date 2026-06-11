@@ -15,7 +15,7 @@
 #      not a correctness blocker, so it is NOT gated here. A non-empty
 #      blocking set => non-zero exit + a blocking task list.
 #
-# Also runs verify_version_matrix.py so infra/version_matrix.toml is
+# Also runs verify_version_matrix.py so ascendbench/policies/version_matrix.toml is
 # checked for missing keys / unresolved placeholders.
 #
 # This step is EXPECTED to fail (non-zero) until the gating GPU steps

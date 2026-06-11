@@ -234,7 +234,7 @@ RESOLVER_TOOL_VERSION = "0.1.0"
 #        already-dirty/untracked file (porcelain text unchanged) and
 #        omitted ignored files entirely. CLEAN-REQUIRED is the
 #        principled choice: the whole Phase-A provenance design is
-#        PINNED REPRODUCIBILITY (infra/version_matrix.toml "Any
+#        PINNED REPRODUCIBILITY (ascendbench/policies/version_matrix.toml "Any
 #        deviation invalidates baseline"); a dirty / non-reproducible
 #        upstream tree can NEVER back a trustworthy verdict, so the
 #        only honest (and simplest-to-verify) behaviour is to refuse
@@ -434,7 +434,7 @@ def upstream_closure_fingerprint(files: list[str] | None) -> str:
 # auto-regenerated into a trusted artifact -- a hard
 # ``StaleResolverCacheError`` with an explicit pin-and-clean remedy.
 # Rationale: the entire Phase-A provenance design is PINNED
-# REPRODUCIBILITY (infra/version_matrix.toml: "Any deviation
+# REPRODUCIBILITY (ascendbench/policies/version_matrix.toml: "Any deviation
 # invalidates baseline"). A non-git / git-broken / DIRTY upstream tree
 # is by definition NOT a reproducible pinned state, so the only honest
 # (and simplest-to-verify) behaviour is to REFUSE it -- never silently
@@ -455,7 +455,7 @@ _INFER_UNVERIFIABLE_PREFIX = "<UNVERIFIABLE:"
 # non-reproducible as a dirty tree and MUST be fail-closed.
 #
 # AUTHORITATIVE PIN SOURCE (read the repo, do NOT guess):
-#   infra/version_matrix.toml [upstream] records ONLY the upstream repo
+#   ascendbench/policies/version_matrix.toml [upstream] records ONLY the upstream repo
 #   IDENTITY ("vllm = vllm-project/vllm", "sglang = sgl-project/sglang")
 #   and EXPLICITLY DEFERS the per-commit pin to the corpus:
 #       "Per-task commit SHAs live in tasks/*/meta.yaml
@@ -474,7 +474,7 @@ _INFER_UNVERIFIABLE_PREFIX = "<UNVERIFIABLE:"
 #   commit (corpus disagreement) the expected pin is itself
 #   UNVERIFIABLE -> fail-closed (we refuse to invent an authority).
 #
-#   NOTE / TODO for the matrix owner: infra/version_matrix.toml SHOULD
+#   NOTE / TODO for the matrix owner: ascendbench/policies/version_matrix.toml SHOULD
 #   additionally record these resolved per-root commit pins so the
 #   authority is single-sourced; until it does, the meta-consensus
 #   derived here IS the authoritative source (it is what the corpus
@@ -1961,7 +1961,7 @@ def load_resolver_cache(
     regenerating under the SAME unverifiable upstream would not fix it;
     the only honest action is to refuse with an explicit
     pin-and-clean remedy. CLEAN-REQUIRED is the principled choice
-    (cf. infra/version_matrix.toml 'Any deviation invalidates
+    (cf. ascendbench/policies/version_matrix.toml 'Any deviation invalidates
     baseline'): the global git-HEAD gate is the PRIMARY structural
     guarantee; the per-task ``upstream_fp`` (validated in
     ``_resolver_verdict_for``) is the precise complete BELT (oracle
@@ -1992,7 +1992,7 @@ def load_resolver_cache(
             "resolver cache (a non-git / git-broken / DIRTY / "
             "WRONG-commit / MISSING managed-root upstream tree is not "
             "a reproducible pinned state; cf. "
-            "infra/version_matrix.toml 'Any deviation invalidates "
+            "ascendbench/policies/version_matrix.toml 'Any deviation invalidates "
             "baseline'). Pin infer/ to the expected commit (the "
             "tasks/*/meta.yaml upstream.commit_sha consensus -- "
             "checkout that commit / commit / stash / clean any local "

@@ -3,7 +3,7 @@
 The benchmark evaluates two distinct classes of size-knob expressions and,
 before WA.2, did so through two unrelated code paths:
 
-* **numeric expressions** — ``cost_model`` FLOPs/bytes formulas (W1.2's AST
+* **numeric expressions** — ``cost_model`` FLOPs/bytes formulas ('s AST
   whitelist evaluator in ``cost_model.py``) and the ``shapes.yaml`` input
   specs (``dims`` / ``randint`` bounds / ``offsets:to=`` / ``full:`` /
   ``scalar_knob``), which ``inputs.py`` materialised through bare
@@ -24,7 +24,7 @@ entrypoints whose *semantic boundary is explicit*:
   ``is_pow2`` / ``sqrt`` / ``gcd`` / ``len`` / ``sum``, and **constant
   integer indexing** of a ``list`` / ``tuple`` value (``block_size[0] ==
   8``) — a narrow ``ast.Subscript`` path that backs the ``scalar_seq``
-  index constraints (`specs/task_api_contract.md §5.2`).
+  index constraints (`docs/reference/task_api_contract.md §5.2`).
 
 Both entrypoints reject arbitrary code **statically** — imports, attribute
 access, comprehensions, lambdas, dunder names, and any call to a
@@ -35,7 +35,7 @@ into a sequence value (slices and non-constant indices are still rejected).
 
 ``cost_model.py`` keeps its own public surface (``FormulaEnv`` /
 ``evaluate_formula`` / ``parse_cost_model`` / ``CostModelError``) unchanged
-and is layered on top of :func:`eval_numeric` — the W1.2 numeric contract
+and is layered on top of :func:`eval_numeric` — the  numeric contract
 (values, call signatures, exception behaviour) is preserved exactly.
 """
 from __future__ import annotations
@@ -105,7 +105,7 @@ def _is_pow2(x: Any) -> bool:
 
 
 #: Numeric-mode helpers. ``min`` / ``max`` / ``ceil`` / ``floor`` are the
-#: W1.2 cost-model set; ``sqrt`` is added by WA.2 to support derived scalars
+#:  cost-model set; ``sqrt`` is added by WA.2 to support derived scalars
 #: such as ``1/sqrt(D)`` (WA.3) — it does not affect formulas that never call
 #: it, so the cost-model numeric contract is unchanged.
 _NUMERIC_HELPERS: dict[str, Callable[..., Any]] = {
@@ -306,7 +306,7 @@ class _Evaluator:
         """Evaluate a constant-integer index into a sequence value.
 
         Predicate mode only. Backs the ``scalar_seq`` index constraints
-        (`specs/task_api_contract.md §5.2`), e.g. ``block_size[0] == 8``.
+        (`docs/reference/task_api_contract.md §5.2`), e.g. ``block_size[0] == 8``.
         The narrow contract:
 
         * the index must be a constant integer literal (``ast.Constant``),

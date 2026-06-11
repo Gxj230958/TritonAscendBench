@@ -11,7 +11,6 @@
 
 > vLLM 随机采样主路径（RNG + argmax）
 
-(Verbatim from `docs/npu/benchmark_select.md`.)
 
 ## Required semantics
 

@@ -1,19 +1,19 @@
 """timing.py — host-side authoritative timing using CLOCK_MONOTONIC_RAW.
 
-Per `specs/timing_arbitration.md` (R12-P0-2 + R16-P1):
+Per `docs/reference/timing_arbitration.md` :
 
 - `torch.npu.Event.elapsed_time` measures only the current stream and
   misses cross-stream gaps. We use `time.clock_gettime(CLOCK_MONOTONIC_RAW)`
-  on the host as the authoritative timer (R12-P0-2).
+  on the host as the authoritative timer .
 - An NPU event timer is recorded as a secondary cross-check signal; the
   host/event drift arbitration lives in `arbitrate_timing` below and is
   consumed by the trusted parent (`process_isolation`).
-- W1.3: measured trials each run a **fresh** inputs dict produced by a
-  per-trial input factory (R16-P1) — a fixed-args repeat would let a
+- Measured trials each run a **fresh** inputs dict produced by a
+  per-trial input factory  — a fixed-args repeat would let a
   candidate cache the answer across trials. The factory closes over the
   runner's `meas_seed + t` so warmup and measured inputs always differ.
 
-R6-1: the per-backend cross-check seam is `backends/npu.NpuBackend.
+The per-backend cross-check seam is `backends/npu.NpuBackend.
 event_timer()` — an `EventTimer` *context manager* whose NPU
 `Event.record()` calls bracket the SAME single measured call host time
 sees. `time_one_run` accepts an `event_timer_factory` that yields one
@@ -29,7 +29,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-DRIFT_THRESHOLD = 0.10  # per specs/timing_arbitration.md (single source of truth)
+DRIFT_THRESHOLD = 0.10  # per docs/reference/timing_arbitration.md (single source of truth)
 QUARANTINE_NS = 1_000   # host_ns < 1 µs ⇒ likely no real execution
 
 
@@ -45,10 +45,10 @@ class TimingSample:
 
 @dataclass
 class TimingArbitration:
-    """Verdict of the timing-arbitration rules (specs/timing_arbitration.md).
+    """Verdict of the timing-arbitration rules (docs/reference/timing_arbitration.md).
 
     Carries the status bits the trusted parent stamps onto the eval result;
-    W1.3 maps them onto the *existing* result fields — there is no new
+     maps them onto the *existing* result fields — there is no new
     ``timing_status`` field:
 
       * ``runtime_status``      -> "invalid_timing" on a hard fault
@@ -78,7 +78,7 @@ def time_one_run(
     `sync` is the per-backend stream synchronizer
     (e.g. `torch.cuda.synchronize` or `torch.npu.synchronize`).
 
-    R6-1: `event_timer_factory`, when supplied by the backend, is called
+    : `event_timer_factory`, when supplied by the backend, is called
     as ``event_timer_factory() -> EventTimer | None`` and yields ONE fresh
     NPU event timer. The timer is a context manager whose `Event.record()`
     calls bracket the SAME single `fn` invocation host time measures —
@@ -132,7 +132,7 @@ def measure(
 ) -> list[TimingSample]:
     """Time `run` over `n_repeat` trials, each on a *fresh* input.
 
-    W1.3 reshape (R16-P1): the old fixed-`*args` repeat is replaced by a
+     reshape: the old fixed-`*args` repeat is replaced by a
     per-trial input factory. `input_factory(t)` returns the inputs object
     for trial ``t``; warmup uses ``t`` in ``[-n_warmup, -1]`` and measured
     trials use ``t`` in ``[0, n_repeat)`` so warmup and measured inputs
@@ -168,7 +168,7 @@ def arbitrate_timing(
     event_ns: list[float] | None = None,
     stream_nondefault: bool | None = None,
 ) -> TimingArbitration:
-    """Apply the `specs/timing_arbitration.md` rules to a trial sequence.
+    """Apply the `docs/reference/timing_arbitration.md` rules to a trial sequence.
 
     Consumed by the trusted parent (`process_isolation` / `eval`) over the
     `durations` the timing-pass child sent up. `durations_ns` is the

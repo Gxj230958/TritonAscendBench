@@ -3,7 +3,6 @@
 > Authoritative scoring model: `docs/DESIGN.md §9`. GPU-Triton → 910B NPU-Triton migration; no AscendC baseline. Tolerance classes here gate **correctness** only; S2 equivalence uses strict bit-exact, not these classes.
 
 
-> v0 — per v4.13 §10.2 + R18-S2
 > Machine-readable form: `ascendbench/policies/tolerance_policy.yaml` (loaded by `eval.py`)
 
 Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for the correctness check. The table is illustrative; `ascendbench/policies/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
@@ -27,10 +26,10 @@ Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner
 
 ## Special Rules
 
-- **NaN/Inf consistency** (per v4.13 §5b.5 子项 ⑤):
+- **NaN/Inf consistency** ( 子项 ⑤):
   positions of NaN/Inf in `out_c` must match `out_o` exactly. If `out_o[i]` is NaN, `out_c[i]` must also be NaN.
 
-- **Per-dtype sentinels** (per v4.13 R12-P1-3):
+- **Per-dtype sentinels**:
   - float dtypes: `NaN`
   - int8: `INT8_MIN` (-128)
   - int16/32: corresponding MIN

@@ -61,7 +61,7 @@ def test_banned_eval_call_blocks():
 
 
 def test_torch_nn_functional_blocked():
-    """codex P0-1: F.softmax / torch.nn.functional.* must be rejected."""
+    """P0-1: F.softmax / torch.nn.functional.* must be rejected."""
     src = _src(
         """
         import torch
@@ -94,7 +94,7 @@ def test_string_oracle_substring_blocked():
 
 
 def test_from_torch_nn_functional_import_blocked():
-    """codex round-2 R-P0-1: `from torch.nn.functional import softmax` must reject.
+    """`from torch.nn.functional import softmax` must reject.
 
     Previous fix only checked base module; this taints the imported alias so
     bare `softmax(...)` still fails.
@@ -120,7 +120,7 @@ def test_from_torch_nn_functional_import_blocked():
 
 
 def test_dunder_getattribute_bypass_blocked():
-    """codex round-2 R-P0-1: type(x).__getattribute__(x, 'cpu')() must reject."""
+    """type(x).__getattribute__(x, 'cpu')() must reject."""
     src = _src(
         """
         import torch
@@ -140,7 +140,7 @@ def test_dunder_getattribute_bypass_blocked():
 
 
 def test_builtins_subscript_bypass_blocked():
-    """codex round-2 R-P0-1: __builtins__['eval'](...) must reject."""
+    """__builtins__['eval'](...) must reject."""
     src = _src(
         """
         import torch
@@ -160,7 +160,7 @@ def test_builtins_subscript_bypass_blocked():
 
 
 def test_assign_aliased_eval_blocked():
-    """codex round-3 R-P0-1: `e = eval; e('1+1')` via Assign alias must block."""
+    """`e = eval; e('1+1')` via Assign alias must block."""
     src = _src(
         """
         import triton
@@ -180,7 +180,7 @@ def test_assign_aliased_eval_blocked():
 
 
 def test_assign_aliased_F_softmax_blocked():
-    """codex round-3 R-P0-1: `sf = F.softmax` via Assign alias must block."""
+    """`sf = F.softmax` via Assign alias must block."""
     src = _src(
         """
         import torch
@@ -202,7 +202,7 @@ def test_assign_aliased_F_softmax_blocked():
 
 
 def test_assign_aliased_tl_inline_asm_blocked():
-    """codex round-3 R-P0-1: `asm = tl.inline_asm_elementwise` via alias."""
+    """`asm = tl.inline_asm_elementwise` via alias."""
     src = _src(
         """
         import triton
@@ -220,7 +220,7 @@ def test_assign_aliased_tl_inline_asm_blocked():
 
 
 def test_from_triton_language_inline_asm_alias_blocked():
-    """codex round-3 R-P0-1: `from triton.language import inline_asm as asm`."""
+    """`from triton.language import inline_asm as asm`."""
     src = _src(
         """
         import triton
@@ -240,7 +240,7 @@ def test_from_triton_language_inline_asm_alias_blocked():
 
 
 def test_from_torch_import_matmul_blocked():
-    """codex round-4 NEW-P0: `from torch import matmul; matmul(x,y)` must block."""
+    """`from torch import matmul; matmul(x,y)` must block."""
     src = _src(
         """
         import torch
@@ -261,7 +261,7 @@ def test_from_torch_import_matmul_blocked():
 
 
 def test_module_alias_inline_asm_blocked():
-    """codex round-4 NEW-P0: `import triton.language as lang;
+    """`import triton.language as lang;
     asm = lang.inline_asm_elementwise` must canonicalize and block."""
     src = _src(
         """
@@ -282,7 +282,7 @@ def test_module_alias_inline_asm_blocked():
 
 
 def test_tuple_unpacking_alias_blocked():
-    """codex round-4 NEW-P0: `asm = (tl.inline_asm_elementwise,)[0]` via Subscript."""
+    """`asm = (tl.inline_asm_elementwise,)[0]` via Subscript."""
     src = _src(
         """
         import triton
@@ -302,7 +302,7 @@ def test_tuple_unpacking_alias_blocked():
 
 
 def test_partial_open_blocked():
-    """codex round-4 NEW-P0: `from functools import partial; partial(open, ...)`."""
+    """`from functools import partial; partial(open, ...)`."""
     src = _src(
         """
         from functools import partial
@@ -323,7 +323,7 @@ def test_partial_open_blocked():
 
 
 def test_from_torch_nn_alias_softmax_blocked():
-    """codex round-4 NEW-P0: `from torch import nn; nn.functional.softmax`."""
+    """`from torch import nn; nn.functional.softmax`."""
     src = _src(
         """
         from torch import nn
@@ -344,7 +344,7 @@ def test_from_torch_nn_alias_softmax_blocked():
 
 
 def test_operator_attrgetter_blocked():
-    """codex round-4 NEW-P0: `from operator import attrgetter` reflection."""
+    """`from operator import attrgetter` reflection."""
     src = _src(
         """
         from operator import attrgetter
@@ -378,8 +378,8 @@ _ATTACK_PREFIX = _src(
 )
 
 
-def test_round5_tuple_indexed_call_blocked():
-    """codex round-5 NEW-P0 #1: `(torch.matmul,)[0](x,y)` indirect call."""
+def test_pinned_tuple_indexed_call_blocked():
+    """#1: `(torch.matmul,)[0](x,y)` indirect call."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -390,8 +390,8 @@ def test_round5_tuple_indexed_call_blocked():
     assert report.blocked
 
 
-def test_round5_dict_indexed_call_blocked():
-    """codex round-5 NEW-P0 #1: `{0: torch.matmul}[0](x,y)`."""
+def test_dict_indexed_call_blocked():
+    """#1: `{0: torch.matmul}[0](x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -402,8 +402,8 @@ def test_round5_dict_indexed_call_blocked():
     assert report.blocked
 
 
-def test_round5_destructuring_assign_blocked():
-    """codex round-5 NEW-P0 #2: `f, = (torch.matmul,); f(x,y)`."""
+def test_destructuring_assign_blocked():
+    """#2: `f, = (torch.matmul,); f(x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -415,8 +415,8 @@ def test_round5_destructuring_assign_blocked():
     assert report.blocked
 
 
-def test_round5_for_loop_target_blocked():
-    """codex round-5 NEW-P0 #2: `for f in (torch.matmul,): f(x,y)`."""
+def test_for_loop_target_blocked():
+    """#2: `for f in (torch.matmul,): f(x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -428,8 +428,8 @@ def test_round5_for_loop_target_blocked():
     assert report.blocked
 
 
-def test_round5_annassign_blocked():
-    """codex round-5 NEW-P0 #2: `f: object = torch.matmul; f(x,y)`."""
+def test_annassign_blocked():
+    """#2: `f: object = torch.matmul; f(x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -441,8 +441,8 @@ def test_round5_annassign_blocked():
     assert report.blocked
 
 
-def test_round5_default_arg_blocked():
-    """codex round-5 NEW-P0 #2: `def attack(x, y, f=torch.matmul):`."""
+def test_default_arg_blocked():
+    """#2: `def attack(x, y, f=torch.matmul):`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y, f=torch.matmul):
@@ -453,8 +453,8 @@ def test_round5_default_arg_blocked():
     assert report.blocked
 
 
-def test_round5_wildcard_import_torch_blocked():
-    """codex round-5 NEW-P0 #3: `from torch import *` is forbidden."""
+def test_wildcard_import_torch_blocked():
+    """#3: `from torch import *` is forbidden."""
     src = _src(
         """
         from torch import *
@@ -475,7 +475,7 @@ def test_round5_wildcard_import_torch_blocked():
                for f in report.findings)
 
 
-def test_round5_wildcard_import_tl_blocked():
+def test_wildcard_import_tl_blocked():
     src = _src(
         """
         import triton
@@ -494,8 +494,8 @@ def test_round5_wildcard_import_tl_blocked():
     assert report.blocked
 
 
-def test_round5_nested_shadow_first_binding_wins():
-    """codex round-5 NEW-P0 #4: nested import cannot overwrite top-level alias."""
+def test_nested_shadow_first_binding_wins():
+    """#4: nested import cannot overwrite top-level alias."""
     src = _ATTACK_PREFIX + _src(
         """
         from torch import matmul as f
@@ -512,8 +512,8 @@ def test_round5_nested_shadow_first_binding_wins():
     assert report.blocked
 
 
-def test_round5_bound_method_alias_blocked():
-    """codex round-5 NEW-P0 #5: `f = x.matmul; f(y)` (Tensor.method binding)."""
+def test_bound_method_alias_blocked():
+    """#5: `f = x.matmul; f(y)` (Tensor.method binding)."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -525,8 +525,8 @@ def test_round5_bound_method_alias_blocked():
     assert report.blocked
 
 
-def test_round6_subscript_base_matmul_blocked():
-    """codex round-6 NEW-P0 #1: `inputs['x'].matmul(y)` (non-Name base)."""
+def test_subscript_base_matmul_blocked():
+    """#1: `inputs['x'].matmul(y)` (non-Name base)."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(inputs):
@@ -537,8 +537,8 @@ def test_round6_subscript_base_matmul_blocked():
     assert report.blocked
 
 
-def test_round6_subscript_base_cpu_blocked():
-    """codex round-6 NEW-P0 #1: `inputs['x'].cpu()` host-transfer."""
+def test_subscript_base_cpu_blocked():
+    """#1: `inputs['x'].cpu()` host-transfer."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(inputs):
@@ -549,8 +549,8 @@ def test_round6_subscript_base_cpu_blocked():
     assert report.blocked
 
 
-def test_round6_ifexp_call_target_blocked():
-    """codex round-6 NEW-P0 #2: `(matmul if cond else empty)(x,y)`."""
+def test_ifexp_call_target_blocked():
+    """#2: `(matmul if cond else empty)(x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -561,8 +561,8 @@ def test_round6_ifexp_call_target_blocked():
     assert report.blocked
 
 
-def test_round6_lambda_call_target_blocked():
-    """codex round-6 NEW-P0 #2: `(lambda: torch.matmul)()(x,y)`."""
+def test_lambda_call_target_blocked():
+    """#2: `(lambda: torch.matmul)()(x,y)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -573,8 +573,8 @@ def test_round6_lambda_call_target_blocked():
     assert report.blocked
 
 
-def test_round6_higher_order_call_arg_blocked():
-    """codex round-6 NEW-P0 #3: `(lambda fs: fs[0](x,y))((torch.matmul,))`."""
+def test_higher_order_call_arg_blocked():
+    """#3: `(lambda fs: fs[0](x,y))((torch.matmul,))`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, y):
@@ -585,8 +585,8 @@ def test_round6_higher_order_call_arg_blocked():
     assert report.blocked
 
 
-def test_round6_first_binding_safe_then_banned_blocked():
-    """codex round-6 NEW-P0 #4: safe `f` rebound to banned `f` must taint."""
+def test_first_binding_safe_then_banned_blocked():
+    """#4: safe `f` rebound to banned `f` must taint."""
     src = _ATTACK_PREFIX + _src(
         """
         from triton import cdiv as f
@@ -600,8 +600,8 @@ def test_round6_first_binding_safe_then_banned_blocked():
     assert report.blocked
 
 
-def test_round7_tensor_binop_blocked():
-    """codex round-7 NEW-P0 #1: `x + y` on Tensor-annotated args."""
+def test_tensor_binop_blocked():
+    """#1: `x + y` on Tensor-annotated args."""
     src = _src(
         """
         import torch
@@ -620,8 +620,8 @@ def test_round7_tensor_binop_blocked():
     assert report.blocked
 
 
-def test_round7_tensor_subscript_blocked():
-    """codex round-7 NEW-P0 #1: `x[:]` on Tensor."""
+def test_tensor_subscript_blocked():
+    """#1: `x[:]` on Tensor."""
     src = _src(
         """
         import torch
@@ -640,8 +640,8 @@ def test_round7_tensor_subscript_blocked():
     assert report.blocked
 
 
-def test_round7_tensor_iter_blocked():
-    """codex round-7 NEW-P0 #1: `for row in x:` on Tensor."""
+def test_tensor_iter_blocked():
+    """#1: `for row in x:` on Tensor."""
     src = _src(
         """
         import torch
@@ -661,8 +661,8 @@ def test_round7_tensor_iter_blocked():
     assert report.blocked
 
 
-def test_round7_tensor_sum_coerce_blocked():
-    """codex round-7 NEW-P0 #1: `sum(x)` / `float(x)` on Tensor."""
+def test_tensor_sum_coerce_blocked():
+    """#1: `sum(x)` / `float(x)` on Tensor."""
     src = _src(
         """
         import torch
@@ -681,8 +681,8 @@ def test_round7_tensor_sum_coerce_blocked():
     assert report.blocked
 
 
-def test_round7_to_cpu_string_blocked():
-    """codex round-7 NEW-P0 #2: `.to('cpu')`."""
+def test_to_cpu_string_blocked():
+    """#2: `.to('cpu')`."""
     src = _src(
         """
         import torch
@@ -701,8 +701,8 @@ def test_round7_to_cpu_string_blocked():
     assert report.blocked
 
 
-def test_round7_to_cpu_kwarg_blocked():
-    """codex round-7 NEW-P0 #2: `.to(device='cpu')`."""
+def test_to_cpu_kwarg_blocked():
+    """#2: `.to(device='cpu')`."""
     src = _src(
         """
         import torch
@@ -721,8 +721,8 @@ def test_round7_to_cpu_kwarg_blocked():
     assert report.blocked
 
 
-def test_round7_torch_empty_device_cpu_blocked():
-    """codex round-7 NEW-P0 #2: `torch.empty(..., device='cpu')`."""
+def test_torch_empty_device_cpu_blocked():
+    """#2: `torch.empty(..., device='cpu')`."""
     src = _src(
         """
         import torch
@@ -741,8 +741,8 @@ def test_round7_torch_empty_device_cpu_blocked():
     assert report.blocked
 
 
-def test_round7_iter_next_builtins_blocked():
-    """codex round-7 NEW-P0 #1: bare `iter()` / `next()` calls in solution."""
+def test_iter_next_builtins_blocked():
+    """#1: bare `iter()` / `next()` calls in solution."""
     src = _src(
         """
         import torch
@@ -762,8 +762,8 @@ def test_round7_iter_next_builtins_blocked():
     assert report.blocked
 
 
-def test_round8_string_annotation_blocked():
-    """codex round-8 R-P0-1: `x: 'torch.Tensor'` (forward ref str annotation)."""
+def test_string_annotation_blocked():
+    """`x: 'torch.Tensor'` (forward ref str annotation)."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: "torch.Tensor", y: "torch.Tensor"):
@@ -774,8 +774,8 @@ def test_round8_string_annotation_blocked():
     assert report.blocked
 
 
-def test_round8_varargs_attack_blocked():
-    """codex round-8 R-P0-1: `def f(*args, **kwargs): x = args[0]; x + y`."""
+def test_varargs_attack_blocked():
+    """`def f(*args, **kwargs): x = args[0]; x + y`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(*args, **kwargs):
@@ -788,8 +788,8 @@ def test_round8_varargs_attack_blocked():
     assert report.blocked
 
 
-def test_round8_reshape_binop_blocked():
-    """codex round-8 R-P0-1: `x.reshape(-1) + y.reshape(-1)` (Tensor method + BinOp)."""
+def test_reshape_binop_blocked():
+    """`x.reshape(-1) + y.reshape(-1)` (Tensor method + BinOp)."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor):
@@ -800,8 +800,8 @@ def test_round8_reshape_binop_blocked():
     assert report.blocked
 
 
-def test_round8_tuple_return_unpacking_blocked():
-    """codex round-8 R-P0-1: `a, b = get_pair(x, y); a + b`."""
+def test_tuple_return_unpacking_blocked():
+    """`a, b = get_pair(x, y); a + b`."""
     src = _ATTACK_PREFIX + _src(
         """
         def get_pair(x: torch.Tensor, y: torch.Tensor):
@@ -816,8 +816,8 @@ def test_round8_tuple_return_unpacking_blocked():
     assert report.blocked
 
 
-def test_round8_enumerate_tensor_blocked():
-    """codex round-8 R-P0-1: `for _, row in enumerate(x):`."""
+def test_enumerate_tensor_blocked():
+    """`for _, row in enumerate(x):`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -829,8 +829,8 @@ def test_round8_enumerate_tensor_blocked():
     assert report.blocked
 
 
-def test_round8_local_string_cpu_to_blocked():
-    """codex round-8 R-P0-2: `d = 'cpu'; x.to(d)`."""
+def test_local_string_cpu_to_blocked():
+    """`d = 'cpu'; x.to(d)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x):
@@ -842,8 +842,8 @@ def test_round8_local_string_cpu_to_blocked():
     assert report.blocked
 
 
-def test_round8_local_string_empty_cpu_blocked():
-    """codex round-8 R-P0-2: `d = 'cpu'; torch.empty(..., device=d)`."""
+def test_local_string_empty_cpu_blocked():
+    """`d = 'cpu'; torch.empty(..., device=d)`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x):
@@ -855,7 +855,7 @@ def test_round8_local_string_empty_cpu_blocked():
     assert report.blocked
 
 
-def test_round9_lambda_call_taint_blocked():
+def test_lambda_call_taint_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor):
@@ -867,7 +867,7 @@ def test_round9_lambda_call_taint_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_tuple_destructure_assign_blocked():
+def test_tuple_destructure_assign_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor):
@@ -878,7 +878,7 @@ def test_round9_tuple_destructure_assign_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_ifexp_assign_blocked():
+def test_ifexp_assign_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor, cond):
@@ -889,7 +889,7 @@ def test_round9_ifexp_assign_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_default_arg_cpu_blocked():
+def test_default_arg_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x, d="cpu"):
@@ -899,7 +899,7 @@ def test_round9_default_arg_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_binop_cpu_concat_blocked():
+def test_binop_cpu_concat_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x):
@@ -910,8 +910,8 @@ def test_round9_binop_cpu_concat_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_dict_inputs_contract_blocked():
-    """codex round-9 NEW-P0: `def npu_triton_impl(inputs: dict)` must
+def test_dict_inputs_contract_blocked():
+    """`def npu_triton_impl(inputs: dict)` must
     treat `inputs` as a Tensor-container per the contract."""
     src = _ATTACK_PREFIX + _src(
         """
@@ -922,7 +922,7 @@ def test_round9_dict_inputs_contract_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_tensor_compare_blocked():
+def test_tensor_compare_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor):
@@ -932,7 +932,7 @@ def test_round9_tensor_compare_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_tensor_unary_blocked():
+def test_tensor_unary_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -942,7 +942,7 @@ def test_round9_tensor_unary_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_tensor_boolop_blocked():
+def test_tensor_boolop_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor, y: torch.Tensor):
@@ -952,8 +952,8 @@ def test_round9_tensor_boolop_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_new_empty_cpu_blocked():
-    """codex round-9 NEW-P0 #3: `.new_empty(..., device='cpu')`."""
+def test_new_empty_cpu_blocked():
+    """#3: `.new_empty(..., device='cpu')`."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -963,8 +963,8 @@ def test_round9_new_empty_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round9_any_all_sorted_reversed_on_tensor_blocked():
-    """codex round-9 NEW-P0 #4: any/all/sorted/reversed eager coercions."""
+def test_any_all_sorted_reversed_on_tensor_blocked():
+    """#4: any/all/sorted/reversed eager coercions."""
     for fn_name in ("any", "all", "sorted", "reversed"):
         src = _ATTACK_PREFIX + _src(
             f"""
@@ -977,7 +977,7 @@ def test_round9_any_all_sorted_reversed_on_tensor_blocked():
         )
 
 
-def test_round10_str_call_cpu_blocked():
+def test_str_call_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -987,7 +987,7 @@ def test_round10_str_call_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_tuple_index_cpu_blocked():
+def test_tuple_index_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -997,7 +997,7 @@ def test_round10_tuple_index_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_mult_cpu_blocked():
+def test_mult_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1007,7 +1007,7 @@ def test_round10_mult_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_lambda_cpu_blocked():
+def test_lambda_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1017,8 +1017,8 @@ def test_round10_lambda_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_iife_lambda_tensor_arg_blocked():
-    """codex round-10 R-P0-2: `(lambda z: z+z)(tensor)` — IIFE binding."""
+def test_iife_lambda_tensor_arg_blocked():
+    """`(lambda z: z+z)(tensor)` — IIFE binding."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1028,8 +1028,8 @@ def test_round10_iife_lambda_tensor_arg_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_typing_mapping_blocked():
-    """codex round-10 R-P0-3: `Mapping[str, torch.Tensor]`."""
+def test_typing_mapping_blocked():
+    """`Mapping[str, torch.Tensor]`."""
     src = _ATTACK_PREFIX + _src(
         """
         from typing import Mapping
@@ -1041,7 +1041,7 @@ def test_round10_typing_mapping_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_typing_list_tensor_blocked():
+def test_typing_list_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import List
@@ -1053,7 +1053,7 @@ def test_round10_typing_list_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_bare_list_tensor_blocked():
+def test_bare_list_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(xs: list[torch.Tensor]):
@@ -1063,8 +1063,8 @@ def test_round10_bare_list_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_npu_triton_impl_unannotated_blocked():
-    """codex round-10 NEW-P0 #1: missing annotation still treated as container."""
+def test_npu_triton_impl_unannotated_blocked():
+    """#1: missing annotation still treated as container."""
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs) -> dict:
@@ -1074,7 +1074,7 @@ def test_round10_npu_triton_impl_unannotated_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_npu_triton_impl_object_annotated_blocked():
+def test_npu_triton_impl_object_annotated_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs: object) -> dict:
@@ -1084,8 +1084,8 @@ def test_round10_npu_triton_impl_object_annotated_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_helper_propagation_blocked():
-    """codex round-10 NEW-P0 #2: cross-function helper Tensor arg propagation."""
+def test_helper_propagation_blocked():
+    """#2: cross-function helper Tensor arg propagation."""
     src = _ATTACK_PREFIX + _src(
         """
         def add(z):
@@ -1098,8 +1098,8 @@ def test_round10_helper_propagation_blocked():
     assert check_solution(src).blocked
 
 
-def test_round10_legit_dict_lookup_not_blocked():
-    """codex round-10 P1 #1: `inputs["x"]` then `torch.empty_like(x)` legit."""
+def test_legit_dict_lookup_not_blocked():
+    """#1: `inputs["x"]` then `torch.empty_like(x)` legit."""
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs: dict) -> dict:
@@ -1112,8 +1112,8 @@ def test_round10_legit_dict_lookup_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round10_scalar_method_not_blocked():
-    """codex round-10 P1 #2: `.numel()`/`.size()`/`.dim()` return int."""
+def test_scalar_method_not_blocked():
+    """#2: `.numel()`/`.size()`/`.dim()` return int."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1125,7 +1125,7 @@ def test_round10_scalar_method_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round11_helper_rename_alias_blocked():
+def test_helper_rename_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1137,7 +1137,7 @@ def test_round11_helper_rename_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_helper_kwarg_blocked():
+def test_helper_kwarg_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1148,7 +1148,7 @@ def test_round11_helper_kwarg_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_container_to_helper_blocked():
+def test_container_to_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1159,7 +1159,7 @@ def test_round11_container_to_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_twohop_helper_blocked():
+def test_twohop_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h2(z): return z + z
@@ -1171,7 +1171,7 @@ def test_round11_twohop_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_optional_list_tensor_blocked():
+def test_optional_list_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(xs: list[torch.Tensor] | None):
@@ -1181,7 +1181,7 @@ def test_round11_optional_list_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_typing_optional_list_tensor_blocked():
+def test_typing_optional_list_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import Optional, List
@@ -1192,7 +1192,7 @@ def test_round11_typing_optional_list_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_type_alias_container_blocked():
+def test_type_alias_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import List
@@ -1204,7 +1204,7 @@ def test_round11_type_alias_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_dict_subclass_blocked():
+def test_dict_subclass_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class MyDict(dict): pass
@@ -1215,7 +1215,7 @@ def test_round11_dict_subclass_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_percent_format_cpu_blocked():
+def test_percent_format_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1225,7 +1225,7 @@ def test_round11_percent_format_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_slice_literal_cpu_blocked():
+def test_slice_literal_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1235,7 +1235,7 @@ def test_round11_slice_literal_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_function_return_cpu_blocked():
+def test_function_return_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(): return "cpu"
@@ -1246,7 +1246,7 @@ def test_round11_function_return_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_chr_concat_cpu_blocked():
+def test_chr_concat_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1256,8 +1256,8 @@ def test_round11_chr_concat_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round11_iife_lambda_scalar_metadata_not_blocked():
-    """codex round-11 P1: `(lambda z: z.numel())(x)` returns int — legit."""
+def test_iife_lambda_scalar_metadata_not_blocked():
+    """`(lambda z: z.numel())(x)` returns int — legit."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1269,8 +1269,8 @@ def test_round11_iife_lambda_scalar_metadata_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round11_forward_ref_not_tensor_not_blocked():
-    """codex round-11 P1: `xs: 'List[NotTensor]'` must NOT be Tensor container."""
+def test_forward_ref_not_tensor_not_blocked():
+    """`xs: 'List[NotTensor]'` must NOT be Tensor container."""
     src = _ATTACK_PREFIX + _src(
         """
         from typing import List
@@ -1282,8 +1282,8 @@ def test_round11_forward_ref_not_tensor_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round11_sorted_with_key_lambda_not_blocked():
-    """codex round-11 P1: `sorted(vals, key=lambda z: z)` legit."""
+def test_sorted_with_key_lambda_not_blocked():
+    """`sorted(vals, key=lambda z: z)` legit."""
     src = _ATTACK_PREFIX + _src(
         """
         def attack(vals):
@@ -1294,8 +1294,8 @@ def test_round11_sorted_with_key_lambda_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round12_11hop_helper_blocked():
-    """codex round-12 R-P0-1: fixpoint must handle >8-hop chains."""
+def test_11hop_helper_blocked():
+    """fixpoint must handle >8-hop chains."""
     helpers = "\n".join(
         f"def h{i}(z): return h{i+1}(z)" for i in range(1, 10)
     ) + "\ndef h10(z): return z + z\n"
@@ -1308,7 +1308,7 @@ def test_round12_11hop_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_reshape_arg_to_helper_blocked():
+def test_reshape_arg_to_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1319,7 +1319,7 @@ def test_round12_reshape_arg_to_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_container_alias_blocked():
+def test_container_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1331,7 +1331,7 @@ def test_round12_container_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_destructure_subscript_blocked():
+def test_destructure_subscript_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1343,7 +1343,7 @@ def test_round12_destructure_subscript_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_percent_c_cpu_blocked():
+def test_percent_c_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1353,7 +1353,7 @@ def test_round12_percent_c_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_chr_in_fn_return_blocked():
+def test_chr_in_fn_return_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev():
@@ -1365,7 +1365,7 @@ def test_round12_chr_in_fn_return_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_nested_iife_lambda_blocked():
+def test_nested_iife_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1375,7 +1375,7 @@ def test_round12_nested_iife_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_tensor_method_on_subscript_blocked():
+def test_tensor_method_on_subscript_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1385,7 +1385,7 @@ def test_round12_tensor_method_on_subscript_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_instance_method_helper_blocked():
+def test_instance_method_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1398,7 +1398,7 @@ def test_round12_instance_method_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_callable_object_blocked():
+def test_callable_object_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1411,7 +1411,7 @@ def test_round12_callable_object_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_optional_pipe_tensor_blocked():
+def test_optional_pipe_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor | None):
@@ -1421,7 +1421,7 @@ def test_round12_optional_pipe_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_typing_optional_tensor_blocked():
+def test_typing_optional_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import Optional
@@ -1432,7 +1432,7 @@ def test_round12_typing_optional_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round12_forward_ref_optional_tensor_blocked():
+def test_forward_ref_optional_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(xs: "Optional[List[torch.Tensor]]"):
@@ -1442,7 +1442,7 @@ def test_round12_forward_ref_optional_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_iife_lambda_local_alias_blocked():
+def test_iife_lambda_local_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1454,7 +1454,7 @@ def test_round13_iife_lambda_local_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_multi_branch_cpu_blocked():
+def test_multi_branch_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(cond):
@@ -1468,7 +1468,7 @@ def test_round13_multi_branch_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_callable_named_alias_blocked():
+def test_callable_named_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1480,7 +1480,7 @@ def test_round13_callable_named_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_lambda_alias_blocked():
+def test_lambda_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1491,7 +1491,7 @@ def test_round13_lambda_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_dict_slot_assign_blocked():
+def test_dict_slot_assign_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1503,7 +1503,7 @@ def test_round13_dict_slot_assign_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_attr_assign_blocked():
+def test_attr_assign_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class B: pass
@@ -1516,8 +1516,8 @@ def test_round13_attr_assign_blocked():
     assert check_solution(src).blocked
 
 
-def test_round13_scalar_tuple_helper_not_blocked():
-    """codex round-13 P1: `dims = (1, 2); h(dims)` must NOT be tainted."""
+def test_scalar_tuple_helper_not_blocked():
+    """`dims = (1, 2); h(dims)` must NOT be tainted."""
     src = _ATTACK_PREFIX + _src(
         """
         def h(dims):
@@ -1531,7 +1531,7 @@ def test_round13_scalar_tuple_helper_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round14_unreachable_rebind_blocked():
+def test_unreachable_rebind_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1546,7 +1546,7 @@ def test_round14_unreachable_rebind_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_dict_callable_slot_blocked():
+def test_dict_callable_slot_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1559,7 +1559,7 @@ def test_round14_dict_callable_slot_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_tuple_indexed_call_blocked():
+def test_tuple_indexed_call_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1570,7 +1570,7 @@ def test_round14_tuple_indexed_call_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_ifexp_callable_blocked():
+def test_ifexp_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1582,7 +1582,7 @@ def test_round14_ifexp_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_custom_class_method_blocked():
+def test_custom_class_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1596,7 +1596,7 @@ def test_round14_custom_class_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_container_alias_audit_blocked():
+def test_container_alias_audit_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1607,7 +1607,7 @@ def test_round14_container_alias_audit_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_nested_container_blocked():
+def test_nested_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1619,7 +1619,7 @@ def test_round14_nested_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_fn_to_fn_cpu_blocked():
+def test_fn_to_fn_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(): return inner()
@@ -1631,7 +1631,7 @@ def test_round14_fn_to_fn_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_class_method_does_not_shadow_blocked():
+def test_class_method_does_not_shadow_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(): return "cpu"
@@ -1644,7 +1644,7 @@ def test_round14_class_method_does_not_shadow_blocked():
     assert check_solution(src).blocked
 
 
-def test_round14_lambda_alias_returns_cpu_blocked():
+def test_lambda_alias_returns_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         dev = lambda: "cpu"
@@ -1655,7 +1655,7 @@ def test_round14_lambda_alias_returns_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_lambda_alias_multi_binding_blocked():
+def test_lambda_alias_multi_binding_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1667,7 +1667,7 @@ def test_round15_lambda_alias_multi_binding_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_nested_attr_method_blocked():
+def test_nested_attr_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1682,7 +1682,7 @@ def test_round15_nested_attr_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_list_indexed_method_blocked():
+def test_list_indexed_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1695,7 +1695,7 @@ def test_round15_list_indexed_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_instance_call_method_blocked():
+def test_instance_call_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1708,7 +1708,7 @@ def test_round15_instance_call_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_class_init_eager_blocked():
+def test_class_init_eager_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -1721,7 +1721,7 @@ def test_round15_class_init_eager_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_class_method_shadow_blocked():
+def test_class_method_shadow_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1734,7 +1734,7 @@ def test_round15_class_method_shadow_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_dev_alias_to_inner_blocked():
+def test_dev_alias_to_inner_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def inner(): return "cpu"
@@ -1746,7 +1746,7 @@ def test_round15_dev_alias_to_inner_blocked():
     assert check_solution(src).blocked
 
 
-def test_round15_deeper_nested_container_blocked():
+def test_deeper_nested_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1759,7 +1759,7 @@ def test_round15_deeper_nested_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_whole_container_helper_blocked():
+def test_whole_container_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z):
@@ -1771,7 +1771,7 @@ def test_round16_whole_container_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_lambda_alias_container_blocked():
+def test_lambda_alias_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1782,7 +1782,7 @@ def test_round16_lambda_alias_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_nested_lambda_container_blocked():
+def test_nested_lambda_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1795,7 +1795,7 @@ def test_round16_nested_lambda_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_local_helper_blocked():
+def test_local_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1806,7 +1806,7 @@ def test_round16_local_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_tuple_destructure_callable_blocked():
+def test_tuple_destructure_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1818,7 +1818,7 @@ def test_round16_tuple_destructure_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_annassign_callable_blocked():
+def test_annassign_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1830,7 +1830,7 @@ def test_round16_annassign_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_for_target_callable_blocked():
+def test_for_target_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1842,7 +1842,7 @@ def test_round16_for_target_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_iife_result_callable_blocked():
+def test_iife_result_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -1854,8 +1854,8 @@ def test_round16_iife_result_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round16_kernel_alias_chain_not_blocked():
-    """codex round-16 P1: `k1 = k; k2 = k1; k2[grid](...)` legit."""
+def test_kernel_alias_chain_not_blocked():
+    """`k1 = k; k2 = k1; k2[grid](...)` legit."""
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1870,7 +1870,7 @@ def test_round16_kernel_alias_chain_not_blocked():
     assert not report.blocked, [f"{f.layer}:{f.message}" for f in report.findings]
 
 
-def test_round16_transitive_dict_subclass_blocked():
+def test_transitive_dict_subclass_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class D(dict): pass
@@ -1882,7 +1882,7 @@ def test_round16_transitive_dict_subclass_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_box_tuple_container_blocked():
+def test_box_tuple_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1894,7 +1894,7 @@ def test_round17_box_tuple_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_box_dict_container_blocked():
+def test_box_dict_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1906,7 +1906,7 @@ def test_round17_box_dict_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_for_container_iter_blocked():
+def test_for_container_iter_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1917,7 +1917,7 @@ def test_round17_for_container_iter_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_annassign_container_blocked():
+def test_annassign_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -1928,7 +1928,7 @@ def test_round17_annassign_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_helper_iife_container_blocked():
+def test_helper_iife_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z):
@@ -1940,7 +1940,7 @@ def test_round17_helper_iife_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_lambda_default_tensor_blocked():
+def test_lambda_default_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1950,7 +1950,7 @@ def test_round17_lambda_default_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_fn_default_tensor_blocked():
+def test_fn_default_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -1961,7 +1961,7 @@ def test_round17_fn_default_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_decorator_replace_blocked():
+def test_decorator_replace_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -1974,7 +1974,7 @@ def test_round17_decorator_replace_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_name_shadow_nested_blocked():
+def test_name_shadow_nested_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(a): return a
@@ -1986,7 +1986,7 @@ def test_round17_name_shadow_nested_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_factory_returns_instance_blocked():
+def test_factory_returns_instance_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2000,7 +2000,7 @@ def test_round17_factory_returns_instance_blocked():
     assert check_solution(src).blocked
 
 
-def test_round17_mutable_mapping_subclass_blocked():
+def test_mutable_mapping_subclass_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import MutableMapping
@@ -2013,7 +2013,7 @@ def test_round17_mutable_mapping_subclass_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_lambda_kw_blocked():
+def test_lambda_kw_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2023,7 +2023,7 @@ def test_round18_lambda_kw_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_lambda_starargs_blocked():
+def test_lambda_starargs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2033,7 +2033,7 @@ def test_round18_lambda_starargs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_lambda_default_return_container_blocked():
+def test_lambda_default_return_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2044,7 +2044,7 @@ def test_round18_lambda_default_return_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_cpu_lambda_arg_blocked():
+def test_cpu_lambda_arg_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2054,7 +2054,7 @@ def test_round18_cpu_lambda_arg_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_cpu_lambda_default_blocked():
+def test_cpu_lambda_default_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2064,7 +2064,7 @@ def test_round18_cpu_lambda_default_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_cpu_fn_default_blocked():
+def test_cpu_fn_default_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d="cpu"): return d
@@ -2075,7 +2075,7 @@ def test_round18_cpu_fn_default_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_decorator_alias_blocked():
+def test_decorator_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2089,7 +2089,7 @@ def test_round18_decorator_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_decorator_for_target_blocked():
+def test_decorator_for_target_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2103,7 +2103,7 @@ def test_round18_decorator_for_target_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_box_destructure_container_blocked():
+def test_box_destructure_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2115,7 +2115,7 @@ def test_round18_box_destructure_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_box_for_container_blocked():
+def test_box_for_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2127,7 +2127,7 @@ def test_round18_box_for_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_box_mult_container_blocked():
+def test_box_mult_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2139,7 +2139,7 @@ def test_round18_box_mult_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_kwargs_unpack_blocked():
+def test_kwargs_unpack_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2150,7 +2150,7 @@ def test_round18_kwargs_unpack_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_typing_ordereddict_blocked():
+def test_typing_ordereddict_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import OrderedDict
@@ -2161,7 +2161,7 @@ def test_round18_typing_ordereddict_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_typing_defaultdict_blocked():
+def test_typing_defaultdict_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import DefaultDict
@@ -2172,7 +2172,7 @@ def test_round18_typing_defaultdict_blocked():
     assert check_solution(src).blocked
 
 
-def test_round18_type_alias_mutable_mapping_blocked():
+def test_type_alias_mutable_mapping_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import MutableMapping
@@ -2184,7 +2184,7 @@ def test_round18_type_alias_mutable_mapping_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_cross_fn_lambda_kw_blocked():
+def test_cross_fn_lambda_kw_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2195,7 +2195,7 @@ def test_round19_cross_fn_lambda_kw_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_dev_fn_arg_cpu_blocked():
+def test_dev_fn_arg_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return d
@@ -2206,7 +2206,7 @@ def test_round19_dev_fn_arg_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_lambda_starargs_idx_cpu_blocked():
+def test_lambda_starargs_idx_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2216,7 +2216,7 @@ def test_round19_lambda_starargs_idx_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_lambda_kwonly_default_cpu_blocked():
+def test_lambda_kwonly_default_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2226,7 +2226,7 @@ def test_round19_lambda_kwonly_default_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_lambda_kw_unpack_cpu_blocked():
+def test_lambda_kw_unpack_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2236,7 +2236,7 @@ def test_round19_lambda_kw_unpack_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_fn_kwonly_default_cpu_blocked():
+def test_fn_kwonly_default_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(*, d="cpu"): return d
@@ -2247,7 +2247,7 @@ def test_round19_fn_kwonly_default_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_ifexp_container_blocked():
+def test_ifexp_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2258,7 +2258,7 @@ def test_round19_ifexp_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_for_ifexp_container_blocked():
+def test_for_ifexp_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2269,7 +2269,7 @@ def test_round19_for_ifexp_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_for_tuple_destructure_blocked():
+def test_for_tuple_destructure_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2280,7 +2280,7 @@ def test_round19_for_tuple_destructure_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_dict_kwarg_constructor_blocked():
+def test_dict_kwarg_constructor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2291,7 +2291,7 @@ def test_round19_dict_kwarg_constructor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_decorator_tuple_idx_blocked():
+def test_decorator_tuple_idx_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2305,7 +2305,7 @@ def test_round19_decorator_tuple_idx_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_decorator_dict_get_blocked():
+def test_decorator_dict_get_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2319,7 +2319,7 @@ def test_round19_decorator_dict_get_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_decorator_ifexp_alias_blocked():
+def test_decorator_ifexp_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2333,7 +2333,7 @@ def test_round19_decorator_ifexp_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_cross_fn_ordereddict_blocked():
+def test_cross_fn_ordereddict_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import OrderedDict
@@ -2345,7 +2345,7 @@ def test_round19_cross_fn_ordereddict_blocked():
     assert check_solution(src).blocked
 
 
-def test_round19_cross_fn_defaultdict_blocked():
+def test_cross_fn_defaultdict_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from typing import DefaultDict
@@ -2357,7 +2357,7 @@ def test_round19_cross_fn_defaultdict_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_partial_alias_blocked():
+def test_partial_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from functools import partial
@@ -2371,7 +2371,7 @@ def test_round20_partial_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_lambda_alias_subscript_blocked():
+def test_lambda_alias_subscript_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2382,7 +2382,7 @@ def test_round20_lambda_alias_subscript_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_lambda_alias_kw_blocked():
+def test_lambda_alias_kw_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2393,7 +2393,7 @@ def test_round20_lambda_alias_kw_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_lambda_alias_default_cpu_blocked():
+def test_lambda_alias_default_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2404,7 +2404,7 @@ def test_round20_lambda_alias_default_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_nested_callable_lambda_blocked():
+def test_nested_callable_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2414,7 +2414,7 @@ def test_round20_nested_callable_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_nested_callable_lambda_cpu_blocked():
+def test_nested_callable_lambda_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2424,7 +2424,7 @@ def test_round20_nested_callable_lambda_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_cpu_fn_kwargs_unpack_blocked():
+def test_cpu_fn_kwargs_unpack_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return d
@@ -2435,7 +2435,7 @@ def test_round20_cpu_fn_kwargs_unpack_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_cpu_fn_vararg_blocked():
+def test_cpu_fn_vararg_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(*a): return a[0]
@@ -2446,7 +2446,7 @@ def test_round20_cpu_fn_vararg_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_starred_alias_blocked():
+def test_starred_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2460,7 +2460,7 @@ def test_round20_starred_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_boolop_alias_blocked():
+def test_boolop_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def deco(fn): return lambda z: z + z
@@ -2474,7 +2474,7 @@ def test_round20_boolop_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_annassign_box_list_blocked():
+def test_annassign_box_list_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2485,7 +2485,7 @@ def test_round20_annassign_box_list_blocked():
     assert check_solution(src).blocked
 
 
-def test_round20_for_dict_call_container_blocked():
+def test_for_dict_call_container_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2496,7 +2496,7 @@ def test_round20_for_dict_call_container_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_partial_alias_chain_blocked():
+def test_partial_alias_chain_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         from functools import partial as p
@@ -2509,7 +2509,7 @@ def test_round21_partial_alias_chain_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_iife_kw_lambda_blocked():
+def test_iife_kw_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2519,7 +2519,7 @@ def test_round21_iife_kw_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_iife_default_lambda_blocked():
+def test_iife_default_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2529,7 +2529,7 @@ def test_round21_iife_default_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_subscript_boolop_blocked():
+def test_subscript_boolop_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2541,7 +2541,7 @@ def test_round21_subscript_boolop_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_cpu_local_alias_blocked():
+def test_cpu_local_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return d
@@ -2553,7 +2553,7 @@ def test_round21_cpu_local_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round21_cpu_binop_concat_body_blocked():
+def test_cpu_binop_concat_body_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return d + ""
@@ -2564,7 +2564,7 @@ def test_round21_cpu_binop_concat_body_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_iife_name_actual_blocked():
+def test_iife_name_actual_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2575,7 +2575,7 @@ def test_round22_iife_name_actual_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_iife_kw_unpack_dict_lambda_blocked():
+def test_iife_kw_unpack_dict_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2585,7 +2585,7 @@ def test_round22_iife_kw_unpack_dict_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_iife_kwonly_default_lambda_blocked():
+def test_iife_kwonly_default_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2595,7 +2595,7 @@ def test_round22_iife_kwonly_default_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_set_container_for_blocked():
+def test_set_container_for_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2607,7 +2607,7 @@ def test_round22_set_container_for_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_cpu_mod_format_body_blocked():
+def test_cpu_mod_format_body_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return "%s" % d
@@ -2619,7 +2619,7 @@ def test_round22_cpu_mod_format_body_blocked():
     assert check_solution(src).blocked
 
 
-def test_round22_cpu_mult_body_blocked():
+def test_cpu_mult_body_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d): return d * 1
@@ -2630,7 +2630,7 @@ def test_round22_cpu_mult_body_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_cpu_to_alias_blocked():
+def test_cpu_to_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2641,7 +2641,7 @@ def test_round23_cpu_to_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_cpu_to_kwargs_unpack_blocked():
+def test_cpu_to_kwargs_unpack_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2651,7 +2651,7 @@ def test_round23_cpu_to_kwargs_unpack_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_cpu_to_starred_blocked():
+def test_cpu_to_starred_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2661,7 +2661,7 @@ def test_round23_cpu_to_starred_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_local_callable_container_for_blocked():
+def test_local_callable_container_for_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def h(z): return z + z
@@ -2674,7 +2674,7 @@ def test_round23_local_callable_container_for_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_fn_kwonly_default_tensor_blocked():
+def test_fn_kwonly_default_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2685,7 +2685,7 @@ def test_round23_fn_kwonly_default_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_tensor_if_truthiness_blocked():
+def test_tensor_if_truthiness_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2697,7 +2697,7 @@ def test_round23_tensor_if_truthiness_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_tensor_aug_rhs_blocked():
+def test_tensor_aug_rhs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2709,7 +2709,7 @@ def test_round23_tensor_aug_rhs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round23_custom_method_alias_blocked():
+def test_custom_method_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2723,7 +2723,7 @@ def test_round23_custom_method_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_cpu_alias_multi_fn_blocked():
+def test_cpu_alias_multi_fn_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def attack(x: torch.Tensor):
@@ -2736,7 +2736,7 @@ def test_round24_cpu_alias_multi_fn_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_subscript_cpu_to_blocked():
+def test_subscript_cpu_to_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2747,7 +2747,7 @@ def test_round24_subscript_cpu_to_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_iife_subscript_lambda_blocked():
+def test_iife_subscript_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2758,7 +2758,7 @@ def test_round24_iife_subscript_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_lambda_ifexp_truthiness_blocked():
+def test_lambda_ifexp_truthiness_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2770,7 +2770,7 @@ def test_round24_lambda_ifexp_truthiness_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_lambda_kwonly_default_tensor_blocked():
+def test_lambda_kwonly_default_tensor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2782,7 +2782,7 @@ def test_round24_lambda_kwonly_default_tensor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_destructure_to_cpu_blocked():
+def test_destructure_to_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2794,7 +2794,7 @@ def test_round24_destructure_to_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round24_destructure_torch_empty_blocked():
+def test_destructure_torch_empty_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2805,7 +2805,7 @@ def test_round24_destructure_torch_empty_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_starred_destructure_blocked():
+def test_starred_destructure_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2817,7 +2817,7 @@ def test_round25_starred_destructure_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_nested_destructure_blocked():
+def test_nested_destructure_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2829,7 +2829,7 @@ def test_round25_nested_destructure_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_annassign_torch_empty_blocked():
+def test_annassign_torch_empty_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2840,7 +2840,7 @@ def test_round25_annassign_torch_empty_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_ifexp_callable_blocked():
+def test_pinned_ifexp_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2850,7 +2850,7 @@ def test_round25_ifexp_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_subscript_custom_method_blocked():
+def test_subscript_custom_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2864,7 +2864,7 @@ def test_round25_subscript_custom_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_ifexp_custom_method_blocked():
+def test_ifexp_custom_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2880,7 +2880,7 @@ def test_round25_ifexp_custom_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_annassign_custom_method_blocked():
+def test_annassign_custom_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2894,7 +2894,7 @@ def test_round25_annassign_custom_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_module_custom_method_blocked():
+def test_module_custom_method_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -2908,7 +2908,7 @@ def test_round25_module_custom_method_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_bound_dict_kwargs_blocked():
+def test_bound_dict_kwargs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2919,7 +2919,7 @@ def test_round25_bound_dict_kwargs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_dict_call_kwargs_blocked():
+def test_dict_call_kwargs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2929,7 +2929,7 @@ def test_round25_dict_call_kwargs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round25_nested_subscript_kwargs_blocked():
+def test_nested_subscript_kwargs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2940,7 +2940,7 @@ def test_round25_nested_subscript_kwargs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_call_returns_callable_blocked():
+def test_call_returns_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2950,7 +2950,7 @@ def test_round26_call_returns_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_fn_returns_callable_blocked():
+def test_fn_returns_callable_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def pick():
@@ -2962,7 +2962,7 @@ def test_round26_fn_returns_callable_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_box_subscript_inline_blocked():
+def test_box_subscript_inline_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2973,7 +2973,7 @@ def test_round26_box_subscript_inline_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_box_subscript_to_name_blocked():
+def test_box_subscript_to_name_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2985,7 +2985,7 @@ def test_round26_box_subscript_to_name_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_dict_call_binding_blocked():
+def test_dict_call_binding_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -2996,7 +2996,7 @@ def test_round26_dict_call_binding_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_dict_index_mutation_blocked():
+def test_dict_index_mutation_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3008,7 +3008,7 @@ def test_round26_dict_index_mutation_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_dict_or_mutation_blocked():
+def test_dict_or_mutation_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3020,7 +3020,7 @@ def test_round26_dict_or_mutation_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_starred_tail_destructure_blocked():
+def test_starred_tail_destructure_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3031,7 +3031,7 @@ def test_round26_starred_tail_destructure_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_mkdev_alias_blocked():
+def test_mkdev_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3043,7 +3043,7 @@ def test_round26_mkdev_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_str_alias_device_blocked():
+def test_str_alias_device_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3054,7 +3054,7 @@ def test_round26_str_alias_device_blocked():
     assert check_solution(src).blocked
 
 
-def test_round26_str_concat_device_blocked():
+def test_str_concat_device_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3066,7 +3066,7 @@ def test_round26_str_concat_device_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_alias_chain_device_blocked():
+def test_alias_chain_device_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3079,7 +3079,7 @@ def test_round27_alias_chain_device_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_module_alias_chain_blocked():
+def test_module_alias_chain_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3092,7 +3092,7 @@ def test_round27_module_alias_chain_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_nested_lambda_iife_blocked():
+def test_nested_lambda_iife_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3102,7 +3102,7 @@ def test_round27_nested_lambda_iife_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_fn_returns_lambda_blocked():
+def test_fn_returns_lambda_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def pick():
@@ -3114,7 +3114,7 @@ def test_round27_fn_returns_lambda_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_nested_lambda_device_blocked():
+def test_nested_lambda_device_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3125,7 +3125,7 @@ def test_round27_nested_lambda_device_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_helper_alloc_cpu_blocked():
+def test_helper_alloc_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def alloc(d):
@@ -3137,7 +3137,7 @@ def test_round27_helper_alloc_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_helper_move_cpu_blocked():
+def test_helper_move_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def move(x, d):
@@ -3149,7 +3149,7 @@ def test_round27_helper_move_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_iife_helper_to_kw_blocked():
+def test_iife_helper_to_kw_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3159,7 +3159,7 @@ def test_round27_iife_helper_to_kw_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_iife_helper_empty_kw_blocked():
+def test_iife_helper_empty_kw_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3169,7 +3169,7 @@ def test_round27_iife_helper_empty_kw_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_bound_tuple_starred_blocked():
+def test_bound_tuple_starred_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3181,7 +3181,7 @@ def test_round27_bound_tuple_starred_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_starred_args_bound_blocked():
+def test_starred_args_bound_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3193,7 +3193,7 @@ def test_round27_starred_args_bound_blocked():
     assert check_solution(src).blocked
 
 
-def test_round27_subscript_tuple_kwargs_blocked():
+def test_subscript_tuple_kwargs_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3204,7 +3204,7 @@ def test_round27_subscript_tuple_kwargs_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_transitive_helper_blocked():
+def test_transitive_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3218,7 +3218,7 @@ def test_round28_transitive_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_closure_helper_blocked():
+def test_closure_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def maker():
@@ -3232,7 +3232,7 @@ def test_round28_closure_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_class_method_helper_blocked():
+def test_class_method_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         class H:
@@ -3246,7 +3246,7 @@ def test_round28_class_method_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_lambda_positional_default_cpu_blocked():
+def test_lambda_positional_default_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3257,7 +3257,7 @@ def test_round28_lambda_positional_default_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_lambda_kwonly_default_cpu_blocked():
+def test_pinned_lambda_kwonly_default_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3268,7 +3268,7 @@ def test_round28_lambda_kwonly_default_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_boolop_cpu_blocked():
+def test_boolop_cpu_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3279,7 +3279,7 @@ def test_round28_boolop_cpu_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_dict_name_alias_blocked():
+def test_dict_name_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3291,7 +3291,7 @@ def test_round28_dict_name_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round28_tuple_destructure_module_alias_blocked():
+def test_tuple_destructure_module_alias_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3304,7 +3304,7 @@ def test_round28_tuple_destructure_module_alias_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_method_transitive_blocked():
+def test_method_transitive_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3320,7 +3320,7 @@ def test_round29_method_transitive_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_iife_calls_helper_blocked():
+def test_iife_calls_helper_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3332,7 +3332,7 @@ def test_round29_iife_calls_helper_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_iife_calls_helper_default_blocked():
+def test_iife_calls_helper_default_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3344,7 +3344,7 @@ def test_round29_iife_calls_helper_default_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_vararg_taint_blocked():
+def test_vararg_taint_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def move(x, *a):
@@ -3356,7 +3356,7 @@ def test_round29_vararg_taint_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_kwarg_taint_blocked():
+def test_kwarg_taint_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def alloc(**kw):
@@ -3368,7 +3368,7 @@ def test_round29_kwarg_taint_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_helper_alias_direct_blocked():
+def test_helper_alias_direct_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3381,7 +3381,7 @@ def test_round29_helper_alias_direct_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_helper_alias_subscript_blocked():
+def test_helper_alias_subscript_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def B(d):
@@ -3394,7 +3394,7 @@ def test_round29_helper_alias_subscript_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_multi_closure_blocked():
+def test_multi_closure_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def maker():
@@ -3410,7 +3410,7 @@ def test_round29_multi_closure_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_dict_unpack_in_dict_blocked():
+def test_dict_unpack_in_dict_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3420,7 +3420,7 @@ def test_round29_dict_unpack_in_dict_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_dict_positional_blocked():
+def test_dict_positional_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3431,7 +3431,7 @@ def test_round29_dict_positional_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_dict_bitor_blocked():
+def test_dict_bitor_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3442,7 +3442,7 @@ def test_round29_dict_bitor_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_fn_default_with_actual_blocked():
+def test_fn_default_with_actual_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def dev(d="npu"):
@@ -3455,7 +3455,7 @@ def test_round29_fn_default_with_actual_blocked():
     assert check_solution(src).blocked
 
 
-def test_round29_tuple_subscript_torch_blocked():
+def test_tuple_subscript_torch_blocked():
     src = _ATTACK_PREFIX + _src(
         """
         def npu_triton_impl(inputs):
@@ -3490,7 +3490,7 @@ def test_legit_input_param_name_allowed():
 
 
 def test_tl_inline_asm_blocked():
-    """codex round-2 R-P0-1: tl.inline_asm_elementwise must reject (was warn)."""
+    """tl.inline_asm_elementwise must reject (was warn)."""
     src = _src(
         """
         import torch

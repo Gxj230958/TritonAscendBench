@@ -34,7 +34,7 @@ This script is the missing producer of those artifacts. It:
      acknowledged non-score-eligible special case (Task #20) that must
      not block the full-corpus capture sweep;
   2. for each task enumerates ALL eval shape ids -- public AND sealed
-     hidden -- via :func:`inputs.shape_ids` (the W2.1 split: hidden
+     hidden -- via :func:`inputs.shape_ids` (the  split: hidden
      shapes are normally verified-only; here they are unsealed so their
      goldens can be captured, and the resulting artifacts stay sealed at
      the same confidentiality level as the hidden shapes themselves);
@@ -594,7 +594,7 @@ def _check_promote_precondition(task: TaskDef) -> str | None:
 def _enumerate_shapes(task: TaskDef) -> tuple[list[str], list[str]]:
     """Enumerate a task's public + hidden eval shape ids.
 
-    Uses :func:`inputs.shape_ids` -- the same W2.1 (public, hidden) split
+    Uses :func:`inputs.shape_ids` -- the same  (public, hidden) split
     ``eval.evaluate`` consumes. The hidden shapes are the sealed
     verified-only eval set; the capture must cover them so an
     ``upstream_oracle_required`` task is gradable in verified mode (the

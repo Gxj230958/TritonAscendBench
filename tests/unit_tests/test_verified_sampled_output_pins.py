@@ -1,4 +1,4 @@
-"""R4 codex-review regression tests — three MUST-FIX gaps.
+"""Pinned regressions: verified-mode sampled-output cheat-path closure.
 
 Pins the three R4 review findings so a regression re-surfaces as a test
 failure:

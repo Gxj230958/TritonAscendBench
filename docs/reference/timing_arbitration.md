@@ -1,10 +1,9 @@
 # Timing Arbitration Spec
 
-> v0 — per v4.13 §5b.2 + R12-P0-2 + R13-P0-1 + R16-P1
 
 ## Authoritative Timing Source
 
-**Primary**: `CLOCK_MONOTONIC_RAW` host time (per R12-P0-2).
+**Primary**: `CLOCK_MONOTONIC_RAW` host time (-2).
 
 NOT `torch.npu.Event.elapsed_time` alone — event only times the recording stream, missing non-default stream work.
 
@@ -16,13 +15,13 @@ host_t0 = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
 event_start = torch.npu.Event(enable_timing=True)
 event_start.record()  # current stream
 
-# Phase a: warm-up with warm_inputs (NOT timed) — per R16-P1 + R18 chain
+# Phase a: warm-up with warm_inputs (NOT timed)
 warm_inputs = gen_inputs(shape_config, seed=warm_seed)
 for _ in range(10):
     solution.npu_triton_impl(warm_inputs)
 torch.npu.synchronize()
 
-# Phase b: measured timing with fresh meas_inputs per trial (per R16-P1)
+# Phase b: measured timing with fresh meas_inputs per trial
 torch.npu.synchronize()
 host_t0 = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
 event_start = torch.npu.Event(enable_timing=True)
@@ -65,4 +64,4 @@ Candidate sandbox must NOT import:
 - `torch.profiler`, `torch_npu.profiler`
 - `LD_PRELOAD` setup
 
-Per `specs/ast_denylist.md` — enforced by import hook + AST static check.
+Enforced by the import hook + AST static check.

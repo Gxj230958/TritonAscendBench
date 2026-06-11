@@ -13,25 +13,41 @@
 
 # INTERNAL orchestrator + GPFS runtime dir
 scripts/automation/                              export-ignore
+scripts/automation/**                              export-ignore
 tab_automation/                                  export-ignore
+tab_automation/**                                  export-ignore
 
 # INTERNAL closed-loop orchestration (dev <-> tunnel <-> gpfs <-> GPU)
 scripts/loop/                                    export-ignore
+scripts/loop/**                                    export-ignore
 # INTERNAL dev-only helper scripts (corpus authoring / diagnostics / full
 # regression driver) -- not part of the public `tab` surface
 scripts/internal/                                export-ignore
+scripts/internal/**                                export-ignore
 
-# INTERNAL infra notes (scope RFC + upstream maintainer contacts)
-infra/RFC_0001_scope.md                          export-ignore
-infra/upstream_contacts.md                       export-ignore
+# INTERNAL: the whole infra/ dir is internal now — runner Dockerfiles moved to
+# docker/, runtime tables moved to ascendbench/policies/; what remains is the
+# scope RFC, upstream contacts, and the provider-side H200 peak table.
+infra/                                           export-ignore
+infra/**                                           export-ignore
 
-# INTERNAL plan documents (design doc + impl plan)
-docs/plans/2026-05-23-001-*.md                   export-ignore
-docs/plans/2026-05-23-002-*.md                   export-ignore
-
-# INTERNAL release / triage docs (spike, acceptance, M1-M4 reports, ...)
-docs/release/internal-*.md                       export-ignore
+# INTERNAL dev-process docs: impl plans, code/design reviews, triage backlog,
+# brainstorms, the automation-subsystem architecture spec, internal release
+# runbooks, and the design-stage spec set + rewrite source material under
+# docs/internal/. The public docs tree is docs/{DESIGN,ARCHITECTURE,
+# kernel-select}.md + docs/reference/ + docs/findings/.
+docs/plans/                                      export-ignore
+docs/plans/**                                      export-ignore
+docs/reviews/                                    export-ignore
+docs/reviews/**                                    export-ignore
 docs/triage_backlog/                             export-ignore
+docs/triage_backlog/**                             export-ignore
+docs/brainstorms/                                export-ignore
+docs/brainstorms/**                                export-ignore
+docs/architecture/                               export-ignore
+docs/architecture/**                               export-ignore
+docs/release/                                    export-ignore
+docs/release/**                                    export-ignore
 
 # INTERNAL tests covering the automation orchestrator + its libraries
 tests/unit_tests/test_lib_*.py                   export-ignore
@@ -56,3 +72,10 @@ tests/unit_tests/test_runners.py                 export-ignore
 tests/unit_tests/test_tab_quickstart.py          export-ignore
 tests/unit_tests/test_r19_boundary.py            export-ignore
 tests/unit_tests/test_resolve_loader.py          export-ignore
+tests/unit_tests/test_pa_fix1_honest_categories_and_fix3_anchor.py export-ignore
+tests/unit_tests/test_schema_doc.py              export-ignore
+tests/unit_tests/test_shape_lint_internal.py     export-ignore
+
+# INTERNAL: design-stage specs + dev-process docs not for public release
+docs/internal/                                    export-ignore
+docs/internal/**                                    export-ignore

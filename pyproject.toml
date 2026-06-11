@@ -52,7 +52,7 @@ gpu = [
     # triton — already in core deps
 ]
 automation = [
-    # INTERNAL bench-team automation orchestrator runtime (scripts/automation/).
+    # INTERNAL bench-team automation runtime; not in the release artifact.
     # Not part of the bench release artifact; install with `pip install -e ".[automation]"`.
     "requests>=2.31",
 ]
@@ -159,7 +159,7 @@ include = ["ascendbench*"]
 exclude = ["tests*", "tasks*", "results*", "specs*", "docs*", "infra*", "scripts*"]
 
 [tool.setuptools.package-data]
-ascendbench = ["policies/*.yaml", "policies/*.json"]
+ascendbench = ["policies/*.yaml", "policies/*.json", "policies/*.toml"]
 
 [tool.ruff]
 line-length = 120

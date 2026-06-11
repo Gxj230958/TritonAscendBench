@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-"""phase_a_prime.py -- Phase A': make frozen kernel.py truly standalone.
+"""standalone_freeze_verifier.py -- Phase A': make frozen kernel.py truly standalone.
 
-This is the Phase A' tool from
-``docs/plans/2026-05-17-001-feat-phase-a-prime-standalone-freeze-plan.md``.
 It turns each ``tasks/level*/<task>/kernel.py`` into a
 standalone, deterministic, version-pinned, S2-equivalence-verified
 frozen snapshot that runs on torch+triton+CUDA+Class-D only.
@@ -14,7 +12,7 @@ Subcommands
     classified into exactly one of A/B/C/S/D (unknown -> A; unvendorable
     / unauditable / no-triton-path / unfreezable-side-effect  ->
     BLOCKED). ``--dry-run`` emits the full real import -> Class table to
-    ``docs/plans/phase_a_prime_classification.md``.
+    ``build/phase_a_prime_classification.md`` (gitignored artifact).
 
 ``--verify <task>``  (U4)
     S2-smoke (CPU / TRITON_INTERPRET, never PASS) +
@@ -23,7 +21,7 @@ Subcommands
 
 ``--run --tier {T0,T1,T2,T3,all}``  (U8)
     Tiered batch execution; writes machine-generated
-    ``docs/plans/phase_a_prime_status.md``.
+    ``build/phase_a_prime_status.md`` (gitignored artifact).
 
 Hard invariants (non-negotiable, see plan §"NON-NEGOTIABLE invariants")
 -----------------------------------------------------------------------
@@ -68,9 +66,9 @@ SGLANG_ROOT = paf.SGLANG_ROOT                   # infer/sglang/python
 
 FROZEN_DEPS_POOL = REPO_ROOT / "ascendbench" / "frozen" / "deps"
 FROZEN_SHIM = REPO_ROOT / "ascendbench" / "frozen" / "shim"
-PLANS_DIR = REPO_ROOT / "docs" / "plans"
-CLASSIFICATION_MD = PLANS_DIR / "phase_a_prime_classification.md"
-STATUS_MD = PLANS_DIR / "phase_a_prime_status.md"
+_ARTIFACTS_DIR = REPO_ROOT / "build"  # gitignored dev artifacts (regenerable status dumps)
+CLASSIFICATION_MD = _ARTIFACTS_DIR / "phase_a_prime_classification.md"
+STATUS_MD = _ARTIFACTS_DIR / "phase_a_prime_status.md"
 
 # The status generator must emit
 # the TRUE per-task category from the REAL resolver outcome -- NEVER a
@@ -817,7 +815,7 @@ def cmd_classify(args: argparse.Namespace) -> int:
     )
 
     if args.dry_run:
-        PLANS_DIR.mkdir(parents=True, exist_ok=True)
+        _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
         CLASSIFICATION_MD.write_text(_render_classification_md(results))
         print(f"  -> {CLASSIFICATION_MD.relative_to(REPO_ROOT)}")
     return 0
@@ -3375,7 +3373,7 @@ def _render_status_md(
     outcomes. No status is ``UNRUN``/``PASS`` unless the real verify
     actually established it; PASS is impossible here (no GPU).
 
-    ``eligible_count`` (W1.5) is the S6 release-gate BLOCKER count --
+    ``eligible_count``  is the S6 release-gate BLOCKER count --
     the number of score-eligible tasks whose COMPOSITE
     ``release_status != PASS`` (see ``_format_status_md`` /
     ``_release_blocker_count``); it is passed through verbatim to the
@@ -3791,7 +3789,7 @@ def _format_status_md(
     verdicts + tallies (pure string work -- no temp dirs, kept separate
     from the verify loop so its scratch base is cleaned first).
 
-    ``eligible_count`` (W1.5): the S6 release-gate BLOCKER count -- the
+    ``eligible_count`` : the S6 release-gate BLOCKER count -- the
     number of score-eligible tasks whose COMPOSITE ``release_status !=
     PASS`` (``phase_a_prime.status == PASS`` over the C2-aligned
     eligible set; cost_model.status is NOT in the gate -- it is
@@ -4012,7 +4010,7 @@ def _format_status_md(
 
 def _release_blocker_count() -> int:
     """Real S6 release-gate blocker count from the single source of
-    truth (W1.5 / U7): MUST match `validate_tasks.py
+    truth ( / U7): MUST match `validate_tasks.py
     --release-gate`'s blocker count.
 
     A task blocks release iff it is score-eligible (C2-aligned via
@@ -4055,11 +4053,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         results.append(tc)
         task_dirs_by_id[td.name] = td
     gpu = _cuda_available()
-    # W1.5: the S6 verdict's blocker count is the COMPOSITE release
+    # : the S6 verdict's blocker count is the COMPOSITE release
     # predicate's blocking-set size -- identical to `validate_tasks.py
     # --release-gate` (both call `eligibility.compute_release_blocking`).
     release_blocker_count = _release_blocker_count()
-    PLANS_DIR.mkdir(parents=True, exist_ok=True)
+    _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     STATUS_MD.write_text(
         _render_status_md(
             results, gpu, release_blocker_count, task_dirs_by_id

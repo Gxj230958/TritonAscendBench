@@ -800,8 +800,7 @@ def _verify_one_task(
                 # flush between runs. This is the device-side companion to
                 # t_ref's Roofline floor, so e = t_ref/t_npu is well-posed. A
                 # per-iteration-synced CUDA event instead re-measures host
-                # dispatch for launch-bound kernels (== host wall time). See
-                # docs/reviews/2026-06-06-device-timing-methodology.md.
+                # dispatch for launch-bound kernels (== host wall time).
                 import triton.testing as _tt
                 _med, _mn, _mx = _tt.do_bench(
                     _timed_call, warmup=25, rep=100,
