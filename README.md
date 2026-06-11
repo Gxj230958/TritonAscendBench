@@ -126,6 +126,7 @@ Full scoring spec: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spe
 - [Selection rationale](docs/kernel-select.md)
 - [Task API contract](docs/reference/task_api_contract.md)
 - [Tolerance policy](docs/reference/tolerance_policy.md)
+- [Correctness model](docs/reference/correctness_model.md) — how outputs are graded correct (precision alignment)
 
 ## Maturity
 

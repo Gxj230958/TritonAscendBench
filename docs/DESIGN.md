@@ -358,5 +358,6 @@ not mistaken for shipped behaviour:
 - [`docs/kernel-select.md`](kernel-select.md) — task selection and the full corpus table.
 - [`docs/reference/scoring_spec.md`](reference/scoring_spec.md) — machine-facing scoring detail.
 - [`docs/reference/tolerance_policy.md`](reference/tolerance_policy.md) — tolerance classes.
+- [`docs/reference/correctness_model.md`](reference/correctness_model.md) — the precision-alignment grading standard.
 - [`docs/reference/task_api_contract.md`](reference/task_api_contract.md) — task bundle schema.
 - [`docs/reference/timing_arbitration.md`](reference/timing_arbitration.md) — device-timing methodology.

@@ -5,7 +5,7 @@
 
 > Machine-readable form: `ascendbench/policies/tolerance_policy.yaml` (loaded by `eval.py`)
 
-Per-task `meta.yaml.tolerance_class` references one of the classes below. Runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)` for the correctness check. The table is illustrative; `ascendbench/policies/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
+Per-task `meta.yaml.tolerance_class` references one of the classes below. For float outputs the runner uses `torch.allclose(out_c, out_o, atol=cls.atol, rtol=cls.rtol)`; integer, fp8, and bit-exact classes route to dtype-specific comparators — see [`correctness_model.md`](correctness_model.md) for the full dispatch and the C2/S2/ceiling standards. The table is illustrative; `ascendbench/policies/tolerance_policy.yaml` is the complete authoritative class list (it also defines e.g. `elementwise_exact_or_inf_safe`).
 
 ## Tolerance Classes
 

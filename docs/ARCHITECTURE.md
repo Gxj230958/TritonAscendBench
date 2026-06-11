@@ -213,7 +213,9 @@ host-independent guarantees:
 **Grade against the oracle.** For each shape the parent obtains the golden
 output and compares the candidate's correctness-pass output with
 `tolerance.compare(actual, expected, tol_cls).passed`, where `tol_cls` comes
-from `tolerance.load_policy()[task.tolerance_class]`. The golden source is routed
+from `tolerance.load_policy()[task.tolerance_class]` (the full dtype dispatch
+and the C2/S2/ceiling standards are in
+[`docs/reference/correctness_model.md`](reference/correctness_model.md)). The golden source is routed
 by `_resolve_golden` (oracle tier × mode):
 
 | Task tier | Mode | Golden | `task_status` |
