@@ -6,7 +6,7 @@ jumphost which has gpfs mounted at the same path as the GPU host.
 
 Subcommands:
   sync-code        rsync local working tree (scripts/ tasks/ pyproject.toml
-                   ascendbench/ infra/) to gpfs so the daemon sees latest code
+                   ascendbench/) to gpfs so the daemon sees latest code
   submit           write a batch spec to <loop_mailbox>/jobs/<id>.json
   wait             poll <loop_mailbox>/done/<id>.flag (heartbeat-aware)
   collect          rsync <loop_mailbox>/results/<id>/ back to local
@@ -127,14 +127,14 @@ def cmd_sync_code(args: argparse.Namespace, exclude_refs: bool = False) -> int:
     regenerate refs (c2/oracle_equiv_one wipes+regens). gpu-rank reads refs
     without regenerating, so it must keep them.
     """
-    # Push selected paths to keep traffic small. Bench infra under scripts/,
-    # task data under tasks/, dep deps in pyproject.toml.
+    # Push selected paths to keep traffic small. Bench infra under scripts/
+    # (incl. scripts/loop/peak_table_h200.toml, which gpu-rank reads on the
+    # daemon), task data under tasks/, dep deps in pyproject.toml.
     paths = [
         "scripts/",
         "tasks/",
         "pyproject.toml",
         "ascendbench/",
-        "infra/",          # peak tables (cost-model Roofline needs these on GPU A)
     ]
     rc_total = 0
     for p in paths:
