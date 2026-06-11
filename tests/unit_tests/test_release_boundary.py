@@ -63,8 +63,7 @@ _INTERNAL_PATTERNS = re.compile(
     r"|docs/brainstorms/"
     r"|docs/architecture/"
     r"|docs/release/"
-    r"|docs/internal/"
-    r"|infra/)"
+    r"|docs/internal/)"
 )
 
 
@@ -227,7 +226,6 @@ def test_gitattributes_covers_all_internal_artefact_classes():
         "docs/architecture/",
         "docs/release/",
         "docs/internal/",
-        "infra/",
         "tests/unit_tests/test_release_boundary.py",
         "tests/unit_tests/test_*automation*.py",
     ]

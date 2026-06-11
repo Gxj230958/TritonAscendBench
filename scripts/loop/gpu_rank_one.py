@@ -188,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     p.add_argument("--task", required=True)
     p.add_argument("--output-dir", type=Path, required=True)
-    p.add_argument("--peak-table", default="infra/peak_table_h200.toml")
+    p.add_argument("--peak-table", default="docs/internal/infra/peak_table_h200.toml")
     args = p.parse_args(argv)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

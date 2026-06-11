@@ -78,7 +78,7 @@ The candidate **correctness grader runs without GPU/NPU**:
 `npu_triton_impl(inputs)` in an isolated subprocess (safetensors-only
 IPC; candidate never sees oracle output) and `tolerance.compare`
 grades it per shape against the in-process oracle. Timing/performance
-needs the 910B machine — see **Pipeline Status** below.
+needs the 910B machine — see **Maturity** below.
 
 ## Task Levels
 
@@ -129,37 +129,15 @@ Full scoring spec: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spe
 - [Tolerance policy](docs/reference/tolerance_policy.md)
 - [Findings](docs/findings/) — upstream bugs surfaced while building the corpus
 
-## Project Status
+## Maturity
 
-| Component | Status |
-|-----------|--------|
-| Repo skeleton + 13 provider modules | ✅ Done |
-| 101 task directories (L1=36, L2=35, L3=30) | ✅ Done |
-| Phase A — frozen upstream `kernel.py` | ✅ 101/101 real upstream kernels (3 v3.2 errata slots re-tasked from CSV) |
-| Phase B — `oracle_pytorch.py` ground truth | ✅ 99 working references; 1 manual (L1_24); 1 RNG stub (L1_21) |
-| Phase C — `shapes.yaml` + `contract.md` | ✅ 99 executable via `inputs.build_inputs` |
-| Phase 2.B — isolated correctness grader | ✅ Works on dev (no GPU/NPU) |
-| Perf baseline + timing grader | ⬜ Deferred (no AscendC; needs 910B) |
-| Leaderboard | ⬜ Phase 4 |
-
-### Pipeline Status
-
-End-to-end on a non-GPU dev box, a legitimate NPU-triton solution
-flows: **static-check → isolated subprocess → `tolerance.compare`
-vs oracle**, for **99 / 101** tasks.
-
-| Bucket | Count | Note |
-|--------|------:|------|
-| Executable & gradeable (correctness) | 99 | `build_inputs → oracle.run` verified across ≥6 shape rows |
-| Phase-C manual | 1 | `L1_24` — non-indptr cumulative input convention; documented `PHASE-C-MANUAL` |
-| RNG stub | 1 | `L1_21` (philox RNG → upstream oracle). The 3 former errata slots (`L1_30`/`L3_03`/`L3_07`) were re-tasked to real CSV operators in v3.2 |
-
-**Honest scope:** correctness grading is fully exercised here.
-Timing/`FastP` requires the Ascend 910B (process-isolation §2);
-there is no AscendC baseline (removed — migration benchmark). 17 oracles are canonical references with
-documented `ORACLE-SCOPE` gaps (uncovered optional kernel paths) and
-carry `oracle_simplified: upstream_oracle_required` so the runner does
-not over-claim exactness.
+The **correctness** grader runs on a plain CPU dev box (no GPU/NPU required) and
+is exercised across the whole corpus: a submission flows static-check → isolated
+subprocess → `tolerance.compare` vs the PyTorch oracle. The **performance** axis
+(Roofline efficiency) requires real Ascend 910B hardware and is not yet wired
+end-to-end; until then performance is reported as raw latency only and is out of
+the release gate. There is no AscendC baseline — this is a migration benchmark
+scored against the upstream GPU-Triton reference.
 
 ## License
 

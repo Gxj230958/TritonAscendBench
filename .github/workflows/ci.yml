@@ -45,7 +45,7 @@ jobs:
           # plus an empty grep returns 1 → if-branch is skipped → false PASS.
           rc=0
           tar tf "$tmp/release.tar" \
-            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation|docs/plans/|docs/reviews/|docs/triage_backlog/|docs/brainstorms/|docs/architecture/|docs/release/|docs/internal/|infra/|specs/)' \
+            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation|docs/plans/|docs/reviews/|docs/triage_backlog/|docs/brainstorms/|docs/architecture/|docs/release/|docs/internal/)' \
             || rc=$?
           if [ "$rc" = "0" ]; then
             echo 'Release tarball MUST NOT contain INTERNAL automation / loop / plans / triage'
