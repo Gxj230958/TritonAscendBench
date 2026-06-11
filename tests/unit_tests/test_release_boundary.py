@@ -56,14 +56,7 @@ _INTERNAL_PATTERNS = re.compile(
     r"(scripts/automation/"
     r"|scripts/loop/"
     r"|scripts/internal/"
-    r"|tab_automation/"
-    r"|docs/plans/"
-    r"|docs/reviews/"
-    r"|docs/triage_backlog/"
-    r"|docs/brainstorms/"
-    r"|docs/architecture/"
-    r"|docs/release/"
-    r"|docs/internal/)"
+    r"|tab_automation/)"
 )
 
 
@@ -202,7 +195,6 @@ def test_internal_artifacts_exist_in_repo():
     working tree (the ``not in tarball`` assertion above would otherwise
     pass vacuously)."""
     assert (_REPO_ROOT / "scripts" / "automation" / "__init__.py").is_file()
-    assert (_REPO_ROOT / "docs" / "release" / "internal-release-process.md").is_file()
 
 
 def test_gitattributes_covers_all_internal_artefact_classes():
@@ -219,13 +211,6 @@ def test_gitattributes_covers_all_internal_artefact_classes():
     required_rules = [
         "scripts/automation/",
         "tab_automation/",
-        "docs/plans/",
-        "docs/reviews/",
-        "docs/triage_backlog/",
-        "docs/brainstorms/",
-        "docs/architecture/",
-        "docs/release/",
-        "docs/internal/",
         "tests/unit_tests/test_release_boundary.py",
         "tests/unit_tests/test_*automation*.py",
     ]

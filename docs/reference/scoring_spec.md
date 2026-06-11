@@ -1,6 +1,6 @@
 # Scoring Specification
 
-> Machine-facing detail of the scoring model. The authoritative model is `docs/DESIGN.md §9`; this spec must not diverge from it.
+> Machine-facing detail of the scoring model. The authoritative model is `docs/DESIGN.md §4`; this spec must not diverge from it.
 
 This is a GPU-Triton → 910B NPU-Triton **migration** benchmark with a **two-objective** score: correctness coverage is the **ranking eligibility gate**; 910B Roofline-normalized performance efficiency is the **ranked metric**. Both use the fixed score-eligible set `S` (single source: `ascendbench/release_gate/eligibility.py`); `|S|` is fixed and never reduced (no subset escape).
 

@@ -20,7 +20,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _RUNNERS_DIR = _REPO_ROOT / "scripts" / "automation" / "runners"
-_RUNBOOK = _REPO_ROOT / "docs" / "release" / "internal-acceptance-runbook.md"
+_RUNBOOK = _RUNNERS_DIR / "internal-acceptance-runbook.md"
 
 _BASH_SCRIPTS = [
     _RUNNERS_DIR / "setup_machine_a_gpu.sh",
@@ -126,12 +126,9 @@ def test_runner_scripts_in_export_ignore_scope():
     export-ignore patterns so they never ship in the release tarball."""
     gitattrs = (_REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
     # The automation tree is excluded as a directory pattern; the runbook
-    # is excluded by the docs/release/ directory rule.
+    # and quickstart md live inside it and inherit the same rule.
     assert "scripts/automation/" in gitattrs, (
         "scripts/automation/ must be export-ignored in .gitattributes"
-    )
-    assert "docs/release/" in gitattrs, (
-        "docs/release/ must be export-ignored in .gitattributes"
     )
     # Sanity: every runner script lives under scripts/automation/.
     for script in _BASH_SCRIPTS:
@@ -139,10 +136,10 @@ def test_runner_scripts_in_export_ignore_scope():
         assert str(rel).startswith("scripts/automation/"), (
             f"{rel} not covered by the scripts/automation/ export-ignore pattern"
         )
-    # And the runbook is matched by internal-*.md under docs/release/.
+    # And the runbook sits inside the excluded automation tree.
     runbook_rel = _RUNBOOK.relative_to(_REPO_ROOT)
-    assert str(runbook_rel).startswith("docs/release/internal-"), (
-        f"{runbook_rel} not covered by docs/release/internal-*.md"
+    assert str(runbook_rel).startswith("scripts/automation/"), (
+        f"{runbook_rel} not covered by the scripts/automation/ pattern"
     )
 
 
@@ -1006,7 +1003,7 @@ def test_runbook_documents_actual_runner_behaviour():
 # ---------------------------------------------------------------------------
 
 _QUICKSTART_MD = (
-    _REPO_ROOT / "docs" / "release" / "internal-acceptance-quickstart.md"
+    _RUNNERS_DIR / "internal-acceptance-quickstart.md"
 )
 _CONF_EXAMPLE = (
     _RUNNERS_DIR / "tab_quickstart.conf.example"

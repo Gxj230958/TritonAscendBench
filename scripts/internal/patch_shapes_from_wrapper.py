@@ -20,7 +20,7 @@ host wrapper unpacks. Confidence-gated:
 Outputs:
 
 * per-task verdicts -> ``/tmp/auto_patch_shapes.json``
-* human report      -> ``docs/triage_backlog/2026-05-27-auto-patch-shapes.md``
+* human report      -> ``build/reports/auto-patch-shapes.md``
 * (when ``--apply``) shapes.yaml rewritten atomically via the
   ``automation.lib.atomic`` helpers; dry-run prints the diff only.
 """
@@ -304,7 +304,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--report",
         default=str(
-            REPO_ROOT / "docs" / "triage_backlog"
+            REPO_ROOT / "build" / "reports"
             / "2026-05-27-auto-patch-shapes.md"
         ),
     )

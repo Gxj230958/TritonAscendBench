@@ -45,7 +45,7 @@ jobs:
           # plus an empty grep returns 1 → if-branch is skipped → false PASS.
           rc=0
           tar tf "$tmp/release.tar" \
-            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation|docs/plans/|docs/reviews/|docs/triage_backlog/|docs/brainstorms/|docs/architecture/|docs/release/|docs/internal/)' \
+            | grep -E '(scripts/automation|scripts/loop/|scripts/internal/|tab_automation)' \
             || rc=$?
           if [ "$rc" = "0" ]; then
             echo 'Release tarball MUST NOT contain INTERNAL automation / loop / plans / triage'
@@ -88,9 +88,9 @@ jobs:
           # We deliberately scan the ``git archive`` output (post export-ignore)
           # rather than the working tree because:
           #   1. GNU grep ``--exclude-dir`` matches only the basename, not a
-          #      path -- ``--exclude-dir=docs/plans`` would NOT exclude
-          #      ``docs/plans/foo.md`` and CI would self-trip on INTERNAL
-          #      plans / regex strings inside the boundary tests themselves.
+          #      path -- ``--exclude-dir=scripts/loop`` would NOT exclude
+          #      ``scripts/loop/foo.py`` and CI would self-trip on INTERNAL
+          #      regex strings inside the boundary tests themselves.
           #   2. The release contract is about the shipped artefact. Scanning
           #      the tarball aligns the check with the contract and avoids
           #      maintaining a parallel ``--exclude`` list of INTERNAL files.

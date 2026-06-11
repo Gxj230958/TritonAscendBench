@@ -32,9 +32,9 @@ silently fix them — that refusal is what makes the discovered bugs credible.
 > the backing artifacts below. (`L2_33` stays scored: its debug-assert is
 > compile-compat, not numerical.)
 
-Backing artifacts:
-- `docs/findings/L2_24_lightning_attn_offbyone_proof.py` (the 0.28 → 0.00 proof)
-- `docs/findings/vllm_lightning_attn_crossblock_decay_offbyone.md` (filed bug)
+Backing artifacts: the reproduction proof script
+(`L2_24_lightning_attn_offbyone_proof.py`, 0.28 → 0.00) and the filed-bug
+writeup are retained in the repository git history.
 
 ## Rigour bar — what qualifies a task for the SECONDARY number
 

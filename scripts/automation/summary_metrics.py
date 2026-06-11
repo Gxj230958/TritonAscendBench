@@ -3,7 +3,7 @@
 INTERNAL bench-team automation. CLI entry-point that consumes a
 ``triage_state.json`` (Unit 1.4 / Unit 1.9 owned) plus per-task
 ``meta.yaml`` files and emits two artifacts under
-``docs/triage_backlog/``:
+``build/reports/``:
 
   * ``summary-metrics-<ISO_DATE>.json`` -- machine-readable per-task
     flags + aggregate counts.
@@ -458,7 +458,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Compute 4 independent triage backlog dials "
             "(reverify_nonblocked / phase_a_promoted / golden_ready / "
             "manual_backlog) and emit markdown + JSON summaries under "
-            "docs/triage_backlog/."
+            "build/reports/."
         ),
     )
     p.add_argument(
@@ -476,10 +476,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--out-dir",
         type=Path,
-        default=Path("./docs/triage_backlog"),
+        default=Path("./build/reports"),
         help=(
             "Output dir for summary-metrics-<DATE>.{json,md} "
-            "(default: ./docs/triage_backlog)."
+            "(default: ./build/reports)."
         ),
     )
     p.add_argument(

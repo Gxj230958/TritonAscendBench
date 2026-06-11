@@ -22,7 +22,7 @@ Stages (dependency order = how an operator enters the bench: extract -> verify
      cert-meta churn and drop only the stale untracked tasks THIS run dragged in.
   5. release-gate  dev: validate_tasks --release-gate
 
-Report -> docs/reviews/<run-id>-full-regression.md
+Report -> build/reports/<run-id>-full-regression.md
 
 Safety invariants (every one was a real footgun found in review):
   - REFUSES to run if the working tree under tasks/ is dirty at start (else
@@ -300,7 +300,7 @@ def write_report(run_id, results, cleanup_msg, commit) -> Path:
               "Fresh batch-id per stage (preflight refuses a pre-existing "
               "results dir); a stage is PASS only on rc==0 + full task "
               "coverage. C2 verdicts read from results/<batch>/r10/."]
-    out = REPO / "docs" / "reviews" / f"{run_id}-full-regression.md"
+    out = REPO / "build" / "reports" / f"{run_id}-full-regression.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
     return out

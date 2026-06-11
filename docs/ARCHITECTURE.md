@@ -30,7 +30,7 @@ triton-ascend-bench/
 ├── ascendbench/            # the Python package (harness, grader, scoring, loaders)
 ├── scripts/                # provider-side corpus-construction pipeline
 ├── docker/                 # Dockerfile.gpu (oracle cross-check) / Dockerfile.npu (910B)
-└── docs/                   # this file, reference specs, kernel-select rationale, findings
+└── docs/                   # this file, reference specs, kernel-select rationale
 ```
 
 ### 1.1 A task directory: the five-file anatomy
@@ -299,5 +299,4 @@ These are designed but **not** shipped; nothing above depends on them.
   gated on verified 910B peak tables; until those land, performance is reported
   as raw latency only and stays out of the release gate.
 
-See the [README](../README.md) for current status, and
-[`docs/findings/`](findings/) for upstream bugs surfaced while building the corpus.
+See the [README](../README.md) for current status.

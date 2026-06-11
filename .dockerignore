@@ -3,7 +3,7 @@
 # independently).
 #
 # Same rationale as `.gitattributes`: the bench Docker image MUST NOT
-# carry INTERNAL automation, plans, release docs, or internal tests.
+# carry INTERNAL automation or internal tests. docs/ is fully public.
 
 # INTERNAL orchestrator + GPFS runtime dir
 scripts/automation/
@@ -19,22 +19,6 @@ scripts/internal/**
 
 # INTERNAL dev-only helper scripts (corpus authoring / diagnostics / full
 # regression driver) -- not part of the public `tab` surface
-
-
-# INTERNAL dev-process docs (plans / reviews / triage / brainstorms /
-# automation architecture / internal release runbooks / design-stage specs)
-docs/plans/
-docs/plans/**
-docs/reviews/
-docs/reviews/**
-docs/triage_backlog/
-docs/triage_backlog/**
-docs/brainstorms/
-docs/brainstorms/**
-docs/architecture/
-docs/architecture/**
-docs/release/
-docs/release/**
 
 # INTERNAL tests covering the automation orchestrator + its libraries
 tests/unit_tests/test_lib_*.py
@@ -73,10 +57,6 @@ build/
 dist/
 *.egg-info/
 .git/
-
-# INTERNAL design-stage specs + dev-process docs
-docs/internal/
-docs/internal/**
 
 # INTERNAL tests covering automation/tooling (mirror of .gitattributes)
 tests/unit_tests/test_pa_fix1_honest_categories_and_fix3_anchor.py

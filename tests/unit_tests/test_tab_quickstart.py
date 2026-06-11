@@ -682,7 +682,8 @@ def test_tab_quickstart_status_missing_schema_version_graceful(harness):
 # 12. Quickstart markdown documentation contract
 # ---------------------------------------------------------------------------
 _QUICKSTART_MD = (
-    _REPO_ROOT / "docs" / "release" / "internal-acceptance-quickstart.md"
+    _REPO_ROOT / "scripts" / "automation" / "runners"
+    / "internal-acceptance-quickstart.md"
 )
 
 
@@ -1411,8 +1412,8 @@ def test_status_reports_release_gate_artefacts(harness, tmp_path):
     (harness["gpfs"] / "logs" / "release_gate_20260101_120000.log").write_text(
         "stale\n", encoding="utf-8"
     )
-    (repo / "docs" / "plans").mkdir(parents=True, exist_ok=True)
-    (repo / "docs" / "plans" / "phase_a_prime_status.md").write_text(
+    (repo / "build").mkdir(parents=True, exist_ok=True)
+    (repo / "build" / "phase_a_prime_status.md").write_text(
         "stub status\n", encoding="utf-8"
     )
 

@@ -21,7 +21,7 @@ import pytest
 
 # Repository root is two levels above the tests/unit_tests/ directory.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_SPEC = _REPO_ROOT / "docs" / "internal" / "specs" / "task_api_contract_state_fields.md"
+_SPEC = _REPO_ROOT / "docs" / "reference" / "task_api_contract_state_fields.md"
 
 
 @pytest.fixture(scope="module")

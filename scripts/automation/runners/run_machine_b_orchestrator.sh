@@ -32,7 +32,7 @@
 #   bash scripts/automation/runners/run_machine_b_orchestrator.sh \
 #     --gpfs-root /gpfs/shared/tab_automation \
 #     --c-host llm-svc-c01 --c-port 8000 \
-#     --resolve-log docs/triage_backlog/resolver-run.jsonl \
+#     --resolve-log build/reports/resolver-run.jsonl \
 #     --apply
 #
 #   # ssh-cli mode (no tunnel, no curl probe):
@@ -41,7 +41,7 @@
 #     --llm-transport ssh-cli \
 #     --llm-ssh-host llm-svc-c01 \
 #     --llm-cli-cmd '<your-cli> exec {prompt}' \
-#     --resolve-log docs/triage_backlog/resolver-run.jsonl \
+#     --resolve-log build/reports/resolver-run.jsonl \
 #     --apply
 set -euo pipefail
 

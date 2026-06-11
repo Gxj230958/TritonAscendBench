@@ -1,6 +1,6 @@
 # Task API Contract
 
-> Authoritative scoring model: `docs/DESIGN.md §9` (two-objective — correctness gate + 910B Roofline-normalized performance). GPU-Triton → 910B NPU-Triton migration; no AscendC baseline.
+> Authoritative scoring model: `docs/DESIGN.md §4` (two-objective — correctness gate + 910B Roofline-normalized performance). GPU-Triton → 910B NPU-Triton migration; no AscendC baseline.
 
 
 > Source of truth: per-task `meta.yaml`. Human-readable docs (this file + `contract.md`) explain but do not override `meta.yaml`.
@@ -18,7 +18,7 @@ tasks/level1/L1_12_rms_norm/
 └── contract.md # Human-readable semantic contract
 ```
 
-(5-file contract — see `docs/DESIGN.md §5.1`. Auxiliary dirs: `_frozen_deps_pool/`, `_frozen_shim/`, `_canary/`, `_vendored/`.)
+(5-file contract — see `docs/ARCHITECTURE.md §1.1`. Auxiliary dirs: `_frozen_deps_pool/`, `_frozen_shim/`, `_canary/`, `_vendored/`.)
 
 ## 2. `kernel.py` Contract
 
@@ -30,7 +30,7 @@ tasks/level1/L1_12_rms_norm/
 
 ## 3. `oracle_pytorch.py` Contract
 
-- PyTorch eager reference aligned to frozen upstream semantics via the dual-anchor (no triton); **not an independent truth source** (`docs/DESIGN.md §1.3`)
+- PyTorch eager reference aligned to frozen upstream semantics via the dual-anchor (no triton); **not an independent truth source**
 - Must expose `run(inputs: dict) -> dict[str, Tensor]`
 - Device-agnostic (tensors stay on caller's device)
 - **Never mounted to candidate sandbox**
@@ -107,7 +107,7 @@ oracle:
 
 tolerance_class: "vector_reduce" # one of the classes in ascendbench/policies/tolerance_policy.yaml
 
-cost_model: # performance baseline — see docs/DESIGN.md §5.6
+cost_model: # performance baseline — see docs/DESIGN.md §4.3
  flops: "2*B*L*D" # size-knob FLOPs formula (scalar form)
  flops_class: fp16_cube # scalar form: name the compute class
  bytes: "(B*L*D + B*D) * dtype_size" # HBM bytes (scalar form)
@@ -134,7 +134,7 @@ is_hidden_only: false
 
 `meta.yaml.cost_model` supplies the per-task `W_c` (FLOPs) and `M_r` (bytes)
 the Roofline baseline `t_ref = max(max_c W_c/π_c, max_r M_r/β_r)` needs
-(`docs/DESIGN.md §5.6 / §9`). Three keys:
+(`docs/DESIGN.md §4.3 / §4.2`). Three keys:
 
 | key | meaning |
 |-----|---------|
@@ -203,7 +203,7 @@ formula *parses and evaluates*, not its numeric value. `cost_model.py` defines
 exactly which derived symbols exist and is reused verbatim by `dataset.py`,
 `validate_tasks.py` and the GPU cross-check, so the symbol set never
 drifts. The arithmetic safety core itself lives in
-`ascendbench/input_spec/expr.py` (WA.2): `cost_model` formula evaluation is the
+`ascendbench/input_spec/expr.py`: `cost_model` formula evaluation is the
 `eval_numeric` entrypoint of that shared AST-whitelist evaluator. Allowed in
 numeric mode: `+ - * / // ** %`, unary `+` / `-`, numeric literals,
 knob/derived names, and `min` / `max` / `ceil` / `floor` / `sqrt` calls.
@@ -218,11 +218,9 @@ two consumers treat a missing `cost_model` block differently *by design*:
  `TaskDef.cost_model = None`; a *malformed* block still raises. This keeps
  pre-tasks (and any synthetic test fixture) loadable, and lets the
  Roofline path simply skip a task with no cost model rather than fail.
-- **Task validator (`scripts/corpus/validate_tasks.py`)** — *strict*. As of
+- **Task validator (`scripts/corpus/validate_tasks.py`)** — *strict*.
  `cost_model` is a **required** top-level `meta.yaml` key: a missing block is
- a hard validation error. The red→green transition for the 100-task corpus
- is carried by the validator (backfills every task), never by the
- loader.
+ a hard validation error.
 
 In short: a missing `cost_model` is *not an error to load* but *is an error to
 release*. When the block is present it is validated strictly by both.
@@ -262,12 +260,12 @@ dims:
 ```
 
 These cover the constraints a kernel's `tl.constexpr` / `BLOCK_SIZE` impose
-on the knob universe. The evaluator (the WA.2 shared `eval_predicate`
+on the knob universe. The evaluator (the shared `eval_predicate`
 entrypoint) supports comparisons (`== != < <= > >=`), boolean operators
 (`and or not`), `in`, list / tuple literals, and the predicate helpers
-`is_pow2` / `gcd` / `sqrt` / `len` / `sum`. WA.1 only validates the *shape*
-of this subsection (that it is a list of strings); semantic evaluation is
-WA.4.
+`is_pow2` / `gcd` / `sqrt` / `len` / `sum`. The schema-shape layer only validates the *shape*
+of this subsection (that it is a list of strings); semantic evaluation
+happens in the semantic eval gate.
 
 #### `dtypes` — per-input dtype constraint
 
@@ -311,9 +309,9 @@ dists:
 string DSL form (`randint:0:E`, `offsets:to=B*L`, `full:expr`); the
 `param_constraints.dists` block uses the structured `{kind, args}` form.
 The two are reconciled through a single shared `parse_dist_spec` normaliser
-(`ascendbench/input_spec/inputs.py`, WA.3 — string DSL ⇄ `{kind, args}`) so
+(`ascendbench/input_spec/inputs.py` — string DSL ⇄ `{kind, args}`) so
 there is no duplicated parsing or drift: `build_inputs` materialisation, the
-`validate_tasks` dist check (WA.4) and the generators all route through it.
+`validate_tasks` dist check and the generators all route through it.
 The string DSL stays the authoritative `shapes.yaml` authoring form and is
 not migrated.
 
@@ -333,10 +331,21 @@ distribution vocabulary):
 | `l2norm_rows` | randn rows L2-normalised over the last dim (unit-norm keys; the stable delta-rule key recipe) | — |
 | `logsigmoid` | `logsigmoid(rand)` — strictly negative gate so `exp(g)` is a genuine decay in `(0, 1)` | — |
 | `offsets` | monotonic **leading-zero** indptr int64 vector (`[0] == 0`, total in `[-1]`) | `step` *or* `to` (knob expr) |
-| `cumcount` | monotonic **non-leading-zero** cumulative count int64 vector (element `r` = running count through segment `r`, total in `[-1]`) | `to` (knob expr) |
+| `cumcount` | monotonic **non-leading-zero** cumulative count vector (element `r` = running count through segment `r`, total in `[-1]`); honors the declared `int32`/`int64` dtype | `to` (knob expr) |
 | `arange` | `0.. n-1` int64 | — |
 | `cyclic_perm` | single-cycle permutation `perm[i] = (i+1) % n` — a guaranteed non-identity bijection of `[0, n)` (every position remapped for `n >= 2`); honors the declared `int32`/`int64` dtype | — |
 | `full` | constant-filled int64 | `value` (knob expr) |
+| `randn_inf` | randn with a fixed fraction of entries set to `+inf` (flash-decoding empty-split LSE sentinel) | — |
+| `randn_inf_excl` | randn with `+inf` injected only where the referenced earlier tensor is finite (no both-empty positions) | `ref` (input name) |
+| `randperm` | random permutation of `[0, n)` (MoE token reorder; may coincide with identity at small `n` — `cyclic_perm` guarantees non-identity) | — |
+| `tril_chunk` | strict lower-triangular mask per `[BT, BT]` chunk in the `(T, BT)` plane; needs shape `[B, T, H, BT]` | — |
+| `rope_cos_sin` | deterministic RoPE cos/sin cache `[max_pos, rotary_dim]` (`cos^2+sin^2 == 1`, half-row cos / half-row sin) | — |
+| `routing_ids` | MoE per-token expert ids in `[0, E)` with a pinned `-1` drop sentinel (≥1 written + ≥1 skipped row per shape) | `E` (knob expr) |
+| `moe_sorted_ids` | `moe_align_block_size`-style sorted_token_ids: distinct route-slot ids in `[0, B)`, sentinel `B` padding | `B` (knob expr) |
+| `gumbel_routing` | per-token request ids in `[0, R)`; token 0 pinned greedy-request, token 1 noisy-request | `R` (knob expr) |
+| `gumbel_temps` | per-request sampling temperature mixing pinned greedy (`0.0`) and noisy (`[0.3, 1.7)`) entries | — |
+| `window_pos` | per-token local position `t % W` inside fixed draft windows tiling `[0, n)` | `W` (knob expr) |
+| `window_req` | per-token request id `(t // W) % E`, constant within each length-`W` window; pairs with `window_pos` on the same `W` | `W`, `E` (knob exprs) |
 
 #### `scalars` — non-tensor literal constraint
 
@@ -352,7 +361,7 @@ entries declared with a `scalar` key (a single JSON scalar) or a
  predicate is evaluated against a symbol table that merges the shape row's
  knobs with the literal's own name, mirroring the `dims` predicate
  evaluation; the literal name wins on a knob/name clash.
-- a **derive rule** — see WA.3 (`{derive: "1/sqrt(D)"}`). A derive rule is
+- a **derive rule** — see the `shapes.yaml.inputs` non-tensor forms section (`{derive: "1/sqrt(D)"}`). A derive rule is
  reconciled against `shapes.yaml.inputs[name]`: that input must itself be a
  `derive` form and carry a structurally equivalent formula. A task may not
  declare `scale: {derive: "1/sqrt(D)"}` while `shapes.yaml` pins `scale` to
@@ -372,7 +381,7 @@ scalars:
  block_size: "len(block_size) == 2 and block_size[0] == 8" # scalar_seq, indexed
 ```
 
-**`shapes.yaml.inputs` non-tensor forms (WA.3).** The materialisation layer
+**`shapes.yaml.inputs` non-tensor forms.** The materialisation layer
 (`ascendbench/input_spec/inputs.py`) declares a non-tensor input with exactly
 one of these keys; the value type is **schema-fixed**:
 
@@ -420,13 +429,13 @@ An explicit boolean field. `scaffold: true` marks a `param_constraints`
 block that was emitted by the `phase_c_docs` scaffold generator and **not
 yet manually reconciled** against the operator's real contract. It is the
 **single shared sentinel** consulted by the generator, the validator, and
-the eval gate (WA.4 / WA.5) — an explicit schema field replacing the older
+the eval gate — an explicit schema field replacing the older
 implicit text markers, so no component drifts. `scaffold` does **not**
 participate in score-eligibility (the score-eligible denominator looks only
 at stub / `PHASE-C-MANUAL`) — a `scaffold` task is `blocked` and stays in
 the fixed denominator, never dropped from it.
 
-#### `param_constraints` as a `task_status` gate (WA.4)
+#### `param_constraints` as a `task_status` gate
 
 Beyond the validator, `param_constraints` is an **eval gate**: a task whose
 block is missing / `scaffold: true` / schema-illegal / semantically violated
@@ -461,21 +470,19 @@ differently *by design* — but the loader is **more** lenient here:
  is kept **verbatim as the raw dict** — the loader does **not** validate
  or raise. This deliberately differs from `cost_model`, which eager-parses
  and raises on a malformed block: a malformed `param_constraints` must be
- allowed to load so it can reach the `task_status = blocked` gate (WA.4)
+ allowed to load so it can reach the `task_status = blocked` gate
  rather than crash inside `load_task`. The loader stores the raw dict; it
  never builds a structured object.
 - **Task validator (`scripts/corpus/validate_tasks.py`)** — *strict*.
  `param_constraints` is a **required** top-level `meta.yaml` key; a missing
- block is a hard validation error. The WA.1 validator layer checks only
+ block is a hard validation error. The schema-shape validator layer checks only
  the **schema shape** (the six subsections exist and have the right
- container types); the five-subsection *semantic* checks are WA.4. The
- red→green transition for the 100-task corpus is carried by the validator
- (WB.1 backfills every task), never by the loader.
+ container types); the five-subsection *semantic* checks run in the eval gate.
 
 **`is_canary` exemption.** A task with `is_canary: true` is **not** required
 to carry `param_constraints` — a canary reuses its source task's solution,
 is a deliberately-crafted trap, and is never score-eligible. `validate_tasks`
-(and the WA.4 eval gate) skip the `param_constraints` requirement for any
+(and the eval gate) skip the `param_constraints` requirement for any
 `is_canary` task so the canary detection chain is not sealed shut.
 
 In short: a missing or malformed `param_constraints` is *not an error to
@@ -484,7 +491,7 @@ load* but *is an error to release*.
 ### 5d. `provenance.golden` schema (baseline trust chain)
 
 The `provenance:` top-level block carries the *content* metadata
-historically (`added_in`, `authors`, `last_modified`). V9 adds a
+historically (`added_in`, `authors`, `last_modified`). A
 nested `golden:` sub-block that records the *baseline trust chain* —
 HOW a task's reference values were produced, verified, and signed.
 Top-level keys are untouched; the nested block is purely additive.
@@ -494,7 +501,7 @@ provenance:
  added_in: v0.1 # existing top-level metadata, untouched
  authors: [...] # existing
  last_modified: '2026-05-26' # existing
- golden: # nested baseline trust chain (V9 M1.2)
+ golden: # nested baseline trust chain
  source: upstream_author_test | gpu_kernel_rerun
  tolerance_source: upstream_test_explicit | upstream_test_default | migration_drift_budget
  atol: 1.0e-5 # pinned from upstream test
@@ -502,13 +509,13 @@ provenance:
  ref_path: tasks/<id>/upstream_ref.py # source ① only — vendored author test ref
  test_file_path: <relative to infer/{repo}> # source ① only
  test_capture_sha: <40 hex> # source ① only — author test git SHA
- golden_sha256: <64 hex> # SHA of the captured ref artifact (R5)
+ golden_sha256: <64 hex> # SHA of the captured ref artifact
  oracle_kernel_equivalence: VERIFIED | FAILED | MIXED | SKIPPED | NEEDS_MANUAL | LAUNCH_BLOCKED | WRAPPER_CONTRACT_MISMATCH | ORACLE_KERNEL_LAYOUT_MISMATCH | INPUT_DRIFT
  gpu_kernel_capture_status: PENDING | DONE | FAILED | BLOCKED_NON_DETERMINISTIC
- gpu_kernel_deterministic: true # R20 N=3 bit-identity check
+ gpu_kernel_deterministic: true # N=3 bit-identity check
  upstream_closure_fingerprint: <64 hex> # cache invalidation key
- reviewers: [<name1>, <name2>] # R8 reviewer attestation
- reconstructability_risk: low | medium | high # M0a.1 6th-dim risk score
+ reviewers: [<name1>, <name2>] # reviewer attestation
+ reconstructability_risk: low | medium | high # reconstructability risk score
 ```
 
 **Closed enums** (validator-strict; see `ascendbench/corpus/provenance.py`):
@@ -536,7 +543,7 @@ closed-enum checked — these are pipeline artifacts written by
 `golden_source`.
 
 **Grace period**: the validator accepts an absent `golden:` block on
-any task (legacy meta + tasks that have not yet run R10/R5 capture).
+any task (legacy meta + tasks that have not yet run the pyref/golden capture stages).
 This is documented as a *warning concern* in the release-gate report
 but not a release-blocking error. Once the block is present, every
 closed enum and hash-length value MUST conform — a malformed value
@@ -584,7 +591,7 @@ bench-internal detail.
 `python scripts/corpus/validate_tasks.py` (per-task schema / hash validation; `--release-gate` runs the S6 gate) checks:
 - All 5 files present (`kernel.py` / `oracle_pytorch.py` / `meta.yaml` / `shapes.yaml` / `contract.md`)
 - `meta.yaml` matches schema; the top-level `cost_model` key is **required** — a missing block is a hard error. `cost_model.{flops,bytes}` (scalar or map form) parse under the shared evaluator and every formula evaluates against the task's `shapes.yaml` knob universe (§5.1). (The dataset *loader* stays lenient — a missing block yields `TaskDef.cost_model = None`; only the validator enforces presence. See §5.1.)
-- the top-level `param_constraints` key is **required** (WA.1) — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (WA.1 — the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (WA.4 — `dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `ascendbench.input_spec.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)
+- the top-level `param_constraints` key is **required** — a missing block is a hard error, except for `is_canary` tasks which are exempt. Two validator layers run: the **schema-shape** layer (the six subsections `dims` / `dtypes` / `dists` / `scalars` / `tensor_invariants` / `scaffold` exist with the right container types) and the **five-subsection semantic** layer (`dims` predicates evaluate true against every knob row, `dtypes` / `dists` agree with `shapes.yaml.inputs`, `scalars` value-domain predicates hold, `tensor_invariants` hold on the materialised sample tensors). A `scaffold: true` block short-circuits to a single `scaffold` failure (no semantic check runs). Both layers route through the shared `ascendbench.input_spec.param_constraints` helper so the validator, `eval`, and the `cli analyze` status resolver cannot drift. (The dataset *loader* stays fully lenient — a missing block yields `TaskDef.param_constraints = None`, a malformed block is kept as a raw dict without raising. See §5.2.)
 - `kernel.py` has at least one `@triton.jit` and exports the resolved upstream entrypoint (`meta.yaml.oracle.gpu_triton`)
 - `oracle_pytorch.py` exports `run`
 - `contract.md` references match `meta.yaml`

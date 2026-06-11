@@ -5,7 +5,7 @@ CLI entry-point. Reads the orchestrator triage state file
 task's last ``result.json`` produced under ``results/<run_id>/`` (Unit
 1.7 strict 9-field schema), partitions every non-DONE task by canonical
 state, and writes a human-readable markdown report plus a JSON sidecar
-to ``docs/triage_backlog/backlog-report-<ISO_DATE>.{md,json}``.
+to ``build/reports/backlog-report-<ISO_DATE>.{md,json}``.
 
 The report is **read-only** -- it never mutates the state file. It is
 the produce-once, review-many artifact that the bench team and the
@@ -19,9 +19,9 @@ Schema invariants enforced here
 * state_data: defensive ``.get(...) or default`` reads. A task in
   transition (e.g. ``BENCH_RUNNING`` mid-write) renders with ``n/a``
   placeholders rather than failing the whole report.
-* output directory: ``docs/triage_backlog/`` is ``export-ignore``-d by
-  ``.gitattributes`` -- generated artifacts MUST stay there so they do
-  not leak into release tarballs.
+* output directory: ``build/reports/`` is gitignored -- generated
+  artifacts MUST stay there so they do not leak into the repo or
+  release tarballs.
 """
 from __future__ import annotations
 
@@ -440,7 +440,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         prog="backlog_report",
         description=(
             "Generate a backlog report from the orchestrator triage state. "
-            "Writes markdown + JSON to docs/triage_backlog/ (export-ignored)."
+            "Writes markdown + JSON to build/reports/ (gitignored)."
         ),
     )
     p.add_argument(
@@ -453,9 +453,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
              "(default: ./results).",
     )
     p.add_argument(
-        "--out-dir", type=Path, default=Path("./docs/triage_backlog"),
+        "--out-dir", type=Path, default=Path("./build/reports"),
         help="Output directory for backlog report artifacts "
-             "(default: ./docs/triage_backlog).",
+             "(default: ./build/reports).",
     )
     p.add_argument(
         "--format", choices=("markdown", "json", "both"), default="both",

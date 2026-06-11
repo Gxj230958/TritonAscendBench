@@ -360,4 +360,3 @@ not mistaken for shipped behaviour:
 - [`docs/reference/tolerance_policy.md`](reference/tolerance_policy.md) — tolerance classes.
 - [`docs/reference/task_api_contract.md`](reference/task_api_contract.md) — task bundle schema.
 - [`docs/reference/timing_arbitration.md`](reference/timing_arbitration.md) — device-timing methodology.
-- [`docs/findings/`](findings/) — upstream bugs surfaced while building the corpus.

@@ -121,13 +121,11 @@ Full scoring spec: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spe
 
 29 by-design defense principles across 7 layers (Process / Code / Correctness / Sanity / Submission / Test-set / Cross-cutting), covering 31 attack categories.
 
-
 ## Documentation
 
 - [Selection rationale](docs/kernel-select.md)
 - [Task API contract](docs/reference/task_api_contract.md)
 - [Tolerance policy](docs/reference/tolerance_policy.md)
-- [Findings](docs/findings/) — upstream bugs surfaced while building the corpus
 
 ## Maturity
 

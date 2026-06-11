@@ -2,8 +2,7 @@
 #
 # `export-ignore` removes the path from `git archive` output (release
 # tarball). The bench release artifact MUST NOT contain INTERNAL
-# automation, internal plans, internal release docs, or internal test
-# files. The same set of patterns is mirrored in `.dockerignore` (Docker
+# automation or internal test files. docs/ is fully public. The same set of patterns is mirrored in `.dockerignore` (Docker
 # build context) and in `.github/workflows/ci.yml` (CI release-tarball
 # smoke check + bench-core single-direction grep).
 #
@@ -24,25 +23,6 @@ scripts/loop/**                                    export-ignore
 # regression driver) -- not part of the public `tab` surface
 scripts/internal/                                export-ignore
 scripts/internal/**                                export-ignore
-
-
-# INTERNAL dev-process docs: impl plans, code/design reviews, triage backlog,
-# brainstorms, the automation-subsystem architecture spec, internal release
-# runbooks, and the design-stage spec set + rewrite source material under
-# docs/internal/. The public docs tree is docs/{DESIGN,ARCHITECTURE,
-# kernel-select}.md + docs/reference/ + docs/findings/.
-docs/plans/                                      export-ignore
-docs/plans/**                                      export-ignore
-docs/reviews/                                    export-ignore
-docs/reviews/**                                    export-ignore
-docs/triage_backlog/                             export-ignore
-docs/triage_backlog/**                             export-ignore
-docs/brainstorms/                                export-ignore
-docs/brainstorms/**                                export-ignore
-docs/architecture/                               export-ignore
-docs/architecture/**                               export-ignore
-docs/release/                                    export-ignore
-docs/release/**                                    export-ignore
 
 # INTERNAL tests covering the automation orchestrator + its libraries
 tests/unit_tests/test_lib_*.py                   export-ignore
@@ -71,6 +51,3 @@ tests/unit_tests/test_pa_fix1_honest_categories_and_fix3_anchor.py export-ignore
 tests/unit_tests/test_schema_doc.py              export-ignore
 tests/unit_tests/test_shape_lint_internal.py     export-ignore
 
-# INTERNAL: design-stage specs + dev-process docs not for public release
-docs/internal/                                    export-ignore
-docs/internal/**                                    export-ignore

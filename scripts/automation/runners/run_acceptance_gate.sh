@@ -4,7 +4,7 @@
 # Acceptance gate driver for the three-machine automation stack.
 #
 # Runs the four acceptance phases in order (or one selected phase) and
-# produces a dated INTERNAL acceptance report under docs/release/.
+# produces a dated INTERNAL acceptance report under build/reports/.
 #
 # Phase 1: 3 shapes-incomplete tasks, single-machine Tier 1.
 #          PASS when orchestrator rc=0 AND at least one task reaches DONE.
@@ -20,7 +20,7 @@
 #          shared tasks/<level>/<task>/meta.yaml tree.
 #
 # Each phase appends a markdown stanza to:
-#   docs/release/internal-acceptance-report-YYYYMMDD.md
+#   build/reports/internal-acceptance-report-YYYYMMDD.md
 #
 # Design choices (vs. earlier drafts):
 #   * Single long-lived SSH tunnel for the whole gate (one start, one
@@ -42,7 +42,7 @@
 #   bash scripts/automation/runners/run_acceptance_gate.sh \
 #     --gpfs-root /gpfs/shared/tab_automation \
 #     --c-host llm-svc-c01 --c-port 8000 \
-#     --resolve-log docs/triage_backlog/resolver-run.jsonl \
+#     --resolve-log build/reports/resolver-run.jsonl \
 #     --phase all
 set -euo pipefail
 
@@ -178,17 +178,17 @@ cd "$REPO_ROOT"
 
 DATE_STAMP="$(date +%Y%m%d)"
 EXPECT_DATE="$(date -u +%Y-%m-%d)"
-REPORT="docs/release/internal-acceptance-report-$DATE_STAMP.md"
+REPORT="build/reports/internal-acceptance-report-$DATE_STAMP.md"
 DEFAULT_STATE_PATH="$GPFS_ROOT/state/triage_state.json"
 STATE_PATH="${STATE_PATH:-$DEFAULT_STATE_PATH}"
 QUEUE_ROOT="$GPFS_ROOT/queue"
 RESULTS_ROOT="$GPFS_ROOT/results"
 LOGS_DIR="$GPFS_ROOT/logs"
 BUDGET_DIR="$GPFS_ROOT/budget"
-TRIAGE_OUT="docs/triage_backlog"
+TRIAGE_OUT="build/reports"
 LLM_ENDPOINT="http://localhost:$LOCAL_PORT"
 
-mkdir -p "$QUEUE_ROOT" "$RESULTS_ROOT" "$LOGS_DIR" "$BUDGET_DIR" "$TRIAGE_OUT" docs/release
+mkdir -p "$QUEUE_ROOT" "$RESULTS_ROOT" "$LOGS_DIR" "$BUDGET_DIR" "$TRIAGE_OUT" build/reports
 
 # Initialize the report (clobber any prior same-day partial run).
 {
