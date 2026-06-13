@@ -30,25 +30,10 @@ import triton.language as tl
 
 from ascendbench.frozen.shim import context_attention_fwd  # Phase A': off-path prefix-prefill wrapper (B-inert-shim)
 
-logger = init_logger(__name__)
 
 float8_info = torch.finfo(current_platform.fp8_dtype())
 
 
-def has_native_kv_cache_layout(
-    key_cache: torch.Tensor,
-    value_cache: torch.Tensor,
-) -> bool:
-    """Return whether KV cache blocks can use the native ROCm pairing.
-
-    The native reshape_and_cache writer assumes packed blocks. If cache update
-    needs reshape_and_cache_flash for a stride-padded hybrid layout, decode
-    should use the matching Triton path too.
-    """
-    return (
-        key_cache.stride(0) == key_cache.shape[1:].numel()
-        and value_cache.stride(0) == value_cache.shape[1:].numel()
-    )
 
 
 @triton.jit
@@ -277,229 +262,71 @@ def kernel_paged_attention_2d(
     )
 
 
-def chunked_prefill_paged_decode(
-    query,
-    key,
-    value,
-    output,
-    kv_cache_dtype,
-    key_cache,
-    value_cache,
-    block_table,
-    query_start_loc,
-    seq_lens,
-    max_seq_len,
-    max_query_len,
-    k_scale,
-    v_scale,
-    alibi_slopes=None,
-    sliding_window=None,
-    sm_scale=None,
-    output_scale=None,
-    # Optional tensor for sinks
-    sinks=None,
-    is_block_table_ptr: bool = False,
-    causal: bool = True,
-):
-    if sm_scale is None:
-        sm_scale = 1.0 / (query.shape[2] ** 0.5)
 
-    use_alibi_slopes = alibi_slopes is not None
+import torch
+import triton
 
-    if sliding_window is None or sliding_window <= 0:
-        sliding_window = 0
 
-    if max_query_len > 1:
-        context_attention_fwd(
-            q=query,
-            k=key,
-            v=value,
-            o=output,
-            kv_cache_dtype=kv_cache_dtype,
-            k_cache=key_cache,
-            v_cache=value_cache,
-            b_loc=block_table,
-            b_start_loc=query_start_loc,
-            b_seq_len=seq_lens,
-            max_seq_len=max_seq_len,
-            max_input_len=max_query_len,
-            k_scale=k_scale,
-            v_scale=v_scale,
-            alibi_slopes=alibi_slopes,
-            sliding_window=sliding_window,
-            sm_scale=sm_scale,
-            skip_decode=True,
-            fp8_out_scale=output_scale,
-            sinks=sinks,
-            causal=causal,
-        )
-
-    block_size = value_cache.shape[3]
-    num_seqs = len(seq_lens)
-    num_query_heads = query.shape[1]
-    # key may be None in cross-attention decode (already cached from encoder)
-    num_kv_heads = key.shape[1] if key is not None else key_cache.shape[1]
-    num_queries_per_kv = num_query_heads // num_kv_heads
-    head_size = query.shape[2]
-
-    # Conversion of FP8 Tensor from uint8 storage to
-    # appropriate torch.dtype for interpretation by Triton
-    if "fp8" in kv_cache_dtype:
-        assert key_cache.dtype in [torch.uint8, current_platform.fp8_dtype()]
-        assert value_cache.dtype in [torch.uint8, current_platform.fp8_dtype()]
-
-        if kv_cache_dtype in ("fp8", "fp8_e4m3"):
-            target_dtype = current_platform.fp8_dtype()
-        elif kv_cache_dtype == "fp8_e5m2":
-            target_dtype = torch.float8_e5m2
-        else:
-            raise ValueError(
-                f"Unsupported FP8 kv_cache_dtype {kv_cache_dtype}: "
-                f"should be one of 'fp8', 'fp8_e4m3', 'fp8_e5m2'."
-            )
-
-        key_cache = key_cache.view(target_dtype)
-        value_cache = value_cache.view(target_dtype)
-
-    num_queries_per_kv_padded = max(triton.next_power_of_2(num_queries_per_kv), 16)
-
-    from vllm.platforms.rocm import use_rocm_custom_paged_attention
-
-    use_custom = use_rocm_custom_paged_attention(
-        query.dtype,
-        head_size,
-        block_size,
-        num_queries_per_kv,
-        max_seq_len,
-        sliding_window,
-        kv_cache_dtype,
-        alibi_slopes,
-        sinks,
-    )
-    has_native_layout = has_native_kv_cache_layout(key_cache, value_cache)
-    # Force Triton for non-standard blocks like Qwen3's 544 and for
-    # stride-padded hybrid layouts. The latter use reshape_and_cache_flash
-    # during cache update, so keep decode on the matching stride-aware path.
-    is_pow2 = block_size > 0 and (block_size & (block_size - 1) == 0)
-    if not is_pow2 or not has_native_layout:
-        use_custom = False
-
-    if use_custom:
-        _PARTITION_SIZE_ROCM = 256
-        max_num_partitions = (
-            max_seq_len + _PARTITION_SIZE_ROCM - 1
-        ) // _PARTITION_SIZE_ROCM
-        assert _PARTITION_SIZE_ROCM % block_size == 0
-        total_num_seq = block_table.shape[0]
-        tmp_output = torch.empty(
-            size=(total_num_seq, num_query_heads, max_num_partitions, head_size),
-            dtype=query.dtype,
-            device=output.device,
-        )
-        exp_sums = torch.empty(
-            size=(total_num_seq, num_query_heads, max_num_partitions),
-            dtype=torch.float32,
-            device=output.device,
-        )
-        max_logits = torch.empty_like(exp_sums)
-
-        ops.paged_attention_rocm(
-            output,
-            exp_sums,
-            max_logits,
-            tmp_output,
-            query,
-            key_cache,
-            value_cache,
-            num_kv_heads,
-            scale=sm_scale,
-            block_tables=block_table,
-            seq_lens=seq_lens,
-            query_start_loc=query_start_loc,
-            block_size=block_size,
-            max_seq_len=max_seq_len,
-            alibi_slopes=alibi_slopes,
-            kv_cache_dtype=kv_cache_dtype,
-            k_scale=k_scale,
-            v_scale=v_scale,
-            fp8_out_scale=output_scale,
-        )
-    else:
-        logger.warning_once(
-            "Cannot use ROCm custom paged attention kernel,"
-            " falling back to Triton implementation."
-        )
-        real_block_size = value_cache.shape[3]
-        # The standard model directly uses the original block_size.
-        # Non-standard 544 uses 32 to accommodate integer division logic.
-        # Cap at 128 to avoid exceeding GPU shared memory limits
-        # (e.g. hybrid Mamba models inflate block_size to 2048).
-        # The kernel handles TRITON_BLOCK_SIZE != PHYSICAL_BLOCK_SIZE
-        # via the l_block_idx/internal_offsets addressing logic.
-        MAX_TRITON_BLOCK_SIZE = 128
-        TRITON_BLOCK_SIZE = min(block_size, MAX_TRITON_BLOCK_SIZE) if is_pow2 else 32
-        if is_block_table_ptr:
-            # Using the physical base address of tensors
-            kv_element_size = key_cache.element_size()
-            block_byte_stride = key_cache.stride(0) * kv_element_size
-            # Get the starting physical address of the KV Cache
-            base_addr = key_cache.data_ptr()
-
-            # Normalization: Directly calculate the block offset
-            # of the pointer relative to the base address
-            processed_block_table = ((block_table - base_addr) // block_byte_stride).to(
-                torch.int32
-            )
-        else:
-            processed_block_table = block_table.to(torch.int32)
-
-        kernel_paged_attention_2d[
-            (
-                num_seqs,
-                num_kv_heads,
-            )
-        ](
-            output_ptr=output,
-            query_ptr=query,
-            key_cache_ptr=key_cache,
-            value_cache_ptr=value_cache,
-            sink_ptr=sinks,
-            block_tables_ptr=processed_block_table,
-            seq_lens_ptr=seq_lens,
-            alibi_slopes_ptr=alibi_slopes,
-            scale=sm_scale,
-            k_scale=k_scale,
-            v_scale=v_scale,
-            out_scale_inv=1.0 / output_scale if output_scale is not None else 1.0,
-            num_query_heads=num_query_heads,
-            num_queries_per_kv=num_queries_per_kv,
-            num_queries_per_kv_padded=num_queries_per_kv_padded,
-            block_table_stride=processed_block_table.stride(0),
-            query_stride_0=query.stride(0),
-            query_stride_1=query.stride(1),
-            output_stride_0=output.stride(0),
-            output_stride_1=output.stride(1),
-            BLOCK_SIZE=TRITON_BLOCK_SIZE,
-            PHYSICAL_BLOCK_SIZE=real_block_size,
-            HEAD_SIZE=head_size,
-            HEAD_SIZE_PADDED=triton.next_power_of_2(head_size),
-            USE_ALIBI_SLOPES=use_alibi_slopes,
-            SLIDING_WINDOW=sliding_window,
-            x=key_cache.shape[4],
-            stride_k_cache_0=key_cache.stride(0),
-            stride_k_cache_1=key_cache.stride(1),
-            stride_k_cache_2=key_cache.stride(2),
-            stride_k_cache_3=key_cache.stride(3),
-            stride_k_cache_4=key_cache.stride(4),
-            stride_v_cache_0=value_cache.stride(0),
-            stride_v_cache_1=value_cache.stride(1),
-            stride_v_cache_2=value_cache.stride(2),
-            stride_v_cache_3=value_cache.stride(3),
-            filter_by_query_len=True,
-            query_start_len_ptr=query_start_loc,
-            USE_SINKS=sinks is not None,
-            USE_FP8=output_scale is not None,
-        )
+# Authored launcher: drives the frozen in-module @triton.jit
+# `kernel_paged_attention_2d` EXACTLY as the upstream host wrapper
+# `chunked_prefill_paged_decode` does on its Triton decode path (vLLM
+# vllm/v1/attention/ops/chunked_prefill_paged_decode.py, commit
+# 18f6bf5a214fd51d0cb08fcf1b59edc5629e7c19). The grid, strides and
+# constexprs below mirror that wrapper (kernel.py:456); the launcher
+# never reimplements the attention numerics -- it only marshals the
+# shapes.yaml fixtures into the kernel's tensor contract and launches
+# the graded kernel.
+#
+# Why a launcher rather than binding `chunked_prefill_paged_decode`
+# directly: the wrapper takes the chunked-prefill control surface
+# `key`/`value` (new tokens written to cache), `output`, `kv_cache_dtype`,
+# `query_start_loc`, `max_seq_len`, `max_query_len`, `k_scale`, `v_scale`
+# -- none of which are plain shapes.yaml tensors, so the strict by-name
+# signature adapter rejects the wrapper as shapes-incomplete (first miss:
+# `value`). We supply them from the decode fixtures and pin the wrapper's
+# pure-decode path (max_query_len == 1 so the prefill branch and the ROCm
+# custom path are skipped, fp32 unit k/v scales, no ALiBi / sliding-window
+# / sinks / fp8) -- the exact branch the oracle models -- launching
+# `kernel_paged_attention_2d` with the wrapper's own grid/stride/constexpr
+# logic.
+#
+# Cache-layout marshalling. The fixtures and the oracle use a flat
+# `[C, T, H, D]` paged cache (oracle gathers `kf[block, slot]`); the
+# kernel addresses an exotic packed cache:
+#   key_cache   : [num_blks, num_kv_heads, head_size // x, blk_size, x]
+#   value_cache : [num_blks, num_kv_heads, head_size, blk_size]
+# We transpose the SAME logical values into those layouts so element
+# (block c, slot t, kv_head h, dim d) is identical on both sides -- a
+# permutation only, no value change, so a wrong gather can never
+# coincidentally match the oracle.
+#
+# Tiling block size. Mirrors the upstream wrapper's policy
+# (kernel.py:439-440):
+#   TRITON_BLOCK_SIZE = min(block_size, CAP) if is_pow2(block_size) else 32
+# `tl.arange(0, BLOCK_SIZE)` requires a power-of-2 extent, so a non-pow2
+# physical block (here T=48 on shape H1) must NOT be used as the tile;
+# upstream substitutes the pow2 constant 32, relying on the kernel's
+# logical/physical decoupling -- `l_block_idx = abs_token_idx //
+# PHYSICAL_BLOCK_SIZE` / `internal_offsets = abs_token_idx %
+# PHYSICAL_BLOCK_SIZE` (kernel.py:173-176) -- to walk the real T-slot
+# physical block with the smaller pow2 tile, gathering exactly the same
+# KV positions.
+#
+# Upstream caps at 128; at head_size 256 a 128-wide tile needs ~256 KB of
+# K+V shared memory, above the 227 KB device limit. We cap at 64 (~128 KB,
+# fits) -- the same decoupling makes a 64-wide tile gather exactly the same
+# KV positions as a 128-wide one on a pow2 physical block. It is a launch
+# tiling choice, not a semantic change: the only difference is the online-
+# softmax accumulation is split into more tiles, a fp32 add-order change
+# well inside the task's attention_flash tolerance.
+#
+# Output key (output) matches the oracle contract exactly.
+MAX_TRITON_BLOCK_SIZE = 64
+NONSTANDARD_BLOCK_SIZE = 32  # upstream's pow2 fallback for a non-pow2 block
+# Inner head_size split for the packed K cache. Any divisor of every D in
+# the shape grid works (the launcher owns this cache, the value is a pure
+# layout choice the kernel reads back via x = key_cache.shape[4]).
+X = 8
 
 import torch
 import triton

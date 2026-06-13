@@ -32,7 +32,6 @@ from ascendbench.frozen.deps.h_af43637ae818.fla_ops.index import prepare_chunk_i
 from ascendbench.frozen.deps.h_af43637ae818.fla_ops.op import exp  # Phase A': U2 FLA-ops package vendoring
 from ascendbench.frozen.deps.h_af43637ae818.fla_ops.utils import FLA_CHUNK_SIZE, use_cuda_graph  # Phase A': U2 FLA-ops package vendoring
 
-NUM_WARPS = [2, 4, 8, 16]
 
 
 @triton.heuristics(

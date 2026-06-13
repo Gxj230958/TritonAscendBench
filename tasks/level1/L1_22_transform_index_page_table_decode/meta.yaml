@@ -36,19 +36,19 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05
-  xcheck_run_id: xcheck-2026-06-05-2bede189
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-13-7e3a9dac
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 39936.0
-    measured_bytes: 39680.0
+    measured_bytes: 39936.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.0064516129032258064
+    bytes_deviation: 0.0
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0065 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0000 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P2
     analytic_bytes_total: 74240.0
@@ -126,7 +126,7 @@ provenance:
   source_md_id: L1-34
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:01:50Z'
+    verified_at: '2026-06-12T23:56:18Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -193,10 +193,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_22_transform_index_page_table_decode-20260604T181013
-  classified_at: '2026-06-04'
-  standalone_sha256: 3c8ef6b32aed5de7ede577212f4d8353adc8693c54323b44e9255a86007c5446
-  kernel_sha256: 3c8ef6b32aed5de7ede577212f4d8353adc8693c54323b44e9255a86007c5446
+  s2_gpu_run_id: s2-L1_22_transform_index_page_table_decode-20260613T075517
+  classified_at: '2026-06-13'
+  standalone_sha256: 1a4efd29c0d7463d0fb4f94dc26d5744b3a37bf02dfc261094bcf792066ab28b
+  kernel_sha256: 1a4efd29c0d7463d0fb4f94dc26d5744b3a37bf02dfc261094bcf792066ab28b
 frozen_deps: []
 classB_symbols: []
 reference_path: native

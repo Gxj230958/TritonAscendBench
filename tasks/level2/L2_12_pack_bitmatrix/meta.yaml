@@ -38,59 +38,59 @@ cost_model:
   status_reason: 'no asymptotic HBM regime: max analytic bytes 640 < min measured
     121600 across all 5 shape(s); cost_model.bytes not applicable (measured dominated
     by burst/launch floor)'
-  xcheck_run_id: xcheck-2026-06-05-950cb950
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-13-9114a1fe
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 32.0
-    measured_bytes: 122624.0
-    measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9997390396659708
-    kernel_launched: true
-    flops_checked: false
-    blocked: false
-    within_tol: false
-    note: bytes deviation 0.9997 > tol 0.0500 (analytic=32 measured=122624)
-  - shape_id: P2
-    analytic_bytes_total: 96.0
     measured_bytes: 121600.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9992105263157894
+    bytes_deviation: 0.9997368421052631
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9992 > tol 0.0500 (analytic=96 measured=121600)
-  - shape_id: P3
-    analytic_bytes_total: 320.0
-    measured_bytes: 122624.0
-    measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9973903966597077
-    kernel_launched: true
-    flops_checked: false
-    blocked: false
-    within_tol: false
-    note: bytes deviation 0.9974 > tol 0.0500 (analytic=320 measured=122624)
-  - shape_id: P4
-    analytic_bytes_total: 640.0
-    measured_bytes: 123904.0
-    measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9948347107438017
-    kernel_launched: true
-    flops_checked: false
-    blocked: false
-    within_tol: false
-    note: bytes deviation 0.9948 > tol 0.0500 (analytic=640 measured=123904)
-  - shape_id: P5
-    analytic_bytes_total: 48.0
+    note: bytes deviation 0.9997 > tol 0.0500 (analytic=32 measured=121600)
+  - shape_id: P2
+    analytic_bytes_total: 96.0
     measured_bytes: 121856.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9996060924369747
+    bytes_deviation: 0.9992121848739496
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9996 > tol 0.0500 (analytic=48 measured=121856)
+    note: bytes deviation 0.9992 > tol 0.0500 (analytic=96 measured=121856)
+  - shape_id: P3
+    analytic_bytes_total: 320.0
+    measured_bytes: 122880.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9973958333333334
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9974 > tol 0.0500 (analytic=320 measured=122880)
+  - shape_id: P4
+    analytic_bytes_total: 640.0
+    measured_bytes: 124160.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9948453608247423
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9948 > tol 0.0500 (analytic=640 measured=124160)
+  - shape_id: P5
+    analytic_bytes_total: 48.0
+    measured_bytes: 124416.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9996141975308642
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9996 > tol 0.0500 (analytic=48 measured=124416)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -123,7 +123,7 @@ provenance:
   source_md_id: L1-28
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T04:27:00Z'
+    verified_at: '2026-06-12T23:09:44Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       H1:
@@ -185,10 +185,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_12_pack_bitmatrix-20260608T184255
-  classified_at: '2026-06-08'
-  standalone_sha256: 25742bf900508ad30f0e3c94e197a972f78838cc91df079f61a4d727b5c0b85e
-  kernel_sha256: 25742bf900508ad30f0e3c94e197a972f78838cc91df079f61a4d727b5c0b85e
+  s2_gpu_run_id: s2-L2_12_pack_bitmatrix-20260613T070223
+  classified_at: '2026-06-13'
+  standalone_sha256: 4ac0cc8b60fe572d356d6709687c3b6b5bf73f0a8fc0ed1fcffad3cba17134c6
+  kernel_sha256: 4ac0cc8b60fe572d356d6709687c3b6b5bf73f0a8fc0ed1fcffad3cba17134c6
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.init_logger

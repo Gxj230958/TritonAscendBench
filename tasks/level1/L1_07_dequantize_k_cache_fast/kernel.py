@@ -54,8 +54,6 @@ def _dequantize_k_cache_fast_kernel(output_ptr, input_nope_q_ptr, input_nope_s_p
         dst_ptr = output_ptr + token_id * output_stride_0 + DIM_NOPE + offs
         data = tl.load(src_ptr, mask=mask).to(tl.bfloat16)
         tl.store(dst_ptr, data, mask=mask)
-if __name__ == '__main__':
-    raise Exception('UT is in quant_k_cache.py')
 
 
 # ── Phase A' synthesised standalone entrypoint (HOLE B) ─────────────

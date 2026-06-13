@@ -32,7 +32,6 @@ import triton.language as tl
 from ascendbench.frozen.deps.h_eff5066289d4.vllm_v1_attention_ops_triton_attention_helpers import apply_alibi_to_score, apply_softcap, cdiv_fn, compute_kv_seq_mask, compute_tile_loop_bounds, find_seq_idx, init_softmax_M, load_qq_bias_tile, resolve_seq_and_query_len, softmax_step, store_segm_reduce_scalars  # Phase A': U2 pool-vendored triton helper
 from ascendbench.frozen.deps.h_13fc183edba4.vllm_v1_kv_cache_interface_KVQuantMode import KVQuantMode  # Phase A': U2 pool-vendored IntEnum slice
 
-logger = init_logger(__name__)
 is_batch_invariant = envs.VLLM_BATCH_INVARIANT
 float8_info = torch.finfo(current_platform.fp8_dtype())
 
@@ -748,6 +747,85 @@ def unified_attention(
             NUM_SEGMENTS_PER_SEQ=num_par_softmax_segments,
             USE_FP8=output_scale is not None,
         )
+
+import torch
+import triton
+
+# Authored launcher: drives the frozen in-module host wrapper
+# `unified_attention` (vLLM unified varlen flash attention, kernel.py:519)
+# EXACTLY as upstream does on its 2D (prefill) Triton path. The launcher
+# never reimplements the attention numerics -- it only marshals the
+# shapes.yaml varlen fixtures into the kernel's tensor contract and
+# launches the graded `@triton.jit kernel_unified_attention` through the
+# frozen wrapper.
+#
+# Why a launcher rather than binding `unified_attention` directly: the
+# wrapper's strict by-name surface takes `out` / `max_seqlen_q` /
+# `max_seqlen_k` / `window_size` / `block_table` / `softcap` /
+# `q_descale` / `k_descale` / `v_descale` -- and, critically, its `k` / `v`
+# are NOT the packed [E*L, H, D] tensors the fixtures (and the oracle)
+# use: the wrapper reads a PAGED KV cache
+#   key_cache / value_cache : [num_blocks, block_size, num_kv_heads, head_size]
+# gathered through `block_table` (kernel.py:585 `block_size = v.shape[1]`,
+# :250-279 the per-tile paged gather). The fixture `block_table` is a
+# random [E, N] index tensor that does NOT lay the packed K/V into a cache,
+# so binding the wrapper by name would feed it an inconsistent cache and a
+# wrong gather. We build the paged cache ourselves and pin the wrapper's
+# pure-2D prefill path -- the exact branch the oracle models.
+#
+# 2D vs 3D path. The wrapper takes the 2D path (writes the final result
+# into `output_ptr`, kernel.py:384-398) whenever `max_seqlen_q > 1`
+# (kernel.py:636). Every fixture sequence has query_len == L > 1
+# (cu_seqlens_q is offsets:to=E*L over E sequences => each span is exactly
+# L), so passing max_seqlen_q = L forces the 2D path and the 3D segm
+# tensors are never touched. We pass them as None.
+#
+# Varlen -> paged cache marshalling. The fixtures pack E sequences of
+# length L into q/k/v [E*L, H, D]; the oracle gathers, for sequence i,
+# k[s : s+Lk] with s = i*L and Lk = seqused_k[i] (oracle_pytorch.py:65,78).
+# We scatter each sequence's L KV positions across ceil(L / block_size)
+# physical blocks of the [num_blocks, block_size, num_kv_heads, head_size]
+# cache, indirected through a SHUFFLED block_table so logical block (i, b)
+# maps to a non-contiguous physical id:
+#   block_table[i, b] = perm[i*blocks_per_seq + b]   (a fixed permutation)
+#   key_cache  [block_table[i,b], slot, h, d] == k[i*L + b*block_size + slot]
+#   value_cache[block_table[i,b], slot, h, d] == v[i*L + b*block_size + slot]
+#   seq_lens = seqused_k                       kernel reads first Lk positions
+# This is a pure copy/permutation of the SAME logical values (no value
+# change), so a gathered KV position p in [0, Lk) is block_table[i, p //
+# block_size] slot (p % block_size) == packed k[i*L + p] == the oracle's
+# k[s + p]: a wrong gather can never coincidentally match the oracle. The
+# non-identity, multi-block layout forces the graded kernel to genuinely
+# dereference block_table and walk the `seq_offset // BLOCK_SIZE` block index
+# (kernel.py:250) -- a kernel that ignores the paged remapping reads the
+# wrong KV and misses the oracle.
+#
+# Physical block_size. The kernel loads the block-table entry for EVERY tile
+# lane UNMASKED -- `physical_block_idx = tl.load(block_tables_ptr +
+# block_table_offset + seq_offset // BLOCK_SIZE)` (kernel.py:250-252) -- and
+# only applies `tile_mask` to the subsequent K/V loads. The prefill
+# TILE_SIZE is 32 (kernel.py:513 `_get_tile_size(is_prefill=True)`). We set
+# block_size == TILE_SIZE so every lane in tile j shares the same logical
+# block index `j*TILE_SIZE // block_size == j`, which is always a valid
+# block_table column (j < blocks_per_seq for any active tile, since
+# max_seq_prefix_len <= seq_len <= L <= blocks_per_seq*block_size). The last
+# partial block is zero-padded; the masked KV load (`tile_mask = seq_offset
+# < max_seq_prefix_len`) never reads the padding, so it has no numeric
+# effect.
+#
+# Output. The wrapper writes the final [E*L, H, D] result into `out`. The
+# oracle returns float32, so we allocate `out` as float32 and return it
+# under the "output" key.
+
+# Prefill tile width the wrapper selects via _get_tile_size(is_prefill=True)
+# (kernel.py:513). The physical block_size equals this so each tile maps to
+# exactly one logical block and the kernel's unmasked block-table index
+# stays in range across the whole tile span.
+PREFILL_TILE_SIZE = 32
+
+
+def _next_multiple(n: int, m: int) -> int:
+    return ((n + m - 1) // m) * m
 
 import torch
 import triton

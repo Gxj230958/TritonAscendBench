@@ -36,14 +36,13 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 5/5 gate
-    shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation 0.6076 > tol 0.0500
-    (analytic=1808 measured=4608); P2: bytes deviation 0.2938 > tol 0.0500 (analytic=3616
-    measured=5120); P3: bytes deviation 0.1771 > tol 0.0500 (analytic=7232 measured=6144);
-    P4: bytes deviation 0.6143 > tol 0.0500 (analytic=14464 measured=8960); P5: bytes
-    deviation 0.2938 > tol 0.0500 (analytic=3616 measured=5120)'
-  xcheck_run_id: xcheck-2026-06-05-1a13ae8e
-  xchecked_at: '2026-06-05'
+    error). 5/5 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation 0.6076
+    > tol 0.0500 (analytic=1808 measured=4608); P2: bytes deviation 0.3274 > tol 0.0500
+    (analytic=3616 measured=5376); P3: bytes deviation 0.1300 > tol 0.0500 (analytic=7232
+    measured=6400); P4: bytes deviation 0.6143 > tol 0.0500 (analytic=14464 measured=8960);
+    P5: bytes deviation 0.2938 > tol 0.0500 (analytic=3616 measured=5120)'
+  xcheck_run_id: xcheck-2026-06-13-97205e98
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 1808.0
@@ -57,24 +56,24 @@ cost_model:
     note: bytes deviation 0.6076 > tol 0.0500 (analytic=1808 measured=4608)
   - shape_id: P2
     analytic_bytes_total: 3616.0
-    measured_bytes: 5120.0
+    measured_bytes: 5376.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.29375
+    bytes_deviation: 0.3273809523809524
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.2938 > tol 0.0500 (analytic=3616 measured=5120)
+    note: bytes deviation 0.3274 > tol 0.0500 (analytic=3616 measured=5376)
   - shape_id: P3
     analytic_bytes_total: 7232.0
-    measured_bytes: 6144.0
+    measured_bytes: 6400.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.17708333333333334
+    bytes_deviation: 0.13
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.1771 > tol 0.0500 (analytic=7232 measured=6144)
+    note: bytes deviation 0.1300 > tol 0.0500 (analytic=7232 measured=6400)
   - shape_id: P4
     analytic_bytes_total: 14464.0
     measured_bytes: 8960.0
@@ -127,7 +126,7 @@ provenance:
   source_md_id: L1-07
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T00:55:07Z'
+    verified_at: '2026-06-12T23:56:18Z'
     tolerance_class_used: elementwise_exact_or_inf_safe
     equivalence_per_shape:
       H1:
@@ -183,10 +182,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_07_dequantize_k_cache_fast-20260602T202351
-  classified_at: '2026-06-02'
-  standalone_sha256: ab705870482343a14aa5221deeb670db22f9043d80e88b7688ca4c992bc1695e
-  kernel_sha256: ab705870482343a14aa5221deeb670db22f9043d80e88b7688ca4c992bc1695e
+  s2_gpu_run_id: s2-L1_07_dequantize_k_cache_fast-20260613T075517
+  classified_at: '2026-06-13'
+  standalone_sha256: 41505db7df909dcfbeca193013203ba7b7029ef3fb9c5909609954a1f58bbac6
+  kernel_sha256: 41505db7df909dcfbeca193013203ba7b7029ef3fb9c5909609954a1f58bbac6
 frozen_deps: []
 classB_symbols: []
 reference_path: native

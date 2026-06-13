@@ -157,91 +157,25 @@ def _chunked_lora_expand_kernel(
     tl.store(output_ptr, partial_sum, mask=output_mask)
 
 
-def chunked_sgmv_lora_expand_forward(
-    x: torch.Tensor,
-    weights: torch.Tensor,
-    batch_info: LoRABatchInfo,
-    slice_offsets: torch.Tensor,
-    max_slice_size: int,
-    base_output: Optional[torch.Tensor],
-) -> torch.Tensor:
 
-    # x: (s, slice_num * r)
-    # weights: (num_lora, output_dim, r)
-    # slice_offsets: boundaries for different slices in the output dimension
-    # output: (s, output_dim)
+import torch
+import triton
 
-    # Compute lora_output with shape (s, output_dim) as follows:
-    # For each slice i, accumulates:
-    # lora_output[:, slice_offsets[i]:slice_offsets[i+1]] += scaling * sgemm(x[:, i*cur_rank:(i+1)*cur_rank], weights[:, slice_offsets[i]:slice_offsets[i+1], :])
 
-    assert x.is_contiguous()
-    assert weights.is_contiguous()
-    assert len(x.shape) == 2
-    assert len(weights.shape) == 3
-
-    # Get dims
-    M = x.shape[0]
-    input_dim = x.shape[1]
-    OUTPUT_DIM = weights.shape[1]
-    MAX_RANK = weights.shape[2]
-    num_slices = len(slice_offsets) - 1
-    assert input_dim == num_slices * MAX_RANK
-
-    # Block shapes — use auto-tuned config if available, else defaults
-    BLOCK_M = batch_info.max_len
-    config = get_lora_expand_config(
-        K=OUTPUT_DIM, R=MAX_RANK, num_slices=num_slices, chunk_size=BLOCK_M
-    )
-    BLOCK_K = config["BLOCK_K"]
-    BLOCK_N = config["BLOCK_N"]
-
-    num_segments = batch_info.num_segments
-
-    grid = (
-        triton.cdiv(max_slice_size, BLOCK_N),
-        num_slices,  # number of slices in the input/output
-        batch_info.bs if batch_info.use_cuda_graph else num_segments,
-    )
-
-    if base_output is None:
-        output = torch.zeros((M, OUTPUT_DIM), device=x.device, dtype=x.dtype)
-    else:
-        output = base_output
-
-    # Optional launch params from tuned config
-    extra_kwargs = {}
-    if "num_warps" in config:
-        extra_kwargs["num_warps"] = config["num_warps"]
-    if "num_stages" in config:
-        extra_kwargs["num_stages"] = config["num_stages"]
-    if "maxnreg" in config:
-        extra_kwargs["maxnreg"] = config["maxnreg"]
-
-    _chunked_lora_expand_kernel[grid](
-        x=x,
-        weights=weights,
-        output=output,
-        output_stride_0=output.stride(0),
-        output_stride_1=output.stride(1),
-        seg_indptr=batch_info.seg_indptr,
-        weight_indices=batch_info.weight_indices,
-        lora_ranks=batch_info.lora_ranks,
-        permutation=batch_info.permutation,
-        num_segs=num_segments,
-        scalings=batch_info.scalings,
-        slice_offsets=slice_offsets,
-        # constants
-        NUM_SLICES=num_slices,
-        OUTPUT_DIM=OUTPUT_DIM,
-        MAX_RANK=MAX_RANK,
-        BLOCK_M=BLOCK_M,
-        BLOCK_N=BLOCK_N,
-        BLOCK_K=BLOCK_K,
-        **extra_kwargs,
-    )
-
-    return output
+# Drives the in-module @triton.jit `_chunked_lora_expand_kernel` exactly as the
+# upstream host wrapper `chunked_sgmv_lora_expand_forward` does (SGLang
+# sglang/srt/lora/triton_ops/chunked_sgmv_expand.py, commit 409d350f).
+#
+# The wrapper takes a `sglang.srt.lora.utils.LoRABatchInfo` (BLOCKED closure);
+# the kernel only reads the dense tensors plus a derived seg_lens/max_len and an
+# identity permutation, so we reconstruct exactly the batch_info fields it
+# forwards from the dense oracle inputs. seg_indptr is the authoritative segment
+# boundary source (invariant seg_indptr == cumsum([0, seg_lens])); BLOCK_M =
+# max_len = max segment length. The kernel always dereferences `permutation`, so
+# we supply the identity arange(S) -- the deterministic upstream lm_head case,
+# matching the oracle's identity default. Block sizes are the untuned defaults
+# (tiling only, not the result); the grid derives max_slice_size from
+# slice_offsets so every output slice column is covered.
 
 import torch
 import triton

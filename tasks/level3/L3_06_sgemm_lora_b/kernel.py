@@ -137,68 +137,25 @@ def _sgemm_lora_b_kernel(
     tl.store(output_ptr, partial_sum, mask=output_mask)
 
 
-def sgemm_lora_b_fwd(
-    x: torch.Tensor,
-    weights: torch.Tensor,
-    batch_info: LoRABatchInfo,
-    base_output: torch.Tensor = None,
-) -> torch.Tensor:
-    # x: (s, max_r)
-    # weights: (num_lora, output_dim, max_r)
-    # output: (s, output_dim)
-    # output_dim is much larger than max_r
 
-    assert x.is_contiguous()
-    assert weights.is_contiguous()
-    assert len(x.shape) == 2
-    assert len(weights.shape) == 3
+import torch
+import triton
 
-    S = x.shape[0]
-    N = weights.shape[-2]
-    R = weights.shape[-1]
-    assert x.shape[-1] == R
 
-    # Block shapes
-    BLOCK_S = 16
-    BLOCK_R = 16
-    BLOCK_N = 256
-
-    grid = (
-        triton.cdiv(batch_info.max_len, BLOCK_S) * triton.cdiv(N, BLOCK_N),
-        batch_info.bs,
-    )
-
-    if base_output is None:
-        output = torch.zeros((S, N), device=x.device, dtype=x.dtype)
-    else:
-        output = base_output
-
-    sorted_by_adapter = batch_info.permutation is not None
-    _sgemm_lora_b_kernel[grid](
-        x,
-        weights,
-        output,
-        N,
-        R,
-        x.stride(0),
-        x.stride(1),
-        weights.stride(0),
-        weights.stride(1),
-        weights.stride(2),
-        output.stride(0),
-        output.stride(1),
-        batch_info.seg_lens,
-        batch_info.seg_indptr,
-        batch_info.weight_indices,
-        batch_info.lora_ranks,
-        batch_info.permutation,
-        sorted_by_adapter,
-        BLOCK_S,
-        BLOCK_N,
-        BLOCK_R,
-        batch_info.scalings,
-    )
-    return output
+# Drives the in-module @triton.jit `_sgemm_lora_b_kernel` exactly as the
+# upstream host wrapper `sgemm_lora_b_fwd` does (SGLang
+# sglang/srt/lora/triton_ops/sgemm_lora_b.py, commit 409d350f).
+#
+# The wrapper takes a `sglang.srt.lora.utils.LoRABatchInfo`, whose import pulls
+# in the full sglang runtime (BLOCKED closure). The kernel itself only reads
+# the dense tensors plus a derived seg_lens/max_len, so we reconstruct exactly
+# the batch_info fields it forwards from the dense oracle inputs.
+#
+# permutation is None -> SORTED_BY_ADAPTER False, so `_resolve_token_positions`
+# returns seg_start + s_offset, the identity row map the oracle uses. seg_lens
+# is derived from the authoritative seg_indptr to restore the invariant
+# seg_indptr == cumsum([0, seg_lens]). The kernel accumulates into `output`;
+# starting from zeros makes that equal the oracle's base-free reference.
 
 import torch
 import triton

@@ -37,32 +37,32 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-05-6cf6fb3a
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-13-8d2b752d
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 4608.0
-    measured_bytes: 8704.0
+    measured_bytes: 8960.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.47058823529411764
+    bytes_deviation: 0.4857142857142857
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4706 > tol 0.0500 (analytic=4608 measured=8704) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=8704 < 0.5xmax=1183744); non-blocking
+    note: 'bytes deviation 0.4857 > tol 0.0500 (analytic=4608 measured=8960) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=8960 < 0.5xmax=1184000); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 18432.0
-    measured_bytes: 22784.0
+    measured_bytes: 22528.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.19101123595505617
+    bytes_deviation: 0.18181818181818182
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1910 > tol 0.0500 (analytic=18432 measured=22784) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=22784 < 0.5xmax=1183744); non-blocking
+    note: 'bytes deviation 0.1818 > tol 0.0500 (analytic=18432 measured=22528) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=22528 < 0.5xmax=1184000); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 73728.0
@@ -74,29 +74,29 @@ cost_model:
     blocked: false
     within_tol: false
     note: 'bytes deviation 0.0557 > tol 0.0500 (analytic=73728 measured=78080) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=78080 < 0.5xmax=1183744); non-blocking
+      small-shape HBM burst floor (measured=78080 < 0.5xmax=1184000); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 294912.0
-    measured_bytes: 299008.0
+    measured_bytes: 299264.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.0136986301369863
+    bytes_deviation: 0.01454234388366125
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0137 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0145 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P5
     analytic_bytes_total: 1179648.0
-    measured_bytes: 1183744.0
+    measured_bytes: 1184000.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.0034602076124567475
+    bytes_deviation: 0.0036756756756756758
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0035 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0037 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -130,7 +130,7 @@ provenance:
   source_md_id: L1-09
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T00:55:34Z'
+    verified_at: '2026-06-12T23:08:03Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       H1:
@@ -192,10 +192,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_09_quantize_k_cache_fast-20260604T180905
-  classified_at: '2026-06-04'
-  standalone_sha256: 5e55a298b110cd008237b4fc46be29d6287a6c4d60fa7ed6d5d4f2d277e2ee1e
-  kernel_sha256: 5e55a298b110cd008237b4fc46be29d6287a6c4d60fa7ed6d5d4f2d277e2ee1e
+  s2_gpu_run_id: s2-L1_09_quantize_k_cache_fast-20260613T070134
+  classified_at: '2026-06-13'
+  standalone_sha256: a51d72f8a46a739762486e173510c59d2c34eba5e3d92092ac03c7202b130138
+  kernel_sha256: a51d72f8a46a739762486e173510c59d2c34eba5e3d92092ac03c7202b130138
 frozen_deps: []
 classB_symbols: []
 reference_path: native

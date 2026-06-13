@@ -37,20 +37,20 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 2 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-05-bda83896
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-13-247e73f9
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 8896.0
-    measured_bytes: 18432.0
+    measured_bytes: 18176.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5173611111111112
+    bytes_deviation: 0.5105633802816901
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.5174 > tol 0.0500 (analytic=8896 measured=18432) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=18432 < 0.5xmax=2286848); non-blocking
+    note: 'bytes deviation 0.5106 > tol 0.0500 (analytic=8896 measured=18176) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=18176 < 0.5xmax=2286848); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 71168.0
@@ -88,14 +88,14 @@ cost_model:
       -- see module docstring)
   - shape_id: P5
     analytic_bytes_total: 1083392.0
-    measured_bytes: 1092608.0
+    measured_bytes: 1092864.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.008434864104967198
+    bytes_deviation: 0.008667135160459125
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0084 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0087 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -129,7 +129,7 @@ provenance:
   source_md_id: L2-11
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T02:00:50Z'
+    verified_at: '2026-06-12T23:10:54Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
@@ -205,10 +205,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_18_w8a8_triton_block_scaled_mm-20260608T184341
-  classified_at: '2026-06-08'
-  standalone_sha256: 2b32f7f775821e0b976f22ec85e0e26caaf7b16d5d57bf0962ee848d156d92ab
-  kernel_sha256: 2b32f7f775821e0b976f22ec85e0e26caaf7b16d5d57bf0962ee848d156d92ab
+  s2_gpu_run_id: s2-L2_18_w8a8_triton_block_scaled_mm-20260613T070247
+  classified_at: '2026-06-13'
+  standalone_sha256: 2cdbfe09624a946e306f4bc25b732dfae423fd37e7b2b6f3cf1550eab1fc6851
+  kernel_sha256: 2cdbfe09624a946e306f4bc25b732dfae423fd37e7b2b6f3cf1550eab1fc6851
 frozen_deps: []
 classB_symbols: []
 reference_path: native

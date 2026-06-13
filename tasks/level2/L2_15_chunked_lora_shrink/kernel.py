@@ -133,73 +133,42 @@ def _chunked_lora_shrink_kernel(
     tl.store(output_ptr, partial_sum, mask=output_mask)
 
 
-def chunked_sgmv_lora_shrink_forward(
-    x: torch.Tensor,
-    weights: torch.Tensor,
-    batch_info: LoRABatchInfo,
-    num_slices: int,
-) -> torch.Tensor:
-    # x: (s, input_dim)
-    # weights: (num_lora, num_slices * r, input_dim)
-    # output: (s, num_slices * r)
-    # num_slices: qkv=3, gate_up=2, others=1
-    # when called with multiple slices, the weights.shape[-2] will be num_slices * r
-    # input_dim is much larger than r
 
-    assert x.is_contiguous()
-    assert weights.is_contiguous()
-    assert len(x.shape) == 2
-    assert len(weights.shape) == 3
+import torch
+import triton
 
-    # Block shapes — use auto-tuned config if available, else defaults
-    BLOCK_M = batch_info.max_len
-    # weights shape is (num_lora, num_slices * rank, input_dim)
-    MAX_RANK = weights.shape[1] // num_slices
-    config = get_lora_shrink_config(
-        K=weights.shape[2], R=MAX_RANK, num_slices=num_slices, chunk_size=BLOCK_M
-    )
-    BLOCK_N = config["BLOCK_N"]
-    BLOCK_K = config["BLOCK_K"]
 
-    S = x.shape[0]
-    N = weights.shape[1]
-    K = weights.shape[2]
-    assert x.shape[-1] == K
-
-    num_segments = batch_info.num_segments
-    grid = (
-        triton.cdiv(N, BLOCK_N),
-        batch_info.bs if batch_info.use_cuda_graph else num_segments,
-    )
-
-    # Optional launch params from tuned config
-    extra_kwargs = {}
-    if "num_warps" in config:
-        extra_kwargs["num_warps"] = config["num_warps"]
-    if "num_stages" in config:
-        extra_kwargs["num_stages"] = config["num_stages"]
-
-    output = torch.empty((S, N), device=x.device, dtype=x.dtype)
-    _chunked_lora_shrink_kernel[grid](
-        x=x,
-        weights=weights,
-        output=output,
-        seg_indptr=batch_info.seg_indptr,
-        weight_indices=batch_info.weight_indices,
-        lora_ranks=batch_info.lora_ranks,
-        permutation=batch_info.permutation,
-        num_segs=num_segments,
-        # constants
-        N=N,
-        K=K,
-        NUM_SLICES=num_slices,
-        BLOCK_M=BLOCK_M,
-        BLOCK_N=BLOCK_N,
-        BLOCK_K=BLOCK_K,
-        **extra_kwargs,
-    )
-
-    return output
+# Drives the in-module @triton.jit `_chunked_lora_shrink_kernel` exactly as the
+# upstream host wrapper `chunked_sgmv_lora_shrink_forward` does (SGLang
+# sglang/srt/lora/triton_ops/chunked_sgmv_shrink.py, commit 409d350f).
+#
+# Why a launcher rather than the host wrapper: the wrapper calls
+# `get_lora_shrink_config` -> `get_device_name()`, which returns None off-GPU
+# (AttributeError: 'NoneType'.replace), so the wrapper is not invocable here.
+# It also takes a `sglang.srt.lora.utils.LoRABatchInfo` whose import pulls the
+# full sglang runtime (a T3 BLOCKED closure). The kernel itself only reads plain
+# dense tensors plus a derived num_segments and a permutation, so we reconstruct
+# exactly the batch_info fields the wrapper forwards from the dense oracle
+# inputs. (Same pattern as the passed siblings L3_03_chunked_lora_expand /
+# L3_04_qkv_lora_b.)
+#
+# Layout reconciliation (dense fixtures -> upstream batch_info contract):
+#   seg_indptr is the authoritative segment-boundary source (the oracle's
+#   boundary source); the real LoRABatchInfo always satisfies
+#   seg_indptr == cumsum([0, seg_lens]). num_segments = len(seg_indptr) - 1.
+#   BLOCK_M = max_len = max segment length (the grid/tiling axis-0 extent: it
+#   must cover the longest segment or that segment under-launches). The kernel
+#   always dereferences `permutation` (output[seg_start:seg_end] is stored at
+#   permutation-mapped physical rows); the oracle uses no reordering, i.e. the
+#   identity row mapping, so we supply the identity arange(S) -- matching the
+#   oracle exactly. The kernel reads weights[weight_indices[seg]] and masks
+#   output columns by lora_ranks[weight_indices[seg]] * NUM_SLICES, so both
+#   index vectors are load-bearing and forwarded verbatim.
+#
+# Block sizes are the upstream untuned shrink defaults (BLOCK_N=16, BLOCK_K=256,
+# mirroring lora_tuning_config.DEFAULT_SHRINK_CONFIG); tiling only, masked, never
+# the result. Grid = (cdiv(N, BLOCK_N), num_segments), as the wrapper builds it
+# off the CUDA-graph path (use_cuda_graph=False).
 
 import torch
 import triton

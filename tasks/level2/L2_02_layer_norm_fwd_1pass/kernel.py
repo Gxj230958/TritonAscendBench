@@ -156,34 +156,6 @@ def _layer_norm_fwd(
     return out, mean, rstd
 
 
-def rms_norm_gated(
-    x, weight, bias, z=None, eps=1e-6, group_size=None, norm_before_gate=True
-):
-    x_shape_og = x.shape
-    # reshape input data into 2D tensor
-    x = x.reshape(-1, x.shape[-1])
-    if x.stride(-1) != 1:
-        x = x.contiguous()
-    if z is not None:
-        assert z.shape == x_shape_og
-        z = z.reshape(-1, z.shape[-1])
-        if z.stride(-1) != 1:
-            z = z.contiguous()
-    weight = weight.contiguous()
-    if bias is not None:
-        bias = bias.contiguous()
-    y, _, _ = _layer_norm_fwd(
-        x,
-        weight,
-        bias,
-        eps,
-        z=z,
-        group_size=group_size,
-        norm_before_gate=norm_before_gate,
-        is_rms_norm=True,
-    )
-
-    return y.reshape(x_shape_og)
 
 
 # ── Phase A' synthesised standalone entrypoint (HOLE B) ─────────────

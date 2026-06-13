@@ -151,82 +151,63 @@ def _qkv_lora_b_kernel(
     tl.store(output_ptr, partial_sum, mask=output_mask)
 
 
-def qkv_lora_b_fwd(
-    x: torch.Tensor,
-    qkv_lora_b: torch.Tensor,
-    batch_info: LoRABatchInfo,
-    output_offset: torch.Tensor,
-    max_qkv_out_dim: int,
-    base_output: torch.Tensor = None,
-    n_slices: int = 3,
-) -> torch.Tensor:
 
-    # x: (s, n_slices * r)
-    # qkv_lora_b: (num_lora, output_dim_q + 2 * output_dim_kv, r)
-    # output_offset = [0, output_dim_q, output_dim_q + output_dim_kv,
-    #                     output_dim_q + 2 * output_dim_kv]  (length n_slices + 1)
-    # max_qkv_out_dim = max(output_dim_q, output_dim_kv)
-    # output: (s, output_dim_q + 2 * output_dim_kv)
+import torch
+import triton
 
-    # Compute lora_output with shape (s, output_dim) as follows:
-    # lora_output[:, :output_dim_q] = sgemm(x[:, :r], qkv_lora_b[:, :outptu_dim_q, :])
-    # lora_output[:, output_dim_q: output_dim_q + output_dim_kv]
-    #      = sgemm(x[:, r: 2 * r], qkv_lora_b[:, outptu_dim_q: output_dim_q + output_dim_kv, :])
-    # lora_output[:, output_dim_q + output_dim_kv: ]
-    #      = sgemm(x[:, 2 * r: , qkv_lora_b[:, output_dim_q + output_dim_kv: , :])
 
-    # Get dims
-    s = x.shape[0]
-    input_dim = x.shape[1]
-    r = qkv_lora_b.shape[-1]
-    output_dim = qkv_lora_b.shape[-2]
-    assert input_dim == n_slices * r
-    assert output_offset.shape[0] == n_slices + 1
-
-    BLOCK_S = 16
-    BLOCK_R = 16
-    BLOCK_OUT = 64
-
-    grid_b = (
-        triton.cdiv(batch_info.max_len, BLOCK_S)
-        * triton.cdiv(max_qkv_out_dim, BLOCK_OUT),
-        n_slices,
-        batch_info.bs,
-    )
-
-    if base_output is None:
-        output = torch.zeros((s, output_dim), device=x.device, dtype=x.dtype)
-    else:
-        output = base_output
-
-    sorted_by_adapter = batch_info.permutation is not None
-    _qkv_lora_b_kernel[grid_b](
-        x,
-        qkv_lora_b,
-        output,
-        r,
-        max_qkv_out_dim,
-        x.stride(0),
-        x.stride(1),
-        qkv_lora_b.stride(0),
-        qkv_lora_b.stride(1),
-        qkv_lora_b.stride(2),
-        output.stride(0),
-        output.stride(1),
-        batch_info.seg_lens,
-        batch_info.seg_indptr,
-        batch_info.weight_indices,
-        batch_info.lora_ranks,
-        output_offset,
-        batch_info.permutation,
-        sorted_by_adapter,
-        BLOCK_S,
-        BLOCK_OUT,
-        BLOCK_R,
-        batch_info.scalings,
-    )
-
-    return output
+# Authored launcher: drives the in-module @triton.jit `_qkv_lora_b_kernel`
+# exactly as the upstream host wrapper `qkv_lora_b_fwd` does (SGLang
+# sglang/srt/lora/triton_ops/qkv_lora_b.py, commit
+# 409d350fb6f6a1e7c7546e39028f811092a8e489).
+#
+# Why a launcher rather than the host wrapper: the host entry
+# `qkv_lora_b_fwd(x, qkv_lora_b, batch_info, output_offset, max_qkv_out_dim,
+# ...)` takes a `sglang.srt.lora.utils.LoRABatchInfo` dataclass whose import
+# transitively pulls the full sglang runtime (ForwardBatch, vllm._C, fastapi,
+# prometheus_client, ...). That closure is T3 BLOCKED-candidate (closure cycle,
+# >800 symbols) and none of it is needed to exercise the unit under test: the
+# kernel only reads plain dense tensors plus a derived seg_lens/max_len. We
+# reconstruct exactly the batch_info fields the wrapper forwards, straight from
+# the dense oracle inputs. (Same pattern as L2_16_sgemm_lora_a.)
+#
+# Upstream invocation reproduced here (qkv_lora_b_fwd):
+#   x: (s, n_slices * r) -- the LoRA-A output, partitioned into n_slices=3
+#     column blocks for Q/K/V.
+#   qkv_lora_b: (num_lora, output_dim_q + 2*output_dim_kv, r).
+#   output_offset = [0, output_dim_q, output_dim_q + output_dim_kv,
+#                    output_dim_q + 2*output_dim_kv] (length n_slices + 1).
+#   max_qkv_out_dim = max(output_dim_q, output_dim_kv).
+#   output: (s, output_dim_q + 2*output_dim_kv).
+#   K (kernel arg) = r = qkv_lora_b.shape[-1]; BLOCK_S=16, BLOCK_OUT=64,
+#   BLOCK_R=16.
+#   grid = (cdiv(max_len, BLOCK_S) * cdiv(max_qkv_out_dim, BLOCK_OUT),
+#           n_slices, bs).
+#   The wrapper passes batch_info.{seg_lens, seg_indptr, weight_indices,
+#   lora_ranks, scalings, permutation}; sorted_by_adapter = permutation is not
+#   None.
+#
+# Layout reconciliation (dense fixtures -> upstream batch_info contract):
+#   A segment's row span is defined the SAME way by oracle and kernel when the
+#   two segment descriptors are consistent: the wrapper drives row offsets from
+#   seg_indptr[batch_id] (seg_start) with length seg_lens[batch_id]. The real
+#   LoRABatchInfo always satisfies seg_indptr == cumsum([0, seg_lens]), i.e.
+#   seg_lens[i] = seg_indptr[i+1] - seg_indptr[i]. The dense fixture supplies
+#   the authoritative seg_indptr (the oracle's boundary source), so we DERIVE
+#   seg_lens from it to restore that invariant exactly. bs = num_segments =
+#   len(seg_indptr) - 1; max_len = max(seg_lens) (the grid axis-0 extent --
+#   it must cover the longest segment or that segment under-launches).
+#   permutation is None (tokens contiguous, SORTED_BY_ADAPTER=False), so
+#   `_resolve_token_positions` returns seg_start + s_offset -- the identity row
+#   mapping the oracle uses (no adapter-sorted reordering).
+#
+# Per (segment batch_id, slice qkv_id): w_index = weight_indices[batch_id]
+# selects the adapter; rank = lora_ranks[w_index]; K is clamped to
+# min(r, rank); x reads columns [qkv_id*K : qkv_id*K + K] (note the CLAMPED K
+# stride, matching the kernel's `qkv_id * K` offset after `K = min(K, rank)`);
+# weights read qkv_lora_b[w_index, n_start:n_start+n_size, :K] for the slice's
+# output_offset window; output[:, n_start:n_start+n_size] += scaling * (x @
+# w.T). Output key matches the oracle contract: output, fp32 [s, 3*N].
 
 import torch
 import triton

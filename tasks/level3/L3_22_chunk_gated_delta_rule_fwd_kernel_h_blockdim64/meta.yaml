@@ -41,24 +41,23 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 2/2 gate
-    shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3676 > tol 0.0500
-    (analytic=75595776 measured=55274752); P4: bytes deviation 0.0528 > tol 0.0500
-    (analytic=67141632 measured=63777280)'
-  xcheck_run_id: xcheck-2026-06-05-267a52d4
-  xchecked_at: '2026-06-05'
+    error). 2/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3528
+    > tol 0.0500 (analytic=75595776 measured=55880192); P4: bytes deviation 0.0574
+    > tol 0.0500 (analytic=67141632 measured=63494656)'
+  xcheck_run_id: xcheck-2026-06-13-32f5402a
+  xchecked_at: '2026-06-13'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 1479168.0
-    measured_bytes: 919040.0
+    measured_bytes: 923648.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6094707520891365
+    bytes_deviation: 0.6014412416851441
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6095 > tol 0.0500 (analytic=1479168 measured=919040)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=919040 < 0.5xmax=63777280);
+    note: 'bytes deviation 0.6014 > tol 0.0500 (analytic=1479168 measured=923648)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=923648 < 0.5xmax=63494656);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 6574080.0
@@ -70,39 +69,39 @@ cost_model:
     blocked: false
     within_tol: false
     note: 'bytes deviation 0.6414 > tol 0.0500 (analytic=6574080 measured=4005120)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=4005120 < 0.5xmax=63777280);
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=4005120 < 0.5xmax=63494656);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 75595776.0
-    measured_bytes: 55274752.0
+    measured_bytes: 55880192.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.3676366381526235
+    bytes_deviation: 0.3528188306869096
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.3676 > tol 0.0500 (analytic=75595776 measured=55274752)
+    note: bytes deviation 0.3528 > tol 0.0500 (analytic=75595776 measured=55880192)
   - shape_id: P4
     analytic_bytes_total: 67141632.0
-    measured_bytes: 63777280.0
+    measured_bytes: 63494656.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.052751575482679725
+    bytes_deviation: 0.05743752671090934
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.0528 > tol 0.0500 (analytic=67141632 measured=63777280)
+    note: bytes deviation 0.0574 > tol 0.0500 (analytic=67141632 measured=63494656)
   - shape_id: P5
     analytic_bytes_total: 7090176.0
-    measured_bytes: 3996928.0
+    measured_bytes: 3997184.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.7739063600845449
+    bytes_deviation: 0.7737927500960676
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.7739 > tol 0.0500 (analytic=7090176 measured=3996928)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=3996928 < 0.5xmax=63777280);
+    note: 'bytes deviation 0.7738 > tol 0.0500 (analytic=7090176 measured=3997184)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=3997184 < 0.5xmax=63494656);
       non-blocking per asymptotic_hbm_xcheck]'
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -136,7 +135,7 @@ provenance:
   source_md_id: L3-13
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:16:51Z'
+    verified_at: '2026-06-12T23:13:11Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       H1:
@@ -209,10 +208,10 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64-20260608T184937
-  classified_at: '2026-06-08'
-  standalone_sha256: 5fd58850d9e9f85b82e57ae4e560a878cfa79d53dd37e1987eac1bdce03074c4
-  kernel_sha256: 5fd58850d9e9f85b82e57ae4e560a878cfa79d53dd37e1987eac1bdce03074c4
+  s2_gpu_run_id: s2-L3_22_chunk_gated_delta_rule_fwd_kernel_h_blockdim64-20260613T070352
+  classified_at: '2026-06-13'
+  standalone_sha256: 5b53e884ac3b7bc4c5848d30ecca90e264f17a9311b13ba9e28981f4b5865616
+  kernel_sha256: 5b53e884ac3b7bc4c5848d30ecca90e264f17a9311b13ba9e28981f4b5865616
 frozen_deps:
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.index
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.op
