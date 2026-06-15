@@ -1833,6 +1833,11 @@ def update_meta_phase_a_prime(
     # eligibility.fresh_s2_pass / validate_corpus_consistency). A later in-place edit of any
     # knob/dim/dtype/dist or an added/removed shape changes this hash, so the recorded S2 PASS
     # no longer counts -- the shape-set analogue of kernel_sha256. None on shapes.yaml read error.
+    # REPO_ROOT must be on sys.path: this module is run as a script (sys.path[0] = scripts/verify/,
+    # NOT the bench root), so `ascendbench` is not importable without it -- mirror the same guard the
+    # release-gate path uses (this file has no module-level insert; each ascendbench import guards).
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
     from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
 
     shape_manifest = shape_manifest_sha256_for_task(task_dir)
