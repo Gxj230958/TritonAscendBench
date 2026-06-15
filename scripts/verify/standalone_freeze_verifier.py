@@ -1829,6 +1829,13 @@ def update_meta_phase_a_prime(
     # Distinct from standalone_sha256 (the severed-candidate hash).
     kp = task_dir / "kernel.py"
     kernel_sha256 = hashlib.sha256(kp.read_bytes()).hexdigest() if kp.is_file() else ""
+    # shape_manifest_sha256 = the FRESHNESS signal for the declared shape SET (consumed by
+    # eligibility.fresh_s2_pass / validate_corpus_consistency). A later in-place edit of any
+    # knob/dim/dtype/dist or an added/removed shape changes this hash, so the recorded S2 PASS
+    # no longer counts -- the shape-set analogue of kernel_sha256. None on shapes.yaml read error.
+    from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
+
+    shape_manifest = shape_manifest_sha256_for_task(task_dir)
     meta = yaml.safe_load(mp.read_text())
     meta["phase_a_prime"] = {
         "status": status,
@@ -1837,6 +1844,7 @@ def update_meta_phase_a_prime(
         "classified_at": datetime.date.today().isoformat(),
         "standalone_sha256": standalone_sha256,
         "kernel_sha256": kernel_sha256,
+        "shape_manifest_sha256": shape_manifest,
     }
     meta["frozen_deps"] = frozen_deps
     meta["classB_symbols"] = class_b_symbols

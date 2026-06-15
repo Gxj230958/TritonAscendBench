@@ -415,10 +415,24 @@ def _write_phase_b_capture_block(
         # The DONE record clears any prior failure reason so the
         # block is a coherent snapshot of the current capture state.
         block.pop("reason", None)
+        # Shape-set freshness: stamp the manifest this golden set was captured over, so a later
+        # in-place shapes.yaml edit (same id-set, changed knob/dim) is detectable as a stale golden
+        # by validate_corpus_consistency. The caller (capture flow) has already forced a fresh
+        # recapture whenever the prior manifest did not match, so DONE here means the artifacts
+        # genuinely reflect the CURRENT shape set.
+        from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
+
+        _sm = shape_manifest_sha256_for_task(task_dir)
+        if _sm:
+            block["shape_manifest_sha256"] = _sm
+        else:
+            block.pop("shape_manifest_sha256", None)
     elif status == PHASE_B_CAPTURE_STATUS_FAILED:
         if not reason:
             reason = "unknown capture failure"
         block["reason"] = reason[:_PHASE_B_REASON_MAX]
+        # A failed capture is not a fresh proof -> never leave a stale freshness stamp.
+        block.pop("shape_manifest_sha256", None)
     # PENDING: no extra required fields; we keep any existing
     # upstream_callable / reason / captured_at untouched.
     meta["phase_b_capture"] = block
@@ -906,11 +920,29 @@ def capture_task(
     golden_dir = task.task_dir / "golden"
     golden_dir.mkdir(parents=True, exist_ok=True)
 
-    # Idempotency: skip shapes that already have a usable artifact.
+    # Idempotency is gated on SHAPE-SET FRESHNESS: an existing golden is a valid skip only if it
+    # was captured over the CURRENT shape manifest. A shapes.yaml edit (same id-set, changed
+    # knob/dim) leaves loadable-but-stale artifacts; skipping them and re-stamping DONE would
+    # re-attest stale goldens as fresh. So when the recorded phase_b manifest != the current one
+    # (or is absent -- a first capture), force a full recapture regardless of the --force flag.
+    from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
+
+    _cur_manifest = shape_manifest_sha256_for_task(task.task_dir)
+    _rec_pb_manifest = (task.meta.get("phase_b_capture") or {}).get("shape_manifest_sha256")
+    _manifest_fresh = bool(_cur_manifest) and _rec_pb_manifest == _cur_manifest
+    _force_effective = force or not _manifest_fresh
+    if not _manifest_fresh and not force:
+        logger.info(
+            "%s: golden shape-manifest stale/absent (recorded=%s current=%s) -- forcing full "
+            "recapture so a shapes.yaml edit cannot re-attest stale goldens",
+            task.task_id, str(_rec_pb_manifest)[:12], str(_cur_manifest)[:12],
+        )
+
+    # Idempotency: skip shapes that already have a usable artifact (only when the manifest is fresh).
     to_capture: list[str] = []
     for sid in all_ids:
         artifact = golden_dir / f"{sid}.safetensors"
-        if not force and eligibility.golden_artifact_usable(artifact):
+        if not _force_effective and eligibility.golden_artifact_usable(artifact):
             result.shapes.append(
                 ShapeCaptureResult(shape_id=sid, skipped=True))
         else:

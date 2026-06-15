@@ -320,6 +320,36 @@ def golden_complete(task: _TaskLike) -> bool:
     )
 
 
+def golden_coverage_exact(task: _TaskLike) -> tuple[bool, str]:
+    """Strict declared-shapes == golden-artifact-stems coverage (BOTH directions).
+
+    :func:`golden_complete` only checks declared shapes are *present* + usable (declared ⊆ files);
+    it cannot see a STALE extra ``golden/<oldid>.safetensors`` left after a shape rename/removal.
+    The strict release-gate coverage check wants exact set equality, so a stale golden is caught
+    too. Returns ``(ok, reason)``; ``reason`` is empty when ``ok``.
+    """
+    shape_ids = shapes_eval_ids(task)
+    if shape_ids is None:
+        return False, "no declared eval shapes"
+    declared = set(shape_ids)
+    golden_dir = task.task_dir / "golden"
+    if not golden_dir.is_dir():
+        return False, "no golden/ directory"
+    stems = {p.stem for p in golden_dir.glob("*.safetensors")}
+    missing = declared - stems
+    stale = stems - declared
+    if missing or stale:
+        return False, f"golden coverage drift: missing={sorted(missing)} stale={sorted(stale)}"
+    # present-but-unusable check (same predicate eval applies at runtime)
+    bad = [
+        sid for sid in declared
+        if not golden_artifact_usable(golden_dir / f"{sid}.safetensors")
+    ]
+    if bad:
+        return False, f"golden artifacts unusable: {sorted(bad)}"
+    return True, ""
+
+
 def compute_verified_blocked(tasks: Iterable[_TaskLike]) -> set[str]:
     """Return the set of ``task_id``s that are ``blocked`` in verified
     mode — ``upstream_oracle_required`` tasks whose offline ``golden/``
@@ -510,7 +540,11 @@ def release_ready_with_provenance(meta: dict | None) -> bool:
     return release_status_pass(meta) and is_provenance_eligible(meta)
 
 
-def fresh_s2_pass(meta: dict | None, kernel_sha256: str | None = None) -> bool:
+def fresh_s2_pass(
+    meta: dict | None,
+    kernel_sha256: str | None = None,
+    shape_manifest_sha256: str | None = None,
+) -> bool:
     """True iff the S2 severance gate PASSes AND is FRESH for the current
     kernel.py.
 
@@ -529,23 +563,39 @@ def fresh_s2_pass(meta: dict | None, kernel_sha256: str | None = None) -> bool:
     ``phase_a_prime.status`` != PASS, so it can never be fresh_s2_pass -- this
     is the masking root fix consumed by :func:`compute_usability` and the C2
     verdict writer (which must not promote VERIFIED when this is false).
+
+    SHAPE-SET freshness: ``shape_manifest_sha256`` is the declared-shape-set analogue of
+    ``kernel_sha256``. When the caller passes the on-disk manifest AND the relevant truth-proof
+    record carries one, they must match -- else the recorded PASS is stale over an edited shape set
+    and does not count. The proof record is ``phase_a_prime`` for the S2 PASS branch and
+    ``phase_b_capture`` for the SKIPPED_BY_DESIGN (golden-capture) branch.
     """
     m = meta or {}
     pap = m.get("phase_a_prime") or {}
+    pbc = m.get("phase_b_capture") or {}
     status = pap.get("status")
-    ok = status == "PASS" or (
-        status == "SKIPPED_BY_DESIGN"
-        and (m.get("phase_b_capture") or {}).get("status") == "DONE"
-    )
+    skipped = status == "SKIPPED_BY_DESIGN" and pbc.get("status") == "DONE"
+    ok = status == "PASS" or skipped
     if not ok:
         return False
     recorded = pap.get("kernel_sha256")
-    if kernel_sha256 is not None and recorded:
-        return recorded == kernel_sha256
+    if kernel_sha256 is not None and recorded and recorded != kernel_sha256:
+        return False
+    if shape_manifest_sha256 is not None:
+        rec_manifest = (
+            pbc.get("shape_manifest_sha256") if skipped
+            else pap.get("shape_manifest_sha256")
+        )
+        if rec_manifest and rec_manifest != shape_manifest_sha256:
+            return False
     return True
 
 
-def compute_usability(meta: dict | None, kernel_sha256: str | None = None) -> dict:
+def compute_usability(
+    meta: dict | None,
+    kernel_sha256: str | None = None,
+    shape_manifest_sha256: str | None = None,
+) -> dict:
     """Single DERIVED per-task verdict across both extraction gates.
 
     ``fully_usable`` conjuncts the two independent gates plus the
@@ -569,7 +619,7 @@ def compute_usability(meta: dict | None, kernel_sha256: str | None = None) -> di
     failing: list[str] = []
     if not is_provenance_eligible(m):
         failing.append("C2_oracle_equivalence")
-    if not fresh_s2_pass(m, kernel_sha256):
+    if not fresh_s2_pass(m, kernel_sha256, shape_manifest_sha256):
         failing.append("S2_severance")
     # cost_model.status is intentionally NOT a usability gate -- it is an
     # ncu-evidenced performance/access model, orthogonal to extraction

@@ -206,8 +206,17 @@ def test_validator_section_references_6a() -> None:
 
 
 def test_no_chinese_in_spec(spec_text: str) -> None:
-    """Spec doc is English-only (CLAUDE.md project rule)."""
-    chinese_chars = re.findall(r"[一-龥]", spec_text)
+    """Spec doc CONTENT is English-only (CLAUDE.md project rule).
+
+    The single deliberate one-line navigation pointer to the zh-mirror translation (a blockquote
+    line linking ``../zh/...``, added by the docs/zh translation) is metadata, not content, and is
+    excluded from the check -- the rule is about the English-only doc body, not the cross-link header.
+    """
+    content = "\n".join(
+        ln for ln in spec_text.splitlines()
+        if "中文版" not in ln and "/zh/" not in ln
+    )
+    chinese_chars = re.findall(r"[一-龥]", content)
     assert not chinese_chars, (
         f"the internal task-state-fields doc must be English-only "
         f"(found {len(chinese_chars)} CJK chars: {chinese_chars[:10]!r}...)"

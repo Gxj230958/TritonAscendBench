@@ -43,9 +43,8 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 1/2 gate
-    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.0775 > tol 0.0500
-    (analytic=213024 measured=230912)'
+    error). 1/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.0775
+    > tol 0.0500 (analytic=213024 measured=230912)'
   xcheck_run_id: xcheck-2026-06-05-08665242
   xchecked_at: '2026-06-05'
   xcheck_evidence:
@@ -208,6 +207,7 @@ phase_a_prime:
   classified_at: '2026-06-08'
   standalone_sha256: 13e251e56d82603e815f8f49d5438f6c18b375272f2c7e1b3128b87922e58e17
   kernel_sha256: 13e251e56d82603e815f8f49d5438f6c18b375272f2c7e1b3128b87922e58e17
+  shape_manifest_sha256: 016c1d6ef7b97896257a249aba30534717c65548b5acf6eeb8a7835a88f5a284
 frozen_deps:
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.chunk_delta_h
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.cumsum
@@ -236,3 +236,4 @@ phase_b_capture:
   upstream_callable:
     module: vllm.model_executor.layers.fla.ops.kda
     function: layer_norm_gated_fwd_kernel
+  shape_manifest_sha256: 016c1d6ef7b97896257a249aba30534717c65548b5acf6eeb8a7835a88f5a284

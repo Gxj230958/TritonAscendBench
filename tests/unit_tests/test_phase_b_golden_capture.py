@@ -361,12 +361,22 @@ def test_capture_result_satisfies_eligibility_golden_complete(
 
 
 def test_capture_is_idempotent_skips_existing(tmp_path, monkeypatch):
-    """A shape with an already-usable artifact is skipped (not re-run)."""
+    """A shape with an already-usable artifact is skipped (not re-run) -- but ONLY when the recorded
+    phase_b shape-manifest matches the current shapes.yaml (freshness-gated idempotency)."""
+    from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
+
     task = _load(_write_task(tmp_path, "L1_99_demo"))
     golden_dir = task.task_dir / "golden"
     golden_dir.mkdir()
     # Pre-seed P1's golden.
     save_file({"out": torch.ones(1)}, str(golden_dir / "P1.safetensors"))
+    # Simulate a prior CLEAN capture over the CURRENT shapes: record the matching manifest so the
+    # existing golden is trusted. Without a matching manifest the golden's provenance is unknown and
+    # the freshness gate (correctly) recaptures it -- see the stale-manifest test below.
+    task.meta["phase_b_capture"] = {
+        "status": "DONE",
+        "shape_manifest_sha256": shape_manifest_sha256_for_task(task.task_dir),
+    }
 
     captured_shapes: list[str] = []
 
@@ -385,6 +395,31 @@ def test_capture_is_idempotent_skips_existing(tmp_path, monkeypatch):
     assert sorted(captured_shapes) == ["H1", "P2"]
     skipped = {s.shape_id for s in result.shapes if s.skipped}
     assert skipped == {"P1"}
+
+
+def test_capture_recaptures_when_manifest_stale_or_absent(tmp_path, monkeypatch):
+    """A pre-seeded golden with NO recorded phase_b manifest (or a stale one) is NOT trusted: every
+    shape is recaptured, so a shapes.yaml edit can never re-attest stale goldens (codex R3 gate)."""
+    task = _load(_write_task(tmp_path, "L1_99_demo"))
+    golden_dir = task.task_dir / "golden"
+    golden_dir.mkdir()
+    save_file({"out": torch.ones(1)}, str(golden_dir / "P1.safetensors"))
+    # Stale manifest recorded (does not match current shapes.yaml).
+    task.meta["phase_b_capture"] = {"status": "DONE", "shape_manifest_sha256": "STALE"}
+
+    captured_shapes: list[str] = []
+
+    def _fake_child(t, shape_ids, golden_dir, timeout_s, **_kw):
+        captured_shapes.extend(shape_ids)
+        for sid in shape_ids:
+            save_file({"out": torch.ones(1)}, str(golden_dir / f"{sid}.safetensors"))
+        return {"shapes": {sid: {"captured": True} for sid in shape_ids}, "fatal": None}
+
+    monkeypatch.setattr(pbgc, "_run_capture_child", _fake_child)
+    pbgc.capture_task(task, dry_run=False)
+
+    # P1 is recaptured (NOT skipped) because its provenance over the current shapes is unproven.
+    assert "P1" in captured_shapes
 
 
 def test_capture_force_recaptures_existing(tmp_path, monkeypatch):

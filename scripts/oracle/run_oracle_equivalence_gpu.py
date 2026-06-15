@@ -1174,6 +1174,39 @@ def _verify_one_task(
                 task_id, _uncompared,
             )
 
+    # Shape-coverage gate (fail-closed): every shape shapes.yaml DECLARES must have been graded.
+    # precompute is now fail-closed, so a declared shape with no ref means a stale/partial artifact
+    # set -- it must NEVER yield VERIFIED. Append a synthetic per-shape entry and downgrade a
+    # passing overall to SHAPE_COVERAGE_GAP. (graded-but-not-declared stale refs surface downstream
+    # via validate_corpus_consistency's equivalence_per_shape==ids check.)
+    try:
+        _declared_ids = {
+            s.get("id")
+            for grp in ("public_shapes", "hidden_shapes")
+            for s in (shapes_doc.get(grp) or [])
+            if isinstance(s, dict) and s.get("id")
+        }
+    except Exception:
+        _declared_ids = set()
+    _graded_ids = {sv.shape_id for sv in verdict.shapes if sv.shape_id and sv.shape_id != "*"}
+    _missing_ids = sorted(_declared_ids - _graded_ids)
+    if _missing_ids:
+        for sid in _missing_ids:
+            verdict.shapes.append(ShapeVerdict(
+                shape_id=sid,
+                status="SHAPE_COVERAGE_GAP",
+                blocker_reason=(
+                    f"declared shape {sid} has no ref/grade (coverage gap); precompute is "
+                    f"fail-closed, so a missing ref is a stale/partial artifact set -- re-run "
+                    f"R10.a then R10.b. A declared shape must never be silently ungraded."
+                ),
+            ))
+        if verdict.overall in ("VERIFIED", "CEILING_ACCEPTED"):
+            verdict.overall = "SHAPE_COVERAGE_GAP"
+        log.warning(
+            "  %s: SHAPE_COVERAGE_GAP (declared but ungraded: %s)", task_id, _missing_ids
+        )
+
     verdict.elapsed_s = time.time() - t0
     return verdict
 
@@ -1244,6 +1277,7 @@ def main(argv: list[str] | None = None) -> int:
         "skipped": 0,
         "wrapper_contract_mismatch": 0,
         "oracle_kernel_layout_mismatch": 0,
+        "shape_coverage_gap": 0,
     }
     for td in sorted(task_dirs):
         v = _verify_one_task(td, args.infer_root, args.gpu)
@@ -1260,6 +1294,7 @@ def main(argv: list[str] | None = None) -> int:
             "SKIPPED": "skipped",
             "WRAPPER_CONTRACT_MISMATCH": "wrapper_contract_mismatch",
             "ORACLE_KERNEL_LAYOUT_MISMATCH": "oracle_kernel_layout_mismatch",
+            "SHAPE_COVERAGE_GAP": "shape_coverage_gap",
         }.get(v.overall, "blocked")
         summary[key] += 1
 

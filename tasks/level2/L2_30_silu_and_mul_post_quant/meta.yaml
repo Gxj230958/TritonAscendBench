@@ -36,9 +36,8 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 1/1 gate
-    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.1358 > tol 0.0500
-    (analytic=33489152 measured=38752768)'
+    error). 1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.1358
+    > tol 0.0500 (analytic=33489152 measured=38752768)'
   xcheck_run_id: xcheck-2026-06-05-ed1d2147
   xchecked_at: '2026-06-05'
   xcheck_evidence:
@@ -202,6 +201,7 @@ phase_a_prime:
   classified_at: '2026-06-08'
   standalone_sha256: dcc5ab65b9e1bc045a6568839c3901ae1fe973ecd95cd92fc4e1c0ff5f36ab9c
   kernel_sha256: dcc5ab65b9e1bc045a6568839c3901ae1fe973ecd95cd92fc4e1c0ff5f36ab9c
+  shape_manifest_sha256: 67932f85d78fbea6bb28ddb3d8f12d64e25bd92a26dc886fd221507a3811caad
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.logger
@@ -218,3 +218,4 @@ phase_b_capture:
   upstream_callable:
     module: sglang.srt.layers.moe.ep_moe.kernels
     function: _silu_and_mul_post_quant_kernel
+  shape_manifest_sha256: 67932f85d78fbea6bb28ddb3d8f12d64e25bd92a26dc886fd221507a3811caad

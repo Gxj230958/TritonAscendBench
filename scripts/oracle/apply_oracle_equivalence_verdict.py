@@ -175,13 +175,17 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
         # stale vs the current kernel.py -- is cross-inconsistent: record the raw
         # C2 verdict but do NOT promote. (`compute_usability` enforces the same
         # conjunction independently; this keeps the golden provenance honest.)
+        from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task
         from ascendbench.release_gate.eligibility import fresh_s2_pass
 
         _kp = td / "kernel.py"
         _ksha = (
             hashlib.sha256(_kp.read_bytes()).hexdigest() if _kp.is_file() else None
         )
-        if fresh_s2_pass(meta, _ksha):
+        # Shape-set freshness: do NOT promote C2 VERIFIED to truth over a shapes.yaml that drifted
+        # from the one S2 verified (a stale shape set would otherwise be silently re-attested).
+        _smanifest = shape_manifest_sha256_for_task(td)
+        if fresh_s2_pass(meta, _ksha, _smanifest):
             golden["cross_check"] = "S2_FRESH"
             sha = _ref_sha256(td)
             if sha:
@@ -227,6 +231,15 @@ def _apply_one(verdict_path: Path) -> ApplyResult:
     elif overall == "INPUT_DRIFT":
         # Explicit source so a prior 'oracle_pytorch_verified' doesn't linger.
         golden["golden_source"] = "blocked_input_drift"
+    elif overall == "SHAPE_COVERAGE_GAP":
+        # A declared shape was never graded; the C2 coverage gate refuses VERIFIED.
+        golden["golden_source"] = "blocked_shape_coverage_gap"
+    elif overall not in ("VERIFIED", "CEILING_ACCEPTED"):
+        # Final fallback: any novel / unrecognised non-VERIFIED overall MUST overwrite
+        # golden_source (assignment, NOT setdefault -- `golden` is seeded from the existing block)
+        # so a prior 'oracle_pytorch_verified' can never linger. golden_sha256 was already cleared
+        # above for every non-VERIFIED overall.
+        golden["golden_source"] = "blocked_unrecognized_verdict"
 
     prov["golden"] = golden
     # Preserve other top-level provenance keys (added_in / authors / last_modified)

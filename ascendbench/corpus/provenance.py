@@ -58,6 +58,9 @@ VALID_ORACLE_KERNEL_EQUIVALENCE = frozenset({
     # necessarily diverges -> unverifiable by construction (set when
     # upstream.known_kernel_bug is true). Excluded from the alignment denominator.
     "BLOCKED_UPSTREAM_BUG",
+    # The C2 runner graded fewer shapes than shapes.yaml declares (a declared shape had no ref) --
+    # the coverage gate refuses to call such a task VERIFIED. Never provenance-eligible.
+    "SHAPE_COVERAGE_GAP",
 })
 VALID_GPU_KERNEL_CAPTURE_STATUS = frozenset({
     "PENDING", "DONE", "FAILED", "BLOCKED_NON_DETERMINISTIC",

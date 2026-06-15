@@ -77,9 +77,12 @@ else
 fi
 
 # --- 3. the hard release gate -----------------------------------------------
-step_banner "D.3" "release gate (validate_tasks.py --release-gate)"
+# STRICT: this runs on the GPU host AFTER 30_golden_capture.sh, so the golden/
+# artifacts exist here -- assert the exact declared==golden coverage for every
+# upstream_oracle_required task on top of the whole-catalogue coverage/freshness gate.
+step_banner "D.3" "release gate (validate_tasks.py --release-gate-strict)"
 GATE_RC=0
-python3 "${VT}" --release-gate 2>&1 \
+python3 "${VT}" --release-gate-strict 2>&1 \
     | tee "${PIPELINE_STATE_DIR}/release_gate.log" || GATE_RC="${PIPESTATUS[0]}"
 
 echo

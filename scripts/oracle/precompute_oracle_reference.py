@@ -71,14 +71,39 @@ DEFAULT_SHAPES = ["P1", "P2"]
 _C2_ALL_SHAPES = os.environ.get("TAB_C2_ALL_SHAPES", "1") == "1"
 
 
+def _declared_shape_ids(shapes_doc: dict) -> set[str]:
+    """Every public + hidden shape id DECLARED in shapes.yaml."""
+    out: set[str] = set()
+    for grp in ("public_shapes", "hidden_shapes"):
+        for s in shapes_doc.get(grp) or []:
+            sid = s.get("id")
+            if sid:
+                out.add(sid)
+    return out
+
+
+def _sweep_extra_ids() -> set[str]:
+    """Opt-in sweep-extra shape ids (env ``TAB_SWEEP_EXTRA_SHAPES``, comma-sep).
+
+    These are the ONLY ids allowed to silently skip on a build/run failure -- an exploratory sweep
+    over shapes that are NOT declared in shapes.yaml. A DECLARED shape that fails to build/run is
+    fail-closed (RUNTIME_ERROR), never silently skipped. Empty by default."""
+    raw = os.environ.get("TAB_SWEEP_EXTRA_SHAPES", "")
+    return {x.strip() for x in raw.split(",") if x.strip()}
+
+
 def _sweep_shape_ids(shapes_doc: dict) -> list[str]:
-    """Anchors first, then every remaining public+hidden shape id (ordered, dedup)."""
+    """Anchors first, then every remaining public+hidden shape id, then opt-in sweep extras
+    (ordered, dedup)."""
     ids = list(DEFAULT_SHAPES)
     for grp in ("public_shapes", "hidden_shapes"):
         for s in shapes_doc.get(grp) or []:
             sid = s.get("id")
             if sid and sid not in ids:
                 ids.append(sid)
+    for sid in sorted(_sweep_extra_ids()):
+        if sid not in ids:
+            ids.append(sid)
     return ids
 
 
@@ -470,8 +495,19 @@ def _audit_task(task_dir: Path) -> TaskAudit:
         _shape_list = (
             _sweep_shape_ids(shapes_doc) if _C2_ALL_SHAPES else DEFAULT_SHAPES
         )
+        _declared_ids = _declared_shape_ids(shapes_doc)
+        _sweep_extra = _sweep_extra_ids()
         for shape_id in _shape_list:
-            _extra = _C2_ALL_SHAPES and shape_id not in DEFAULT_SHAPES
+            # FAIL-CLOSED on declared shapes: a shape that shapes.yaml declares (or an anchor)
+            # MUST build + run, or stage-1 ERRORs -- it can never be silently skipped (that hid
+            # the real exception and left a declared shape ungraded yet the task "aligned"). Only
+            # an explicit opt-in sweep extra (not declared, not an anchor) may silent-skip.
+            _extra = (
+                _C2_ALL_SHAPES
+                and shape_id not in DEFAULT_SHAPES
+                and shape_id not in _declared_ids
+                and shape_id in _sweep_extra
+            )
             try:
                 inputs = build_inputs(shapes_doc, shape_id, seed=GOLDEN_SEED)
             except Exception as e:

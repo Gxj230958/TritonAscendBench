@@ -37,9 +37,8 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 1/1 gate
-    shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.4520 > tol 0.0500
-    (analytic=383254664 measured=699351040)'
+    error). 1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.4520
+    > tol 0.0500 (analytic=383254664 measured=699351040)'
   xcheck_run_id: xcheck-2026-06-05-44c0afd5
   xchecked_at: '2026-06-05'
   xcheck_evidence:
@@ -232,6 +231,7 @@ phase_a_prime:
   classified_at: '2026-06-08'
   standalone_sha256: ffd5a80881b56147fdca9c147e75996d5f0576f56e8a8caa9f65ab9ba20d4167
   kernel_sha256: ffd5a80881b56147fdca9c147e75996d5f0576f56e8a8caa9f65ab9ba20d4167
+  shape_manifest_sha256: d86913adce9c7609b206bdaa02066829717cee871bba68205364361e44cab485
 frozen_deps: []
 classB_symbols: []
 reference_path: native
@@ -241,3 +241,4 @@ phase_b_capture:
   upstream_callable:
     module: sglang.srt.layers.attention.mamba.ops.ssd_chunk_state
     function: _chunk_state_varlen_kernel
+  shape_manifest_sha256: d86913adce9c7609b206bdaa02066829717cee871bba68205364361e44cab485

@@ -1354,7 +1354,7 @@ def _load_eligible_ids() -> tuple[set[str], int]:
     return eligible, len(eligible)
 
 
-def run_release_gate(tasks=None, eligible_ids=None) -> int:
+def run_release_gate(tasks=None, eligible_ids=None, strict: bool = False) -> int:
     """`--release-gate` mode (plan U7): SEPARATE from schema/hash mode.
 
     `eligibility  intersect  {release_status != PASS}` non-empty ⇒ nonzero
@@ -1438,6 +1438,72 @@ def run_release_gate(tasks=None, eligible_ids=None) -> int:
             print(f"  - {tid}", file=sys.stderr)
         return 1
 
+    # Coverage / freshness gate (closes the subset-escape): run the corpus self-consistency check
+    # over the WHOLE catalogue (all_tasks), NOT just the C2-eligible `examined` set. A task that a
+    # shape-coverage gap / stale shape-manifest / drifted per-shape verdict downgrades OUT of
+    # `compute_release_ready_eligible` would otherwise silently leave the eligible denominator
+    # (`examined == expected` both shrink) and the gate would vacuously pass over the rest. The
+    # consistency check hard-fails any such task regardless of eligibility membership:
+    # equivalence_per_shape == declared ids, kernel_sha256 + shape_manifest_sha256 freshness.
+    from scripts.corpus.validate_corpus_consistency import (
+        _ceiling_allowlist as _cc_allowlist,
+    )
+    from scripts.corpus.validate_corpus_consistency import (
+        check_task as _cc_check_task,
+    )
+
+    _allow = _cc_allowlist()
+    cov_violations: list[tuple[str, str]] = []
+    for t in all_tasks:
+        _td = getattr(t, "task_dir", None)
+        # Skip dirs without an on-disk meta.yaml: every real catalogue task has one
+        # (iter_all_tasks requires it), so this only skips injected/synthetic test tasks --
+        # never a real release-scope task -- and keeps check_task's disk reads from crashing.
+        if _td is None or not (Path(_td) / "meta.yaml").is_file():
+            continue
+        _oke, _vs = _cc_check_task(Path(_td), _allow)
+        for one in _vs:
+            cov_violations.append((t.task_id, one))
+    if cov_violations:
+        print(
+            f"RELEASE-GATE FAIL (coverage/consistency): {len(cov_violations)} violation(s) -- a "
+            f"declared shape ungraded, a stale shape-manifest, or a drifted per-shape verdict "
+            f"means the benchmark is NOT releasable (NOT cost_model performance metadata):",
+            file=sys.stderr,
+        )
+        for tid, msg in cov_violations[:60]:
+            print(f"  - [{tid}] {msg}", file=sys.stderr)
+        return 1
+
+    # Strict mode (daemon / release context: --release-gate-strict or env TAB_RELEASE_STRICT=1):
+    # the offline golden/ artifact set for every score-eligible upstream_oracle_required task must
+    # EXACTLY cover its declared shapes (declared == golden stems, both directions). OFF on the dev
+    # box (no golden/ dirs there) so run_full_regression stage-5 stays green; the daemon cert-stage
+    # / release pipeline turns it ON.
+    if strict:
+        from ascendbench.release_gate.eligibility import (
+            golden_coverage_exact,
+            is_score_eligible,
+            is_upstream_oracle_required,
+        )
+
+        golden_violations: list[tuple[str, str]] = []
+        for t in all_tasks:
+            if not is_upstream_oracle_required(t) or not is_score_eligible(t):
+                continue
+            ok, reason = golden_coverage_exact(t)
+            if not ok:
+                golden_violations.append((t.task_id, reason))
+        if golden_violations:
+            print(
+                f"RELEASE-GATE FAIL (strict UOR golden coverage): {len(golden_violations)} "
+                f"upstream_oracle_required task(s) without an exact declared==golden artifact set:",
+                file=sys.stderr,
+            )
+            for tid, msg in golden_violations:
+                print(f"  - [{tid}] {msg}", file=sys.stderr)
+            return 1
+
     print(
         f"release-gate OK: all {expected} release-ready "
         f"(score-eligible AND C2-aligned) task(s) release_status == PASS "
@@ -1459,7 +1525,16 @@ def main() -> int:
              "{release_status != PASS} non-empty ⇒ fail, where "
              "release_status == PASS <=> phase_a_prime.status == PASS "
              "(S2 severance). cost_model is evidenced performance metadata, "
-             "NOT a release blocker; non-vacuity guarded (never vacuous-pass).",
+             "NOT a release blocker; non-vacuity guarded (never vacuous-pass). "
+             "ALSO runs a whole-catalogue coverage/consistency gate "
+             "(declared==graded==verdict + kernel/shape-manifest freshness).",
+    )
+    parser.add_argument(
+        "--release-gate-strict", action="store_true",
+        help="Run --release-gate in STRICT mode (daemon / release context): additionally assert "
+             "every score-eligible upstream_oracle_required task ships an EXACT declared==golden "
+             "artifact set. OFF by default (dev box has no golden/ dirs). Also enabled by env "
+             "TAB_RELEASE_STRICT=1.",
     )
     parser.add_argument(
         "--canary", action="store_true",
@@ -1470,8 +1545,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.release_gate:
-        return run_release_gate()
+    if args.release_gate or args.release_gate_strict:
+        strict = args.release_gate_strict or os.environ.get("TAB_RELEASE_STRICT") == "1"
+        return run_release_gate(strict=strict)
 
     if args.canary:
         # Dedicated canary-only mode .

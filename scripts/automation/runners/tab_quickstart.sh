@@ -662,7 +662,10 @@ cmd_release_gate() {
   if [[ $# -gt 0 ]]; then
     fatal "release-gate: unexpected extra args (got: $*); subcommand accepts no arguments"
   fi
-  step "running release-gate validation (validate_tasks.py --release-gate)"
+  # STRICT: quickstart runs on the GPU host where the golden/ artifacts live, so assert exact
+  # declared==golden coverage for upstream_oracle_required tasks too (whole-catalogue
+  # coverage/freshness gate runs in both modes).
+  step "running release-gate validation (validate_tasks.py --release-gate-strict)"
 
   local log_file="$TAB_GPFS_ROOT/logs/release_gate_$(date +%Y%m%d_%H%M%S).log"
   mkdir -p "$(dirname "$log_file")"
@@ -671,7 +674,7 @@ cmd_release_gate() {
   local rc=0
   set +e
   python3 "$TAB_BENCH_REPO/scripts/corpus/validate_tasks.py" \
-    --release-gate 2>&1 | tee "$log_file"
+    --release-gate-strict 2>&1 | tee "$log_file"
   rc=${PIPESTATUS[0]}
   set -e
 

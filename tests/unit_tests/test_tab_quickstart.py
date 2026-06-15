@@ -1253,7 +1253,8 @@ def test_release_gate_calls_validate_tasks(harness, tmp_path):
     rows = _read_argv_log(runner_log)
     assert len(rows) == 1, rows
     assert rows[0]["script"].endswith("validate_tasks.py"), rows[0]
-    assert rows[0]["argv"] == ["--release-gate"], rows[0]
+    # quickstart runs on the GPU host (golden/ present) -> STRICT release gate.
+    assert rows[0]["argv"] == ["--release-gate-strict"], rows[0]
 
 
 def test_release_gate_failure_propagates(harness, tmp_path):
@@ -1303,7 +1304,7 @@ def test_pass_all_chains_three_steps(harness, tmp_path):
     # And each got the expected argv.
     assert rows[0]["argv"] == ["--all"], rows[0]
     assert rows[1]["argv"] == ["--run", "--tier", "all"], rows[1]
-    assert rows[2]["argv"] == ["--release-gate"], rows[2]
+    assert rows[2]["argv"] == ["--release-gate-strict"], rows[2]
 
 
 def test_pass_all_fail_fast_stops_after_goldens_failure(harness, tmp_path):
@@ -1336,7 +1337,7 @@ def test_pass_all_forwards_dry_run_to_goldens_only(harness, tmp_path):
     assert len(rows) == 3
     assert rows[0]["argv"] == ["--all", "--dry-run"], rows[0]
     assert rows[1]["argv"] == ["--run", "--tier", "all"], rows[1]
-    assert rows[2]["argv"] == ["--release-gate"], rows[2]
+    assert rows[2]["argv"] == ["--release-gate-strict"], rows[2]
 
 
 # --- 14d. log file landing --------------------------------------------------

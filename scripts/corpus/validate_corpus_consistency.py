@@ -34,6 +34,9 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO))
+
+from ascendbench.corpus.shape_manifest import shape_manifest_sha256_for_task  # noqa: E402
 
 
 def _sha256(p: Path) -> str:
@@ -88,6 +91,31 @@ def check_task(task_dir: Path, allowlist: set[str]) -> tuple[str, list[str]]:
     if sa and not any(p in str(sa) for p in ("placeholder", "scaffold", "TODO", "PENDING", "no-")):
         if sa != ksha:
             v.append(f"phase_a_prime.standalone_sha256 stale (meta {str(sa)[:12]} != kernel.py {ksha[:12]})")
+
+    # shape-manifest freshness: the declared-shape-set analogue of kernel_sha256. A later in-place
+    # edit of any knob/dim/dtype/dist (or an added/removed shape) changes this hash, so a recorded
+    # PASS over the OLD shape set is stale even though the id-set (equivalence_per_shape keys) is
+    # unchanged. After the one-time backfill EVERY aligned task records one, so a MISSING field on
+    # a VERIFIED/CEILING task is itself a drift signal (not silent legacy).
+    on_disk_manifest = shape_manifest_sha256_for_task(task_dir)
+    if oke in ("VERIFIED", "CEILING_ACCEPTED"):
+        rec_manifest = pap.get("shape_manifest_sha256")
+        if not rec_manifest:
+            if not poc:
+                v.append("phase_a_prime.shape_manifest_sha256 missing (run S2 / backfill so the "
+                         "shape-set freshness gate is active)")
+        elif on_disk_manifest and rec_manifest != on_disk_manifest:
+            v.append(f"phase_a_prime.shape_manifest_sha256 stale (meta {str(rec_manifest)[:12]} != "
+                     f"shapes.yaml {str(on_disk_manifest)[:12]}) -- re-verify S2/C2 over the edited "
+                     f"shape set")
+    # phase_b golden freshness: an in-place shape edit must also invalidate a DONE golden capture
+    # (golden_complete only checks declared shapes are present, not captured over the CURRENT set).
+    pbc = meta.get("phase_b_capture") or {}
+    if pbc.get("status") == "DONE":
+        rec_pb = pbc.get("shape_manifest_sha256")
+        if rec_pb and on_disk_manifest and rec_pb != on_disk_manifest:
+            v.append("phase_b_capture.shape_manifest_sha256 stale (golden captured over an edited "
+                     "shape set) -- recapture the golden baselines")
 
     if oke == "VERIFIED":
         if g.get("golden_source") != "oracle_pytorch_verified":
