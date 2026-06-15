@@ -131,7 +131,7 @@ provenance:
   source_md_id: L2-14
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:07:14Z'
+    verified_at: '2026-06-15T14:16:34Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       H1:
@@ -150,10 +150,26 @@ provenance:
         status: VERIFIED
         max_abs: 4.57763671875e-05
         max_rel: 0.015943313017487526
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 8.7738037109375e-05
+        max_rel: 0.0003499987069517374
       P1:
         status: VERIFIED
         max_abs: 5.7220458984375e-06
         max_rel: 3.211999865015969e-05
+      P10:
+        status: VERIFIED
+        max_abs: 0.008392333984375
+        max_rel: 0.07082925736904144
+      P11:
+        status: VERIFIED
+        max_abs: 0.00018310546875
+        max_rel: 2.3947367668151855
       P2:
         status: VERIFIED
         max_abs: 3.0517578125e-05
@@ -170,8 +186,24 @@ provenance:
         status: VERIFIED
         max_abs: 0.0009002685546875
         max_rel: 0.003600901924073696
+      P6:
+        status: VERIFIED
+        max_abs: 0.0001678466796875
+        max_rel: 0.010313770733773708
+      P7:
+        status: VERIFIED
+        max_abs: 0.0001983642578125
+        max_rel: 0.11940298229455948
+      P8:
+        status: VERIFIED
+        max_abs: 0.00019073486328125
+        max_rel: 0.8678460121154785
+      P9:
+        status: VERIFIED
+        max_abs: 0.005462646484375
+        max_rel: 0.09772857278585434
     golden_source: oracle_pytorch_verified
-    golden_sha256: fe386f62e42bea8a299fadd71568643f1250df5314592f36c433cd74297f9fe9
+    golden_sha256: 7f2b783dd3fff22b999a826c9f7bf68bf02668d78a9c3a736dff466b7d222de2
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
@@ -195,11 +227,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_21_matmul_kernel_persistent-20260608T184351
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L2_21_matmul_kernel_persistent-20260615T220001
+  classified_at: '2026-06-15'
   standalone_sha256: ee50d9c2bc238c5c6cf940593fab3a69aa6eb3dc0a7d812d08bbc3f2bc2e5394
   kernel_sha256: ee50d9c2bc238c5c6cf940593fab3a69aa6eb3dc0a7d812d08bbc3f2bc2e5394
-  shape_manifest_sha256: 2fb78451af4eb3ac7baba7d74fc165312bc232f4f9038162a4da8faafb293a7c
+  shape_manifest_sha256: 2e4b64aded294dff29c38b95b564cb431095c15364de5548e776d2df550e5436
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl

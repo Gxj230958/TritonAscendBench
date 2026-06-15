@@ -131,7 +131,7 @@ provenance:
   source_md_id: L2-13
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:07:53Z'
+    verified_at: '2026-06-15T14:17:21Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       H1:
@@ -150,10 +150,26 @@ provenance:
         status: VERIFIED
         max_abs: 4.57763671875e-05
         max_rel: 13.0
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.00019073486328125
+        max_rel: 0.017076503485441208
       P1:
         status: VERIFIED
         max_abs: 9.5367431640625e-06
         max_rel: 0.0003289080341346562
+      P10:
+        status: VERIFIED
+        max_abs: 1.9073486328125e-06
+        max_rel: 4.426280429470353e-05
+      P11:
+        status: VERIFIED
+        max_abs: 4.57763671875e-05
+        max_rel: 0.2874999940395355
       P2:
         status: VERIFIED
         max_abs: 4.1961669921875e-05
@@ -170,8 +186,24 @@ provenance:
         status: VERIFIED
         max_abs: 0.00128173828125
         max_rel: 1.4116071462631226
+      P6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P7:
+        status: VERIFIED
+        max_abs: 3.814697265625e-06
+        max_rel: 1.5292362149921246e-05
+      P8:
+        status: VERIFIED
+        max_abs: 1.1444091796875e-05
+        max_rel: 0.0007563799154013395
+      P9:
+        status: VERIFIED
+        max_abs: 2.288818359375e-05
+        max_rel: 0.0023004694376140833
     golden_source: oracle_pytorch_verified
-    golden_sha256: 99e6b086778446a39c0247193f88e41908360008c661651ec3b427874bc3ea94
+    golden_sha256: 061beb86b843216d3e37f73feb8921bf7eb9c22ec0650ac2318c7973ec71b048
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
@@ -193,11 +225,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_20_bmm-20260608T184344
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L2_20_bmm-20260615T215940
+  classified_at: '2026-06-15'
   standalone_sha256: 63ceb2a73cc76802c6640437bd4018d012940ce8eef2724602aa41aa80f39cbe
   kernel_sha256: 63ceb2a73cc76802c6640437bd4018d012940ce8eef2724602aa41aa80f39cbe
-  shape_manifest_sha256: 4db1dc8f824f3dda3f8b63f724469e945db532735411dd902a423b6e057b6cb2
+  shape_manifest_sha256: 9c101bf0dda143a9e846ba19660ef12f19f7f60c5263034806c1236b21834b43
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl

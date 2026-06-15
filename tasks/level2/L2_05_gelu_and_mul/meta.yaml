@@ -134,7 +134,7 @@ provenance:
   source_md_id: L1-17
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:01:06Z'
+    verified_at: '2026-06-15T14:20:15Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       H1:
@@ -153,6 +153,14 @@ provenance:
         status: VERIFIED
         max_abs: 6.103515625e-05
         max_rel: 0.008620689623057842
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
         status: VERIFIED
         max_abs: 0.0
@@ -173,7 +181,11 @@ provenance:
         status: VERIFIED
         max_abs: 3.0517578125e-05
         max_rel: 0.007299270015209913
-    golden_sha256: 2e25debf0d402ec883e8977b9dd9f19235d9474f256682a6847b77da734a3f4a
+      P6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: 067a30fa83002ca6bb0010856fedf1af2619086d6419eabcfa36774e1794ae2d
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
 param_constraints:
@@ -193,11 +205,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_05_gelu_and_mul-20260608T184053
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L2_05_gelu_and_mul-20260615T215940
+  classified_at: '2026-06-15'
   standalone_sha256: a6a23a55bd06e35d2204096a17859c73975cf0cec0c335b49710736b12e361fa
   kernel_sha256: a6a23a55bd06e35d2204096a17859c73975cf0cec0c335b49710736b12e361fa
-  shape_manifest_sha256: 78e8c58fb5d3f1731c62eab4413385ec35edf718af8bd8b7374a63e1ece90f3c
+  shape_manifest_sha256: 0b3293aeda13e80096ed834e8c17b22f28c476d1409afb09e7ce52ed374907f2
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.logger
