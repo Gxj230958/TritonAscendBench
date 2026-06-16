@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import importlib.util as iu
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass, field
@@ -176,6 +177,20 @@ def _nonpow2_near(scale: int, b: dict) -> int:
     return v
 
 
+_GRID_PRIMES = (7, 11, 13, 17, 19, 23, 29, 31, 37, 41)
+
+
+def _coprime_stride(length: int, axis: int) -> int:
+    """A grid stride coprime to ``length`` so ``(i*stride) % length`` cycles through every ladder
+    index. Pick the first listed prime coprime to ``length`` (rotated by ``axis`` so distinct axes
+    differ); fall back to 1, which is coprime to everything."""
+    for t in range(len(_GRID_PRIMES)):
+        p = _GRID_PRIMES[(axis + t) % len(_GRID_PRIMES)]
+        if math.gcd(p, length) == 1:
+            return p
+    return 1
+
+
 def _gen_self_candidates(active: list[str], existing: list[dict], bounds: dict) -> list[Candidate]:
     """scale (single-axis) + diagonal (small multi-axis) + edge, all under the caps."""
     cands: list[Candidate] = []
@@ -201,14 +216,16 @@ def _gen_self_candidates(active: list[str], existing: list[dict], bounds: dict) 
 
     # 2. MULTI-AXIS GRID SAMPLE: a low-discrepancy (coprime-stride) sweep across the ladder PRODUCT --
     #    covers INTERACTIONS (small-B/large-D, large-B/small-D, ...) without a blind full product, for
-    #    broad shape-space coverage. Deterministic (no RNG).
-    primes = [7, 11, 13, 17, 19, 23, 29, 31, 37, 41]
+    #    broad shape-space coverage. Deterministic (no RNG). Each axis advances by a stride coprime to
+    #    ITS OWN ladder length, so (i*stride) % len visits every value -- a shared factor would collapse
+    #    the axis onto a sub-cycle (or a constant) and cluster the grid.
     n_grid = 30 if len(active) >= 2 else 0  # 1-knob tasks are fully covered by the single-axis sweep
+    strides = {k: _coprime_stride(len(ladders[k]), j) for j, k in enumerate(active)}
     for i in range(n_grid):
         row = {}
         for j, k in enumerate(active):
             lad = ladders[k]
-            row[k] = lad[(i * primes[j % len(primes)] + j) % len(lad)]
+            row[k] = lad[(i * strides[k] + j) % len(lad)]
         cands.append(Candidate(source="grid", knobs=dict(row), role="public", reason=f"g{i}"))
 
     # 3. EDGES (-> hidden): all-min, all-max, aspect extremes (one dim min / another max), singleton.
@@ -554,8 +571,11 @@ def extend_task(task_dir: Path, target_public: int, target_hidden: int,
         seen.add(key)
         deduped.append(c)
 
-    # sort survivors deterministically BEFORE id assignment: public first, then by (source, sorted-knobs).
-    deduped.sort(key=lambda c: (c.role != "public", c.source,
+    # sort survivors deterministically BEFORE id assignment: public first, then per-axis sweep before
+    # grid before edge -- so the full-range single-axis coverage lands within the public budget before
+    # the interaction grid fills the remainder (a clustered grid must not crowd out the sweep).
+    src_rank = {"sweep": 0, "grid": 1, "edge": 2}
+    deduped.sort(key=lambda c: (c.role != "public", src_rank.get(c.source, 9),
                                 tuple(sorted((k, v) for k, v in c.knobs.items()))))
 
     # validate (CPU) up to target counts per role.
