@@ -77,6 +77,48 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 1
+    E: 12
+    G: 4
+    N: 1024
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 48
+    E: 48
+    G: 12
+    N: 768
+- id: P8
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 64
+    E: 64
+    G: 16
+    N: 1024
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    E: 12
+    G: 4
+    N: 768
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    E: 12
+    G: 4
+    N: 1024
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    E: 12
+    G: 12
+    N: 192
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -142,6 +184,20 @@ hidden_shapes:
 # x is (s, n_slices * r) = (B, 3*G); qkv_lora_b is (num_lora, 3*N, r) =
 # (E, 3*N, G). seg_indptr `offsets:to=B` pins the segment cumsum to B so the
 # segments tile [0, B) and every kernel row read stays in-bounds.
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    E: 1
+    G: 1
+    N: 1
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    E: 12
+    G: 4
+    N: 192
 inputs:
   x:
     dims:

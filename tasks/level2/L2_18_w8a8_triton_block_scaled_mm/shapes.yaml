@@ -77,6 +77,42 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 1
+    D: 512
+    N: 8192
+- id: P7
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 48
+    D: 512
+    N: 6144
+- id: P8
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 48
+    D: 512
+    N: 8192
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 48
+    D: 6144
+    N: 384
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 48
+    D: 8192
+    N: 384
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 384
+    D: 512
+    N: 384
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -138,6 +174,18 @@ hidden_shapes:
 # also BLOCK_SIZE_K. block_k must be >= 32 because the int8 tl.dot launch
 # requires a K-tile of at least 32 (see scripts/lint_shapes_against_kernel.py;
 # the passed sibling L2_10 uses the same [8, 32]).
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 8
+    N: 8
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 512
+    N: 384
 inputs:
   A:
     dims:

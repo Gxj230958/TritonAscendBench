@@ -65,6 +65,54 @@ public_shapes:
     Hg: 8
     K: 128
     NSEG: 1
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    H: 24
+    Hg: 24
+    K: 384
+    NSEG: 6
+    T: 576
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    H: 32
+    Hg: 32
+    K: 512
+    NSEG: 8
+    T: 768
+- id: P8
+  name: scale_CPU-valid; pending
+  knobs:
+    H: 8
+    Hg: 8
+    K: 96
+    NSEG: 3
+    T: 576
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    H: 8
+    Hg: 8
+    K: 96
+    NSEG: 3
+    T: 768
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    H: 8
+    Hg: 8
+    K: 96
+    NSEG: 6
+    T: 150
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    H: 8
+    Hg: 8
+    K: 96
+    NSEG: 8
+    T: 150
 hidden_shapes:
 - id: H1
   name: h_multiseg
@@ -74,6 +122,14 @@ hidden_shapes:
     Hg: 6
     K: 96
     NSEG: 3
+- id: H2
+  name: edge_CPU-valid; pending 
+  knobs:
+    H: 1
+    Hg: 1
+    K: 1
+    NSEG: 1
+    T: 1
 inputs:
   k:
     dims:

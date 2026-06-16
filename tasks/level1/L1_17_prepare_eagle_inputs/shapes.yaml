@@ -81,6 +81,42 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 2
+    G: 16
+    T: 8
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 96
+    G: 12
+    T: 192
+- id: P8
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 128
+    G: 16
+    T: 256
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    G: 4
+    T: 192
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    G: 4
+    T: 256
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 8
+    G: 12
+    T: 8
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -134,6 +170,18 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 2
+    G: 1
+    T: 2
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 2
+    G: 4
+    T: 8
 inputs:
   # num_reqs = B (kernel grid extent). query_len = T (constant raw per-request
   # token span). max_num_reqs = B + G (> B, so the cudagraph tail padding is

@@ -77,6 +77,36 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 1
+    L: 4096
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 48
+    L: 3072
+- id: P8
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 64
+    L: 4096
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 12
+    L: 3072
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 12
+    L: 4096
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 48
+    L: 320
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -134,6 +164,16 @@ hidden_shapes:
 # req_to_token [E, L] is the token-slot table (E pool rows, L = max context len);
 # req_pool_indices [E] selects a pool row per request; page_kernel_lens [E] is the
 # per-request seq_len. page_size is the PAGED_SIZE constexpr (page granularity).
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    E: 1
+    L: 1
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    E: 1
+    L: 320
 inputs:
   req_to_token:
     dims:

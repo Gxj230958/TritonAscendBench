@@ -77,6 +77,48 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 1
+    D: 512
+    E: 8
+    G: 16
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 1536
+    D: 6144
+    E: 48
+    G: 12
+- id: P8
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 2048
+    D: 8192
+    E: 64
+    G: 16
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 64
+    D: 512
+    E: 8
+    G: 12
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 64
+    D: 512
+    E: 8
+    G: 16
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 64
+    D: 512
+    E: 48
+    G: 4
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -143,6 +185,20 @@ hidden_shapes:
 # [0, B) and every kernel row read stays in-bounds. weight_indices selects the
 # adapter slab per segment and lora_ranks masks the active output columns --
 # both are load-bearing (a kernel ignoring either fails the oracle compare).
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 1
+    E: 1
+    G: 1
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 512
+    E: 8
+    G: 4
 inputs:
   x:
     dims:

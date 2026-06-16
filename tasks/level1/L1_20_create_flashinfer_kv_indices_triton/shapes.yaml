@@ -77,6 +77,36 @@ public_shapes:
     E: 8
     C: 16
     G: 4
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 1
+    N: 4096
+- id: P7
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 48
+    N: 3072
+- id: P8
+  name: diagonal_CPU-valid; pend
+  knobs:
+    E: 64
+    N: 4096
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 12
+    N: 3072
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 12
+    N: 4096
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 48
+    N: 1024
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -130,6 +160,11 @@ hidden_shapes:
     E: 8
     C: 8
     G: 4
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    E: 1
+    N: 1024
 inputs:
   # FlashInfer paged-KV index gather (frozen kernel + flashinfer_backend.py
   # call site). req_to_token is the [max_batch, max_context_len] token-location

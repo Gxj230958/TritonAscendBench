@@ -39,6 +39,42 @@ public_shapes:
     B: 2
     D: 2048
     KW: 3
+- id: P6
+  name: diagonal_CPU-valid; pend
+  knobs:
+    B: 48
+    D: 3072
+    KW: 6
+- id: P7
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 5
+    D: 384
+    KW: 6
+- id: P8
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 5
+    D: 3072
+    KW: 3
+- id: P9
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 5
+    D: 4096
+    KW: 3
+- id: P10
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 48
+    D: 384
+    KW: 3
+- id: P11
+  name: scale_CPU-valid; pending
+  knobs:
+    B: 64
+    D: 384
+    KW: 3
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -64,6 +100,18 @@ hidden_shapes:
     B: 32
     D: 128
     KW: 2
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 1
+    KW: 2
+- id: H6
+  name: edge_CPU-valid; pending 
+  knobs:
+    B: 1
+    D: 384
+    KW: 3
 inputs:
   # x: [batch, dim] -- the single new decode token. The wrapper unsqueezes to
   # [batch, dim, seqlen=1] internally.

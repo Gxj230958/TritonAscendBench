@@ -77,6 +77,14 @@ public_shapes:
     E: 128
     C: 16
     G: 4
+- id: P6
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 384
+- id: P7
+  name: scale_CPU-valid; pending
+  knobs:
+    E: 512
 hidden_shapes:
 - id: H1
   name: h_odd
@@ -137,6 +145,10 @@ hidden_shapes:
 # expert_start_loc / m_indices are launcher-allocated outputs (candidate_inplace).
 # Token counts in [0, T) so some experts may be empty (exercises the -1 padding
 # and zero-width-region path); T = per-expert token cap knob.
+- id: H5
+  name: edge_CPU-valid; pending 
+  knobs:
+    E: 1
 inputs:
   num_recv_tokens_per_expert:
     dims:
