@@ -16,7 +16,7 @@ tasks/level1/L1_12_rms_norm/
 ├── kernel.py # GPU triton reference (pure operator, no oracle/meta pollution)
 ├── oracle_pytorch.py # PyTorch eager reference (runner-only, not mounted to candidate)
 ├── meta.yaml # Structured metadata + runner_checks (source of truth)
-├── shapes.yaml # SHAPE_CONFIGS + ADVERSARIAL cases
+├── shapes.yaml # SHAPE_CONFIGS + ADVERSARIAL cases (coverage *policy*: shape_policy.md)
 └── contract.md # Human-readable semantic contract
 ```
 
