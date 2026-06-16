@@ -114,9 +114,9 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 41
-    hidden: 8
-    total: 49
+    public: 36
+    hidden: 7
+    total: 43
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -132,7 +132,7 @@ provenance:
   source_md_id: L3-05
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-16T03:33:49Z'
+    verified_at: '2026-06-16T05:55:36Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       H1:
@@ -155,6 +155,14 @@ provenance:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 0.6329113841056824
+      H8:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 2.0493507385253906
+      H9:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 8642674.0
       P1:
         status: VERIFIED
         max_abs: 0.0009765625
@@ -167,18 +175,118 @@ provenance:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 222.0
+      P12:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
+      P13:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
+      P14:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
+      P15:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
       P2:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 6.65573787689209
+      P21:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 1.1281768083572388
+      P22:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 1.2480957508087158
+      P23:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 164.1999969482422
+      P24:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 474.0
+      P25:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 2.0493507385253906
+      P26:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 7.740384578704834
+      P27:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 9.714285850524902
+      P28:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 54.6363639831543
+      P29:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P3:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 157.42857360839844
+      P30:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.2572402060031891
+      P31:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 1.0587002038955688
+      P32:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.2048681527376175
+      P33:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.8413926362991333
+      P34:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.9725274443626404
+      P35:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 0.8836477994918823
+      P36:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 1.2256661653518677
+      P37:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 6.5395684242248535
+      P38:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 6.65573787689209
+      P39:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 45.28571319580078
       P4:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 117.0
+      P40:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
+      P41:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 57.0
       P5:
         status: VERIFIED
         max_abs: 0.001953125
@@ -201,7 +309,7 @@ provenance:
         max_rel: 79.27586364746094
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
-    golden_sha256: 34b27485d3bd123644af4602229e96d8172cf87b6174661f6b2e747f6b0387f7
+    golden_sha256: 282626db83a1a36fba345cbfff4cdfe9ab16d4892bf301e158f20133c208202c
 param_constraints:
   scaffold: false
   dims:
@@ -229,11 +337,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_17_fwd_kernel_alibi-20260616T113035
+  s2_gpu_run_id: s2-L3_17_fwd_kernel_alibi-20260616T134459
   classified_at: '2026-06-16'
   standalone_sha256: d7841576eeb139d77e3cbe96e08e67e20d61d5da15d2eb701e891e81331cf657
   kernel_sha256: d7841576eeb139d77e3cbe96e08e67e20d61d5da15d2eb701e891e81331cf657
-  shape_manifest_sha256: 521f4b70f70e5033e608d924f2166be9645d3a0f5ed2746961f499f55e7918f3
+  shape_manifest_sha256: 66b8f7aa67a6b2f17b1c4b4251bb449a585a2babcac97fbe01796ef21595a5c3
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl

@@ -114,9 +114,9 @@ runner_checks:
   - constexpr_match
   metamorphic_checks: []
   shape_coverage:
-    public: 40
+    public: 38
     hidden: 6
-    total: 46
+    total: 44
 is_canary: false
 is_hidden_only: false
 is_appendix: false
@@ -134,7 +134,7 @@ provenance:
     upstream (non-existent/merged/no-public-source); re-tasked to CSV operator _correct_attn_cp_out_kernel.'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-16T03:33:39Z'
+    verified_at: '2026-06-16T05:53:52Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -173,7 +173,71 @@ provenance:
         status: VERIFIED
         max_abs: 0.000244140625
         max_rel: 0.0043290043249726295
+      P12:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P13:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P14:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P15:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P16:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P17:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P19:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P2:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P20:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P21:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P22:
+        status: VERIFIED
+        max_abs: 0.000244140625
+        max_rel: 0.0058139534667134285
+      P23:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P25:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P26:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P27:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P28:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P29:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
@@ -181,7 +245,55 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      P30:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P31:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P32:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P33:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P34:
+        status: VERIFIED
+        max_abs: 0.00390625
+        max_rel: 0.0060606058686971664
+      P35:
+        status: VERIFIED
+        max_abs: 0.000244140625
+        max_rel: 0.006289307959377766
+      P36:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.004524887073785067
+      P37:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 0.007575757801532745
+      P38:
+        status: VERIFIED
+        max_abs: 0.000244140625
+        max_rel: 0.006289307959377766
+      P39:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.0058823530562222
       P4:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P40:
+        status: VERIFIED
+        max_abs: 0.00048828125
+        max_rel: 0.007299270015209913
+      P41:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
@@ -201,7 +313,7 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: def5b99355ac1ab9fc4a272c00568a13d953053521b1d14560f6f9b091345e50
+    golden_sha256: 0ec819ee8f32770dddb4b530be63d44b66f12cd30563a2f1c080c111b8f02dae
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
 param_constraints:
@@ -227,11 +339,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_32_correct_attn_cp_out-20260616T112951
+  s2_gpu_run_id: s2-L2_32_correct_attn_cp_out-20260616T134427
   classified_at: '2026-06-16'
   standalone_sha256: 8ae18750b9e81d3d208cd2c7b939d624c14f13f239f193e7a28a1c58bccd0f08
   kernel_sha256: 8ae18750b9e81d3d208cd2c7b939d624c14f13f239f193e7a28a1c58bccd0f08
-  shape_manifest_sha256: 798180f936d8b994ee384a3f281896b8739f6b58c9c6dc8c8afeab6a85926a72
+  shape_manifest_sha256: 9725d14382d3e01bfa48f8419b3e3052322487052a080f202f81e7c037689313
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl
