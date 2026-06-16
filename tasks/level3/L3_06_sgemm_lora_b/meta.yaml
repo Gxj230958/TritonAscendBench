@@ -132,7 +132,7 @@ provenance:
   source_md_id: L2-09
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-12T23:12:00Z'
+    verified_at: '2026-06-16T03:33:44Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       H1:
@@ -151,7 +151,23 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P10:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P11:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
@@ -171,7 +187,15 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: 3da640a9b369b63bafb8a9f6b6f45b4fb5c492ee28eec6295d281d92e3e58d61
+      P6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P9:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: be24a705a278e20a76733ae61ebd9fc2a2a8fd3e1eb97fc62c270aee4f82ba04
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
 param_constraints:
@@ -221,11 +245,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_06_sgemm_lora_b-20260613T070329
-  classified_at: '2026-06-13'
+  s2_gpu_run_id: s2-L3_06_sgemm_lora_b-20260616T113005
+  classified_at: '2026-06-16'
   standalone_sha256: 7c1828a852e661d899e8c2a5016b752281e88dae710666668da527f8fe2b67ec
   kernel_sha256: 7c1828a852e661d899e8c2a5016b752281e88dae710666668da527f8fe2b67ec
-  shape_manifest_sha256: d8fa042bfe0b77c88701a78e6b8cfd3db9b979ff749677501626e51d0186351c
+  shape_manifest_sha256: 581a51e7f98ca7d5a11f4730cfb22a69112f8303ed5aeb84050f5d4d38e43ae1
 frozen_deps:
 - ascendbench.frozen.deps.h_ebda9fec13c5.sglang_lora_triton_ops.kernel_utils
 classB_symbols:

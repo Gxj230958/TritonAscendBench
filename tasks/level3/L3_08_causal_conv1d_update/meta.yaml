@@ -155,7 +155,23 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P10:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P11:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
@@ -175,13 +191,25 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      P7:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P8:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P9:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
     golden_source: oracle_pytorch_verified
     notes: 'Fixture re-authored: weight [D,KW] (KW in {2,3,4}, not D), conv_state
       [B,D,KW-1], bias [D], load-bearing conv_state_indices (cyclic_perm), null_block_id
       null. Oracle gathers/rolls/scatters per index. Needs GPU golden re-capture before
       baseline eligibility.'
-    verified_at: '2026-06-05T01:08:48Z'
-    golden_sha256: 1164d4f43dce5c6751d6c3e282c5eff20fa5be0decc09a5276c1e1a83450e8f0
+    verified_at: '2026-06-16T03:33:42Z'
+    golden_sha256: f41b86bccca42397d39fef417c610768e9e97111e437ae97a5600e37c5a64bd0
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
@@ -213,11 +241,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_08_causal_conv1d_update-20260608T184754
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L3_08_causal_conv1d_update-20260616T113013
+  classified_at: '2026-06-16'
   standalone_sha256: edd857b3b52633a064e603ab206e28a0d1950e1ec8e430ee3c2c6380b20633c5
   kernel_sha256: edd857b3b52633a064e603ab206e28a0d1950e1ec8e430ee3c2c6380b20633c5
-  shape_manifest_sha256: 5d6256e9209e934832738806b464ab3b5692d21f572203abd4c306bb9b33bc63
+  shape_manifest_sha256: b01c294c1e63efaf7fb39035e447db7aacd33e4a6a0b78ef532d6e15a46b8d3d
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl

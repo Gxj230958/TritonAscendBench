@@ -131,7 +131,7 @@ provenance:
   source_md_id: L2-40
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:14:00Z'
+    verified_at: '2026-06-16T03:36:28Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
@@ -154,10 +154,29 @@ provenance:
         max_rel: 0.006896551698446274
         blocker: 'k: atol/rtol: max_abs=0.00781, max_rel=0.00602 (max_abs=0.0078125,
           max_rel=0.0060240961611270905, tol=vector_reduce atol=0.001 rtol=0.001)'
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      P10:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.004926108289510012
+      P11:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007042253389954567
+        blocker: 'k: atol/rtol: max_abs=0.00781, max_rel=0.00474 (max_abs=0.0078125,
+          max_rel=0.004739336669445038, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.00781, max_rel=0.00704 (max_abs=0.007'
       P2:
         status: VERIFIED
         max_abs: 0.0
@@ -182,6 +201,32 @@ provenance:
         blocker: 'k: atol/rtol: max_abs=0.00391, max_rel=0.00481 (max_abs=0.00390625,
           max_rel=0.004807692486792803, tol=vector_reduce atol=0.001 rtol=0.001);
           q: atol/rtol: max_abs=0.00781, max_rel=0.00719 (max_abs=0.00'
+      P6:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.005291005130857229
+        blocker: 'q: atol/rtol: max_abs=0.00781, max_rel=0.00529 (max_abs=0.0078125,
+          max_rel=0.005291005130857229, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P7:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007462686393409967
+        blocker: 'q: atol/rtol: max_abs=0.00781, max_rel=0.00746 (max_abs=0.0078125,
+          max_rel=0.007462686393409967, tol=vector_reduce atol=0.001 rtol=0.001)'
+      P8:
+        status: CEILING_ACCEPTED
+        max_abs: 0.0078125
+        max_rel: 0.007299270015209913
+        blocker: 'k: atol/rtol: max_abs=0.00195, max_rel=0.00588 (max_abs=0.001953125,
+          max_rel=0.0058823530562222, tol=vector_reduce atol=0.001 rtol=0.001); q:
+          atol/rtol: max_abs=0.00781, max_rel=0.0073 (max_abs=0.0078'
+      P9:
+        status: CEILING_ACCEPTED
+        max_abs: 0.015625
+        max_rel: 0.007462686393409967
+        blocker: 'k: atol/rtol: max_abs=0.0156, max_rel=0.00725 (max_abs=0.015625,
+          max_rel=0.007246376946568489, tol=vector_reduce atol=0.001 rtol=0.001);
+          q: atol/rtol: max_abs=0.0156, max_rel=0.00746 (max_abs=0.015625'
     golden_source: dtype_ceiling_accepted
     cross_check: S2_FRESH
 param_constraints:
@@ -214,11 +259,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_36_gemma_qkv_rmsnorm-20260602T203142
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L1_36_gemma_qkv_rmsnorm-20260616T113606
+  classified_at: '2026-06-16'
   standalone_sha256: 4a1b95775bcf25ac040d0f153d09834d392fecd89d9eebbd31b6d3696e0068fa
   kernel_sha256: 4a1b95775bcf25ac040d0f153d09834d392fecd89d9eebbd31b6d3696e0068fa
-  shape_manifest_sha256: 7b8be656358044be1802f69507e14c8fb7404ded1b191395ad0e999b8e9abdb4
+  shape_manifest_sha256: 435068f03a00d0eb879e2c44bb6d53a256463fdd633c460773bc8abda7337b47
 frozen_deps: []
 classB_symbols: []
 reference_path: native

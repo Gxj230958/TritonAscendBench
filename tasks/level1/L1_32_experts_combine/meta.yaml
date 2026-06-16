@@ -129,7 +129,7 @@ provenance:
   source_md_id: L2-32
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T02:01:45Z'
+    verified_at: '2026-06-16T03:34:26Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       H1:
@@ -148,6 +148,14 @@ provenance:
         status: VERIFIED
         max_abs: 9.5367431640625e-07
         max_rel: 0.0009524435736238956
+      H5:
+        status: VERIFIED
+        max_abs: 5.960464477539063e-08
+        max_rel: 6.756646087069385e-08
+      H6:
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 1.1789822451646614e-07
       P1:
         status: VERIFIED
         max_abs: 4.76837158203125e-07
@@ -168,8 +176,16 @@ provenance:
         status: VERIFIED
         max_abs: 4.76837158203125e-07
         max_rel: 1.1920454312530637e-07
+      P6:
+        status: VERIFIED
+        max_abs: 4.76837158203125e-07
+        max_rel: 1.1789822451646614e-07
+      P8:
+        status: VERIFIED
+        max_abs: 9.5367431640625e-07
+        max_rel: 1.1919722453512804e-07
     golden_source: oracle_pytorch_verified
-    golden_sha256: 0ad0ab6a183b6855b1994f11d0dd5805f5385415b2d4880ce315586d2f861c29
+    golden_sha256: 652825a232df219f7cdbf3cef8f80720705540622dfb76b5daa1f5be80c22970
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
@@ -189,11 +205,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L1_32_experts_combine-20260608T183856
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L1_32_experts_combine-20260616T112909
+  classified_at: '2026-06-16'
   standalone_sha256: aa7ef704420b180c2017e78da9f4ec392f3576d010d92552e0383b28806a00dd
   kernel_sha256: aa7ef704420b180c2017e78da9f4ec392f3576d010d92552e0383b28806a00dd
-  shape_manifest_sha256: 2a3a918f50d9f5b93ed7c3bae21d91f8cc779b8ae4128b11dac53d3e2481d3a7
+  shape_manifest_sha256: 829706418f412dfbac1d1ed2f8c959f8910822ed93f4d57eb49314644a20fe54
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.logger

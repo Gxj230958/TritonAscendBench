@@ -133,7 +133,7 @@ provenance:
   source_md_id: L2-30
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:11:00Z'
+    verified_at: '2026-06-16T03:33:47Z'
     tolerance_class_used: atomic_scatter
     equivalence_per_shape:
       H1:
@@ -152,10 +152,22 @@ provenance:
         status: VERIFIED
         max_abs: 1.9073486328125e-06
         max_rel: 1.9200480892322958e-05
+      H6:
+        status: VERIFIED
+        max_abs: 1.7881393432617188e-07
+        max_rel: 1.5256405276886653e-05
       P1:
         status: VERIFIED
         max_abs: 4.172325134277344e-07
         max_rel: 1.1880649708473356e-06
+      P10:
+        status: VERIFIED
+        max_abs: 6.67572021484375e-06
+        max_rel: 4.848675962421112e-05
+      P11:
+        status: VERIFIED
+        max_abs: 3.546476364135742e-05
+        max_rel: 0.000813635706435889
       P2:
         status: VERIFIED
         max_abs: 1.6689300537109375e-06
@@ -172,13 +184,21 @@ provenance:
         status: VERIFIED
         max_abs: 2.384185791015625e-06
         max_rel: 4.139768498134799e-05
+      P6:
+        status: VERIFIED
+        max_abs: 1.618172973394394e-08
+        max_rel: 2.888270864787046e-05
+      P9:
+        status: VERIFIED
+        max_abs: 7.212162017822266e-06
+        max_rel: 5.031635009800084e-05
     golden_source: oracle_pytorch_verified
     note: Prior FAILED verdict (2026-05-27, max_abs=0.06/0.138) was against the superseded
       renormalised oracle. The oracle was re-authored to return raw softmax probabilities
       (matching kernel.py:258/285); r10_pyref refs were regenerated. Dev-side oracle-consistency
       now PASSES (H2 max_abs=0.0, P2 max_abs=8e-7 within atomic_scatter). Needs a
       GPU equivalence re-run against the corrected oracle to set VERIFIED.
-    golden_sha256: 1cd7c5fcf17c8ef27c7201d705a26dcfffb6dada118c28cf3ca046e2e3c7cdee
+    golden_sha256: aeaea0d1e0009f2b4de6340e4d0ee7833f57ac4e66e2a1d4524dc773f585cd88
     cross_check: S2_FRESH
 param_constraints:
   scaffold: false
@@ -203,11 +223,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_10_fused_moe_router_tensorcore-20260608T184815
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L3_10_fused_moe_router_tensorcore-20260616T113026
+  classified_at: '2026-06-16'
   standalone_sha256: 4ad27f9f40d182187735784f3f47163cd548b08623f4ab75f142033a3159aa46
   kernel_sha256: 4ad27f9f40d182187735784f3f47163cd548b08623f4ab75f142033a3159aa46
-  shape_manifest_sha256: e16088bcb66e0486cf199217f34dbc4c3b5e7f95f30e31cdd7116b004a512631
+  shape_manifest_sha256: 8ac9723f7fdfde6f72f8d918fbb07c1b0d4bdf64fddfcbb3fbeeb93d3140c438
 frozen_deps: []
 classB_symbols:
 - sym: vllm.logger.logger

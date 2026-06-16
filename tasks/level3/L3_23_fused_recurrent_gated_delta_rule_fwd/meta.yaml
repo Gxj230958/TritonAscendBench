@@ -129,7 +129,7 @@ provenance:
   source_md_id: L3-14
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:17:03Z'
+    verified_at: '2026-06-16T03:33:49Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       H1:
@@ -158,10 +158,29 @@ provenance:
         max_rel: 0.013452914543449879
         blocker: 'final_state: atol/rtol: max_abs=2, max_rel=0.0135 (max_abs=2.0,
           max_rel=0.013452914543449879, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H7:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
         status: VERIFIED
         max_abs: 9.5367431640625e-07
         max_rel: 0.004629629664123058
+      P10:
+        status: CEILING_ACCEPTED
+        max_abs: 2097152.0
+        max_rel: 0.033980581909418106
+        blocker: 'final_state: atol/rtol: max_abs=2.1e+06, max_rel=0.034 (max_abs=2097152.0,
+          max_rel=0.033980581909418106, tol=recurrent_chunk atol=0.005 rtol=0.005);
+          output: atol/rtol: max_abs=1.31e+05, max_rel=0.0074'
+      P11:
+        status: VERIFIED
+        max_abs: 32.0
+        max_rel: 0.007692307699471712
       P2:
         status: VERIFIED
         max_abs: 0.25
@@ -184,6 +203,18 @@ provenance:
         max_rel: 0.008163264952600002
         blocker: 'final_state: atol/rtol: max_abs=16, max_rel=0.00816 (max_abs=16.0,
           max_rel=0.008163264952600002, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P6:
+        status: CEILING_ACCEPTED
+        max_abs: 1024.0
+        max_rel: 0.01621621660888195
+        blocker: 'final_state: atol/rtol: max_abs=1.02e+03, max_rel=0.0162 (max_abs=1024.0,
+          max_rel=0.01621621660888195, tol=recurrent_chunk atol=0.005 rtol=0.005)'
+      P9:
+        status: CEILING_ACCEPTED
+        max_abs: 8192.0
+        max_rel: 0.006756756920367479
+        blocker: 'final_state: atol/rtol: max_abs=8.19e+03, max_rel=0.00676 (max_abs=8192.0,
+          max_rel=0.006756756920367479, tol=recurrent_chunk atol=0.005 rtol=0.005)'
     golden_source: dtype_ceiling_accepted
     notes: oracle_pytorch.py re-authored to the frozen kernel's exact token-by-token
       recurrence (decay applied to the carried state BEFORE the kS contraction; kS
@@ -233,11 +264,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_23_fused_recurrent_gated_delta_rule_fwd-20260608T185001
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L3_23_fused_recurrent_gated_delta_rule_fwd-20260616T113036
+  classified_at: '2026-06-16'
   standalone_sha256: 9fddf09002acae9c22cb790e844727987e19d0e9be62750b471384d371a78eb1
   kernel_sha256: 9fddf09002acae9c22cb790e844727987e19d0e9be62750b471384d371a78eb1
-  shape_manifest_sha256: 8ad4414d87893423983be431350723a4bd14dc3f050543a61f1935277eeb410c
+  shape_manifest_sha256: 91a7f6cfddeec66e791871bec9e4c19b4124f3c7060137d253846ef29fb3b0eb
 frozen_deps:
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.op
 classB_symbols:

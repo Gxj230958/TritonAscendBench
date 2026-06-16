@@ -134,7 +134,7 @@ provenance:
     upstream (non-existent/merged/no-public-source); re-tasked to CSV operator _correct_attn_cp_out_kernel.'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:15:51Z'
+    verified_at: '2026-06-16T03:33:39Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -153,10 +153,26 @@ provenance:
         status: VERIFIED
         max_abs: 0.00048828125
         max_rel: 0.007352941203862429
+      H5:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      H6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
       P1:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
+      P10:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P11:
+        status: VERIFIED
+        max_abs: 0.000244140625
+        max_rel: 0.0043290043249726295
       P2:
         status: VERIFIED
         max_abs: 0.0
@@ -173,7 +189,19 @@ provenance:
         status: VERIFIED
         max_abs: 0.0
         max_rel: 0.0
-    golden_sha256: 85897cf2ecc96d3dab63b8137236c95009e7a17a3712f5c07b6eb660b70db5af
+      P6:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+      P7:
+        status: VERIFIED
+        max_abs: 0.0009765625
+        max_rel: 0.005434782709926367
+      P8:
+        status: VERIFIED
+        max_abs: 0.0
+        max_rel: 0.0
+    golden_sha256: def5b99355ac1ab9fc4a272c00568a13d953053521b1d14560f6f9b091345e50
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
 param_constraints:
@@ -199,11 +227,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L2_32_correct_attn_cp_out-20260602T203230
-  classified_at: '2026-06-02'
+  s2_gpu_run_id: s2-L2_32_correct_attn_cp_out-20260616T112951
+  classified_at: '2026-06-16'
   standalone_sha256: 8ae18750b9e81d3d208cd2c7b939d624c14f13f239f193e7a28a1c58bccd0f08
   kernel_sha256: 8ae18750b9e81d3d208cd2c7b939d624c14f13f239f193e7a28a1c58bccd0f08
-  shape_manifest_sha256: 2de2733065c0b191dc0ae55aebd785f806030301b507e052ac2af5e80409d595
+  shape_manifest_sha256: 798180f936d8b994ee384a3f281896b8739f6b58c9c6dc8c8afeab6a85926a72
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl
@@ -217,4 +245,4 @@ classB_symbols:
 - sym: vllm.logger.init_logger
   proof: vllm.logger.init_logger is a pure logging-sink factory; replaced by a recorded
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
-reference_path: triton_fallback
+reference_path: native

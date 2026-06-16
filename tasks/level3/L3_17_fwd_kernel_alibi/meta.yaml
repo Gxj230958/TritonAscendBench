@@ -132,7 +132,7 @@ provenance:
   source_md_id: L3-05
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T01:15:07Z'
+    verified_at: '2026-06-16T03:33:49Z'
     tolerance_class_used: elementwise
     equivalence_per_shape:
       H1:
@@ -151,10 +151,22 @@ provenance:
         status: VERIFIED
         max_abs: 0.0009765625
         max_rel: 0.4806094169616699
+      H6:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 0.6329113841056824
       P1:
         status: VERIFIED
         max_abs: 0.0009765625
         max_rel: 0.47954174876213074
+      P10:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 367.6666564941406
+      P11:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 222.0
       P2:
         status: VERIFIED
         max_abs: 0.001953125
@@ -171,9 +183,25 @@ provenance:
         status: VERIFIED
         max_abs: 0.001953125
         max_rel: 3.0181450843811035
+      P6:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 0.6329113841056824
+      P7:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 45.28571319580078
+      P8:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 45.28571319580078
+      P9:
+        status: VERIFIED
+        max_abs: 0.001953125
+        max_rel: 79.27586364746094
     golden_source: oracle_pytorch_verified
     cross_check: S2_FRESH
-    golden_sha256: bd53235f38a46d44a009f3dadec9317cde0d0868efa8a8088ee682d5df18ffc3
+    golden_sha256: 34b27485d3bd123644af4602229e96d8172cf87b6174661f6b2e747f6b0387f7
 param_constraints:
   scaffold: false
   dims:
@@ -201,11 +229,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_17_fwd_kernel_alibi-20260608T184909
-  classified_at: '2026-06-08'
+  s2_gpu_run_id: s2-L3_17_fwd_kernel_alibi-20260616T113035
+  classified_at: '2026-06-16'
   standalone_sha256: d7841576eeb139d77e3cbe96e08e67e20d61d5da15d2eb701e891e81331cf657
   kernel_sha256: d7841576eeb139d77e3cbe96e08e67e20d61d5da15d2eb701e891e81331cf657
-  shape_manifest_sha256: 7abf49ce1b648ded32954d897122bf353d543daa0692f66498d43eb25551edf7
+  shape_manifest_sha256: 521f4b70f70e5033e608d924f2166be9645d3a0f5ed2746961f499f55e7918f3
 frozen_deps: []
 classB_symbols:
 - sym: vllm.triton_utils.tl
