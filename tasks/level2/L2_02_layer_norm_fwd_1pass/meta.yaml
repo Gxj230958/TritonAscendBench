@@ -40,11 +40,11 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 2/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3993
-    > tol 0.0500 (analytic=200960 measured=143616); P4: bytes deviation 0.3337 > tol
-    0.0500 (analytic=213056 measured=159744)'
-  xcheck_run_id: xcheck-2026-06-13-81cf531d
-  xchecked_at: '2026-06-13'
+    error). 2/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3918
+    > tol 0.0500 (analytic=200960 measured=144384); P4: bytes deviation 0.3359 > tol
+    0.0500 (analytic=213056 measured=159488)'
+  xcheck_run_id: xcheck-2026-06-16-05ce2ecc
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 1824.0
@@ -56,7 +56,7 @@ cost_model:
     blocked: false
     within_tol: false
     note: 'bytes deviation 0.7260 > tol 0.0500 (analytic=1824 measured=6656) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=6656 < 0.5xmax=159744); non-blocking per
+      small-shape HBM burst floor (measured=6656 < 0.5xmax=159488); non-blocking per
       asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 25728.0
@@ -71,34 +71,34 @@ cost_model:
       -- see module docstring)
   - shape_id: P3
     analytic_bytes_total: 200960.0
-    measured_bytes: 143616.0
+    measured_bytes: 144384.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.39928698752228164
+    bytes_deviation: 0.39184397163120566
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.3993 > tol 0.0500 (analytic=200960 measured=143616)
+    note: bytes deviation 0.3918 > tol 0.0500 (analytic=200960 measured=144384)
   - shape_id: P4
     analytic_bytes_total: 213056.0
-    measured_bytes: 159744.0
+    measured_bytes: 159488.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.33373397435897434
+    bytes_deviation: 0.33587479935794545
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.3337 > tol 0.0500 (analytic=213056 measured=159744)
+    note: bytes deviation 0.3359 > tol 0.0500 (analytic=213056 measured=159488)
   - shape_id: P5
     analytic_bytes_total: 32784.0
-    measured_bytes: 33280.0
+    measured_bytes: 33024.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.014903846153846155
+    bytes_deviation: 0.007267441860465116
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0149 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0073 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -132,7 +132,7 @@ provenance:
   source_md_id: L1-14
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-12T23:09:06Z'
+    verified_at: '2026-06-16T07:54:48Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
@@ -214,7 +214,7 @@ classB_symbols:
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-12T23:09:55Z'
+  captured_at: '2026-06-16T07:55:34Z'
   upstream_callable:
     module: vllm.model_executor.layers.mamba.ops.layernorm_gated
     function: _layer_norm_fwd_1pass_kernel

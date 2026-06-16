@@ -36,68 +36,68 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.1358
-    > tol 0.0500 (analytic=33489152 measured=38752768)'
-  xcheck_run_id: xcheck-2026-06-05-ed1d2147
-  xchecked_at: '2026-06-05'
+    error). 1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.1363
+    > tol 0.0500 (analytic=33489152 measured=38775808)'
+  xcheck_run_id: xcheck-2026-06-16-46288520
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 15392.0
-    measured_bytes: 32512.0
+    measured_bytes: 33280.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5265748031496063
+    bytes_deviation: 0.5375
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.5266 > tol 0.0500 (analytic=15392 measured=32512) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=32512 < 0.5xmax=38752768); non-blocking
+    note: 'bytes deviation 0.5375 > tol 0.0500 (analytic=15392 measured=33280) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=33280 < 0.5xmax=38775808); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 258112.0
-    measured_bytes: 190464.0
+    measured_bytes: 189952.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.3551747311827957
+    bytes_deviation: 0.3588274932614555
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.3552 > tol 0.0500 (analytic=258112 measured=190464) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=190464 < 0.5xmax=38752768); non-blocking
+    note: 'bytes deviation 0.3588 > tol 0.0500 (analytic=258112 measured=189952) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=189952 < 0.5xmax=38775808); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 4178048.0
-    measured_bytes: 3886848.0
+    measured_bytes: 3879680.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.07491931765790687
+    bytes_deviation: 0.07690531177829099
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.0749 > tol 0.0500 (analytic=4178048 measured=3886848)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=3886848 < 0.5xmax=38752768);
+    note: 'bytes deviation 0.0769 > tol 0.0500 (analytic=4178048 measured=3879680)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=3879680 < 0.5xmax=38775808);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 33489152.0
-    measured_bytes: 38752768.0
+    measured_bytes: 38775808.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.1358255492872148
+    bytes_deviation: 0.13633902870573322
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.1358 > tol 0.0500 (analytic=33489152 measured=38752768)
+    note: bytes deviation 0.1363 > tol 0.0500 (analytic=33489152 measured=38775808)
   - shape_id: P5
     analytic_bytes_total: 2064448.0
-    measured_bytes: 2447616.0
+    measured_bytes: 2448128.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.15654743227695847
+    bytes_deviation: 0.15672383143365054
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1565 > tol 0.0500 (analytic=2064448 measured=2447616)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2447616 < 0.5xmax=38752768);
+    note: 'bytes deviation 0.1567 > tol 0.0500 (analytic=2064448 measured=2448128)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=2448128 < 0.5xmax=38775808);
       non-blocking per asymptotic_hbm_xcheck]'
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -131,7 +131,7 @@ provenance:
   source_md_id: L2-37
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T02:01:33Z'
+    verified_at: '2026-06-16T08:20:58Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       H1:
@@ -214,7 +214,7 @@ classB_symbols:
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-05T02:02:22Z'
+  captured_at: '2026-06-16T08:21:55Z'
   upstream_callable:
     module: sglang.srt.layers.moe.ep_moe.kernels
     function: _silu_and_mul_post_quant_kernel

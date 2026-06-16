@@ -45,20 +45,20 @@ cost_model:
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
     error). 1/2 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.0775
     > tol 0.0500 (analytic=213024 measured=230912)'
-  xcheck_run_id: xcheck-2026-06-05-08665242
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-16-a78855a3
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 1808.0
-    measured_bytes: 13312.0
+    measured_bytes: 13056.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8641826923076923
+    bytes_deviation: 0.8615196078431373
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.8642 > tol 0.0500 (analytic=1808 measured=13312) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=13312 < 0.5xmax=230912); non-blocking
+    note: 'bytes deviation 0.8615 > tol 0.0500 (analytic=1808 measured=13056) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=13056 < 0.5xmax=230912); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 25664.0
@@ -95,15 +95,15 @@ cost_model:
     note: bytes deviation 0.0775 > tol 0.0500 (analytic=213024 measured=230912)
   - shape_id: P5
     analytic_bytes_total: 32776.0
-    measured_bytes: 43520.0
+    measured_bytes: 43776.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.246875
+    bytes_deviation: 0.25127923976608185
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.2469 > tol 0.0500 (analytic=32776 measured=43520) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=43520 < 0.5xmax=230912); non-blocking
+    note: 'bytes deviation 0.2513 > tol 0.0500 (analytic=32776 measured=43776) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=43776 < 0.5xmax=230912); non-blocking
       per asymptotic_hbm_xcheck]'
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -137,7 +137,7 @@ provenance:
   source_md_id: L2-17
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:07:55Z'
+    verified_at: '2026-06-16T08:14:59Z'
     tolerance_class_used: vector_reduce
     equivalence_per_shape:
       H1:
@@ -231,9 +231,10 @@ classB_symbols:
     deterministic no-op logger (zero numeric/shape/dtype/schedule effect)
 reference_path: native
 phase_b_capture:
-  status: DONE
+  status: FAILED
   captured_at: '2026-06-05T01:08:45Z'
   upstream_callable:
     module: vllm.model_executor.layers.fla.ops.kda
     function: layer_norm_gated_fwd_kernel
-  shape_manifest_sha256: 016c1d6ef7b97896257a249aba30534717c65548b5acf6eeb8a7835a88f5a284
+  reason: output['_out1'] is NoneType, not a Tensor -- a golden artifact is a flat
+    tensor dict

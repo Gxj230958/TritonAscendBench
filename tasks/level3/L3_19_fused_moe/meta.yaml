@@ -38,66 +38,66 @@ cost_model:
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
     error). 1/1 gate shape(s) exceeded gpu_xcheck_tol=0.05: P4: bytes deviation 0.2043
-    > tol 0.0500 (analytic=344069576 measured=432417536)'
-  xcheck_run_id: xcheck-2026-06-05-3e0c27f7
-  xchecked_at: '2026-06-05'
+    > tol 0.0500 (analytic=344069576 measured=432395264)'
+  xcheck_run_id: xcheck-2026-06-16-d096c4fe
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 25632.0
-    measured_bytes: 47616.0
+    measured_bytes: 47360.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.46169354838709675
+    bytes_deviation: 0.45878378378378376
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4617 > tol 0.0500 (analytic=25632 measured=47616) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=47616 < 0.5xmax=432417536); non-blocking
+    note: 'bytes deviation 0.4588 > tol 0.0500 (analytic=25632 measured=47360) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=47360 < 0.5xmax=432395264); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 737875.9375
-    measured_bytes: 856064.0
+    measured_bytes: 856320.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.1380598442406175
+    bytes_deviation: 0.13831752440676381
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1381 > tol 0.0500 (analytic=737876 measured=856064) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=856064 < 0.5xmax=432417536); non-blocking
+    note: 'bytes deviation 0.1383 > tol 0.0500 (analytic=737876 measured=856320) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=856320 < 0.5xmax=432395264); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 43599456.83281719
-    measured_bytes: 38577152.0
+    measured_bytes: 38601728.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.13018858501574168
+    bytes_deviation: 0.12946904430851358
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1302 > tol 0.0500 (analytic=43599457 measured=38577152)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=38577152 < 0.5xmax=432417536);
+    note: 'bytes deviation 0.1295 > tol 0.0500 (analytic=43599457 measured=38601728)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=38601728 < 0.5xmax=432395264);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 344069575.8614633
-    measured_bytes: 432417536.0
+    measured_bytes: 432395264.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.20431169594966817
+    bytes_deviation: 0.20427071129654345
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.2043 > tol 0.0500 (analytic=344069576 measured=432417536)
+    note: bytes deviation 0.2043 > tol 0.0500 (analytic=344069576 measured=432395264)
   - shape_id: P5
     analytic_bytes_total: 42547341.15771736
-    measured_bytes: 40979968.0
+    measured_bytes: 41005824.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.03824730067425534
+    bytes_deviation: 0.03759263946792929
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0382 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0376 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -131,7 +131,7 @@ provenance:
   source_md_id: L3-09
   golden:
     oracle_kernel_equivalence: CEILING_ACCEPTED
-    verified_at: '2026-06-05T01:16:10Z'
+    verified_at: '2026-06-16T08:48:07Z'
     tolerance_class_used: cube_matmul_fp16
     equivalence_per_shape:
       H1:
@@ -247,7 +247,7 @@ classB_symbols:
 reference_path: triton_fallback
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-05T01:16:59Z'
+  captured_at: '2026-06-16T08:49:02Z'
   upstream_callable:
     module: vllm.model_executor.layers.fused_moe.fused_moe
     function: fused_moe_kernel

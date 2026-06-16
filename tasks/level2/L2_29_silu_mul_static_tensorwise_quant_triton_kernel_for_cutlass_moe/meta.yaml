@@ -37,66 +37,66 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-05-b4c177af
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-16-0c3dbd04
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 38944.0
-    measured_bytes: 54272.0
+    measured_bytes: 54016.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.2824292452830189
+    bytes_deviation: 0.2790284360189573
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.2824 > tol 0.0500 (analytic=38944 measured=54272) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=54272 < 0.5xmax=76997376); non-blocking
+    note: 'bytes deviation 0.2790 > tol 0.0500 (analytic=38944 measured=54016) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=54016 < 0.5xmax=76891648); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 622656.0
-    measured_bytes: 367360.0
+    measured_bytes: 368128.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6949477351916377
+    bytes_deviation: 0.6914116828929068
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6949 > tol 0.0500 (analytic=622656 measured=367360) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=367360 < 0.5xmax=76997376); non-blocking
+    note: 'bytes deviation 0.6914 > tol 0.0500 (analytic=622656 measured=368128) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=368128 < 0.5xmax=76891648); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 9961600.0
-    measured_bytes: 7755008.0
+    measured_bytes: 7749632.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.284537681972733
+    bytes_deviation: 0.28542877906976744
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.2845 > tol 0.0500 (analytic=9961600 measured=7755008)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=7755008 < 0.5xmax=76997376);
+    note: 'bytes deviation 0.2854 > tol 0.0500 (analytic=9961600 measured=7749632)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=7749632 < 0.5xmax=76891648);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 79692032.0
-    measured_bytes: 76997376.0
+    measured_bytes: 76891648.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.03499672508320283
+    bytes_deviation: 0.036419872285739015
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0350 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0364 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P5
     analytic_bytes_total: 4980800.0
-    measured_bytes: 4883968.0
+    measured_bytes: 4883200.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.019826501729741063
+    bytes_deviation: 0.01998689384010485
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0198 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0200 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: upstream_oracle_required
 runner_checks:
@@ -131,7 +131,7 @@ provenance:
   golden:
     oracle_kernel_equivalence: VERIFIED
     gpu_kernel_capture_status: PENDING
-    verified_at: '2026-06-05T01:12:17Z'
+    verified_at: '2026-06-16T08:19:54Z'
     tolerance_class_used: fp8_software_emulated
     equivalence_per_shape:
       H1:
@@ -222,7 +222,7 @@ classB_symbols:
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-05T01:13:03Z'
+  captured_at: '2026-06-16T08:20:52Z'
   upstream_callable:
     module: sglang.srt.layers.moe.ep_moe.kernels
     function: silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe

@@ -37,12 +37,12 @@ cost_model:
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
-    error). 3/3 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3871
-    > tol 0.0500 (analytic=226560 measured=163328); P4: bytes deviation 0.6467 > tol
-    0.0500 (analytic=492800 measured=299264); P5: bytes deviation 0.8725 > tol 0.0500
-    (analytic=353280 measured=188672)'
-  xcheck_run_id: xcheck-2026-06-05-44440e55
-  xchecked_at: '2026-06-05'
+    error). 3/3 gate shape(s) exceeded gpu_xcheck_tol=0.05: P3: bytes deviation 0.3828
+    > tol 0.0500 (analytic=226560 measured=163840); P4: bytes deviation 0.6453 > tol
+    0.0500 (analytic=492800 measured=299520); P5: bytes deviation 0.8827 > tol 0.0500
+    (analytic=353280 measured=187648)'
+  xcheck_run_id: xcheck-2026-06-16-8f5cc60b
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 8352.0
@@ -54,50 +54,50 @@ cost_model:
     blocked: false
     within_tol: false
     note: 'bytes deviation 0.8361 > tol 0.0500 (analytic=8352 measured=50944) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=50944 < 0.5xmax=299264); non-blocking
+      small-shape HBM burst floor (measured=50944 < 0.5xmax=299520); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 49632.0
-    measured_bytes: 73984.0
+    measured_bytes: 74240.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.3291522491349481
+    bytes_deviation: 0.3314655172413793
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.3292 > tol 0.0500 (analytic=49632 measured=73984) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=73984 < 0.5xmax=299264); non-blocking
+    note: 'bytes deviation 0.3315 > tol 0.0500 (analytic=49632 measured=74240) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=74240 < 0.5xmax=299520); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 226560.0
-    measured_bytes: 163328.0
+    measured_bytes: 163840.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.3871473354231975
+    bytes_deviation: 0.3828125
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.3871 > tol 0.0500 (analytic=226560 measured=163328)
+    note: bytes deviation 0.3828 > tol 0.0500 (analytic=226560 measured=163840)
   - shape_id: P4
     analytic_bytes_total: 492800.0
-    measured_bytes: 299264.0
+    measured_bytes: 299520.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6467065868263473
+    bytes_deviation: 0.6452991452991453
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.6467 > tol 0.0500 (analytic=492800 measured=299264)
+    note: bytes deviation 0.6453 > tol 0.0500 (analytic=492800 measured=299520)
   - shape_id: P5
     analytic_bytes_total: 353280.0
-    measured_bytes: 188672.0
+    measured_bytes: 187648.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8724559023066486
+    bytes_deviation: 0.8826739427012278
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.8725 > tol 0.0500 (analytic=353280 measured=188672)
+    note: bytes deviation 0.8827 > tol 0.0500 (analytic=353280 measured=187648)
 oracle_simplified: upstream_oracle_required
 runner_checks:
   expected_kernel_count_range:
@@ -130,7 +130,7 @@ provenance:
   source_md_id: L2-33
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T04:21:11Z'
+    verified_at: '2026-06-16T08:42:10Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:
@@ -221,9 +221,11 @@ frozen_deps: []
 classB_symbols: []
 reference_path: native
 phase_b_capture:
-  status: DONE
+  status: FAILED
   captured_at: '2026-06-05T04:21:50Z'
   upstream_callable:
     module: sglang.srt.layers.attention.triton_ops.rocm_mla_decode_rope
     function: _fwd_grouped_kernel_stage1_rope
-  shape_manifest_sha256: f3a0ed4981dafa31ae5908b21af4115ef62860d889c04a84f05ccedf8bbf29d9
+  reason: "UnsupportedLanguageConstruct: at 143:12:\n            Q + off_q_pe_rot,\n\
+    \            mask=(mask_h[:, None]) & (mask_qk_rot_r[None, :]),\n            other=0.0,\n\
+    \        )\n        q_pe_rot = tl.where(mask_"

@@ -34,12 +34,47 @@ cost_model:
   bytes: (E*(N//4))*8 + (E*(N//4))*4 + 2*(E+1)*4
   bytes_resource: hbm
   gpu_xcheck_tol: 0.05
-  status: FLOOR_DOMINATED
-  status_reason: 'no asymptotic HBM regime: max analytic bytes 49416 < min measured
-    104192 across all 5 shape(s); cost_model.bytes not applicable (measured dominated
-    by burst/launch floor)'
-  xcheck_run_id: xcheck-2026-06-05-b726f802
-  xchecked_at: '2026-06-05'
+  status: BLOCKED
+  status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
+    error). 40/41 gate shape(s) exceeded gpu_xcheck_tol=0.05: P1: bytes deviation
+    0.9923 > tol 0.0500 (analytic=808 measured=104448); P2: bytes deviation 0.9714
+    > tol 0.0500 (analytic=3144 measured=110080); P3: bytes deviation 0.8844 > tol
+    0.0500 (analytic=12424 measured=107520); P4: bytes deviation 0.5884 > tol 0.0500
+    (analytic=49416 measured=120064); P5: bytes deviation 0.9408 > tol 0.0500 (analytic=6216
+    measured=104960); P6: bytes deviation 0.9703 > tol 0.0500 (analytic=3088 measured=103936);
+    P7: bytes deviation 0.2189 > tol 0.0500 (analytic=110984 measured=142080); P8:
+    bytes deviation 0.1176 > tol 0.0500 (analytic=197128 measured=176384); P9: bytes
+    deviation 0.7580 > tol 0.0500 (analytic=27752 measured=114688); P10: bytes deviation
+    0.6840 > tol 0.0500 (analytic=36968 measured=116992); P11: bytes deviation 0.7598
+    > tol 0.0500 (analytic=28040 measured=116736); P12: bytes deviation 0.9885 > tol
+    0.0500 (analytic=1176 measured=102656); P13: bytes deviation 0.9830 > tol 0.0500
+    (analytic=1760 measured=103680); P14: bytes deviation 0.9773 > tol 0.0500 (analytic=2344
+    measured=103424); P15: bytes deviation 0.9555 > tol 0.0500 (analytic=4680 measured=105216);
+    P16: bytes deviation 0.9990 > tol 0.0500 (analytic=104 measured=102656); P17:
+    bytes deviation 0.9990 > tol 0.0500 (analytic=104 measured=103680); P18: bytes
+    deviation 0.9991 > tol 0.0500 (analytic=104 measured=119808); P19: bytes deviation
+    0.9976 > tol 0.0500 (analytic=248 measured=104704); P20: bytes deviation 0.9962
+    > tol 0.0500 (analytic=392 measured=103936); P21: bytes deviation 0.9935 > tol
+    0.0500 (analytic=680 measured=104192); P22: bytes deviation 0.9880 > tol 0.0500
+    (analytic=1256 measured=104448); P23: bytes deviation 0.9771 > tol 0.0500 (analytic=2408
+    measured=104960); P24: bytes deviation 0.9658 > tol 0.0500 (analytic=3560 measured=104192);
+    P25: bytes deviation 0.9554 > tol 0.0500 (analytic=4712 measured=105728); P26:
+    bytes deviation 0.9135 > tol 0.0500 (analytic=9320 measured=107776); P27: bytes
+    deviation 0.8726 > tol 0.0500 (analytic=13928 measured=109312); P28: bytes deviation
+    0.8324 > tol 0.0500 (analytic=18536 measured=110592); P29: bytes deviation 0.7977
+    > tol 0.0500 (analytic=23144 measured=114432); P30: bytes deviation 0.6162 > tol
+    0.0500 (analytic=46184 measured=120320); P31: bytes deviation 0.5463 > tol 0.0500
+    (analytic=55400 measured=122112); P32: bytes deviation 0.4289 > tol 0.0500 (analytic=73832
+    measured=129280); P33: bytes deviation 0.3621 > tol 0.0500 (analytic=92264 measured=144640);
+    P34: bytes deviation 0.2109 > tol 0.0500 (analytic=110696 measured=140288); P36:
+    bytes deviation 0.0688 > tol 0.0500 (analytic=147560 measured=158464); P37: bytes
+    deviation 0.9124 > tol 0.0500 (analytic=9352 measured=106752); P38: bytes deviation
+    0.8325 > tol 0.0500 (analytic=18696 measured=111616); P39: bytes deviation 0.6900
+    > tol 0.0500 (analytic=37384 measured=120576); P40: bytes deviation 0.5619 > tol
+    0.0500 (analytic=56072 measured=128000); P41: bytes deviation 0.4531 > tol 0.0500
+    (analytic=74760 measured=136704)'
+  xcheck_run_id: xcheck-2026-06-16-c454e5a5
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 808.0
@@ -53,44 +88,405 @@ cost_model:
     note: bytes deviation 0.9923 > tol 0.0500 (analytic=808 measured=104448)
   - shape_id: P2
     analytic_bytes_total: 3144.0
-    measured_bytes: 104192.0
+    measured_bytes: 110080.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9698249385749386
+    bytes_deviation: 0.9714389534883721
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9698 > tol 0.0500 (analytic=3144 measured=104192)
+    note: bytes deviation 0.9714 > tol 0.0500 (analytic=3144 measured=110080)
   - shape_id: P3
     analytic_bytes_total: 12424.0
-    measured_bytes: 107776.0
+    measured_bytes: 107520.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8847238717339667
+    bytes_deviation: 0.8844494047619048
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.8847 > tol 0.0500 (analytic=12424 measured=107776)
+    note: bytes deviation 0.8844 > tol 0.0500 (analytic=12424 measured=107520)
   - shape_id: P4
     analytic_bytes_total: 49416.0
-    measured_bytes: 120832.0
+    measured_bytes: 120064.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.5910354872881356
+    bytes_deviation: 0.5884195095948828
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.5910 > tol 0.0500 (analytic=49416 measured=120832)
+    note: bytes deviation 0.5884 > tol 0.0500 (analytic=49416 measured=120064)
   - shape_id: P5
     analytic_bytes_total: 6216.0
-    measured_bytes: 104448.0
+    measured_bytes: 104960.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.9404871323529411
+    bytes_deviation: 0.9407774390243903
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: bytes deviation 0.9405 > tol 0.0500 (analytic=6216 measured=104448)
+    note: bytes deviation 0.9408 > tol 0.0500 (analytic=6216 measured=104960)
+  - shape_id: P6
+    analytic_bytes_total: 3088.0
+    measured_bytes: 103936.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9702894088669951
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9703 > tol 0.0500 (analytic=3088 measured=103936)
+  - shape_id: P7
+    analytic_bytes_total: 110984.0
+    measured_bytes: 142080.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.2188626126126126
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.2189 > tol 0.0500 (analytic=110984 measured=142080)
+  - shape_id: P8
+    analytic_bytes_total: 197128.0
+    measured_bytes: 176384.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.11760703918722787
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.1176 > tol 0.0500 (analytic=197128 measured=176384)
+  - shape_id: P9
+    analytic_bytes_total: 27752.0
+    measured_bytes: 114688.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7580217633928571
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.7580 > tol 0.0500 (analytic=27752 measured=114688)
+  - shape_id: P10
+    analytic_bytes_total: 36968.0
+    measured_bytes: 116992.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6840125820568927
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.6840 > tol 0.0500 (analytic=36968 measured=116992)
+  - shape_id: P11
+    analytic_bytes_total: 28040.0
+    measured_bytes: 116736.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7597998903508771
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.7598 > tol 0.0500 (analytic=28040 measured=116736)
+  - shape_id: P12
+    analytic_bytes_total: 1176.0
+    measured_bytes: 102656.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9885442643391521
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9885 > tol 0.0500 (analytic=1176 measured=102656)
+  - shape_id: P13
+    analytic_bytes_total: 1760.0
+    measured_bytes: 103680.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9830246913580247
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9830 > tol 0.0500 (analytic=1760 measured=103680)
+  - shape_id: P14
+    analytic_bytes_total: 2344.0
+    measured_bytes: 103424.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9773360148514851
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9773 > tol 0.0500 (analytic=2344 measured=103424)
+  - shape_id: P15
+    analytic_bytes_total: 4680.0
+    measured_bytes: 105216.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9555200729927007
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9555 > tol 0.0500 (analytic=4680 measured=105216)
+  - shape_id: P16
+    analytic_bytes_total: 104.0
+    measured_bytes: 102656.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9989869077306733
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9990 > tol 0.0500 (analytic=104 measured=102656)
+  - shape_id: P17
+    analytic_bytes_total: 104.0
+    measured_bytes: 103680.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9989969135802469
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9990 > tol 0.0500 (analytic=104 measured=103680)
+  - shape_id: P18
+    analytic_bytes_total: 104.0
+    measured_bytes: 119808.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9991319444444444
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9991 > tol 0.0500 (analytic=104 measured=119808)
+  - shape_id: P19
+    analytic_bytes_total: 248.0
+    measured_bytes: 104704.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9976314180929096
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9976 > tol 0.0500 (analytic=248 measured=104704)
+  - shape_id: P20
+    analytic_bytes_total: 392.0
+    measured_bytes: 103936.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9962284482758621
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9962 > tol 0.0500 (analytic=392 measured=103936)
+  - shape_id: P21
+    analytic_bytes_total: 680.0
+    measured_bytes: 104192.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9934735872235873
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9935 > tol 0.0500 (analytic=680 measured=104192)
+  - shape_id: P22
+    analytic_bytes_total: 1256.0
+    measured_bytes: 104448.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9879748774509803
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9880 > tol 0.0500 (analytic=1256 measured=104448)
+  - shape_id: P23
+    analytic_bytes_total: 2408.0
+    measured_bytes: 104960.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9770579268292683
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9771 > tol 0.0500 (analytic=2408 measured=104960)
+  - shape_id: P24
+    analytic_bytes_total: 3560.0
+    measured_bytes: 104192.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9658323095823096
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9658 > tol 0.0500 (analytic=3560 measured=104192)
+  - shape_id: P25
+    analytic_bytes_total: 4712.0
+    measured_bytes: 105728.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.955432808716707
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9554 > tol 0.0500 (analytic=4712 measured=105728)
+  - shape_id: P26
+    analytic_bytes_total: 9320.0
+    measured_bytes: 107776.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9135243467933492
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9135 > tol 0.0500 (analytic=9320 measured=107776)
+  - shape_id: P27
+    analytic_bytes_total: 13928.0
+    measured_bytes: 109312.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8725848946135831
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.8726 > tol 0.0500 (analytic=13928 measured=109312)
+  - shape_id: P28
+    analytic_bytes_total: 18536.0
+    measured_bytes: 110592.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8323929398148148
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.8324 > tol 0.0500 (analytic=18536 measured=110592)
+  - shape_id: P29
+    analytic_bytes_total: 23144.0
+    measured_bytes: 114432.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.7977488814317674
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.7977 > tol 0.0500 (analytic=23144 measured=114432)
+  - shape_id: P30
+    analytic_bytes_total: 46184.0
+    measured_bytes: 120320.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.616156914893617
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.6162 > tol 0.0500 (analytic=46184 measured=120320)
+  - shape_id: P31
+    analytic_bytes_total: 55400.0
+    measured_bytes: 122112.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.5463181341719078
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.5463 > tol 0.0500 (analytic=55400 measured=122112)
+  - shape_id: P32
+    analytic_bytes_total: 73832.0
+    measured_bytes: 129280.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.42889851485148517
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.4289 > tol 0.0500 (analytic=73832 measured=129280)
+  - shape_id: P33
+    analytic_bytes_total: 92264.0
+    measured_bytes: 144640.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.3621128318584071
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.3621 > tol 0.0500 (analytic=92264 measured=144640)
+  - shape_id: P34
+    analytic_bytes_total: 110696.0
+    measured_bytes: 140288.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.2109375
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.2109 > tol 0.0500 (analytic=110696 measured=140288)
+  - shape_id: P35
+    analytic_bytes_total: 129128.0
+    measured_bytes: 129792.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.005115877712031558
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: true
+    note: bytes deviation 0.0051 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+      -- see module docstring)
+  - shape_id: P36
+    analytic_bytes_total: 147560.0
+    measured_bytes: 158464.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.06881058158319871
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.0688 > tol 0.0500 (analytic=147560 measured=158464)
+  - shape_id: P37
+    analytic_bytes_total: 9352.0
+    measured_bytes: 106752.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.9123950839328537
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.9124 > tol 0.0500 (analytic=9352 measured=106752)
+  - shape_id: P38
+    analytic_bytes_total: 18696.0
+    measured_bytes: 111616.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.8324971330275229
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.8325 > tol 0.0500 (analytic=18696 measured=111616)
+  - shape_id: P39
+    analytic_bytes_total: 37384.0
+    measured_bytes: 120576.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.6899548832271762
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.6900 > tol 0.0500 (analytic=37384 measured=120576)
+  - shape_id: P40
+    analytic_bytes_total: 56072.0
+    measured_bytes: 128000.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.5619375
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.5619 > tol 0.0500 (analytic=56072 measured=128000)
+  - shape_id: P41
+    analytic_bytes_total: 74760.0
+    measured_bytes: 136704.0
+    measured_via: ncu_dram_bytes
+    bytes_deviation: 0.453125
+    kernel_launched: true
+    flops_checked: false
+    blocked: false
+    within_tol: false
+    note: bytes deviation 0.4531 > tol 0.0500 (analytic=74760 measured=136704)
 oracle_simplified: formula_exact_manual
 runner_checks:
   expected_kernel_count_range:
@@ -124,7 +520,7 @@ provenance:
   source_md_id: L1-04
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-16T05:51:25Z'
+    verified_at: '2026-06-16T07:06:16Z'
     tolerance_class_used: attention_flash
     equivalence_per_shape:
       H1:

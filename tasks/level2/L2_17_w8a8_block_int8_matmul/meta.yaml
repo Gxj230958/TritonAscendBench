@@ -47,43 +47,43 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 2 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-05-75926248
-  xchecked_at: '2026-06-05'
+  xcheck_run_id: xcheck-2026-06-16-05c0ce0e
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 4736.0
-    measured_bytes: 14592.0
+    measured_bytes: 14336.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.6754385964912281
+    bytes_deviation: 0.6696428571428571
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.6754 > tol 0.0500 (analytic=4736 measured=14592) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=14592 < 0.5xmax=4859648); non-blocking
+    note: 'bytes deviation 0.6696 > tol 0.0500 (analytic=4736 measured=14336) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=14336 < 0.5xmax=4859648); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 75776.0
-    measured_bytes: 85760.0
+    measured_bytes: 85504.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.11641791044776119
+    bytes_deviation: 0.11377245508982035
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1164 > tol 0.0500 (analytic=75776 measured=85760) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=85760 < 0.5xmax=4859648); non-blocking
+    note: 'bytes deviation 0.1138 > tol 0.0500 (analytic=75776 measured=85504) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=85504 < 0.5xmax=4859648); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 1212416.0
-    measured_bytes: 1222400.0
+    measured_bytes: 1222656.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.008167539267015706
+    bytes_deviation: 0.008375209380234505
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0082 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0084 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P4
     analytic_bytes_total: 4849664.0
@@ -146,7 +146,7 @@ provenance:
   last_modified: '2026-05-14'
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-05T02:00:44Z'
+    verified_at: '2026-06-16T08:10:43Z'
     tolerance_class_used: int8_w8a8
     equivalence_per_shape:
       H1:
@@ -232,7 +232,7 @@ classB_symbols: []
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-05T02:01:27Z'
+  captured_at: '2026-06-16T08:11:30Z'
   upstream_callable:
     module: vllm.model_executor.layers.quantization.utils.int8_utils
     function: _w8a8_block_int8_matmul

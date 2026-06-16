@@ -60,7 +60,7 @@ provenance:
   source_md_id: L1-21
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-12T23:09:45Z'
+    verified_at: '2026-06-16T07:58:30Z'
     tolerance_class_used: sampling_rng
     equivalence_per_shape:
       H1:
@@ -111,67 +111,67 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 4 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-13-5e30c3d6
-  xchecked_at: '2026-06-13'
+  xcheck_run_id: xcheck-2026-06-16-9bc4f8ed
+  xchecked_at: '2026-06-16'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 32768.0
-    measured_bytes: 197120.0
+    measured_bytes: 194816.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8337662337662337
+    bytes_deviation: 0.8318002628120894
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.8338 > tol 0.0500 (analytic=32768 measured=197120) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=197120 < 0.5xmax=8588800); non-blocking
+    note: 'bytes deviation 0.8318 > tol 0.0500 (analytic=32768 measured=194816) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=194816 < 0.5xmax=8589312); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 524288.0
-    measured_bytes: 689408.0
+    measured_bytes: 689152.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.2395098403267731
+    bytes_deviation: 0.23922734026745915
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.2395 > tol 0.0500 (analytic=524288 measured=689408) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=689408 < 0.5xmax=8588800); non-blocking
+    note: 'bytes deviation 0.2392 > tol 0.0500 (analytic=524288 measured=689152) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=689152 < 0.5xmax=8589312); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 1280000.0
-    measured_bytes: 1448960.0
+    measured_bytes: 1448704.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.1166077738515901
+    bytes_deviation: 0.11645166990634388
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.1166 > tol 0.0500 (analytic=1280000 measured=1448960)
-      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1448960 < 0.5xmax=8588800);
+    note: 'bytes deviation 0.1165 > tol 0.0500 (analytic=1280000 measured=1448704)
+      [FLOOR_OBSERVED: small-shape HBM burst floor (measured=1448704 < 0.5xmax=8589312);
       non-blocking per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 8388608.0
-    measured_bytes: 8588800.0
+    measured_bytes: 8589312.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.02330849478390462
+    bytes_deviation: 0.023366714353838816
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0233 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0234 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
   - shape_id: P5
     analytic_bytes_total: 384000.0
-    measured_bytes: 547584.0
+    measured_bytes: 546560.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.29873772791023845
+    bytes_deviation: 0.297423887587822
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.2987 > tol 0.0500 (analytic=384000 measured=547584) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=547584 < 0.5xmax=8588800); non-blocking
+    note: 'bytes deviation 0.2974 > tol 0.0500 (analytic=384000 measured=546560) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=546560 < 0.5xmax=8589312); non-blocking
       per asymptotic_hbm_xcheck]'
 param_constraints:
   scaffold: false
@@ -232,7 +232,7 @@ classB_symbols:
 reference_path: native
 phase_b_capture:
   status: DONE
-  captured_at: '2026-06-12T23:10:50Z'
+  captured_at: '2026-06-16T07:59:10Z'
   upstream_callable:
     module: vllm.v1.worker.gpu.sample.gumbel
     function: _gumbel_sample_kernel
