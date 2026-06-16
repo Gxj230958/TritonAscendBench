@@ -246,3 +246,29 @@ def test_extend_task_end_to_end_pending_gpu(tmp_path, monkeypatch):
     # dry-run must NOT have written shapes.yaml
     assert yaml.safe_load((td / "shapes.yaml").read_text())["public_shapes"] == [
         {"id": "P1", "name": "tiny", "knobs": {"B": 1, "D": 2}}]
+
+
+def test_value_ladder_diverse_and_bounded():
+    # the ladder should span small->large with pow2 + non-pow2, respect min/mod/cap, be sorted+unique
+    lad = ext._value_ladder({"min": 2, "mod": None}, 8192)
+    assert lad == sorted(set(lad)), "ladder sorted+unique"
+    assert all(2 <= v <= ext.DIM_CAP for v in lad), "within min..DIM_CAP"
+    assert len(lad) >= 10, "diverse (>=10 values)"
+    assert any(not ext._is_pow2(v) for v in lad), "has non-power-of-2 LLM dims"
+    assert max(lad) >= 8192, "reaches large dims"
+    # mod-constrained ladder: all even
+    lad2 = ext._value_ladder({"min": 4, "mod": 2}, 1024)
+    assert all(v % 2 == 0 for v in lad2), "mod respected"
+
+
+def test_enhanced_generation_many_diverse_candidates():
+    # 2-knob task -> single-axis sweep + grid should yield many (>=30) deduped candidates
+    active = ["B", "D"]
+    existing = [{"B": 4, "D": 64}, {"B": 16, "D": 256}, {"B": 32, "D": 1024}]
+    bounds = {"B": {"min": 1, "mod": None}, "D": {"min": 2, "mod": None}}
+    cands = ext._gen_self_candidates(active, existing, bounds)
+    keys = {tuple(sorted(c.knobs.items())) for c in cands}
+    assert len(keys) >= 30, f"expected >=30 distinct candidates, got {len(keys)}"
+    # spans a wide D range
+    ds = sorted({c.knobs.get("D") for c in cands if "D" in c.knobs})
+    assert max(ds) / max(min(ds), 1) >= 50, "wide D range covered"

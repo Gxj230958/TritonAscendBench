@@ -189,34 +189,68 @@ def _gen_self_candidates(active: list[str], existing: list[dict], bounds: dict) 
         vals = sorted({e.get(k) or 1 for e in existing})
         base[k] = _round_valid(vals[len(vals) // 2] if vals else kmax[k], bounds[k])
 
-    # SCALE: vary ONE active knob at a time off `base` to 2x-max and a scale-relative non-pow2.
+    ladders = {k: _value_ladder(bounds[k], kmax[k]) for k in active}
+
+    # 1. SINGLE-AXIS SWEEP: vary ONE active knob across its full value ladder (others at base) -- so
+    #    every active dim's whole range (small..large, pow2 + non-pow2 LLM dims) is covered.
     for k in active:
-        for target in (2 * kmax[k], _nonpow2_near(kmax[k], bounds[k])):
+        for v in ladders[k]:
             row = dict(base)
-            row[k] = _round_valid(target, bounds[k])
-            cands.append(Candidate(source="scale", knobs=row, role="public"))
+            row[k] = v
+            cands.append(Candidate(source="sweep", knobs=row, role="public"))
 
-    # DIAGONAL: a tiny multi-axis set (codex residual #3: cover interactions, not a product).
-    diag_specs = {
-        "high_all": {k: _round_valid(2 * kmax[k], bounds[k]) for k in active},
-        "odd_all": {k: _nonpow2_near(kmax[k], bounds[k]) for k in active},
-    }
+    # 2. MULTI-AXIS GRID SAMPLE: a low-discrepancy (coprime-stride) sweep across the ladder PRODUCT --
+    #    covers INTERACTIONS (small-B/large-D, large-B/small-D, ...) without a blind full product, for
+    #    broad shape-space coverage. Deterministic (no RNG).
+    primes = [7, 11, 13, 17, 19, 23, 29, 31, 37, 41]
+    n_grid = 30 if len(active) >= 2 else 0  # 1-knob tasks are fully covered by the single-axis sweep
+    for i in range(n_grid):
+        row = {}
+        for j, k in enumerate(active):
+            lad = ladders[k]
+            row[k] = lad[(i * primes[j % len(primes)] + j) % len(lad)]
+        cands.append(Candidate(source="grid", knobs=dict(row), role="public", reason=f"g{i}"))
+
+    # 3. EDGES (-> hidden): all-min, all-max, aspect extremes (one dim min / another max), singleton.
+    cands.append(Candidate(source="edge", knobs={k: ladders[k][0] for k in active},
+                           role="hidden", reason="all_min"))
+    cands.append(Candidate(source="edge", knobs={k: ladders[k][-1] for k in active},
+                           role="hidden", reason="all_max"))
     if len(active) >= 2:
-        a0, a1 = active[0], active[-1]
-        mix = dict(base)
-        mix[a0] = _round_valid(bounds[a0]["min"], bounds[a0])   # min first axis
-        mix[a1] = _round_valid(2 * kmax[a1], bounds[a1])        # large last axis
-        diag_specs["min_first_large_last"] = mix
-    for name, row in diag_specs.items():
-        cands.append(Candidate(source="diagonal", knobs=dict(row), role="public", reason=name))
-
-    # EDGE (-> hidden): all-min, and singleton on the first active knob.
-    edge_min = {k: _round_valid(bounds[k]["min"], bounds[k]) for k in active}
-    cands.append(Candidate(source="edge", knobs=dict(edge_min), role="hidden", reason="all_min"))
-    singleton = dict(base)
-    singleton[active[0]] = _round_valid(bounds[active[0]]["min"], bounds[active[0]])
-    cands.append(Candidate(source="edge", knobs=dict(singleton), role="hidden", reason="singleton_first"))
+        for lo, hi in ((active[0], active[-1]), (active[-1], active[0])):
+            row = dict(base)
+            row[lo] = ladders[lo][0]
+            row[hi] = ladders[hi][-1]
+            cands.append(Candidate(source="edge", knobs=dict(row), role="hidden", reason=f"aspect_{lo}_lo"))
+    sing = dict(base)
+    sing[active[0]] = ladders[active[0]][0]
+    cands.append(Candidate(source="edge", knobs=dict(sing), role="hidden", reason="singleton"))
     return cands
+
+
+def _value_ladder(b: dict, kmax: int) -> list[int]:
+    """A diverse, sorted ladder of candidate values for ONE active knob, spanning its min up to ~4x
+    its existing max (under DIM_CAP): powers of two + realistic non-power-of-2 LLM dims + a few
+    odd/scaled points, respecting the knob's min + mod constraint. Drives the single-axis sweep so a
+    wide value range (not just 2 points) is covered per dim -- the basis for ~50-shape breadth."""
+    mn = b.get("min") or 1
+    hi = min(max(4 * int(kmax), mn * 8, 64), DIM_CAP)
+    raw: set[int] = set()
+    v = 1
+    while v <= hi:
+        if v >= mn:
+            raw.add(v)
+        v *= 2
+    for x in (96, 192, 256, 384, 512, 640, 768, 1024, 1280, 1536, 2048, 2560, 3072, 3584,
+              4096, 5120, 6144, 8192, 12288, 16384, 24576):
+        if mn <= x <= hi:
+            raw.add(x)
+    # a few non-aligned / odd points + the existing-max neighbourhood
+    for x in (mn, mn * 3, int(kmax) // 2 or mn, int(kmax), int(kmax) * 3 // 2):
+        if mn <= x <= hi:
+            raw.add(x)
+    vals = sorted({_round_valid(int(x), b) for x in raw if x >= 1 and _round_valid(int(x), b) <= DIM_CAP})
+    return vals or [_round_valid(mn, b)]
 
 
 # ── NPUKernelBench borrow (realistic LLM dims) — ONLY ops with an unambiguous geometry mapping ─────
@@ -582,8 +616,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--task", required=True, help="task id")
     p.add_argument("--dry-run", action="store_true", help="report candidates, do NOT write (default)")
     p.add_argument("--apply", action="store_true", help="append survivors (byte-preserving splice)")
-    p.add_argument("--target-public", type=int, default=6)
-    p.add_argument("--target-hidden", type=int, default=4)
+    p.add_argument("--target-public", type=int, default=30)
+    p.add_argument("--target-hidden", type=int, default=18)
     p.add_argument("--no-borrow", action="store_true", help="disable NPUKernelBench dim borrow")
     p.add_argument("--json-out", help="write the per-candidate report as JSON")
     args = p.parse_args(argv)
