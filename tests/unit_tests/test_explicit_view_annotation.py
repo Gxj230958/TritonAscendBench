@@ -53,15 +53,14 @@ def test_annotation_survives_yaml_redump():
     new_doc["explicit_view"] = {"P1": ann._view_entry(doc, "P1", doc["public_shapes"][0])}
     reloaded = yaml.safe_load(yaml.safe_dump(new_doc, sort_keys=False))
     assert "explicit_view" in reloaded and "P1" in reloaded["explicit_view"]
-    assert reloaded["explicit_view"]["P1"]["tensors"]["q"]["shape"] == [8, 2, 8]   # E*L=2*4
+    assert "[8, 2, 8]" in reloaded["explicit_view"]["P1"]["tensors"]["q"]   # E*L=2*4, compact string
 
 
 def test_view_entry_structure_and_provenance():
     doc = _doc()
     e = ann._view_entry(doc, "P1", doc["public_shapes"][0])
     assert e["provenance"] == "baseline"                       # name "tiny"
-    assert e["tensors"]["q"] == {"shape": [8, 2, 8], "dtype": "bfloat16",
-                                 "axes": ["E*L", "H", "D"], "dist": "randn"}
+    assert e["tensors"]["q"] == "[8, 2, 8] bfloat16 axes=E*L,H,D dist=randn"   # compact, E*L=2*4
     assert e["params"]["causal"] is False
     assert abs(e["params"]["scale"] - (1 / (8 ** 0.5))) < 1e-9  # derive resolved
     e2 = ann._view_entry(doc, "P2", doc["public_shapes"][1])

@@ -41,16 +41,31 @@ def _provenance(row: dict) -> str:
     return "synthetic"
 
 
+def _fmt_dist(dist: dict) -> str:
+    """Compact, faithful dist string: ``randn`` or ``offsets(to=E*L)`` / ``randint(0, E)``."""
+    kind, args = dist["kind"], dist.get("args") or {}
+    if not args:
+        return kind
+    inner = ", ".join(f"{k}={v}" for k, v in args.items()) if isinstance(args, dict) \
+        else ", ".join(str(a) for a in args)
+    return f"{kind}({inner})"
+
+
+def _fmt_tensor(d: dict) -> str:
+    """One readable line per tensor: ``[2048, 16, 128] bfloat16 axes=E*L,H,D dist=randn``."""
+    axes = ",".join(d["axes"]) if d["axes"] else "-"
+    return f"{d['shape']} {d['dtype']} axes={axes} dist={_fmt_dist(d['dist'])}"
+
+
 def _view_entry(shapes_doc: dict, sid: str, row: dict) -> dict:
+    # COMPACT view: one human-readable string per tensor (keeps files short -- the readability goal --
+    # while staying a structured map value that survives the YAML rewrite path). dist args are kept
+    # (offsets:to=…/randint) so it is still decoder-free.
     desc = materialize_row(shapes_doc, sid)
     tensors, params, structs = {}, {}, {}
     for name, d in desc.items():
         if d["kind"] == "tensor":
-            dist = d["dist"]
-            # keep the FULL dist (kind + args), not just the kind, so the view stays a faithful
-            # decoder-free descriptor (e.g. offsets:to=E*L, randint:0:E, randn_inf_excl:<ref>).
-            dist_repr = dist["kind"] if not dist.get("args") else {"kind": dist["kind"], "args": dist["args"]}
-            tensors[name] = {"shape": d["shape"], "dtype": d["dtype"], "axes": d["axes"], "dist": dist_repr}
+            tensors[name] = _fmt_tensor(d)
         elif d["kind"] == "struct":
             structs[name] = d.get("struct")
         elif d["kind"] == "optional":
