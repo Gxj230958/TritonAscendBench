@@ -77,8 +77,11 @@ class TaskExtension:
 # ── shapes.yaml structure helpers ────────────────────────────────────────────────────────────────
 
 def _active_knobs_in_order(shapes_doc: dict) -> list[str]:
-    """Active knobs = every knob name referenced by an input's ``dims`` (or a derive/scalar_knob
-    expression), in shapes.yaml document order. Only these drive tensor sizes; the rest are inert."""
+    """Active knobs = every knob name referenced by an input's ``dims``, ``dist`` (e.g.
+    ``offsets:to=E*L`` / ``full:L``), ``derive``, or ``scalar_knob`` expression, in shapes.yaml
+    document order. Only these drive tensor sizes/values; the rest are inert. ``dist`` MUST be scanned
+    -- some knobs (e.g. a segment-length knob in a ``dist`` string) appear nowhere else, so omitting
+    ``dist`` mis-classifies them as dead (the gap this fix closes)."""
     seen: list[str] = []
     size_knobs = list((shapes_doc.get("size_knobs") or {}).keys())
 
@@ -98,6 +101,17 @@ def _active_knobs_in_order(shapes_doc: dict) -> list[str]:
             if isinstance(v, str):
                 for tok in re.findall(r"[A-Za-z_]\w*", v):
                     _add(tok)
+        # dist may be a str ("offsets:to=E*L", "full:L", "randint:0:E") or a dict; str() renders both
+        # and the _add filter keeps only real size-knob names (non-knob tokens like "offsets" are ignored).
+        # NOTE: this is a regex scan, not semantic -- a ref arg (e.g. randn_inf_excl:<input>) whose input
+        # name collides with a size-knob name would be over-counted as active. That is the SAFE direction
+        # for the dead-knob report (over-counting active => never falsely flags a live knob as dead). If
+        # this detector ever becomes a hard gate (Phase 2), switch to parse_dist_spec + scan only the
+        # expression-bearing args.
+        dist = spec.get("dist")
+        if dist is not None:
+            for tok in re.findall(r"[A-Za-z_]\w*", str(dist)):
+                _add(tok)
     return seen
 
 

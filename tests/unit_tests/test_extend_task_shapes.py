@@ -38,6 +38,30 @@ def test_active_knobs_expression_dim():
     assert ext._active_knobs_in_order(doc) == ["B", "D"]
 
 
+def test_active_knobs_scans_dist_only_knob():
+    # A knob (N) that appears ONLY inside a dist expression must be detected as active --
+    # regression for the dist-scan gap (omitting it mis-classified the knob as dead).
+    doc = {
+        "size_knobs": {"B": 1, "D": 1, "N": 1, "E": 1, "Z": 1},
+        "inputs": {
+            "x": {"dims": ["B", "D"]},
+            "idx": {"dims": ["E"], "dist": "randint:0:E"},
+            "offs": {"dims": ["E"], "dist": "offsets:to=B*N"},  # N only here
+            "seq": {"dims": ["E"], "dist": "full:D"},
+        },
+    }
+    active = ext._active_knobs_in_order(doc)
+    assert "N" in active          # dist-only knob now detected
+    assert "Z" not in active      # genuinely-inert knob still excluded
+    assert set(active) == {"B", "D", "E", "N"}
+
+
+def test_active_knobs_dist_dict_form():
+    # dist may also be a dict; str() rendering must still surface the knob reference.
+    doc = {"size_knobs": {"D": 1, "M": 1}, "inputs": {"x": {"dims": ["D"], "dist": {"kind": "randint", "high": "M"}}}}
+    assert set(ext._active_knobs_in_order(doc)) == {"D", "M"}
+
+
 # ── value generation: min + mod respected, non-pow2 ───────────────────────────────────────────────
 
 def test_round_valid_min_and_mod():
