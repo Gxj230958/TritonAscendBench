@@ -385,3 +385,593 @@ inputs:
     scalar: 1.0
   softplus_threshold:
     scalar: 20.0
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      A_log: '[2, 4] float32 axes=B,H dist=randn'
+      a: '[2, 4] float32 axes=B,H dist=randn'
+      dt_bias: '[4] float32 axes=H dist=rand'
+      q: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      k: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      v: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      beta: '[2, 4] float32 axes=B,H dist=rand'
+      state: '[2, 4, 32, 32] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P2:
+    provenance: baseline
+    tensors:
+      A_log: '[4, 8] float32 axes=B,H dist=randn'
+      a: '[4, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      v: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      beta: '[4, 8] float32 axes=B,H dist=rand'
+      state: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P3:
+    provenance: baseline
+    tensors:
+      A_log: '[8, 16] float32 axes=B,H dist=randn'
+      a: '[8, 16] float32 axes=B,H dist=randn'
+      dt_bias: '[16] float32 axes=H dist=rand'
+      q: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 16] float32 axes=B,H dist=rand'
+      state: '[8, 16, 128, 128] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P4:
+    provenance: baseline
+    tensors:
+      A_log: '[16, 32] float32 axes=B,H dist=randn'
+      a: '[16, 32] float32 axes=B,H dist=randn'
+      dt_bias: '[32] float32 axes=H dist=rand'
+      q: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      k: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      v: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      beta: '[16, 32] float32 axes=B,H dist=rand'
+      state: '[16, 32, 256, 256] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P5:
+    provenance: synthetic
+    tensors:
+      A_log: '[2, 8] float32 axes=B,H dist=randn'
+      a: '[2, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      k: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      v: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      beta: '[2, 8] float32 axes=B,H dist=rand'
+      state: '[2, 8, 128, 128] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P6:
+    provenance: synthetic
+    tensors:
+      A_log: '[1, 8] float32 axes=B,H dist=randn'
+      a: '[1, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[1, 8] float32 axes=B,H dist=rand'
+      state: '[1, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P7:
+    provenance: synthetic
+    tensors:
+      A_log: '[2, 8] float32 axes=B,H dist=randn'
+      a: '[2, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[2, 8] float32 axes=B,H dist=rand'
+      state: '[2, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P8:
+    provenance: synthetic
+    tensors:
+      A_log: '[3, 8] float32 axes=B,H dist=randn'
+      a: '[3, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[3, 8] float32 axes=B,H dist=rand'
+      state: '[3, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P9:
+    provenance: synthetic
+    tensors:
+      A_log: '[4, 8] float32 axes=B,H dist=randn'
+      a: '[4, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[4, 8] float32 axes=B,H dist=rand'
+      state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P10:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P11:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 2, 2] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P12:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 3, 3] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P13:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 4, 4] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P14:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 8, 8] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P15:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 16, 16] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P16:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 32, 32] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P17:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P18:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 1] float32 axes=B,H dist=randn'
+      a: '[8, 1] float32 axes=B,H dist=randn'
+      dt_bias: '[1] float32 axes=H dist=rand'
+      q: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 1] float32 axes=B,H dist=rand'
+      state: '[8, 1, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P19:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 2] float32 axes=B,H dist=randn'
+      a: '[8, 2] float32 axes=B,H dist=randn'
+      dt_bias: '[2] float32 axes=H dist=rand'
+      q: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 2] float32 axes=B,H dist=rand'
+      state: '[8, 2, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P20:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 3] float32 axes=B,H dist=randn'
+      a: '[8, 3] float32 axes=B,H dist=randn'
+      dt_bias: '[3] float32 axes=H dist=rand'
+      q: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 3] float32 axes=B,H dist=rand'
+      state: '[8, 3, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P21:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 4] float32 axes=B,H dist=randn'
+      a: '[8, 4] float32 axes=B,H dist=randn'
+      dt_bias: '[4] float32 axes=H dist=rand'
+      q: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 4] float32 axes=B,H dist=rand'
+      state: '[8, 4, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P22:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P23:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 16] float32 axes=B,H dist=randn'
+      a: '[8, 16] float32 axes=B,H dist=randn'
+      dt_bias: '[16] float32 axes=H dist=rand'
+      q: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 16] float32 axes=B,H dist=rand'
+      state: '[8, 16, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P24:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 32] float32 axes=B,H dist=randn'
+      a: '[8, 32] float32 axes=B,H dist=randn'
+      dt_bias: '[32] float32 axes=H dist=rand'
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 32] float32 axes=B,H dist=rand'
+      state: '[8, 32, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P25:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 48] float32 axes=B,H dist=randn'
+      a: '[8, 48] float32 axes=B,H dist=randn'
+      dt_bias: '[48] float32 axes=H dist=rand'
+      q: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 48] float32 axes=B,H dist=rand'
+      state: '[8, 48, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P26:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 64] float32 axes=B,H dist=randn'
+      a: '[8, 64] float32 axes=B,H dist=randn'
+      dt_bias: '[64] float32 axes=H dist=rand'
+      q: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 64] float32 axes=B,H dist=rand'
+      state: '[8, 64, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P27:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 96] float32 axes=B,H dist=randn'
+      a: '[8, 96] float32 axes=B,H dist=randn'
+      dt_bias: '[96] float32 axes=H dist=rand'
+      q: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 96] float32 axes=B,H dist=rand'
+      state: '[8, 96, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P28:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 128] float32 axes=B,H dist=randn'
+      a: '[8, 128] float32 axes=B,H dist=randn'
+      dt_bias: '[128] float32 axes=H dist=rand'
+      q: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 128] float32 axes=B,H dist=rand'
+      state: '[8, 128, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P29:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 128, 128] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P30:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 192, 192] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P31:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P32:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 384, 384] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P33:
+    provenance: synthetic
+    tensors:
+      A_log: '[8, 8] float32 axes=B,H dist=randn'
+      a: '[8, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
+      k: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
+      v: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
+      beta: '[8, 8] float32 axes=B,H dist=rand'
+      state: '[8, 8, 512, 512] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P34:
+    provenance: synthetic
+    tensors:
+      A_log: '[16, 8] float32 axes=B,H dist=randn'
+      a: '[16, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[16, 8] float32 axes=B,H dist=rand'
+      state: '[16, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  P35:
+    provenance: synthetic
+    tensors:
+      A_log: '[32, 8] float32 axes=B,H dist=randn'
+      a: '[32, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[32, 8] float32 axes=B,H dist=rand'
+      state: '[32, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H1:
+    provenance: synthetic
+    tensors:
+      A_log: '[3, 6] float32 axes=B,H dist=randn'
+      a: '[3, 6] float32 axes=B,H dist=randn'
+      dt_bias: '[6] float32 axes=H dist=rand'
+      q: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
+      k: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
+      v: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
+      beta: '[3, 6] float32 axes=B,H dist=rand'
+      state: '[3, 6, 96, 96] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H2:
+    provenance: edge
+    tensors:
+      A_log: '[2, 2] float32 axes=B,H dist=randn'
+      a: '[2, 2] float32 axes=B,H dist=randn'
+      dt_bias: '[2] float32 axes=H dist=rand'
+      q: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
+      k: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
+      v: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
+      beta: '[2, 2] float32 axes=B,H dist=rand'
+      state: '[2, 2, 16, 16] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H3:
+    provenance: synthetic
+    tensors:
+      A_log: '[2, 8] float32 axes=B,H dist=randn'
+      a: '[2, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      k: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      v: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      beta: '[2, 8] float32 axes=B,H dist=rand'
+      state: '[2, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H4:
+    provenance: synthetic
+    tensors:
+      A_log: '[32, 8] float32 axes=B,H dist=randn'
+      a: '[32, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      v: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      beta: '[32, 8] float32 axes=B,H dist=rand'
+      state: '[32, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H5:
+    provenance: edge
+    tensors:
+      A_log: '[1, 1] float32 axes=B,H dist=randn'
+      a: '[1, 1] float32 axes=B,H dist=randn'
+      dt_bias: '[1] float32 axes=H dist=rand'
+      q: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      k: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      v: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      beta: '[1, 1] float32 axes=B,H dist=rand'
+      state: '[1, 1, 1, 1] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H6:
+    provenance: edge
+    tensors:
+      A_log: '[1, 8] float32 axes=B,H dist=randn'
+      a: '[1, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
+      k: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
+      v: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
+      beta: '[1, 8] float32 axes=B,H dist=rand'
+      state: '[1, 8, 1024, 1024] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0
+  H7:
+    provenance: edge
+    tensors:
+      A_log: '[128, 8] float32 axes=B,H dist=randn'
+      a: '[128, 8] float32 axes=B,H dist=randn'
+      dt_bias: '[8] float32 axes=H dist=rand'
+      q: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      k: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      v: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
+      beta: '[128, 8] float32 axes=B,H dist=rand'
+      state: '[128, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
+    params:
+      softplus_beta: 1.0
+      softplus_threshold: 20.0

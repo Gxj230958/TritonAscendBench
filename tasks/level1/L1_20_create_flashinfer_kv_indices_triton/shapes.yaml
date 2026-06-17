@@ -348,3 +348,293 @@ inputs:
     - E
     dtype: int64
     dist: randint:1:N
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      req_to_token: '[4, 64] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
+  P2:
+    provenance: baseline
+    tensors:
+      req_to_token: '[8, 128] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+  P3:
+    provenance: baseline
+    tensors:
+      req_to_token: '[16, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
+  P4:
+    provenance: baseline
+    tensors:
+      req_to_token: '[32, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[32] int64 axes=E dist=randint(lo=1, hi=N)'
+  P5:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+  P6:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[1, 4096] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+  P7:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[48, 3072] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[48] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
+  P8:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[64, 4096] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[64] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[64] int64 axes=E dist=randint(lo=1, hi=N)'
+  P9:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3072] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P10:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 4096] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P11:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[48, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[48] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
+  P12:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[1, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+  P13:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[2, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
+  P14:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[3, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[3] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[3] int64 axes=E dist=randint(lo=1, hi=N)'
+  P15:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[4, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
+  P16:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+  P17:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P18:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P19:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 4] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P20:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 8] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P21:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 16] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P22:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 32] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P23:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 64] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P24:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 96] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P25:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 128] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P26:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P27:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 256] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P28:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P29:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 512] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P30:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 640] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P31:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 768] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P32:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P33:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1280] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P34:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1536] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P35:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2048] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P36:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2560] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P37:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3584] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P38:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 5120] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P39:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 6144] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P40:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 8192] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  P41:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 12288] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  H1:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1088] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+  H2:
+    provenance: edge
+    tensors:
+      req_to_token: '[2, 32] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
+  H3:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[16, 2048] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
+  H4:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 128] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+  H5:
+    provenance: edge
+    tensors:
+      req_to_token: '[1, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+  H6:
+    provenance: edge
+    tensors:
+      req_to_token: '[1, 16384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+  H7:
+    provenance: edge
+    tensors:
+      req_to_token: '[256, 16384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[256] int64 axes=E dist=randint(lo=0, hi=E)'
+      seq_lens: '[256] int64 axes=E dist=randint(lo=1, hi=N)'

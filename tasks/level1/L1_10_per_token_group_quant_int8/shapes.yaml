@@ -341,3 +341,348 @@ inputs:
     scalar: 8
   eps:
     scalar: 1.0e-10
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      x: '[4, 128] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P2:
+    provenance: baseline
+    tensors:
+      x: '[16, 256] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P3:
+    provenance: baseline
+    tensors:
+      x: '[64, 512] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P4:
+    provenance: baseline
+    tensors:
+      x: '[128, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P5:
+    provenance: synthetic
+    tensors:
+      x: '[8, 2048] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P6:
+    provenance: synthetic
+    tensors:
+      x: '[1, 8192] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P7:
+    provenance: synthetic
+    tensors:
+      x: '[384, 6144] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P8:
+    provenance: synthetic
+    tensors:
+      x: '[512, 8192] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P9:
+    provenance: synthetic
+    tensors:
+      x: '[48, 6144] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P10:
+    provenance: synthetic
+    tensors:
+      x: '[48, 8192] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P11:
+    provenance: synthetic
+    tensors:
+      x: '[384, 512] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P12:
+    provenance: synthetic
+    tensors:
+      x: '[1, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P13:
+    provenance: synthetic
+    tensors:
+      x: '[2, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P14:
+    provenance: synthetic
+    tensors:
+      x: '[3, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P15:
+    provenance: synthetic
+    tensors:
+      x: '[4, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P16:
+    provenance: synthetic
+    tensors:
+      x: '[8, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P17:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P18:
+    provenance: synthetic
+    tensors:
+      x: '[32, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P19:
+    provenance: synthetic
+    tensors:
+      x: '[48, 8] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P20:
+    provenance: synthetic
+    tensors:
+      x: '[48, 16] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P21:
+    provenance: synthetic
+    tensors:
+      x: '[48, 24] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P22:
+    provenance: synthetic
+    tensors:
+      x: '[48, 32] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P23:
+    provenance: synthetic
+    tensors:
+      x: '[48, 64] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P24:
+    provenance: synthetic
+    tensors:
+      x: '[48, 96] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P25:
+    provenance: synthetic
+    tensors:
+      x: '[48, 128] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P26:
+    provenance: synthetic
+    tensors:
+      x: '[48, 192] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P27:
+    provenance: synthetic
+    tensors:
+      x: '[48, 256] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P28:
+    provenance: synthetic
+    tensors:
+      x: '[48, 512] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P29:
+    provenance: synthetic
+    tensors:
+      x: '[48, 640] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P30:
+    provenance: synthetic
+    tensors:
+      x: '[48, 768] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P31:
+    provenance: synthetic
+    tensors:
+      x: '[48, 1024] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P32:
+    provenance: synthetic
+    tensors:
+      x: '[48, 1280] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P33:
+    provenance: synthetic
+    tensors:
+      x: '[48, 1536] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P34:
+    provenance: synthetic
+    tensors:
+      x: '[48, 2048] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P35:
+    provenance: synthetic
+    tensors:
+      x: '[48, 2560] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P36:
+    provenance: synthetic
+    tensors:
+      x: '[48, 3072] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P37:
+    provenance: synthetic
+    tensors:
+      x: '[48, 3584] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P38:
+    provenance: synthetic
+    tensors:
+      x: '[48, 4096] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P39:
+    provenance: synthetic
+    tensors:
+      x: '[48, 5120] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P40:
+    provenance: synthetic
+    tensors:
+      x: '[48, 12288] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  P41:
+    provenance: synthetic
+    tensors:
+      x: '[48, 16384] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H1:
+    provenance: synthetic
+    tensors:
+      x: '[48, 384] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H2:
+    provenance: edge
+    tensors:
+      x: '[2, 128] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H3:
+    provenance: synthetic
+    tensors:
+      x: '[2, 4096] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H4:
+    provenance: synthetic
+    tensors:
+      x: '[256, 128] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H5:
+    provenance: edge
+    tensors:
+      x: '[1, 8] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H6:
+    provenance: edge
+    tensors:
+      x: '[1, 512] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H7:
+    provenance: edge
+    tensors:
+      x: '[1, 32768] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10
+  H8:
+    provenance: edge
+    tensors:
+      x: '[2048, 8] bfloat16 axes=B,D dist=randn'
+    params:
+      group_size: 8
+      eps: 1.0e-10

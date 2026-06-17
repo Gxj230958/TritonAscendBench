@@ -402,3 +402,275 @@ inputs:
     - E
     dtype: int64
     dist: randint:0:T
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      a: '[4, 16, 64] float32 axes=E,T,D dist=randn'
+      b: '[4, 64, 64] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+  P2:
+    provenance: baseline
+    tensors:
+      a: '[8, 64, 256] float32 axes=E,T,D dist=randn'
+      b: '[8, 256, 256] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+  P3:
+    provenance: baseline
+    tensors:
+      a: '[32, 256, 1024] float32 axes=E,T,D dist=randn'
+      b: '[32, 1024, 1024] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+  P4:
+    provenance: baseline
+    tensors:
+      a: '[64, 512, 2048] float32 axes=E,T,D dist=randn'
+      b: '[64, 2048, 2048] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
+  P5:
+    provenance: synthetic
+    tensors:
+      a: '[128, 64, 512] float32 axes=E,T,D dist=randn'
+      b: '[128, 512, 512] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[128] int64 axes=E dist=randint(lo=0, hi=T)'
+  P6:
+    provenance: synthetic
+    tensors:
+      a: '[1, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[1, 8192, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+  P7:
+    provenance: synthetic
+    tensors:
+      a: '[32, 768, 384] float32 axes=E,T,D dist=randn'
+      b: '[32, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+  P8:
+    provenance: synthetic
+    tensors:
+      a: '[32, 1024, 384] float32 axes=E,T,D dist=randn'
+      b: '[32, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+  P9:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 1] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 1] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P10:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 2] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 2] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P11:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 3] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 3] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P12:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 4] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 4] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P13:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 8] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 8] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P14:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 16] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 16] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P15:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 32] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 32] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P16:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 64] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 64] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P17:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 96] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 96] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P18:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 128] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 128] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P19:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 192] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 192] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P20:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 256] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 256] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P21:
+    provenance: synthetic
+    tensors:
+      a: '[2, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[2, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+  P22:
+    provenance: synthetic
+    tensors:
+      a: '[3, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[3, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
+  P23:
+    provenance: synthetic
+    tensors:
+      a: '[4, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[4, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+  P24:
+    provenance: synthetic
+    tensors:
+      a: '[8, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[8, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+  P25:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 1, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P26:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 2, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P27:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 3, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P28:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 4, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P29:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 8, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P30:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 16, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P31:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 32, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P32:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 64, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P33:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 96, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P34:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 128, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P35:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 192, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P36:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 256, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P37:
+    provenance: synthetic
+    tensors:
+      a: '[12, 1, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  P38:
+    provenance: synthetic
+    tensors:
+      a: '[12, 2, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  H1:
+    provenance: synthetic
+    tensors:
+      a: '[12, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[12, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+  H2:
+    provenance: edge
+    tensors:
+      a: '[2, 8, 16] float32 axes=E,T,D dist=randn'
+      b: '[2, 8, 16] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+  H3:
+    provenance: synthetic
+    tensors:
+      a: '[8, 512, 4096] float32 axes=E,T,D dist=randn'
+      b: '[8, 4096, 4096] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+  H4:
+    provenance: synthetic
+    tensors:
+      a: '[256, 16, 128] float32 axes=E,T,D dist=randn'
+      b: '[256, 128, 128] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[256] int64 axes=E dist=randint(lo=0, hi=T)'
+  H5:
+    provenance: edge
+    tensors:
+      a: '[1, 1, 1] float32 axes=E,T,D dist=randn'
+      b: '[1, 1, 1] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+  H6:
+    provenance: edge
+    tensors:
+      a: '[1, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[1, 384, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+  H7:
+    provenance: edge
+    tensors:
+      a: '[1, 96, 384] float32 axes=E,T,D dist=randn'
+      b: '[1, 32768, 384] float32 axes=E,N,D dist=randn'
+      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'

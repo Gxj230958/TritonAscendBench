@@ -331,3 +331,306 @@ inputs:
     dist: randn
   out_dtype:
     scalar: bf16
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      k_nope: '[8, 2, 32] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[8, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P2:
+    provenance: baseline
+    tensors:
+      k_nope: '[64, 4, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[64, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P3:
+    provenance: baseline
+    tensors:
+      k_nope: '[512, 16, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[512, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P4:
+    provenance: baseline
+    tensors:
+      k_nope: '[2048, 32, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[2048, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P5:
+    provenance: synthetic
+    tensors:
+      k_nope: '[16, 64, 256] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[16, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P6:
+    provenance: synthetic
+    tensors:
+      k_nope: '[1, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[1, 1, 256] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P8:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 128, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P10:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 256] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P11:
+    provenance: synthetic
+    tensors:
+      k_nope: '[1, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[1, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P12:
+    provenance: synthetic
+    tensors:
+      k_nope: '[2, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[2, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P13:
+    provenance: synthetic
+    tensors:
+      k_nope: '[3, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[3, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P14:
+    provenance: synthetic
+    tensors:
+      k_nope: '[4, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[4, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P15:
+    provenance: synthetic
+    tensors:
+      k_nope: '[8, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[8, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P16:
+    provenance: synthetic
+    tensors:
+      k_nope: '[16, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[16, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P17:
+    provenance: synthetic
+    tensors:
+      k_nope: '[32, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[32, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P18:
+    provenance: synthetic
+    tensors:
+      k_nope: '[64, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[64, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P19:
+    provenance: synthetic
+    tensors:
+      k_nope: '[96, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[96, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P20:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 1] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P21:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 2] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P23:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 4] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P24:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 8] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P25:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 16] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P26:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 32] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P27:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P28:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 2] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P30:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 4] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P31:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 8] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P32:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P33:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P34:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 1, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P35:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 2, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P37:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 4, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P38:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 8, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P39:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  P40:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 32, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H1:
+    provenance: synthetic
+    tensors:
+      k_nope: '[384, 8, 512] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[384, 1, 128] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H2:
+    provenance: edge
+    tensors:
+      k_nope: '[2, 2, 16] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[2, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H3:
+    provenance: synthetic
+    tensors:
+      k_nope: '[4096, 8, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[4096, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H4:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 1, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H5:
+    provenance: edge
+    tensors:
+      k_nope: '[1, 1, 1] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[1, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H6:
+    provenance: edge
+    tensors:
+      k_nope: '[1, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[1, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H7:
+    provenance: edge
+    tensors:
+      k_nope: '[1, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[1, 1, 1024] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16
+  H8:
+    provenance: edge
+    tensors:
+      k_nope: '[16384, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
+      k_rope: '[16384, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
+    params:
+      out_dtype: bf16

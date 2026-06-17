@@ -358,3 +358,710 @@ inputs:
     scalar: 16
   mrope_interleaved:
     scalar: false
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 64] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[4, 128] bfloat16 axes=B,H*16 dist=randn'
+      k: '[4, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[8, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[16, 512] bfloat16 axes=B,H*16 dist=randn'
+      k: '[16, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 1024] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[1, 2048] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[48, 1536] bfloat16 axes=B,H*16 dist=randn'
+      k: '[48, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[64, 2048] bfloat16 axes=B,H*16 dist=randn'
+      k: '[64, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[8, 1536] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[8, 2048] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[48, 192] bfloat16 axes=B,H*16 dist=randn'
+      k: '[48, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[1, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[2, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[4, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[4, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[8, 16] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[8, 48] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[8, 64] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[8, 128] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[8, 512] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[8, 1024] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[8, 3072] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[8, 4096] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[8, 6144] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[8, 8192] bfloat16 axes=B,H*16 dist=randn'
+      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[16, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[16, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[32, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[32, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[64, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[64, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[96, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[96, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 96, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 96, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[128, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[128, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 128, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 128, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[192, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[192, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 192, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 192, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[256, 256] bfloat16 axes=B,H*16 dist=randn'
+      k: '[256, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 256, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 256, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[1, 32] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[1, 1024] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[1, 8192] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[2, 16] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[2, 1536] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[3, 32] bfloat16 axes=B,H*16 dist=randn'
+      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P40:
+    provenance: synthetic
+    tensors:
+      q: '[3, 1024] bfloat16 axes=B,H*16 dist=randn'
+      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  P41:
+    provenance: synthetic
+    tensors:
+      q: '[3, 2048] bfloat16 axes=B,H*16 dist=randn'
+      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[3, 192] bfloat16 axes=B,H*16 dist=randn'
+      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 32] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[2, 128] bfloat16 axes=B,H*16 dist=randn'
+      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[32, 128] bfloat16 axes=B,H*16 dist=randn'
+      k: '[32, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H5:
+    provenance: edge
+    tensors:
+      q: '[1, 16] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false
+  H6:
+    provenance: edge
+    tensors:
+      q: '[1, 192] bfloat16 axes=B,H*16 dist=randn'
+      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
+      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
+    params:
+      mrope_section:
+      - 3
+      - 3
+      - 2
+      head_size: 16
+      rotary_dim: 16
+      mrope_interleaved: false

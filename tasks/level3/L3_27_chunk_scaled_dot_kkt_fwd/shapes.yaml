@@ -398,3 +398,306 @@ inputs:
     - NSEG+1
     dtype: int64
     dist: offsets:to=T
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      k: '[1, 80, 4, 32] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 80, 4] float32 axes=1,T,H dist=rand'
+      g: '[1, 80, 4] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P2:
+    provenance: baseline
+    tensors:
+      k: '[1, 130, 8, 64] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 130, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 130, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P3:
+    provenance: baseline
+    tensors:
+      k: '[1, 200, 16, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 200, 16] float32 axes=1,T,H dist=rand'
+      g: '[1, 200, 16] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P5:
+    provenance: synthetic
+    tensors:
+      k: '[1, 100, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 100, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 100, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P6:
+    provenance: synthetic
+    tensors:
+      k: '[1, 576, 24, 384] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 576, 24] float32 axes=1,T,H dist=rand'
+      g: '[1, 576, 24] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[7] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P7:
+    provenance: synthetic
+    tensors:
+      k: '[1, 768, 32, 512] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 768, 32] float32 axes=1,T,H dist=rand'
+      g: '[1, 768, 32] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[9] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P8:
+    provenance: synthetic
+    tensors:
+      k: '[1, 576, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 576, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 576, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P9:
+    provenance: synthetic
+    tensors:
+      k: '[1, 768, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 768, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 768, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P10:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[7] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P11:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[9] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P12:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 1, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P13:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 2, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P14:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 4, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P15:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 1] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P16:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 2] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P17:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 3] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P18:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 4] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P19:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 8] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P20:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 16] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P21:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 32] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P22:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 64] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P23:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P24:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P25:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P26:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P27:
+    provenance: synthetic
+    tensors:
+      k: '[1, 4, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 4, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 4, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P28:
+    provenance: synthetic
+    tensors:
+      k: '[1, 8, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 8, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 8, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P29:
+    provenance: synthetic
+    tensors:
+      k: '[1, 16, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 16, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 16, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P30:
+    provenance: synthetic
+    tensors:
+      k: '[1, 32, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 32, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 32, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P31:
+    provenance: synthetic
+    tensors:
+      k: '[1, 64, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 64, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 64, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P32:
+    provenance: synthetic
+    tensors:
+      k: '[1, 96, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 96, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 96, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P33:
+    provenance: synthetic
+    tensors:
+      k: '[1, 128, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 128, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 128, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P34:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P35:
+    provenance: synthetic
+    tensors:
+      k: '[1, 192, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 192, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 192, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P36:
+    provenance: synthetic
+    tensors:
+      k: '[1, 256, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 256, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 256, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P37:
+    provenance: synthetic
+    tensors:
+      k: '[1, 384, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 384, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 384, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P38:
+    provenance: synthetic
+    tensors:
+      k: '[1, 512, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 512, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 512, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P39:
+    provenance: synthetic
+    tensors:
+      k: '[1, 640, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 640, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 640, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P40:
+    provenance: synthetic
+    tensors:
+      k: '[1, 768, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 768, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 768, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  P41:
+    provenance: synthetic
+    tensors:
+      k: '[1, 1024, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 1024, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 1024, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
+  H1:
+    provenance: synthetic
+    tensors:
+      k: '[1, 150, 6, 96] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 150, 6] float32 axes=1,T,H dist=rand'
+      g: '[1, 150, 6] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
+  H2:
+    provenance: edge
+    tensors:
+      k: '[1, 1, 1, 1] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 1, 1] float32 axes=1,T,H dist=rand'
+      g: '[1, 1, 1] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
+  H3:
+    provenance: edge
+    tensors:
+      k: '[1, 3072, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
+      beta: '[1, 3072, 8] float32 axes=1,T,H dist=rand'
+      g: '[1, 3072, 8] float32 axes=1,T,H dist=rand'
+      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'

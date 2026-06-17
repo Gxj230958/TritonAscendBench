@@ -483,3 +483,465 @@ inputs:
     dist: randn
   scale:
     derive: 1/sqrt(D)
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 32, 4, 32] float32 axes=B,L,H,D dist=randn'
+      v: '[2, 32, 4, 32] float32 axes=B,L,H,Dv dist=randn'
+      g: '[2, 32, 4, 32] float32 axes=B,L,H,D dist=randn'
+      A: '[2, 32, 4, 16] float32 axes=B,L,H,C dist=randn'
+      h: '[2, 2, 4, 32, 32] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[4, 128, 8, 64] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 128, 8, 64] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 128, 8, 64] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 128, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 8, 64, 64] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.125
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[8, 256, 16, 128] float32 axes=B,L,H,D dist=randn'
+      v: '[8, 256, 16, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[8, 256, 16, 128] float32 axes=B,L,H,D dist=randn'
+      A: '[8, 256, 16, 64] float32 axes=B,L,H,C dist=randn'
+      h: '[8, 4, 16, 128, 128] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[4, 256, 8, 256] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 256, 8, 256] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 256, 8, 256] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 256, 8, 64] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 8, 256, 256] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.0625
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 128, 8, 128] float32 axes=B,L,H,D dist=randn'
+      v: '[2, 128, 8, 256] float32 axes=B,L,H,Dv dist=randn'
+      g: '[2, 128, 8, 128] float32 axes=B,L,H,D dist=randn'
+      A: '[2, 128, 8, 64] float32 axes=B,L,H,C dist=randn'
+      h: '[2, 2, 8, 256, 128] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[4, 768, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 768, 6, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 768, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 768, 6, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 24, 6, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[4, 1024, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 1024, 6, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 1024, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 1024, 6, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 32, 6, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 24, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 128, 24, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 128, 24, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 128, 24, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 24, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 32, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 128, 32, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 128, 32, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 128, 32, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 32, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 128, 6, 384] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 128, 6, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 6, 384, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[4, 128, 6, 512] float32 axes=B,L,H,Dv dist=randn'
+      g: '[4, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[4, 128, 6, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[4, 4, 6, 512, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[1, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[1, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[1, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[1, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[1, 8, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[2, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[2, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[2, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[2, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[2, 8, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 16] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 16, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 1] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 1] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 1] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 1.0
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 2] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 2] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 2] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.7071067811865475
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 3] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 3] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 3] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.5773502691896258
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 4] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 4] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 4] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.5
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 8] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 8] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 8] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.35355339059327373
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 16] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 16] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 16] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.25
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 32] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 32] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 32] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 64] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 64] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 64] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.125
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 1] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 1, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 2] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 2, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 3] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 3, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 4] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 4, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 8] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 8, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 16] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 16, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 32] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 32, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 64] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 64, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 1, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 1, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 1, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 1, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 1, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 2, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 2, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 2, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 2, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 2, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 3, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 3, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 3, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 3, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 3, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 4, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 4, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 4, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 4, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 4, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[3, 32, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 32, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 32, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 32, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 1, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[3, 64, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 64, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 64, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 64, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 2, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[3, 96, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 96, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 96, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 96, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 3, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[3, 128, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 128, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 128, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 128, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 4, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P40:
+    provenance: synthetic
+    tensors:
+      q: '[3, 192, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 192, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 192, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 192, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 6, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P41:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 256, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 256, 8, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 256, 8, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 8, 8, 128, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[3, 96, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[3, 96, 6, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[3, 96, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[3, 96, 6, 16] float32 axes=B,L,H,C dist=randn'
+      h: '[3, 6, 6, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 32, 2, 16] float32 axes=B,L,H,D dist=randn'
+      v: '[2, 32, 2, 16] float32 axes=B,L,H,Dv dist=randn'
+      g: '[2, 32, 2, 16] float32 axes=B,L,H,D dist=randn'
+      A: '[2, 32, 2, 16] float32 axes=B,L,H,C dist=randn'
+      h: '[2, 2, 2, 16, 16] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.25
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[2, 512, 8, 128] float32 axes=B,L,H,D dist=randn'
+      v: '[2, 512, 8, 128] float32 axes=B,L,H,Dv dist=randn'
+      g: '[2, 512, 8, 128] float32 axes=B,L,H,D dist=randn'
+      A: '[2, 512, 8, 64] float32 axes=B,L,H,C dist=randn'
+      h: '[2, 8, 8, 128, 128] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[8, 64, 8, 64] float32 axes=B,L,H,D dist=randn'
+      v: '[8, 64, 8, 64] float32 axes=B,L,H,Dv dist=randn'
+      g: '[8, 64, 8, 64] float32 axes=B,L,H,D dist=randn'
+      A: '[8, 64, 8, 16] float32 axes=B,L,H,C dist=randn'
+      h: '[8, 4, 8, 64, 64] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.125
+  H5:
+    provenance: edge
+    tensors:
+      q: '[1, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      v: '[1, 128, 6, 96] float32 axes=B,L,H,Dv dist=randn'
+      g: '[1, 128, 6, 96] float32 axes=B,L,H,D dist=randn'
+      A: '[1, 128, 6, 32] float32 axes=B,L,H,C dist=randn'
+      h: '[1, 4, 6, 96, 96] float32 axes=B,L//C,H,Dv,D dist=randn'
+    params:
+      scale: 0.10206207261596577

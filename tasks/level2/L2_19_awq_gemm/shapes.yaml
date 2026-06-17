@@ -399,3 +399,495 @@ inputs:
     scalar: 32
   split_k_iters:
     scalar: 8
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      input: '[16, 64] float32 axes=B,N dist=randn'
+      qweight: '[64, 4] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[2, 32] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[2, 4] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P2:
+    provenance: baseline
+    tensors:
+      input: '[64, 256] float32 axes=B,N dist=randn'
+      qweight: '[256, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[8, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[8, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P3:
+    provenance: baseline
+    tensors:
+      input: '[256, 1024] float32 axes=B,N dist=randn'
+      qweight: '[1024, 16] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[32, 128] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[32, 16] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P4:
+    provenance: baseline
+    tensors:
+      input: '[512, 2048] float32 axes=B,N dist=randn'
+      qweight: '[2048, 32] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[64, 256] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[64, 32] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P5:
+    provenance: synthetic
+    tensors:
+      input: '[8, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P6:
+    provenance: synthetic
+    tensors:
+      input: '[1, 384] float32 axes=B,N dist=randn'
+      qweight: '[384, 64] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[12, 512] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[12, 64] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P7:
+    provenance: synthetic
+    tensors:
+      input: '[1536, 6144] float32 axes=B,N dist=randn'
+      qweight: '[6144, 48] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[192, 384] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[192, 48] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P8:
+    provenance: synthetic
+    tensors:
+      input: '[2048, 8192] float32 axes=B,N dist=randn'
+      qweight: '[8192, 64] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[256, 512] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[256, 64] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P9:
+    provenance: synthetic
+    tensors:
+      input: '[64, 6144] float32 axes=B,N dist=randn'
+      qweight: '[6144, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[192, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[192, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P10:
+    provenance: synthetic
+    tensors:
+      input: '[64, 8192] float32 axes=B,N dist=randn'
+      qweight: '[8192, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[256, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[256, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P11:
+    provenance: synthetic
+    tensors:
+      input: '[64, 384] float32 axes=B,N dist=randn'
+      qweight: '[384, 48] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[12, 384] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[12, 48] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P12:
+    provenance: synthetic
+    tensors:
+      input: '[1, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P13:
+    provenance: synthetic
+    tensors:
+      input: '[2, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P14:
+    provenance: synthetic
+    tensors:
+      input: '[3, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P15:
+    provenance: synthetic
+    tensors:
+      input: '[4, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P16:
+    provenance: synthetic
+    tensors:
+      input: '[16, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P17:
+    provenance: synthetic
+    tensors:
+      input: '[32, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P18:
+    provenance: synthetic
+    tensors:
+      input: '[64, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P19:
+    provenance: synthetic
+    tensors:
+      input: '[96, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 8] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P20:
+    provenance: synthetic
+    tensors:
+      input: '[96, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 2] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 16] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 2] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P21:
+    provenance: synthetic
+    tensors:
+      input: '[96, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 3] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 24] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 3] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P22:
+    provenance: synthetic
+    tensors:
+      input: '[96, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 4] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 32] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 4] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P23:
+    provenance: synthetic
+    tensors:
+      input: '[96, 32] float32 axes=B,N dist=randn'
+      qweight: '[32, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[1, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[1, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P24:
+    provenance: synthetic
+    tensors:
+      input: '[96, 64] float32 axes=B,N dist=randn'
+      qweight: '[64, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[2, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[2, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P25:
+    provenance: synthetic
+    tensors:
+      input: '[96, 96] float32 axes=B,N dist=randn'
+      qweight: '[96, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[3, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[3, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P26:
+    provenance: synthetic
+    tensors:
+      input: '[96, 128] float32 axes=B,N dist=randn'
+      qweight: '[128, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[4, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[4, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P27:
+    provenance: synthetic
+    tensors:
+      input: '[96, 192] float32 axes=B,N dist=randn'
+      qweight: '[192, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[6, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[6, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P28:
+    provenance: synthetic
+    tensors:
+      input: '[96, 256] float32 axes=B,N dist=randn'
+      qweight: '[256, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[8, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[8, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P29:
+    provenance: synthetic
+    tensors:
+      input: '[96, 384] float32 axes=B,N dist=randn'
+      qweight: '[384, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[12, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[12, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P30:
+    provenance: synthetic
+    tensors:
+      input: '[96, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P31:
+    provenance: synthetic
+    tensors:
+      input: '[96, 640] float32 axes=B,N dist=randn'
+      qweight: '[640, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[20, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[20, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P32:
+    provenance: synthetic
+    tensors:
+      input: '[96, 768] float32 axes=B,N dist=randn'
+      qweight: '[768, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[24, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[24, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P33:
+    provenance: synthetic
+    tensors:
+      input: '[96, 1024] float32 axes=B,N dist=randn'
+      qweight: '[1024, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[32, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[32, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P34:
+    provenance: synthetic
+    tensors:
+      input: '[96, 1280] float32 axes=B,N dist=randn'
+      qweight: '[1280, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[40, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[40, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P35:
+    provenance: synthetic
+    tensors:
+      input: '[96, 1536] float32 axes=B,N dist=randn'
+      qweight: '[1536, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[48, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[48, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P36:
+    provenance: synthetic
+    tensors:
+      input: '[96, 2048] float32 axes=B,N dist=randn'
+      qweight: '[2048, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[64, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[64, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P37:
+    provenance: synthetic
+    tensors:
+      input: '[96, 2560] float32 axes=B,N dist=randn'
+      qweight: '[2560, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[80, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[80, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P38:
+    provenance: synthetic
+    tensors:
+      input: '[96, 3072] float32 axes=B,N dist=randn'
+      qweight: '[3072, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[96, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[96, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P39:
+    provenance: synthetic
+    tensors:
+      input: '[96, 3584] float32 axes=B,N dist=randn'
+      qweight: '[3584, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[112, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[112, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P40:
+    provenance: synthetic
+    tensors:
+      input: '[96, 4096] float32 axes=B,N dist=randn'
+      qweight: '[4096, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[128, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[128, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  P41:
+    provenance: synthetic
+    tensors:
+      input: '[96, 5120] float32 axes=B,N dist=randn'
+      qweight: '[5120, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[160, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[160, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H1:
+    provenance: synthetic
+    tensors:
+      input: '[96, 384] float32 axes=B,N dist=randn'
+      qweight: '[384, 6] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[12, 48] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[12, 6] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H2:
+    provenance: edge
+    tensors:
+      input: '[2, 32] float32 axes=B,N dist=randn'
+      qweight: '[32, 2] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[1, 16] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[1, 2] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H3:
+    provenance: synthetic
+    tensors:
+      input: '[4, 4096] float32 axes=B,N dist=randn'
+      qweight: '[4096, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[128, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[128, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H4:
+    provenance: synthetic
+    tensors:
+      input: '[1024, 128] float32 axes=B,N dist=randn'
+      qweight: '[128, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[4, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[4, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H5:
+    provenance: edge
+    tensors:
+      input: '[1, 32] float32 axes=B,N dist=randn'
+      qweight: '[32, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[1, 8] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[1, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H6:
+    provenance: edge
+    tensors:
+      input: '[1, 384] float32 axes=B,N dist=randn'
+      qweight: '[384, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[12, 64] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[12, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H7:
+    provenance: edge
+    tensors:
+      input: '[1, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 256] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 2048] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 256] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8
+  H8:
+    provenance: edge
+    tensors:
+      input: '[8192, 512] float32 axes=B,N dist=randn'
+      qweight: '[512, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
+      scales: '[16, 8] float32 axes=N//32,E*8 dist=rand'
+      qzeros: '[16, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
+    params:
+      group_size: 32
+      split_k_iters: 8

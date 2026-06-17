@@ -352,3 +352,263 @@ inputs:
     - N//32+1
     dtype: int32
     dist: randint:0:1024
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      logits: '[4, 128] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[4] int32 axes=E dist=randperm'
+      bitmask: '[4, 5] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P2:
+    provenance: baseline
+    tensors:
+      logits: '[16, 512] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[8] int32 axes=E dist=randperm'
+      bitmask: '[8, 17] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P3:
+    provenance: baseline
+    tensors:
+      logits: '[64, 4096] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[16] int32 axes=E dist=randperm'
+      bitmask: '[16, 129] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P4:
+    provenance: baseline
+    tensors:
+      logits: '[128, 32768] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[32] int32 axes=E dist=randperm'
+      bitmask: '[32, 1025] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P5:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 2048] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[8] int32 axes=E dist=randperm'
+      bitmask: '[8, 65] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P6:
+    provenance: synthetic
+    tensors:
+      logits: '[384, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P7:
+    provenance: synthetic
+    tensors:
+      logits: '[512, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P8:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P9:
+    provenance: synthetic
+    tensors:
+      logits: '[32, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P10:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[1] int32 axes=E dist=randperm'
+      bitmask: '[1, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P11:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[2] int32 axes=E dist=randperm'
+      bitmask: '[2, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P12:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[3] int32 axes=E dist=randperm'
+      bitmask: '[3, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P13:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[4] int32 axes=E dist=randperm'
+      bitmask: '[4, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P14:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[8] int32 axes=E dist=randperm'
+      bitmask: '[8, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P15:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 2] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P16:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 4] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P17:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 6] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P18:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 8] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P19:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 16] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P20:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 32] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 2] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P21:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 64] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 3] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P22:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 96] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 4] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P23:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 128] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 5] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P24:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 192] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 7] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P25:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 256] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 9] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P26:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 384] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 13] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P27:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 512] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 17] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P28:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 640] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 21] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P29:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 768] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 25] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P30:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1024] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 33] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P31:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1280] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 41] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P32:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 2048] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 65] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P33:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 2560] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 81] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P34:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 3072] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 97] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P35:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 3584] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 113] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P36:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 4096] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 129] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  P37:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 5120] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 161] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H1:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[12] int32 axes=E dist=randperm'
+      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H2:
+    provenance: edge
+    tensors:
+      logits: '[2, 16] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[2] int32 axes=E dist=randperm'
+      bitmask: '[2, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H3:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 65536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[2] int32 axes=E dist=randperm'
+      bitmask: '[2, 2049] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H4:
+    provenance: synthetic
+    tensors:
+      logits: '[256, 256] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[256] int32 axes=E dist=randperm'
+      bitmask: '[256, 9] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H5:
+    provenance: edge
+    tensors:
+      logits: '[1, 2] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[1] int32 axes=E dist=randperm'
+      bitmask: '[1, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  H6:
+    provenance: edge
+    tensors:
+      logits: '[2048, 1536] bfloat16 axes=B,N dist=randn'
+      logits_indices: '[1] int32 axes=E dist=randperm'
+      bitmask: '[1, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'

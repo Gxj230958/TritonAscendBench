@@ -437,3 +437,435 @@ inputs:
     - N
     - D
     dtype: float16
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[4, 32, 64] float16 axes=H,L,D dist=randn'
+      k: '[4, 32, 64] float16 axes=H,L,D dist=randn'
+      v: '[4, 32, 64] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[4] float32 axes=H dist=rand'
+      o: '[4, 64, 64] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.125
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[16, 256, 192] float16 axes=H,L,D dist=randn'
+      k: '[16, 256, 192] float16 axes=H,L,D dist=randn'
+      v: '[16, 256, 192] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[16] float32 axes=H dist=rand'
+      o: '[16, 512, 192] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.07216878364870323
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[32, 512, 256] float16 axes=H,L,D dist=randn'
+      k: '[32, 512, 256] float16 axes=H,L,D dist=randn'
+      v: '[32, 512, 256] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[32] float32 axes=H dist=rand'
+      o: '[32, 1024, 256] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.0625
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[8, 128, 96] float16 axes=H,L,D dist=randn'
+      k: '[8, 128, 96] float16 axes=H,L,D dist=randn'
+      v: '[8, 128, 96] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[4, 512, 96] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[1] float32 axes=H dist=rand'
+      o: '[8, 2048, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 1536, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 2048, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[48, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[48, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[48, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[48] float32 axes=H dist=rand'
+      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[1, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[2, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[3, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[4, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 16] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 16] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 16] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 16] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.25
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 32] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 32] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 32] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 32] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 64] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 64] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 64] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 64] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.125
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 96] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 96] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 96] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 96] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[1] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[2, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[2, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[2, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[2] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[3, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[3, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[3, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[3] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[4, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[4, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[4, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[4] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[8, 1, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 1, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 1, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[8, 2, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 2, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 2, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[8, 3, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 3, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 3, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[8, 4, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 4, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 4, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[8, 8, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 8, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 8, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[8, 16, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 16, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 16, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 32, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 32, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[8, 64, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 64, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 64, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[8, 96, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 96, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 96, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 128, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P40:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 1, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P41:
+    provenance: synthetic
+    tensors:
+      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[8, 2, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[6, 192, 192] float16 axes=H,L,D dist=randn'
+      k: '[6, 192, 192] float16 axes=H,L,D dist=randn'
+      v: '[6, 192, 192] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[6] float32 axes=H dist=rand'
+      o: '[6, 384, 192] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.07216878364870323
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 8, 16] float16 axes=H,L,D dist=randn'
+      k: '[2, 8, 16] float16 axes=H,L,D dist=randn'
+      v: '[2, 8, 16] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[2] float32 axes=H dist=rand'
+      o: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.25
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
+      k: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
+      v: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[2, 512, 256] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.0625
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 64] float16 axes=H,L,D dist=randn'
+      k: '[8, 32, 64] float16 axes=H,L,D dist=randn'
+      v: '[8, 32, 64] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[8] float32 axes=H dist=rand'
+      o: '[64, 128, 64] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.125
+  H6:
+    provenance: edge
+    tensors:
+      q: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      k: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      v: '[1, 192, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[1] float32 axes=H dist=rand'
+      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H8:
+    provenance: edge
+    tensors:
+      q: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[1, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[1] float32 axes=H dist=rand'
+      o: '[8, 8192, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H9:
+    provenance: edge
+    tensors:
+      q: '[192, 256, 128] float16 axes=H,L,D dist=randn'
+      k: '[192, 256, 128] float16 axes=H,L,D dist=randn'
+      v: '[192, 256, 128] float16 axes=H,L,D dist=randn'
+      alibi_slopes: '[192] float32 axes=H dist=rand'
+      o: '[8, 1, 128] float16 axes=B,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843

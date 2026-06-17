@@ -171,3 +171,113 @@ inputs:
     - D
     dtype: float16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      hidden_states: '[8, 64] bfloat16 axes=B,D dist=randn'
+      residual: '[8, 64, 64] float16 axes=B,N,D dist=randn'
+      weight1: '[64] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  P2:
+    provenance: baseline
+    tensors:
+      hidden_states: '[64, 256] bfloat16 axes=B,D dist=randn'
+      residual: '[64, 256, 256] float16 axes=B,N,D dist=randn'
+      weight1: '[256] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  P3:
+    provenance: baseline
+    tensors:
+      hidden_states: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      residual: '[512, 1024, 1024] float16 axes=B,N,D dist=randn'
+      weight1: '[1024] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  P4:
+    provenance: baseline
+    tensors:
+      hidden_states: '[2048, 4096] bfloat16 axes=B,D dist=randn'
+      residual: '[2048, 2048, 4096] float16 axes=B,N,D dist=randn'
+      weight1: '[4096] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  P5:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[16, 8192] bfloat16 axes=B,D dist=randn'
+      residual: '[16, 512, 8192] float16 axes=B,N,D dist=randn'
+      weight1: '[8192] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  P6:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      residual: '[1, 8192, 1024] float16 axes=B,N,D dist=randn'
+      weight1: '[1024] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H1:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[384, 384] bfloat16 axes=B,D dist=randn'
+      residual: '[384, 384, 384] float16 axes=B,N,D dist=randn'
+      weight1: '[384] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H2:
+    provenance: edge
+    tensors:
+      hidden_states: '[2, 16] bfloat16 axes=B,D dist=randn'
+      residual: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+      weight1: '[16] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H3:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[2, 16384] bfloat16 axes=B,D dist=randn'
+      residual: '[2, 4096, 16384] float16 axes=B,N,D dist=randn'
+      weight1: '[16384] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H4:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[4096, 64] bfloat16 axes=B,D dist=randn'
+      residual: '[4096, 128, 64] float16 axes=B,N,D dist=randn'
+      weight1: '[64] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H5:
+    provenance: edge
+    tensors:
+      hidden_states: '[1, 4] bfloat16 axes=B,D dist=randn'
+      residual: '[1, 1, 4] float16 axes=B,N,D dist=randn'
+      weight1: '[4] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0
+  H6:
+    provenance: edge
+    tensors:
+      hidden_states: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      residual: '[1, 384, 1024] float16 axes=B,N,D dist=randn'
+      weight1: '[1024] float16 axes=D dist=randn'
+    params:
+      approximate: none
+      softcap_const: 1.0

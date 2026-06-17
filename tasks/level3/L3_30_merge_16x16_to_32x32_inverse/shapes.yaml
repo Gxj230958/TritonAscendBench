@@ -84,3 +84,41 @@ inputs:
     # tril_chunk = dense strict-lower per [BT,BT] chunk; plain `tril` masks the
     # [H,BT] axes, leaving single-chunk H=1 shapes non-discriminating.
     dist: tril_chunk
+
+explicit_view:
+  P1:
+    provenance: synthetic
+    tensors:
+      A: '[1, 32, 1, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  P2:
+    provenance: synthetic
+    tensors:
+      A: '[2, 64, 2, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  P3:
+    provenance: baseline
+    tensors:
+      A: '[4, 128, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  P4:
+    provenance: baseline
+    tensors:
+      A: '[8, 256, 8, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  P5:
+    provenance: synthetic
+    tensors:
+      A: '[2, 512, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  H1:
+    provenance: synthetic
+    tensors:
+      A: '[3, 96, 3, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  H2:
+    provenance: edge
+    tensors:
+      A: '[1, 32, 1, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  H3:
+    provenance: synthetic
+    tensors:
+      A: '[2, 1024, 6, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  H4:
+    provenance: synthetic
+    tensors:
+      A: '[16, 32, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'

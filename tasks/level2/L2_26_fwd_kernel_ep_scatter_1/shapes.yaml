@@ -195,3 +195,93 @@ inputs:
     - E
     dtype: int32
     dist: "randint:0:T"
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      num_recv_tokens_per_expert: '[4] int32 axes=E dist=randint(lo=0, hi=T)'
+  P2:
+    provenance: baseline
+    tensors:
+      num_recv_tokens_per_expert: '[8] int32 axes=E dist=randint(lo=0, hi=T)'
+  P3:
+    provenance: baseline
+    tensors:
+      num_recv_tokens_per_expert: '[32] int32 axes=E dist=randint(lo=0, hi=T)'
+  P4:
+    provenance: baseline
+    tensors:
+      num_recv_tokens_per_expert: '[64] int32 axes=E dist=randint(lo=0, hi=T)'
+  P5:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[128] int32 axes=E dist=randint(lo=0, hi=T)'
+  P6:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[384] int32 axes=E dist=randint(lo=0, hi=T)'
+  P7:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[512] int32 axes=E dist=randint(lo=0, hi=T)'
+  P8:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[3] int32 axes=E dist=randint(lo=0, hi=T)'
+  P9:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[16] int32 axes=E dist=randint(lo=0, hi=T)'
+  P10:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[96] int32 axes=E dist=randint(lo=0, hi=T)'
+  P11:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[192] int32 axes=E dist=randint(lo=0, hi=T)'
+  P12:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[640] int32 axes=E dist=randint(lo=0, hi=T)'
+  P13:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[768] int32 axes=E dist=randint(lo=0, hi=T)'
+  P14:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[1024] int32 axes=E dist=randint(lo=0, hi=T)'
+  P15:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[1280] int32 axes=E dist=randint(lo=0, hi=T)'
+  P16:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[1536] int32 axes=E dist=randint(lo=0, hi=T)'
+  P17:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[2048] int32 axes=E dist=randint(lo=0, hi=T)'
+  H1:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[12] int32 axes=E dist=randint(lo=0, hi=T)'
+  H2:
+    provenance: edge
+    tensors:
+      num_recv_tokens_per_expert: '[2] int32 axes=E dist=randint(lo=0, hi=T)'
+  H3:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[8] int32 axes=E dist=randint(lo=0, hi=T)'
+  H4:
+    provenance: synthetic
+    tensors:
+      num_recv_tokens_per_expert: '[256] int32 axes=E dist=randint(lo=0, hi=T)'
+  H5:
+    provenance: edge
+    tensors:
+      num_recv_tokens_per_expert: '[1] int32 axes=E dist=randint(lo=0, hi=T)'

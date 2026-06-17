@@ -296,3 +296,397 @@ inputs:
     dims: [N]
     dtype: bfloat16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      A: '[16, 64] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[64, 32] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[16, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[32, 1] float32 axes=N,1 dist=rand'
+      bias: '[32] bfloat16 axes=N dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      A: '[64, 256] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[256, 128] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[64, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[128, 1] float32 axes=N,1 dist=rand'
+      bias: '[128] bfloat16 axes=N dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      A: '[128, 512] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[512, 256] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[256, 1] float32 axes=N,1 dist=rand'
+      bias: '[256] bfloat16 axes=N dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      A: '[256, 1024] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[1024, 512] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[256, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[512, 1] float32 axes=N,1 dist=rand'
+      bias: '[512] bfloat16 axes=N dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      A: '[32, 128] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[128, 1024] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[32, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1024, 1] float32 axes=N,1 dist=rand'
+      bias: '[1024] bfloat16 axes=N dist=randn'
+  P6:
+    provenance: synthetic
+    tensors:
+      A: '[1, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 2048] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[2048, 1] float32 axes=N,1 dist=rand'
+      bias: '[2048] bfloat16 axes=N dist=randn'
+  P7:
+    provenance: synthetic
+    tensors:
+      A: '[1536, 3072] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[3072, 1536] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1536, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1536, 1] float32 axes=N,1 dist=rand'
+      bias: '[1536] bfloat16 axes=N dist=randn'
+  P8:
+    provenance: synthetic
+    tensors:
+      A: '[2048, 4096] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[4096, 2048] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[2048, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[2048, 1] float32 axes=N,1 dist=rand'
+      bias: '[2048] bfloat16 axes=N dist=randn'
+  P9:
+    provenance: synthetic
+    tensors:
+      A: '[64, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 1536] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[64, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1536, 1] float32 axes=N,1 dist=rand'
+      bias: '[1536] bfloat16 axes=N dist=randn'
+  P10:
+    provenance: synthetic
+    tensors:
+      A: '[64, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 2048] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[64, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[2048, 1] float32 axes=N,1 dist=rand'
+      bias: '[2048] bfloat16 axes=N dist=randn'
+  P11:
+    provenance: synthetic
+    tensors:
+      A: '[1536, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1536, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P12:
+    provenance: synthetic
+    tensors:
+      A: '[128, 1] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[1, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P13:
+    provenance: synthetic
+    tensors:
+      A: '[128, 2] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[2, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P14:
+    provenance: synthetic
+    tensors:
+      A: '[128, 3] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[3, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P15:
+    provenance: synthetic
+    tensors:
+      A: '[128, 4] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[4, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P16:
+    provenance: synthetic
+    tensors:
+      A: '[128, 8] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[8, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P17:
+    provenance: synthetic
+    tensors:
+      A: '[128, 16] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[16, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P18:
+    provenance: synthetic
+    tensors:
+      A: '[128, 32] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[32, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P19:
+    provenance: synthetic
+    tensors:
+      A: '[128, 64] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[64, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P20:
+    provenance: synthetic
+    tensors:
+      A: '[128, 96] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[96, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P21:
+    provenance: synthetic
+    tensors:
+      A: '[128, 128] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[128, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P22:
+    provenance: synthetic
+    tensors:
+      A: '[128, 192] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[192, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P23:
+    provenance: synthetic
+    tensors:
+      A: '[128, 256] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[256, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P24:
+    provenance: synthetic
+    tensors:
+      A: '[2, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[2, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P25:
+    provenance: synthetic
+    tensors:
+      A: '[3, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[3, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P26:
+    provenance: synthetic
+    tensors:
+      A: '[4, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[4, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P27:
+    provenance: synthetic
+    tensors:
+      A: '[8, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[8, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P28:
+    provenance: synthetic
+    tensors:
+      A: '[16, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[16, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P29:
+    provenance: synthetic
+    tensors:
+      A: '[32, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[32, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P30:
+    provenance: synthetic
+    tensors:
+      A: '[64, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[64, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P31:
+    provenance: synthetic
+    tensors:
+      A: '[96, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[96, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  P32:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 1] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1, 1] float32 axes=N,1 dist=rand'
+      bias: '[1] bfloat16 axes=N dist=randn'
+  P33:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 2] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[2, 1] float32 axes=N,1 dist=rand'
+      bias: '[2] bfloat16 axes=N dist=randn'
+  P34:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 3] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[3, 1] float32 axes=N,1 dist=rand'
+      bias: '[3] bfloat16 axes=N dist=randn'
+  P35:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 4] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[4, 1] float32 axes=N,1 dist=rand'
+      bias: '[4] bfloat16 axes=N dist=randn'
+  P36:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 8] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[8, 1] float32 axes=N,1 dist=rand'
+      bias: '[8] bfloat16 axes=N dist=randn'
+  P37:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 16] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[16, 1] float32 axes=N,1 dist=rand'
+      bias: '[16] bfloat16 axes=N dist=randn'
+  P38:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 32] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[32, 1] float32 axes=N,1 dist=rand'
+      bias: '[32] bfloat16 axes=N dist=randn'
+  P39:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 64] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[64, 1] float32 axes=N,1 dist=rand'
+      bias: '[64] bfloat16 axes=N dist=randn'
+  P40:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 96] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[96, 1] float32 axes=N,1 dist=rand'
+      bias: '[96] bfloat16 axes=N dist=randn'
+  P41:
+    provenance: synthetic
+    tensors:
+      A: '[128, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 128] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[128, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[128, 1] float32 axes=N,1 dist=rand'
+      bias: '[128] bfloat16 axes=N dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      A: '[48, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[48, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  H2:
+    provenance: synthetic
+    tensors:
+      A: '[8, 32] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[32, 16] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[8, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[16, 1] float32 axes=N,1 dist=rand'
+      bias: '[16] bfloat16 axes=N dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      A: '[512, 2048] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[2048, 256] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[512, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[256, 1] float32 axes=N,1 dist=rand'
+      bias: '[256] bfloat16 axes=N dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      A: '[1024, 128] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[128, 64] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1024, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[64, 1] float32 axes=N,1 dist=rand'
+      bias: '[64] bfloat16 axes=N dist=randn'
+  H5:
+    provenance: edge
+    tensors:
+      A: '[1, 1] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[1, 1] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1, 1] float32 axes=N,1 dist=rand'
+      bias: '[1] bfloat16 axes=N dist=randn'
+  H6:
+    provenance: edge
+    tensors:
+      A: '[1, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[192, 1] float32 axes=N,1 dist=rand'
+      bias: '[192] bfloat16 axes=N dist=randn'
+  H7:
+    provenance: edge
+    tensors:
+      A: '[1, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 8192] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[1, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[8192, 1] float32 axes=N,1 dist=rand'
+      bias: '[8192] bfloat16 axes=N dist=randn'
+  H8:
+    provenance: edge
+    tensors:
+      A: '[8192, 320] int8 axes=M,K dist=randint(lo=-127, hi=127)'
+      B: '[320, 1] int8 axes=K,N dist=randint(lo=-127, hi=127)'
+      scale_a: '[8192, 1] float32 axes=M,1 dist=rand'
+      scale_b: '[1, 1] float32 axes=N,1 dist=rand'
+      bias: '[1] bfloat16 axes=N dist=randn'

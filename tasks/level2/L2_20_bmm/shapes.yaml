@@ -208,3 +208,107 @@ inputs:
     - D
     dtype: float16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      a: '[16, 16, 32] float32 axes=B,L,D dist=randn'
+      b: '[16, 32, 64] float32 axes=B,D,N dist=randn'
+      input: '[16, 64, 32] float16 axes=B,N,D dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      a: '[64, 64, 128] float32 axes=B,L,D dist=randn'
+      b: '[64, 128, 256] float32 axes=B,D,N dist=randn'
+      input: '[64, 256, 128] float16 axes=B,N,D dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      a: '[256, 128, 512] float32 axes=B,L,D dist=randn'
+      b: '[256, 512, 1024] float32 axes=B,D,N dist=randn'
+      input: '[256, 1024, 512] float16 axes=B,N,D dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      a: '[512, 256, 1024] float32 axes=B,L,D dist=randn'
+      b: '[512, 1024, 2048] float32 axes=B,D,N dist=randn'
+      input: '[512, 2048, 1024] float16 axes=B,N,D dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      a: '[8, 64, 2048] float32 axes=B,L,D dist=randn'
+      b: '[8, 2048, 512] float32 axes=B,D,N dist=randn'
+      input: '[8, 512, 2048] float16 axes=B,N,D dist=randn'
+  P6:
+    provenance: synthetic
+    tensors:
+      a: '[1, 2, 4] float32 axes=B,L,D dist=randn'
+      b: '[1, 4, 2] float32 axes=B,D,N dist=randn'
+      input: '[1, 2, 4] float16 axes=B,N,D dist=randn'
+  P7:
+    provenance: synthetic
+    tensors:
+      a: '[2, 16, 32] float32 axes=B,L,D dist=randn'
+      b: '[2, 32, 16] float32 axes=B,D,N dist=randn'
+      input: '[2, 16, 32] float16 axes=B,N,D dist=randn'
+  P8:
+    provenance: synthetic
+    tensors:
+      a: '[2, 32, 64] float32 axes=B,L,D dist=randn'
+      b: '[2, 64, 32] float32 axes=B,D,N dist=randn'
+      input: '[2, 32, 64] float16 axes=B,N,D dist=randn'
+  P9:
+    provenance: synthetic
+    tensors:
+      a: '[2, 64, 128] float32 axes=B,L,D dist=randn'
+      b: '[2, 128, 64] float32 axes=B,D,N dist=randn'
+      input: '[2, 64, 128] float16 axes=B,N,D dist=randn'
+  P10:
+    provenance: synthetic
+    tensors:
+      a: '[3, 6, 12] float32 axes=B,L,D dist=randn'
+      b: '[3, 12, 6] float32 axes=B,D,N dist=randn'
+      input: '[3, 6, 12] float16 axes=B,N,D dist=randn'
+  P11:
+    provenance: synthetic
+    tensors:
+      a: '[8, 64, 128] float32 axes=B,L,D dist=randn'
+      b: '[8, 128, 64] float32 axes=B,D,N dist=randn'
+      input: '[8, 64, 128] float16 axes=B,N,D dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      a: '[96, 96, 192] float32 axes=B,L,D dist=randn'
+      b: '[96, 192, 384] float32 axes=B,D,N dist=randn'
+      input: '[96, 384, 192] float16 axes=B,N,D dist=randn'
+  H2:
+    provenance: edge
+    tensors:
+      a: '[2, 16, 16] float32 axes=B,L,D dist=randn'
+      b: '[2, 16, 8] float32 axes=B,D,N dist=randn'
+      input: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      a: '[4, 512, 4096] float32 axes=B,L,D dist=randn'
+      b: '[4, 4096, 4096] float32 axes=B,D,N dist=randn'
+      input: '[4, 4096, 4096] float16 axes=B,N,D dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      a: '[1024, 32, 128] float32 axes=B,L,D dist=randn'
+      b: '[1024, 128, 128] float32 axes=B,D,N dist=randn'
+      input: '[1024, 128, 128] float16 axes=B,N,D dist=randn'
+  H5:
+    provenance: edge
+    tensors:
+      a: '[1, 1, 1] float32 axes=B,L,D dist=randn'
+      b: '[1, 1, 1] float32 axes=B,D,N dist=randn'
+      input: '[1, 1, 1] float16 axes=B,N,D dist=randn'
+  H6:
+    provenance: edge
+    tensors:
+      a: '[1, 96, 512] float32 axes=B,L,D dist=randn'
+      b: '[1, 512, 384] float32 axes=B,D,N dist=randn'
+      input: '[1, 384, 512] float16 axes=B,N,D dist=randn'

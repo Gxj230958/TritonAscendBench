@@ -343,3 +343,348 @@ inputs:
     scalar: 4
   block_size:
     scalar: 4
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      topk_ids: '[8, 64] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P2:
+    provenance: baseline
+    tensors:
+      topk_ids: '[32, 256] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P3:
+    provenance: baseline
+    tensors:
+      topk_ids: '[128, 1024] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P4:
+    provenance: baseline
+    tensors:
+      topk_ids: '[256, 2048] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P5:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P6:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[1, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P7:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[768, 6144] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P8:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[1024, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P9:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 6144] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P10:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P11:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[768, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P12:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[1, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P13:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[2, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P14:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[3, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P15:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[4, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P16:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[16, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P17:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[32, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P18:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[64, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P19:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P20:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 2] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P21:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 3] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P22:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 4] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P23:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 8] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P24:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 16] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P25:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 32] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P26:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 64] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P27:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 96] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P28:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 128] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P29:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 192] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P30:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 256] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P31:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P32:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 640] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P33:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 768] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P34:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 1024] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P35:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 1280] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P36:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 1536] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P37:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 2048] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P38:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 2560] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P39:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 3072] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P40:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 3584] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  P41:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 4096] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H1:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[96, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H2:
+    provenance: edge
+    tensors:
+      topk_ids: '[2, 16] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H3:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[4, 4096] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H4:
+    provenance: synthetic
+    tensors:
+      topk_ids: '[512, 128] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H5:
+    provenance: edge
+    tensors:
+      topk_ids: '[1, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H6:
+    provenance: edge
+    tensors:
+      topk_ids: '[1, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H7:
+    provenance: edge
+    tensors:
+      topk_ids: '[1, 32768] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4
+  H8:
+    provenance: edge
+    tensors:
+      topk_ids: '[4096, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
+    params:
+      num_experts: 4
+      block_size: 4

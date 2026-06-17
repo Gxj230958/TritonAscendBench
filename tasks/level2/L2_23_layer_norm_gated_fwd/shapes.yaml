@@ -410,3 +410,551 @@ inputs:
     - D
     dtype: float16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      x: '[4, 64] bfloat16 axes=B,D dist=randn'
+      g: '[4, 64] bfloat16 axes=B,D dist=randn'
+      weight: '[64] bfloat16 axes=D dist=randn'
+      bias: '[64] bfloat16 axes=D dist=randn'
+      residual: '[4, 64] bfloat16 axes=B,D dist=randn'
+      q: '[4, 8, 8, 64] float16 axes=B,H,N,D dist=randn'
+      k: '[4, 8, 8, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P2:
+    provenance: baseline
+    tensors:
+      x: '[16, 256] bfloat16 axes=B,D dist=randn'
+      g: '[16, 256] bfloat16 axes=B,D dist=randn'
+      weight: '[256] bfloat16 axes=D dist=randn'
+      bias: '[256] bfloat16 axes=D dist=randn'
+      residual: '[16, 256] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 256] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 256] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P3:
+    provenance: baseline
+    tensors:
+      x: '[32, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[32, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[32, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[32, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[32, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P4:
+    provenance: baseline
+    tensors:
+      x: '[8, 4096] bfloat16 axes=B,D dist=randn'
+      g: '[8, 4096] bfloat16 axes=B,D dist=randn'
+      weight: '[4096] bfloat16 axes=D dist=randn'
+      bias: '[4096] bfloat16 axes=D dist=randn'
+      residual: '[8, 4096] bfloat16 axes=B,D dist=randn'
+      q: '[8, 8, 8, 4096] float16 axes=B,H,N,D dist=randn'
+      k: '[8, 8, 8, 4096] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P5:
+    provenance: synthetic
+    tensors:
+      x: '[2, 2048] bfloat16 axes=B,D dist=randn'
+      g: '[2, 2048] bfloat16 axes=B,D dist=randn'
+      weight: '[2048] bfloat16 axes=D dist=randn'
+      bias: '[2048] bfloat16 axes=D dist=randn'
+      residual: '[2, 2048] bfloat16 axes=B,D dist=randn'
+      q: '[2, 8, 8, 2048] float16 axes=B,H,N,D dist=randn'
+      k: '[2, 8, 8, 2048] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P6:
+    provenance: synthetic
+    tensors:
+      x: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[1, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[1, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P7:
+    provenance: synthetic
+    tensors:
+      x: '[2, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[2, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[2, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[2, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[2, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P8:
+    provenance: synthetic
+    tensors:
+      x: '[3, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[3, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[3, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[3, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[3, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P9:
+    provenance: synthetic
+    tensors:
+      x: '[4, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[4, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[4, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[4, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[4, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P10:
+    provenance: synthetic
+    tensors:
+      x: '[8, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[8, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[8, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[8, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[8, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P11:
+    provenance: synthetic
+    tensors:
+      x: '[16, 2] bfloat16 axes=B,D dist=randn'
+      g: '[16, 2] bfloat16 axes=B,D dist=randn'
+      weight: '[2] bfloat16 axes=D dist=randn'
+      bias: '[2] bfloat16 axes=D dist=randn'
+      residual: '[16, 2] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 2] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 2] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P12:
+    provenance: synthetic
+    tensors:
+      x: '[16, 4] bfloat16 axes=B,D dist=randn'
+      g: '[16, 4] bfloat16 axes=B,D dist=randn'
+      weight: '[4] bfloat16 axes=D dist=randn'
+      bias: '[4] bfloat16 axes=D dist=randn'
+      residual: '[16, 4] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 4] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 4] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P13:
+    provenance: synthetic
+    tensors:
+      x: '[16, 6] bfloat16 axes=B,D dist=randn'
+      g: '[16, 6] bfloat16 axes=B,D dist=randn'
+      weight: '[6] bfloat16 axes=D dist=randn'
+      bias: '[6] bfloat16 axes=D dist=randn'
+      residual: '[16, 6] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 6] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 6] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P14:
+    provenance: synthetic
+    tensors:
+      x: '[16, 8] bfloat16 axes=B,D dist=randn'
+      g: '[16, 8] bfloat16 axes=B,D dist=randn'
+      weight: '[8] bfloat16 axes=D dist=randn'
+      bias: '[8] bfloat16 axes=D dist=randn'
+      residual: '[16, 8] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 8] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 8] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P15:
+    provenance: synthetic
+    tensors:
+      x: '[16, 16] bfloat16 axes=B,D dist=randn'
+      g: '[16, 16] bfloat16 axes=B,D dist=randn'
+      weight: '[16] bfloat16 axes=D dist=randn'
+      bias: '[16] bfloat16 axes=D dist=randn'
+      residual: '[16, 16] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 16] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 16] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P16:
+    provenance: synthetic
+    tensors:
+      x: '[16, 32] bfloat16 axes=B,D dist=randn'
+      g: '[16, 32] bfloat16 axes=B,D dist=randn'
+      weight: '[32] bfloat16 axes=D dist=randn'
+      bias: '[32] bfloat16 axes=D dist=randn'
+      residual: '[16, 32] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 32] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 32] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P17:
+    provenance: synthetic
+    tensors:
+      x: '[16, 64] bfloat16 axes=B,D dist=randn'
+      g: '[16, 64] bfloat16 axes=B,D dist=randn'
+      weight: '[64] bfloat16 axes=D dist=randn'
+      bias: '[64] bfloat16 axes=D dist=randn'
+      residual: '[16, 64] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 64] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P18:
+    provenance: synthetic
+    tensors:
+      x: '[16, 96] bfloat16 axes=B,D dist=randn'
+      g: '[16, 96] bfloat16 axes=B,D dist=randn'
+      weight: '[96] bfloat16 axes=D dist=randn'
+      bias: '[96] bfloat16 axes=D dist=randn'
+      residual: '[16, 96] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 96] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 96] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P19:
+    provenance: synthetic
+    tensors:
+      x: '[16, 128] bfloat16 axes=B,D dist=randn'
+      g: '[16, 128] bfloat16 axes=B,D dist=randn'
+      weight: '[128] bfloat16 axes=D dist=randn'
+      bias: '[128] bfloat16 axes=D dist=randn'
+      residual: '[16, 128] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 128] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P20:
+    provenance: synthetic
+    tensors:
+      x: '[16, 192] bfloat16 axes=B,D dist=randn'
+      g: '[16, 192] bfloat16 axes=B,D dist=randn'
+      weight: '[192] bfloat16 axes=D dist=randn'
+      bias: '[192] bfloat16 axes=D dist=randn'
+      residual: '[16, 192] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 192] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 192] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P21:
+    provenance: synthetic
+    tensors:
+      x: '[16, 384] bfloat16 axes=B,D dist=randn'
+      g: '[16, 384] bfloat16 axes=B,D dist=randn'
+      weight: '[384] bfloat16 axes=D dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+      residual: '[16, 384] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 384] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 384] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P22:
+    provenance: synthetic
+    tensors:
+      x: '[16, 512] bfloat16 axes=B,D dist=randn'
+      g: '[16, 512] bfloat16 axes=B,D dist=randn'
+      weight: '[512] bfloat16 axes=D dist=randn'
+      bias: '[512] bfloat16 axes=D dist=randn'
+      residual: '[16, 512] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 512] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 512] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P23:
+    provenance: synthetic
+    tensors:
+      x: '[16, 640] bfloat16 axes=B,D dist=randn'
+      g: '[16, 640] bfloat16 axes=B,D dist=randn'
+      weight: '[640] bfloat16 axes=D dist=randn'
+      bias: '[640] bfloat16 axes=D dist=randn'
+      residual: '[16, 640] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 640] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 640] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P24:
+    provenance: synthetic
+    tensors:
+      x: '[16, 768] bfloat16 axes=B,D dist=randn'
+      g: '[16, 768] bfloat16 axes=B,D dist=randn'
+      weight: '[768] bfloat16 axes=D dist=randn'
+      bias: '[768] bfloat16 axes=D dist=randn'
+      residual: '[16, 768] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 768] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 768] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P25:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 1, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 1, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P26:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 2, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 2, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P27:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 3, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 3, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P28:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 4, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 4, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P29:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 1, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 1, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P30:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 2, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 2, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P31:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 3, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 3, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P32:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 4, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 4, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P33:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 8, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P34:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 12, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 12, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  P35:
+    provenance: synthetic
+    tensors:
+      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[16, 8, 16, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[16, 8, 16, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H1:
+    provenance: synthetic
+    tensors:
+      x: '[48, 512] bfloat16 axes=B,D dist=randn'
+      g: '[48, 512] bfloat16 axes=B,D dist=randn'
+      weight: '[512] bfloat16 axes=D dist=randn'
+      bias: '[512] bfloat16 axes=D dist=randn'
+      residual: '[48, 512] bfloat16 axes=B,D dist=randn'
+      q: '[48, 8, 8, 512] float16 axes=B,H,N,D dist=randn'
+      k: '[48, 8, 8, 512] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H2:
+    provenance: edge
+    tensors:
+      x: '[2, 8192] bfloat16 axes=B,D dist=randn'
+      g: '[2, 8192] bfloat16 axes=B,D dist=randn'
+      weight: '[8192] bfloat16 axes=D dist=randn'
+      bias: '[8192] bfloat16 axes=D dist=randn'
+      residual: '[2, 8192] bfloat16 axes=B,D dist=randn'
+      q: '[2, 8, 8, 8192] float16 axes=B,H,N,D dist=randn'
+      k: '[2, 8, 8, 8192] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H3:
+    provenance: synthetic
+    tensors:
+      x: '[128, 128] bfloat16 axes=B,D dist=randn'
+      g: '[128, 128] bfloat16 axes=B,D dist=randn'
+      weight: '[128] bfloat16 axes=D dist=randn'
+      bias: '[128] bfloat16 axes=D dist=randn'
+      residual: '[128, 128] bfloat16 axes=B,D dist=randn'
+      q: '[128, 8, 8, 128] float16 axes=B,H,N,D dist=randn'
+      k: '[128, 8, 8, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H4:
+    provenance: synthetic
+    tensors:
+      x: '[3, 3072] bfloat16 axes=B,D dist=randn'
+      g: '[3, 3072] bfloat16 axes=B,D dist=randn'
+      weight: '[3072] bfloat16 axes=D dist=randn'
+      bias: '[3072] bfloat16 axes=D dist=randn'
+      residual: '[3, 3072] bfloat16 axes=B,D dist=randn'
+      q: '[3, 8, 8, 3072] float16 axes=B,H,N,D dist=randn'
+      k: '[3, 8, 8, 3072] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H5:
+    provenance: edge
+    tensors:
+      x: '[1, 2] bfloat16 axes=B,D dist=randn'
+      g: '[1, 2] bfloat16 axes=B,D dist=randn'
+      weight: '[2] bfloat16 axes=D dist=randn'
+      bias: '[2] bfloat16 axes=D dist=randn'
+      residual: '[1, 2] bfloat16 axes=B,D dist=randn'
+      q: '[1, 1, 1, 2] float16 axes=B,H,N,D dist=randn'
+      k: '[1, 1, 1, 2] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H6:
+    provenance: edge
+    tensors:
+      x: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[1, 8, 64, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[1, 8, 64, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true
+  H7:
+    provenance: edge
+    tensors:
+      x: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      g: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      weight: '[1024] bfloat16 axes=D dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+      residual: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      q: '[512, 8, 1, 1024] float16 axes=B,H,N,D dist=randn'
+      k: '[512, 8, 1, 1024] float16 axes=B,H,N,D dist=randn'
+    params:
+      eps: 1.0e-05
+      is_rms_norm: true

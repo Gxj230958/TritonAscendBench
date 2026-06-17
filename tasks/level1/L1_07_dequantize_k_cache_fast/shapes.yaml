@@ -172,3 +172,65 @@ inputs:
     - 656
     dtype: float8_e4m3fn
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[2, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[4, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[8, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[2, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P6:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[24, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P7:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[32, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P8:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[48, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P9:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[64, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P10:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[96, 656] float8_e4m3fn axes=B,656 dist=randn'
+  P11:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[128, 656] float8_e4m3fn axes=B,656 dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[3, 656] float8_e4m3fn axes=B,656 dist=randn'
+  H2:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=B,656 dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[2, 656] float8_e4m3fn axes=B,656 dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=B,656 dist=randn'

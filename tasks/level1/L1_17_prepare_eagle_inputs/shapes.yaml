@@ -445,3 +445,755 @@ inputs:
     - B
     dtype: int32
     dist: randint:1:N
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 4
+      query_len: 6
+      max_num_reqs: 6
+  P2:
+    provenance: baseline
+    tensors:
+      target_input_ids: '[96] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[96] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 8
+      query_len: 12
+      max_num_reqs: 12
+  P3:
+    provenance: baseline
+    tensors:
+      target_input_ids: '[128] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[128] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 8
+      max_num_reqs: 24
+  P4:
+    provenance: baseline
+    tensors:
+      target_input_ids: '[512] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[512] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[32] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[32] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[32] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[32] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 32
+      query_len: 16
+      max_num_reqs: 40
+  P5:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 4
+      query_len: 64
+      max_num_reqs: 8
+  P6:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[16] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[16] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 8
+      max_num_reqs: 18
+  P7:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[18432] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[18432] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[96] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[96] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[96] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[108] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[108] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[96] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 96
+      query_len: 192
+      max_num_reqs: 108
+  P8:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[32768] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[32768] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[128] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[128] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[128] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[144] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[144] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[128] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 128
+      query_len: 256
+      max_num_reqs: 144
+  P9:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[1536] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[1536] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 8
+      query_len: 192
+      max_num_reqs: 12
+  P10:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[2048] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[2048] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 8
+      query_len: 256
+      max_num_reqs: 12
+  P11:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[64] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[64] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 8
+      query_len: 8
+      max_num_reqs: 20
+  P12:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 12
+      max_num_reqs: 6
+  P13:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[48] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[48] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 4
+      query_len: 12
+      max_num_reqs: 8
+  P14:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[72] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[72] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[6] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[6] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[6] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[6] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 6
+      query_len: 12
+      max_num_reqs: 10
+  P15:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[17] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[17] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 17
+  P16:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 18
+  P17:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[19] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[19] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 19
+  P18:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[32] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[32] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 2
+      max_num_reqs: 20
+  P19:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[64] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[64] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 4
+      max_num_reqs: 20
+  P20:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[96] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[96] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 6
+      max_num_reqs: 20
+  P21:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[128] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[128] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 8
+      max_num_reqs: 20
+  P22:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 20
+  P23:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 16
+      max_num_reqs: 20
+  P24:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[512] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[512] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 32
+      max_num_reqs: 20
+  P25:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[1024] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[1024] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 64
+      max_num_reqs: 20
+  P26:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[1536] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[1536] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 96
+      max_num_reqs: 20
+  P27:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[2048] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[2048] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 128
+      max_num_reqs: 20
+  P28:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[3072] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[3072] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 192
+      max_num_reqs: 20
+  P29:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[4096] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[4096] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 256
+      max_num_reqs: 20
+  P30:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[6144] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[6144] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 384
+      max_num_reqs: 20
+  P31:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[8192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[8192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 512
+      max_num_reqs: 20
+  P32:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[10240] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[10240] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 640
+      max_num_reqs: 20
+  P33:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[12288] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[12288] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 768
+      max_num_reqs: 20
+  P34:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[16384] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[16384] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 1024
+      max_num_reqs: 20
+  P35:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 24
+  P36:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[32] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[32] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 32
+  P37:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 40
+  P38:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[48] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[48] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 48
+  P39:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[80] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[80] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 16
+      query_len: 12
+      max_num_reqs: 80
+  P40:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[384] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[384] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[32] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[32] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[32] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[36] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[36] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[32] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 32
+      query_len: 12
+      max_num_reqs: 36
+  P41:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[768] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[768] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[64] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[64] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[64] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[64] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 64
+      query_len: 12
+      max_num_reqs: 68
+  H1:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[42] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[42] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[6] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[6] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[6] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[9] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[9] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[6] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 6
+      query_len: 7
+      max_num_reqs: 9
+  H2:
+    provenance: edge
+    tensors:
+      target_input_ids: '[4] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[4] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[4] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[4] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 2
+      max_num_reqs: 4
+  H3:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 128
+      max_num_reqs: 10
+  H4:
+    provenance: synthetic
+    tensors:
+      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[64] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[64] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[64] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[64] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 64
+      query_len: 4
+      max_num_reqs: 68
+  H5:
+    provenance: edge
+    tensors:
+      target_input_ids: '[4] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[4] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[3] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[3] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 2
+      max_num_reqs: 3
+  H6:
+    provenance: edge
+    tensors:
+      target_input_ids: '[16] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[16] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 8
+      max_num_reqs: 6
+  H7:
+    provenance: edge
+    tensors:
+      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[66] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[66] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 2
+      query_len: 12
+      max_num_reqs: 66
+  H8:
+    provenance: edge
+    tensors:
+      target_input_ids: '[6144] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[6144] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[512] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[512] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[512] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[513] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[513] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[512] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 512
+      query_len: 12
+      max_num_reqs: 513
+  H9:
+    provenance: edge
+    tensors:
+      target_input_ids: '[524288] int32 axes=B*T dist=randint(lo=1, hi=1024)'
+      target_positions: '[524288] int64 axes=B*T dist=randint(lo=0, hi=N)'
+      idx_mapping: '[512] int64 axes=B dist=cyclic_perm'
+      num_sampled: '[512] int32 axes=B dist=window_pos(W=2)'
+      num_rejected: '[512] int32 axes=B dist=randint(lo=0, hi=T)'
+      last_sampled: '[576] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      next_prefill_tokens: '[576] int32 axes=B+G dist=randint(lo=1, hi=1024)'
+      seq_lens: '[512] int32 axes=B dist=randint(lo=1, hi=N)'
+    params:
+      num_reqs: 512
+      query_len: 1024
+      max_num_reqs: 576

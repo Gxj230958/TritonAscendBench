@@ -211,3 +211,140 @@ inputs:
     # Permutation of [0,B): scrambled slot routing (a bijection avoids the
     # in-place cache write-race) so the slot gather is load-bearing, not identity.
     dist: randperm
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
+      k: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
+      v: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[2, 4, 32, 32] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[4] float32 axes=H dist=rand'
+      slot_idx: '[2] int64 axes=B dist=randperm'
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      k: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      v: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[8] float32 axes=H dist=rand'
+      slot_idx: '[4] int64 axes=B dist=randperm'
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[8, 16, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[16] float32 axes=H dist=rand'
+      slot_idx: '[8] int64 axes=B dist=randperm'
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
+      k: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
+      v: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[16, 32, 256, 256] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[32] float32 axes=H dist=rand'
+      slot_idx: '[16] int64 axes=B dist=randperm'
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[2, 64, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[64] float32 axes=H dist=rand'
+      slot_idx: '[2] int64 axes=B dist=randperm'
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
+      k: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
+      v: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[1, 12, 512, 512] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[12] float32 axes=H dist=rand'
+      slot_idx: '[1] int64 axes=B dist=randperm'
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[8, 96, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[96] float32 axes=H dist=rand'
+      slot_idx: '[8] int64 axes=B dist=randperm'
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[8, 128, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[128] float32 axes=H dist=rand'
+      slot_idx: '[8] int64 axes=B dist=randperm'
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[48, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[12] float32 axes=H dist=rand'
+      slot_idx: '[48] int64 axes=B dist=randperm'
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[64, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[12] float32 axes=H dist=rand'
+      slot_idx: '[64] int64 axes=B dist=randperm'
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
+      k: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
+      v: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[3, 12, 64, 64] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[12] float32 axes=H dist=rand'
+      slot_idx: '[3] int64 axes=B dist=randperm'
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
+      k: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
+      v: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[2, 2, 32, 32] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[2] float32 axes=H dist=rand'
+      slot_idx: '[2] int64 axes=B dist=randperm'
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
+      k: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
+      v: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[2, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[8] float32 axes=H dist=rand'
+      slot_idx: '[2] int64 axes=B dist=randperm'
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      k: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      v: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[32, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[8] float32 axes=H dist=rand'
+      slot_idx: '[32] int64 axes=B dist=randperm'
+  H6:
+    provenance: edge
+    tensors:
+      q: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      k: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      v: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
+      kv_caches: '[1, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
+      slope_rate: '[12] float32 axes=H dist=rand'
+      slot_idx: '[1] int64 axes=B dist=randperm'

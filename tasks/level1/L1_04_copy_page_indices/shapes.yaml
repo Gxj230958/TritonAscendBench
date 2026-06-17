@@ -349,3 +349,355 @@ inputs:
     dist: randint:1:N
   page_size:
     scalar: 4
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      block_table: '[4, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P2:
+    provenance: baseline
+    tensors:
+      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P3:
+    provenance: baseline
+    tensors:
+      block_table: '[16, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P4:
+    provenance: baseline
+    tensors:
+      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[32] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P5:
+    provenance: synthetic
+    tensors:
+      block_table: '[8, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P6:
+    provenance: synthetic
+    tensors:
+      block_table: '[1, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P7:
+    provenance: synthetic
+    tensors:
+      block_table: '[48, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P8:
+    provenance: synthetic
+    tensors:
+      block_table: '[64, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[64] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P9:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P10:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P11:
+    provenance: synthetic
+    tensors:
+      block_table: '[48, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P12:
+    provenance: synthetic
+    tensors:
+      block_table: '[2, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P13:
+    provenance: synthetic
+    tensors:
+      block_table: '[3, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[3] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P14:
+    provenance: synthetic
+    tensors:
+      block_table: '[4, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P15:
+    provenance: synthetic
+    tensors:
+      block_table: '[8, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P16:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P17:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 2] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P18:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 3] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P19:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 4] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P20:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 8] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P21:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 16] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P22:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P23:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P24:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 96] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P25:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P26:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P27:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P28:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P29:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 640] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P30:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 1280] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P31:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P32:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 2048] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P33:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 2560] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P34:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 3072] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P35:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 3584] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P36:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P37:
+    provenance: synthetic
+    tensors:
+      block_table: '[16, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P38:
+    provenance: synthetic
+    tensors:
+      block_table: '[32, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[32] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P39:
+    provenance: synthetic
+    tensors:
+      block_table: '[64, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[64] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P40:
+    provenance: synthetic
+    tensors:
+      block_table: '[96, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[96] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  P41:
+    provenance: synthetic
+    tensors:
+      block_table: '[128, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[128] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H1:
+    provenance: synthetic
+    tensors:
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H2:
+    provenance: edge
+    tensors:
+      block_table: '[2, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H3:
+    provenance: synthetic
+    tensors:
+      block_table: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H4:
+    provenance: synthetic
+    tensors:
+      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H5:
+    provenance: edge
+    tensors:
+      block_table: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H6:
+    provenance: edge
+    tensors:
+      block_table: '[1, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H7:
+    provenance: edge
+    tensors:
+      block_table: '[1, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H8:
+    provenance: edge
+    tensors:
+      block_table: '[256, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[256] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4
+  H9:
+    provenance: edge
+    tensors:
+      block_table: '[256, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+      seq_lens: '[256] int64 axes=E dist=randint(lo=1, hi=N)'
+    params:
+      page_size: 4

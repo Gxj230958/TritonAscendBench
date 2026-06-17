@@ -355,3 +355,397 @@ inputs:
     dist: rand
   topk:
     scalar: 2
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      x: '[16, 64] float32 axes=B*2,D dist=randn'
+      src2dst: '[16] int64 axes=B*2 dist=randperm'
+      topk_weights: '[8, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P2:
+    provenance: baseline
+    tensors:
+      x: '[64, 256] float32 axes=B*2,D dist=randn'
+      src2dst: '[64] int64 axes=B*2 dist=randperm'
+      topk_weights: '[32, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P3:
+    provenance: baseline
+    tensors:
+      x: '[256, 1024] float32 axes=B*2,D dist=randn'
+      src2dst: '[256] int64 axes=B*2 dist=randperm'
+      topk_weights: '[128, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P4:
+    provenance: baseline
+    tensors:
+      x: '[512, 2048] float32 axes=B*2,D dist=randn'
+      src2dst: '[512] int64 axes=B*2 dist=randperm'
+      topk_weights: '[256, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P5:
+    provenance: synthetic
+    tensors:
+      x: '[16, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[16] int64 axes=B*2 dist=randperm'
+      topk_weights: '[8, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P6:
+    provenance: synthetic
+    tensors:
+      x: '[2, 8192] float32 axes=B*2,D dist=randn'
+      src2dst: '[2] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P7:
+    provenance: synthetic
+    tensors:
+      x: '[1536, 6144] float32 axes=B*2,D dist=randn'
+      src2dst: '[1536] int64 axes=B*2 dist=randperm'
+      topk_weights: '[768, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P8:
+    provenance: synthetic
+    tensors:
+      x: '[2048, 8192] float32 axes=B*2,D dist=randn'
+      src2dst: '[2048] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1024, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P9:
+    provenance: synthetic
+    tensors:
+      x: '[192, 6144] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P10:
+    provenance: synthetic
+    tensors:
+      x: '[192, 8192] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P11:
+    provenance: synthetic
+    tensors:
+      x: '[1536, 384] float32 axes=B*2,D dist=randn'
+      src2dst: '[1536] int64 axes=B*2 dist=randperm'
+      topk_weights: '[768, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P12:
+    provenance: synthetic
+    tensors:
+      x: '[2, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[2] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P13:
+    provenance: synthetic
+    tensors:
+      x: '[4, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[4] int64 axes=B*2 dist=randperm'
+      topk_weights: '[2, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P14:
+    provenance: synthetic
+    tensors:
+      x: '[6, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[6] int64 axes=B*2 dist=randperm'
+      topk_weights: '[3, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P15:
+    provenance: synthetic
+    tensors:
+      x: '[8, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[8] int64 axes=B*2 dist=randperm'
+      topk_weights: '[4, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P16:
+    provenance: synthetic
+    tensors:
+      x: '[32, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[32] int64 axes=B*2 dist=randperm'
+      topk_weights: '[16, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P17:
+    provenance: synthetic
+    tensors:
+      x: '[64, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[64] int64 axes=B*2 dist=randperm'
+      topk_weights: '[32, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P18:
+    provenance: synthetic
+    tensors:
+      x: '[128, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[128] int64 axes=B*2 dist=randperm'
+      topk_weights: '[64, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P19:
+    provenance: synthetic
+    tensors:
+      x: '[192, 1] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P20:
+    provenance: synthetic
+    tensors:
+      x: '[192, 2] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P21:
+    provenance: synthetic
+    tensors:
+      x: '[192, 3] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P22:
+    provenance: synthetic
+    tensors:
+      x: '[192, 4] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P23:
+    provenance: synthetic
+    tensors:
+      x: '[192, 8] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P24:
+    provenance: synthetic
+    tensors:
+      x: '[192, 16] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P25:
+    provenance: synthetic
+    tensors:
+      x: '[192, 32] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P26:
+    provenance: synthetic
+    tensors:
+      x: '[192, 64] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P27:
+    provenance: synthetic
+    tensors:
+      x: '[192, 96] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P28:
+    provenance: synthetic
+    tensors:
+      x: '[192, 128] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P29:
+    provenance: synthetic
+    tensors:
+      x: '[192, 192] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P30:
+    provenance: synthetic
+    tensors:
+      x: '[192, 256] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P31:
+    provenance: synthetic
+    tensors:
+      x: '[192, 512] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P32:
+    provenance: synthetic
+    tensors:
+      x: '[192, 640] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P33:
+    provenance: synthetic
+    tensors:
+      x: '[192, 768] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P34:
+    provenance: synthetic
+    tensors:
+      x: '[192, 1024] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P35:
+    provenance: synthetic
+    tensors:
+      x: '[192, 1280] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P36:
+    provenance: synthetic
+    tensors:
+      x: '[192, 1536] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P37:
+    provenance: synthetic
+    tensors:
+      x: '[192, 2048] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P38:
+    provenance: synthetic
+    tensors:
+      x: '[192, 2560] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P39:
+    provenance: synthetic
+    tensors:
+      x: '[192, 3072] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P40:
+    provenance: synthetic
+    tensors:
+      x: '[192, 3584] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  P41:
+    provenance: synthetic
+    tensors:
+      x: '[192, 4096] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H1:
+    provenance: synthetic
+    tensors:
+      x: '[192, 384] float32 axes=B*2,D dist=randn'
+      src2dst: '[192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[96, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H2:
+    provenance: edge
+    tensors:
+      x: '[4, 16] float32 axes=B*2,D dist=randn'
+      src2dst: '[4] int64 axes=B*2 dist=randperm'
+      topk_weights: '[2, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H3:
+    provenance: synthetic
+    tensors:
+      x: '[8, 4096] float32 axes=B*2,D dist=randn'
+      src2dst: '[8] int64 axes=B*2 dist=randperm'
+      topk_weights: '[4, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H4:
+    provenance: synthetic
+    tensors:
+      x: '[1024, 128] float32 axes=B*2,D dist=randn'
+      src2dst: '[1024] int64 axes=B*2 dist=randperm'
+      topk_weights: '[512, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H5:
+    provenance: edge
+    tensors:
+      x: '[2, 1] float32 axes=B*2,D dist=randn'
+      src2dst: '[2] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H6:
+    provenance: edge
+    tensors:
+      x: '[2, 384] float32 axes=B*2,D dist=randn'
+      src2dst: '[2] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H7:
+    provenance: edge
+    tensors:
+      x: '[2, 32768] float32 axes=B*2,D dist=randn'
+      src2dst: '[2] int64 axes=B*2 dist=randperm'
+      topk_weights: '[1, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2
+  H8:
+    provenance: edge
+    tensors:
+      x: '[8192, 1] float32 axes=B*2,D dist=randn'
+      src2dst: '[8192] int64 axes=B*2 dist=randperm'
+      topk_weights: '[4096, 2] float32 axes=B,2 dist=rand'
+    params:
+      topk: 2

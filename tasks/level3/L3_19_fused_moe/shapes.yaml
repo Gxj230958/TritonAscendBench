@@ -426,3 +426,445 @@ inputs:
     scalar: 4
   apply_weight:
     scalar_knob: APPW
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      a: '[8, 64] bfloat16 axes=B,D dist=randn'
+      b: '[4, 64, 64] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[16] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 0
+  P2:
+    provenance: baseline
+    tensors:
+      a: '[32, 256] bfloat16 axes=B,D dist=randn'
+      b: '[8, 256, 256] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P3:
+    provenance: baseline
+    tensors:
+      a: '[128, 1024] bfloat16 axes=B,D dist=randn'
+      b: '[32, 1024, 1024] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[128, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 0
+  P4:
+    provenance: baseline
+    tensors:
+      a: '[256, 2048] bfloat16 axes=B,D dist=randn'
+      b: '[64, 2048, 2048] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[256, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[256] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[64] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P5:
+    provenance: synthetic
+    tensors:
+      a: '[8, 512] bfloat16 axes=B,D dist=randn'
+      b: '[128, 512, 512] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[512] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[128] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 0
+  P6:
+    provenance: synthetic
+    tensors:
+      a: '[1, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[1, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P7:
+    provenance: synthetic
+    tensors:
+      a: '[2, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[2, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P8:
+    provenance: synthetic
+    tensors:
+      a: '[3, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[3, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P9:
+    provenance: synthetic
+    tensors:
+      a: '[4, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[4, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P10:
+    provenance: synthetic
+    tensors:
+      a: '[8, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P11:
+    provenance: synthetic
+    tensors:
+      a: '[16, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[16, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P12:
+    provenance: synthetic
+    tensors:
+      a: '[32, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P13:
+    provenance: synthetic
+    tensors:
+      a: '[64, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[64, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P14:
+    provenance: synthetic
+    tensors:
+      a: '[96, 1] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 1] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P15:
+    provenance: synthetic
+    tensors:
+      a: '[96, 2] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 2] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P16:
+    provenance: synthetic
+    tensors:
+      a: '[96, 3] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 3] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P17:
+    provenance: synthetic
+    tensors:
+      a: '[96, 4] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 4] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P18:
+    provenance: synthetic
+    tensors:
+      a: '[96, 8] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 8] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P19:
+    provenance: synthetic
+    tensors:
+      a: '[96, 16] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 16] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P20:
+    provenance: synthetic
+    tensors:
+      a: '[96, 32] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 32] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P21:
+    provenance: synthetic
+    tensors:
+      a: '[96, 64] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 64] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P22:
+    provenance: synthetic
+    tensors:
+      a: '[96, 96] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 96] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P23:
+    provenance: synthetic
+    tensors:
+      a: '[96, 128] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 128] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P24:
+    provenance: synthetic
+    tensors:
+      a: '[96, 192] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 192] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P25:
+    provenance: synthetic
+    tensors:
+      a: '[96, 256] bfloat16 axes=B,D dist=randn'
+      b: '[32, 384, 256] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P26:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[1, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[4] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P27:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[2, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[8] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P28:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[3, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[12] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[3] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P29:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[4, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[16] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P30:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[8, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P31:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[16, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P32:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 1, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P33:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 2, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P34:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 3, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  P35:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[32, 4, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  H1:
+    provenance: synthetic
+    tensors:
+      a: '[96, 384] bfloat16 axes=B,D dist=randn'
+      b: '[12, 384, 384] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[96, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[48] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  H2:
+    provenance: edge
+    tensors:
+      a: '[2, 16] bfloat16 axes=B,D dist=randn'
+      b: '[2, 8, 16] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[2, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[8] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 0
+  H3:
+    provenance: synthetic
+    tensors:
+      a: '[4, 4096] bfloat16 axes=B,D dist=randn'
+      b: '[8, 4096, 4096] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[4, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1
+  H4:
+    provenance: synthetic
+    tensors:
+      a: '[512, 128] bfloat16 axes=B,D dist=randn'
+      b: '[256, 128, 128] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[512, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[1024] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[256] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 0
+  H5:
+    provenance: edge
+    tensors:
+      a: '[1, 1] bfloat16 axes=B,D dist=randn'
+      b: '[1, 1, 1] bfloat16 axes=E,N,D dist=randn'
+      topk_weights: '[1, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[4] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      apply_weight: 1

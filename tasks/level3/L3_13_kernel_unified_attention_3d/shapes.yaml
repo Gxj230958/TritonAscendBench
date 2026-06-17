@@ -416,3 +416,775 @@ inputs:
   q_descale: null
   k_descale: null
   v_descale: null
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[256, 4, 32] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[256, 4, 32] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[256, 4, 32] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[5] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[4] int64 axes=E dist=full(value=L)'
+      out: '[256, 4, 32] float16 axes=E*L,H,D dist=randn'
+      block_table: '[4, 64] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.17677669529663687
+      causal: true
+      max_seqlen_q: 64
+      max_seqlen_k: 64
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[2048, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[2048, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[2048, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[9] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[8] int64 axes=E dist=full(value=L)'
+      out: '[2048, 8, 64] float16 axes=E*L,H,D dist=randn'
+      block_table: '[8, 128] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.125
+      causal: true
+      max_seqlen_q: 256
+      max_seqlen_k: 256
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[8192, 16, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[8192, 16, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[8192, 16, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[17] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[16] int64 axes=E dist=full(value=L)'
+      out: '[8192, 16, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[16, 256] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 512
+      max_seqlen_k: 512
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[32768, 32, 256] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[32768, 32, 256] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[32768, 32, 256] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[33] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[32] int64 axes=E dist=full(value=L)'
+      out: '[32768, 32, 256] float16 axes=E*L,H,D dist=randn'
+      block_table: '[32, 512] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.0625
+      causal: true
+      max_seqlen_q: 1024
+      max_seqlen_k: 1024
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[1024, 64, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[1024, 64, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[1024, 64, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[9] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[8] int64 axes=E dist=full(value=L)'
+      out: '[1024, 64, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[8, 256] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 128
+      max_seqlen_k: 128
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 12, 16] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 12, 16] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 12, 16] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 12, 16] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.25
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 12, 32] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 12, 32] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 12, 32] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 12, 32] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.17677669529663687
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 12, 96] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 12, 96] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 12, 96] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 12, 96] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.10206207261596577
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[2] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[1] int64 axes=E dist=full(value=L)'
+      out: '[320, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[1, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[640, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[640, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[640, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[3] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[2] int64 axes=E dist=full(value=L)'
+      out: '[640, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[2, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[960, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[960, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[960, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[4] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[3] int64 axes=E dist=full(value=L)'
+      out: '[960, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[3, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[1280, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[1280, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[1280, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[5] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[4] int64 axes=E dist=full(value=L)'
+      out: '[1280, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[4, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[2560, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[2560, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[2560, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[9] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[8] int64 axes=E dist=full(value=L)'
+      out: '[2560, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[8, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 1, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 1, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 1, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 1, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 2, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 2, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 2, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 2, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 3, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 3, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 3, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 3, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 4, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 4, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 4, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 4, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 8, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 8, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 8, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 8, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[12, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[12, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[12, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[12, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 1
+      max_seqlen_k: 1
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[24, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[24, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[24, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[24, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 2
+      max_seqlen_k: 2
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[36, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[36, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[36, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[36, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 3
+      max_seqlen_k: 3
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[48, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[48, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[48, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[48, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 4
+      max_seqlen_k: 4
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[96, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[96, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[96, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[96, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 8
+      max_seqlen_k: 8
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[192, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[192, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[192, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[192, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 16
+      max_seqlen_k: 16
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[384, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[384, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[384, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[384, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 32
+      max_seqlen_k: 32
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[768, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[768, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[768, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[768, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 64
+      max_seqlen_k: 64
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[1152, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[1152, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[1152, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[1152, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 96
+      max_seqlen_k: 96
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[1536, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[1536, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[1536, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[1536, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 128
+      max_seqlen_k: 128
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[2304, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[2304, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[2304, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[2304, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 192
+      max_seqlen_k: 192
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[3072, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3072, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3072, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3072, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 256
+      max_seqlen_k: 256
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[3840, 12, 64] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[3840, 12, 64] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[3840, 12, 64] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[13] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[12] int64 axes=E dist=full(value=L)'
+      out: '[3840, 12, 64] float16 axes=E*L,H,D dist=randn'
+      block_table: '[12, 192] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.125
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  H2:
+    provenance: edge
+    tensors:
+      q: '[32, 2, 32] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[32, 2, 32] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[32, 2, 32] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[3] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[2] int64 axes=E dist=full(value=L)'
+      out: '[32, 2, 32] float16 axes=E*L,H,D dist=randn'
+      block_table: '[2, 32] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.17677669529663687
+      causal: true
+      max_seqlen_q: 16
+      max_seqlen_k: 16
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[32768, 8, 256] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[32768, 8, 256] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[32768, 8, 256] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[17] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[16] int64 axes=E dist=full(value=L)'
+      out: '[32768, 8, 256] float16 axes=E*L,H,D dist=randn'
+      block_table: '[16, 512] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.0625
+      causal: true
+      max_seqlen_q: 2048
+      max_seqlen_k: 2048
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[512, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[512, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[512, 8, 64] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[9] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[8] int64 axes=E dist=full(value=L)'
+      out: '[512, 8, 64] float16 axes=E*L,H,D dist=randn'
+      block_table: '[8, 128] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.125
+      causal: true
+      max_seqlen_q: 64
+      max_seqlen_k: 64
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null
+  H6:
+    provenance: edge
+    tensors:
+      q: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      k: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      v: '[320, 12, 128] bfloat16 axes=E*L,H,D dist=randn'
+      cu_seqlens_q: '[2] int64 axes=E+1 dist=offsets(to=E*L)'
+      seqused_k: '[1] int64 axes=E dist=full(value=L)'
+      out: '[320, 12, 128] float16 axes=E*L,H,D dist=randn'
+      block_table: '[1, 2048] int32 axes=E,N dist=randint(lo=0, hi=E)'
+    params:
+      softmax_scale: 0.08838834764831843
+      causal: true
+      max_seqlen_q: 320
+      max_seqlen_k: 320
+      window_size:
+      - -1
+      - -1
+      softcap: 0.0
+      q_descale: null
+      k_descale: null
+      v_descale: null

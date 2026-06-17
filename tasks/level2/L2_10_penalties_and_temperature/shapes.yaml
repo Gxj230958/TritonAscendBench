@@ -426,3 +426,581 @@ inputs:
     - E
     dtype: float32
     dist: rand
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      logits: '[4, 128] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[4] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[4] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[4, 128] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[4, 128] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[4] float32 axes=E dist=rand'
+      frequency_penalty: '[4] float32 axes=E dist=rand'
+      presence_penalty: '[4] float32 axes=E dist=rand'
+  P2:
+    provenance: baseline
+    tensors:
+      logits: '[16, 512] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[16] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[16] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[8, 512] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[8, 512] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[8] float32 axes=E dist=rand'
+      frequency_penalty: '[8] float32 axes=E dist=rand'
+      presence_penalty: '[8] float32 axes=E dist=rand'
+  P3:
+    provenance: baseline
+    tensors:
+      logits: '[64, 4096] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[64] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[64] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[64] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 4096] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 4096] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P4:
+    provenance: baseline
+    tensors:
+      logits: '[128, 32768] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[128] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[128] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[128] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[32, 32768] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[32, 32768] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[32] float32 axes=E dist=rand'
+      frequency_penalty: '[32] float32 axes=E dist=rand'
+      presence_penalty: '[32] float32 axes=E dist=rand'
+  P5:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 2048] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[8] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[8] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[8, 2048] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[8, 2048] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[8] float32 axes=E dist=rand'
+      frequency_penalty: '[8] float32 axes=E dist=rand'
+      presence_penalty: '[8] float32 axes=E dist=rand'
+  P6:
+    provenance: synthetic
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[512, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[512, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[512] float32 axes=E dist=rand'
+      frequency_penalty: '[512] float32 axes=E dist=rand'
+      presence_penalty: '[512] float32 axes=E dist=rand'
+  P7:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[384, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[384, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[384] float32 axes=E dist=rand'
+      frequency_penalty: '[384] float32 axes=E dist=rand'
+      presence_penalty: '[384] float32 axes=E dist=rand'
+  P8:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[512, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[512, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[512] float32 axes=E dist=rand'
+      frequency_penalty: '[512] float32 axes=E dist=rand'
+      presence_penalty: '[512] float32 axes=E dist=rand'
+  P9:
+    provenance: synthetic
+    tensors:
+      logits: '[384, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[384] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[384] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[384] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[12] float32 axes=E dist=rand'
+      frequency_penalty: '[12] float32 axes=E dist=rand'
+      presence_penalty: '[12] float32 axes=E dist=rand'
+  P10:
+    provenance: synthetic
+    tensors:
+      logits: '[512, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[512] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[512] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[512] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[12] float32 axes=E dist=rand'
+      frequency_penalty: '[12] float32 axes=E dist=rand'
+      presence_penalty: '[12] float32 axes=E dist=rand'
+  P11:
+    provenance: synthetic
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P12:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P13:
+    provenance: synthetic
+    tensors:
+      logits: '[3, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[3] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[3] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[3] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P14:
+    provenance: synthetic
+    tensors:
+      logits: '[4, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[4] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[4] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P15:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[8] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[8] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P16:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[16] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[16] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P17:
+    provenance: synthetic
+    tensors:
+      logits: '[32, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[32] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[32] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[32] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P18:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[1, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[1, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[1] float32 axes=E dist=rand'
+      frequency_penalty: '[1] float32 axes=E dist=rand'
+      presence_penalty: '[1] float32 axes=E dist=rand'
+  P19:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[2, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[2, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[2] float32 axes=E dist=rand'
+      frequency_penalty: '[2] float32 axes=E dist=rand'
+      presence_penalty: '[2] float32 axes=E dist=rand'
+  P20:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[3, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[3, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[3] float32 axes=E dist=rand'
+      frequency_penalty: '[3] float32 axes=E dist=rand'
+      presence_penalty: '[3] float32 axes=E dist=rand'
+  P21:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[4, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[4, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[4] float32 axes=E dist=rand'
+      frequency_penalty: '[4] float32 axes=E dist=rand'
+      presence_penalty: '[4] float32 axes=E dist=rand'
+  P22:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[8, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[8, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[8] float32 axes=E dist=rand'
+      frequency_penalty: '[8] float32 axes=E dist=rand'
+      presence_penalty: '[8] float32 axes=E dist=rand'
+  P23:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P24:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 2] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 2] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 2] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P25:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 3] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 3] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 3] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P26:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 4] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 4] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 4] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P27:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 8] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 8] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 8] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P28:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 16] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 16] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 16] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P29:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 32] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 32] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 32] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P30:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 64] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 64] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 64] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P31:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 96] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 96] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 96] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P32:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 128] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 128] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 128] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P33:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 192] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 192] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 192] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P34:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 256] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 256] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 256] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P35:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 384] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 384] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 384] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P36:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 512] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 512] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P37:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 640] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 640] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 640] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P38:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 768] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 768] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 768] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P39:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1024] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1024] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1024] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  P40:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1280] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[16, 1280] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[16, 1280] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[16] float32 axes=E dist=rand'
+      frequency_penalty: '[16] float32 axes=E dist=rand'
+      presence_penalty: '[16] float32 axes=E dist=rand'
+  H1:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[12] float32 axes=E dist=rand'
+      frequency_penalty: '[12] float32 axes=E dist=rand'
+      presence_penalty: '[12] float32 axes=E dist=rand'
+  H2:
+    provenance: edge
+    tensors:
+      logits: '[2, 16] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[2, 16] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[2, 16] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[2] float32 axes=E dist=rand'
+      frequency_penalty: '[2] float32 axes=E dist=rand'
+      presence_penalty: '[2] float32 axes=E dist=rand'
+  H3:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 65536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[8, 65536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[8, 65536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[8] float32 axes=E dist=rand'
+      frequency_penalty: '[8] float32 axes=E dist=rand'
+      presence_penalty: '[8] float32 axes=E dist=rand'
+  H4:
+    provenance: synthetic
+    tensors:
+      logits: '[256, 256] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[256] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[256] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[256] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[256, 256] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[256, 256] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[256] float32 axes=E dist=rand'
+      frequency_penalty: '[256] float32 axes=E dist=rand'
+      presence_penalty: '[256] float32 axes=E dist=rand'
+  H5:
+    provenance: edge
+    tensors:
+      logits: '[1, 1] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[1, 1] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[1] float32 axes=E dist=rand'
+      frequency_penalty: '[1] float32 axes=E dist=rand'
+      presence_penalty: '[1] float32 axes=E dist=rand'
+  H6:
+    provenance: edge
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[12] float32 axes=E dist=rand'
+      frequency_penalty: '[12] float32 axes=E dist=rand'
+      presence_penalty: '[12] float32 axes=E dist=rand'
+  H7:
+    provenance: edge
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[2048, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[2048, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[2048] float32 axes=E dist=rand'
+      frequency_penalty: '[2048] float32 axes=E dist=rand'
+      presence_penalty: '[2048] float32 axes=E dist=rand'
+  H8:
+    provenance: edge
+    tensors:
+      logits: '[2048, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2048] int64 axes=B dist=window_req(W=4, E=E)'
+      expanded_local_pos: '[2048] int64 axes=B dist=window_pos(W=4)'
+      token_ids: '[2048] int32 axes=B dist=randint(lo=0, hi=N)'
+      output_token_counts: '[1, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
+      prompt_bin_mask: '[1, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
+      repetition_penalty: '[1] float32 axes=E dist=rand'
+      frequency_penalty: '[1] float32 axes=E dist=rand'
+      presence_penalty: '[1] float32 axes=E dist=rand'

@@ -397,3 +397,455 @@ inputs:
     scalar: 4
   max_num_tokens:
     scalar: 1024
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[4, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P2:
+    provenance: baseline
+    tensors:
+      idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P3:
+    provenance: baseline
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[16, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P4:
+    provenance: baseline
+    tensors:
+      idx_mapping: '[16] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[16] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P5:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[8, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P6:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P7:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[48, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P8:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[64] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[64] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[64, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P9:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P10:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P11:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[48, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P12:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P13:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P14:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[1, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P15:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[2, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P16:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[3, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P17:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[4, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P18:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[8, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P19:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P20:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 2] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P21:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 3] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P22:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 4] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P23:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 8] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P24:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 16] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P25:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P26:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P27:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 96] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P28:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P29:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P30:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P31:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P32:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P33:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 640] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P34:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1280] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P35:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P36:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 2048] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P37:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 2560] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P38:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 3072] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P39:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 3584] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P40:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  P41:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[16, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H1:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[3] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[3] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H2:
+    provenance: edge
+    tensors:
+      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[2, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H3:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H4:
+    provenance: synthetic
+    tensors:
+      idx_mapping: '[32] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[32] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H5:
+    provenance: edge
+    tensors:
+      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H6:
+    provenance: edge
+    tensors:
+      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H7:
+    provenance: edge
+    tensors:
+      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H8:
+    provenance: edge
+    tensors:
+      idx_mapping: '[256] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[256] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[12, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024
+  H9:
+    provenance: edge
+    tensors:
+      idx_mapping: '[256] int64 axes=B dist=randint(lo=0, hi=E)'
+      positions: '[256] int64 axes=B dist=randint(lo=0, hi=N)'
+      block_table: '[256, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
+    params:
+      block_size: 4
+      max_num_tokens: 1024

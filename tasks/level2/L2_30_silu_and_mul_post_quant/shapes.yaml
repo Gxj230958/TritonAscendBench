@@ -333,3 +333,325 @@ inputs:
     scalar: 8
   fp8_max:
     scalar: 448.0
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      input: '[4, 16, 256] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P2:
+    provenance: baseline
+    tensors:
+      input: '[8, 64, 512] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P3:
+    provenance: baseline
+    tensors:
+      input: '[16, 256, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[16] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P4:
+    provenance: baseline
+    tensors:
+      input: '[32, 512, 2048] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P5:
+    provenance: synthetic
+    tensors:
+      input: '[8, 64, 4096] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P6:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 16] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P7:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 32] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P8:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 64] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P9:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 128] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P10:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 192] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P11:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 256] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P12:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 384] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P13:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 512] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P14:
+    provenance: synthetic
+    tensors:
+      input: '[1, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P15:
+    provenance: synthetic
+    tensors:
+      input: '[2, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P16:
+    provenance: synthetic
+    tensors:
+      input: '[3, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P17:
+    provenance: synthetic
+    tensors:
+      input: '[4, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P18:
+    provenance: synthetic
+    tensors:
+      input: '[8, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P19:
+    provenance: synthetic
+    tensors:
+      input: '[12, 1, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P20:
+    provenance: synthetic
+    tensors:
+      input: '[12, 2, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P21:
+    provenance: synthetic
+    tensors:
+      input: '[12, 3, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P22:
+    provenance: synthetic
+    tensors:
+      input: '[12, 4, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P23:
+    provenance: synthetic
+    tensors:
+      input: '[12, 8, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P24:
+    provenance: synthetic
+    tensors:
+      input: '[12, 16, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P25:
+    provenance: synthetic
+    tensors:
+      input: '[12, 32, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P26:
+    provenance: synthetic
+    tensors:
+      input: '[12, 64, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P27:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P28:
+    provenance: synthetic
+    tensors:
+      input: '[12, 128, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P29:
+    provenance: synthetic
+    tensors:
+      input: '[12, 192, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P30:
+    provenance: synthetic
+    tensors:
+      input: '[12, 256, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P31:
+    provenance: synthetic
+    tensors:
+      input: '[12, 384, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P32:
+    provenance: synthetic
+    tensors:
+      input: '[12, 512, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P33:
+    provenance: synthetic
+    tensors:
+      input: '[12, 640, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P34:
+    provenance: synthetic
+    tensors:
+      input: '[12, 768, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  P35:
+    provenance: synthetic
+    tensors:
+      input: '[12, 1024, 1024] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  H1:
+    provenance: synthetic
+    tensors:
+      input: '[12, 96, 768] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  H2:
+    provenance: edge
+    tensors:
+      input: '[2, 8, 256] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  H3:
+    provenance: synthetic
+    tensors:
+      input: '[8, 512, 8192] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  H4:
+    provenance: synthetic
+    tensors:
+      input: '[8, 16, 256] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0
+  H5:
+    provenance: edge
+    tensors:
+      input: '[1, 96, 32768] bf16 axes=E,T,2*D dist=randn'
+      masked_m: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      quant_group_size: 8
+      fp8_max: 448.0

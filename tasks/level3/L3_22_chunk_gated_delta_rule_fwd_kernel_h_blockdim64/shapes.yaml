@@ -414,3 +414,357 @@ inputs:
     - K
     dtype: float32
     dist: logsigmoid
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      k: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=randn'
+      u: '[2, 144, 4, 64] float32 axes=B,T,H,V dist=randn'
+      g: '[2, 144, 4] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=logsigmoid'
+  P2:
+    provenance: baseline
+    tensors:
+      k: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 160, 8, 64] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 160, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=logsigmoid'
+  P3:
+    provenance: baseline
+    tensors:
+      k: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=randn'
+      u: '[8, 192, 16, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[8, 192, 16] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=logsigmoid'
+  P4:
+    provenance: baseline
+    tensors:
+      k: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 256, 8, 256] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 256, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=logsigmoid'
+  P5:
+    provenance: synthetic
+    tensors:
+      k: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=randn'
+      u: '[2, 192, 8, 64] float32 axes=B,T,H,V dist=randn'
+      g: '[2, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=logsigmoid'
+  P6:
+    provenance: synthetic
+    tensors:
+      k: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 384, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 384, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P7:
+    provenance: synthetic
+    tensors:
+      k: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 512, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 512, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P8:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 24, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 24] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P9:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 32, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 32] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P10:
+    provenance: synthetic
+    tensors:
+      k: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[12, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[12, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P11:
+    provenance: synthetic
+    tensors:
+      k: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[16, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[16, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P12:
+    provenance: synthetic
+    tensors:
+      k: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[2, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[2, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P13:
+    provenance: synthetic
+    tensors:
+      k: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[3, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[3, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P14:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 1, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 1] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P15:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 2, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 2] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P16:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 3, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 3] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P17:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 4, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 4] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P18:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=logsigmoid'
+  P19:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=logsigmoid'
+  P20:
+    provenance: synthetic
+    tensors:
+      k: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 129, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 129, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P21:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 1] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P22:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 2] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P23:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 3] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P24:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 4] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P25:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 8] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P26:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 16] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P27:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 32] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P28:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 64] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P29:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 96] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P30:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P31:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 192] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P32:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 256] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P33:
+    provenance: synthetic
+    tensors:
+      k: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 256, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 256, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P34:
+    provenance: synthetic
+    tensors:
+      k: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 387, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 387, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P35:
+    provenance: synthetic
+    tensors:
+      k: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 640, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 640, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P36:
+    provenance: synthetic
+    tensors:
+      k: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 768, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 768, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P37:
+    provenance: synthetic
+    tensors:
+      k: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 1024, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 1024, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P38:
+    provenance: synthetic
+    tensors:
+      k: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 1280, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 1280, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P39:
+    provenance: synthetic
+    tensors:
+      k: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 1536, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 1536, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P40:
+    provenance: synthetic
+    tensors:
+      k: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 2048, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 2048, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  P41:
+    provenance: synthetic
+    tensors:
+      k: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=randn'
+      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=logsigmoid'
+  H1:
+    provenance: synthetic
+    tensors:
+      k: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[3, 160, 6, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[3, 160, 6] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  H2:
+    provenance: edge
+    tensors:
+      k: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=randn'
+      u: '[1, 129, 1, 1] float32 axes=B,T,H,V dist=randn'
+      g: '[1, 129, 1] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=logsigmoid'
+  H3:
+    provenance: edge
+    tensors:
+      k: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
+      w: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
+      u: '[1, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
+      g: '[1, 192, 8] float32 axes=B,T,H dist=logsigmoid'
+      gk: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'

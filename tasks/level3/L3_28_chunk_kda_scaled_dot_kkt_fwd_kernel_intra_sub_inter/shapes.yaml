@@ -378,3 +378,428 @@ inputs:
     dist: rand
   scale:
     derive: 1/sqrt(K)
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 64, 4, 32] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 64, 4, 32] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 64, 4, 32] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 64, 4] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.17677669529663687
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[2, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 128, 8, 64] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.125
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[4, 128, 8, 128] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 128] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 128] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.08838834764831843
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[2, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 256, 8, 256] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 256, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.0625
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 64, 16, 128] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 64, 16, 128] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 64, 16, 128] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 64, 16] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.08838834764831843
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[2, 384, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 384, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 384, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 384, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[2, 512, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 512, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 512, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 512, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[2, 96, 24, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 96, 24, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 96, 24, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 96, 24] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[2, 96, 32, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 96, 32, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 96, 32, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 96, 32] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[6, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[6, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[6, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[6, 96, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[8, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[8, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[8, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[8, 96, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[1, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[1, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[1, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[1, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[2, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[3, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[3, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[3, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[3, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 1, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 1, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 1, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 1] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 2, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 2, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 2, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 2] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 3, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 3, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 3, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 3] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 4, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 4, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 4, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 4] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 1] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 1.0
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 2] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 2] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 2] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.7071067811865475
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 3] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 3] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 3] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.5773502691896258
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 4] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 4] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 4] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.5
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 8] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 8] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 8] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.35355339059327373
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 16] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 16] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 16] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.25
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 32] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 32] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 32] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.17677669529663687
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 64] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.125
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[4, 32, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 32, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 32, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 32, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[4, 64, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 64, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 64, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 64, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[4, 96, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 96, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 96, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 96, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[4, 192, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 192, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 192, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 192, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[4, 256, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 256, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 256, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 256, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[4, 384, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 384, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 384, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 384, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[4, 512, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 512, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 512, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 512, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[4, 640, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 640, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 640, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 640, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[4, 768, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 768, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 768, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 768, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[4, 1024, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 1024, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 1024, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 1024, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[4, 1280, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 1280, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 1280, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 1280, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[4, 1536, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 1536, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 1536, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 1536, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P40:
+    provenance: synthetic
+    tensors:
+      q: '[4, 2048, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 2048, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 2048, 8, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 2048, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  P41:
+    provenance: synthetic
+    tensors:
+      q: '[4, 128, 8, 192] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 128, 8, 192] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 128, 8, 192] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.07216878364870323
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[2, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 96, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 32, 2, 16] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[2, 32, 2, 16] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[2, 32, 2, 16] float32 axes=B,T,H,K dist=rand'
+      beta: '[2, 32, 2] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.25
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[1, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[1, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[1, 256, 8, 256] float32 axes=B,T,H,K dist=rand'
+      beta: '[1, 256, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.0625
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[4, 64, 16, 64] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[4, 64, 16, 64] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[4, 64, 16, 64] float32 axes=B,T,H,K dist=rand'
+      beta: '[4, 64, 16] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.125
+  H5:
+    provenance: edge
+    tensors:
+      q: '[1, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[1, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[1, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
+      beta: '[1, 96, 6] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 0.10206207261596577
+  H6:
+    provenance: edge
+    tensors:
+      q: '[64, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
+      k: '[64, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
+      gk: '[64, 128, 8, 1] float32 axes=B,T,H,K dist=rand'
+      beta: '[64, 128, 8] float32 axes=B,T,H dist=rand'
+    params:
+      scale: 1.0

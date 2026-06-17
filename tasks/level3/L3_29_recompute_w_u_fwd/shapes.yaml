@@ -184,3 +184,77 @@ inputs:
     - C
     dtype: float32
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      k: '[4, 32, 2, 64] float32 axes=B,L,H//2,D dist=randn'
+      v: '[4, 32, 4, 64] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[4, 32, 4] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[4, 32, 4] float32 axes=B,L,H dist=rand'
+      A: '[4, 32, 4, 16] float32 axes=B,L,H,C dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      k: '[8, 128, 4, 256] float32 axes=B,L,H//2,D dist=randn'
+      v: '[8, 128, 8, 256] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[8, 128, 8] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[8, 128, 8] float32 axes=B,L,H dist=rand'
+      A: '[8, 128, 8, 16] float32 axes=B,L,H,C dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      k: '[16, 256, 8, 512] float32 axes=B,L,H//2,D dist=randn'
+      v: '[16, 256, 16, 512] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[16, 256, 16] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[16, 256, 16] float32 axes=B,L,H dist=rand'
+      A: '[16, 256, 16, 32] float32 axes=B,L,H,C dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      k: '[32, 512, 16, 1024] float32 axes=B,L,H//2,D dist=randn'
+      v: '[32, 512, 32, 1024] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[32, 512, 32] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[32, 512, 32] float32 axes=B,L,H dist=rand'
+      A: '[32, 512, 32, 64] float32 axes=B,L,H,C dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      k: '[4, 128, 4, 2048] float32 axes=B,L,H//2,D dist=randn'
+      v: '[4, 128, 8, 2048] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[4, 128, 8] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[4, 128, 8] float32 axes=B,L,H dist=rand'
+      A: '[4, 128, 8, 16] float32 axes=B,L,H,C dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      k: '[6, 192, 3, 384] float32 axes=B,L,H//2,D dist=randn'
+      v: '[6, 192, 6, 384] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[6, 192, 6] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[6, 192, 6] float32 axes=B,L,H dist=rand'
+      A: '[6, 192, 6, 32] float32 axes=B,L,H,C dist=randn'
+  H2:
+    provenance: edge
+    tensors:
+      k: '[2, 16, 1, 16] float32 axes=B,L,H//2,D dist=randn'
+      v: '[2, 16, 2, 16] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[2, 16, 2] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[2, 16, 2] float32 axes=B,L,H dist=rand'
+      A: '[2, 16, 2, 16] float32 axes=B,L,H,C dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      k: '[2, 1024, 4, 4096] float32 axes=B,L,H//2,D dist=randn'
+      v: '[2, 1024, 8, 4096] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[2, 1024, 8] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[2, 1024, 8] float32 axes=B,L,H dist=rand'
+      A: '[2, 1024, 8, 64] float32 axes=B,L,H,C dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      k: '[64, 32, 4, 64] float32 axes=B,L,H//2,D dist=randn'
+      v: '[64, 32, 8, 64] float32 axes=B,L,H,Dv dist=randn'
+      beta: '[64, 32, 8] float32 axes=B,L,H dist=rand'
+      g_cumsum: '[64, 32, 8] float32 axes=B,L,H dist=rand'
+      A: '[64, 32, 8, 16] float32 axes=B,L,H,C dist=randn'

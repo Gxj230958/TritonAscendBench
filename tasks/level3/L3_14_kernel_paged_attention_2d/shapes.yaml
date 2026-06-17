@@ -411,3 +411,390 @@ inputs:
     - D
     dtype: float16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      query: '[2, 4, 32] float32 axes=B,H,D dist=randn'
+      key_cache: '[8, 16, 4, 32] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 16, 4, 32] float32 axes=C,T,H,D dist=randn'
+      block_table: '[2, 64] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[2, 4, 64, 32] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  P2:
+    provenance: baseline
+    tensors:
+      query: '[4, 8, 64] float32 axes=B,H,D dist=randn'
+      key_cache: '[16, 32, 8, 64] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 32, 8, 64] float32 axes=C,T,H,D dist=randn'
+      block_table: '[4, 128] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[4] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[4, 8, 128, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.125
+  P3:
+    provenance: baseline
+    tensors:
+      query: '[8, 16, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 256] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 16, 256, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P4:
+    provenance: baseline
+    tensors:
+      query: '[16, 32, 256] float32 axes=B,H,D dist=randn'
+      key_cache: '[64, 128, 32, 256] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[64, 128, 32, 256] float32 axes=C,T,H,D dist=randn'
+      block_table: '[16, 512] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[16] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[16, 32, 512, 256] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.0625
+  P5:
+    provenance: synthetic
+    tensors:
+      query: '[2, 64, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[16, 32, 64, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 32, 64, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[2, 256] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[2, 64, 256, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P6:
+    provenance: synthetic
+    tensors:
+      query: '[1, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[1, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[1] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[1, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P7:
+    provenance: synthetic
+    tensors:
+      query: '[2, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[2, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[2, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P8:
+    provenance: synthetic
+    tensors:
+      query: '[3, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[3, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[3] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[3, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P9:
+    provenance: synthetic
+    tensors:
+      query: '[4, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[4, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[4] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[4, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P10:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[1, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[1, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P11:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[2, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[2, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P12:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[3, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[3, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P13:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[4, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[4, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P14:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[8, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P15:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[16, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P21:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 16] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 16] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 16] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 16] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.25
+  P22:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 32] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 32] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 32] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 32] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  P23:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 64] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 64] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 64] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.125
+  P24:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 96] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 96] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 96] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 192, 96] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.10206207261596577
+  P25:
+    provenance: synthetic
+    tensors:
+      query: '[8, 1, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 1, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 1, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 1, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P26:
+    provenance: synthetic
+    tensors:
+      query: '[8, 2, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 2, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 2, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 2, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P27:
+    provenance: synthetic
+    tensors:
+      query: '[8, 3, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 3, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 3, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 3, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P28:
+    provenance: synthetic
+    tensors:
+      query: '[8, 4, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 4, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 4, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 4, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P29:
+    provenance: synthetic
+    tensors:
+      query: '[8, 8, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 8, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 8, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 8, 192, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P30:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 1] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 1, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P31:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 2] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 2, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P32:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 3] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 3, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P33:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 4] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 4, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P34:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 8] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 8, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  P35:
+    provenance: synthetic
+    tensors:
+      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[8, 16] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[8, 12, 16, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H1:
+    provenance: synthetic
+    tensors:
+      query: '[3, 12, 64] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 64] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 64] float32 axes=C,T,H,D dist=randn'
+      block_table: '[3, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[3] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[3, 12, 192, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.125
+  H2:
+    provenance: edge
+    tensors:
+      query: '[2, 2, 32] float32 axes=B,H,D dist=randn'
+      key_cache: '[4, 16, 2, 32] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[4, 16, 2, 32] float32 axes=C,T,H,D dist=randn'
+      block_table: '[2, 32] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[2, 2, 32, 32] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.17677669529663687
+  H4:
+    provenance: synthetic
+    tensors:
+      query: '[32, 8, 64] float32 axes=B,H,D dist=randn'
+      key_cache: '[8, 16, 8, 64] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 16, 8, 64] float32 axes=C,T,H,D dist=randn'
+      block_table: '[32, 128] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[32] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[32, 8, 128, 64] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.125
+  H6:
+    provenance: edge
+    tensors:
+      query: '[1, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[1, 2048] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[1] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[1, 12, 2048, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843
+  H7:
+    provenance: edge
+    tensors:
+      query: '[128, 12, 128] float32 axes=B,H,D dist=randn'
+      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
+      block_table: '[128, 1] int64 axes=B,N dist=randint(lo=0, hi=C)'
+      seq_lens: '[128] int64 axes=B dist=randint(lo=1, hi=T)'
+      key: '[128, 12, 1, 128] float16 axes=B,H,N,D dist=randn'
+    params:
+      scale: 0.08838834764831843

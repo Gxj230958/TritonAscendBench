@@ -438,3 +438,390 @@ inputs:
     derive: 1/sqrt(D)
   num_kv_splits:
     scalar: 4
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[20, 2, 32] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[20, 2, 32] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[20] int64 axes=B*C dist=randperm'
+      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.17677669529663687
+      num_kv_splits: 4
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[96, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[96, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[96] int64 axes=B*C dist=randperm'
+      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.125
+      num_kv_splits: 4
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[400, 4, 128] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[400, 4, 128] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[400] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.08838834764831843
+      num_kv_splits: 4
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[16, 32, 128] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[1120, 4, 128] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[1120, 4, 96] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[1120] int64 axes=B*C dist=randperm'
+      b_seqlen: '[16] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.08838834764831843
+      num_kv_splits: 4
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[4, 8, 80] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[132, 2, 80] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[132, 2, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[132] int64 axes=B*C dist=randperm'
+      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.11180339887498948
+      num_kv_splits: 4
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[24, 60, 192] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[3600, 6, 192] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[3600, 6, 192] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[3600] int64 axes=B*C dist=randperm'
+      b_seqlen: '[24] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.07216878364870323
+      num_kv_splits: 4
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[32, 80, 256] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[6400, 8, 256] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[6400, 8, 256] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[6400] int64 axes=B*C dist=randperm'
+      b_seqlen: '[32] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.0625
+      num_kv_splits: 4
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[6, 60, 80] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[198, 3, 80] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[198, 3, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[198] int64 axes=B*C dist=randperm'
+      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.11180339887498948
+      num_kv_splits: 4
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[6, 16, 80] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[198, 8, 80] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[198, 8, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[198] int64 axes=B*C dist=randperm'
+      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.11180339887498948
+      num_kv_splits: 4
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[1, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[37, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[37, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[37] int64 axes=B*C dist=randperm'
+      b_seqlen: '[1] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[2, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[74, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[74, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[74] int64 axes=B*C dist=randperm'
+      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[3, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[111, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[111, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[111] int64 axes=B*C dist=randperm'
+      b_seqlen: '[3] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[4, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[148, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[148, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[148] int64 axes=B*C dist=randperm'
+      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[8, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[8, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[8] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[16, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[16, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[16] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[24, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[24, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[24] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[32, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[32, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[32] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[64, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[64, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[64] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[128, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[128, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[128] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[256, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[256, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[256] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 16] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 16] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.25
+      num_kv_splits: 4
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 32] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 32] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.17677669529663687
+      num_kv_splits: 4
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 64] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 64] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.125
+      num_kv_splits: 4
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 16] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 32] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 1, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 1, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 2, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 2, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[6, 6, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[222, 3, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[222, 3, 96] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[222] int64 axes=B*C dist=randperm'
+      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 4, 16] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[12, 2, 16] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[12, 2, 16] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[12] int64 axes=B*C dist=randperm'
+      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.25
+      num_kv_splits: 4
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[2, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[200, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[200, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[200] int64 axes=B*C dist=randperm'
+      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.125
+      num_kv_splits: 4
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[160, 4, 64] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[160, 4, 48] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[160] int64 axes=B*C dist=randperm'
+      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.125
+      num_kv_splits: 4
+  H5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 40, 64] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[48, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[48, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[48] int64 axes=B*C dist=randperm'
+      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.125
+      num_kv_splits: 4
+  H6:
+    provenance: edge
+    tensors:
+      q: '[1, 32, 96] bfloat16 axes=B,H,D dist=randn'
+      k_buffer: '[37, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
+      v_buffer: '[37, 4, 1024] bfloat16 axes=B*C,E,Dv dist=randn'
+      req_to_tokens: '[37] int64 axes=B*C dist=randperm'
+      b_seqlen: '[1] int64 axes=B dist=randint(lo=1, hi=C+1)'
+    params:
+      scale: 0.10206207261596577
+      num_kv_splits: 4

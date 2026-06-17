@@ -425,3 +425,381 @@ inputs:
     - E
     dtype: int64
     dist: randint:1:G
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      x: '[16, 32] bfloat16 axes=B,D dist=randn'
+      weights: '[4, 2, 32] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[5] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[4] int64 axes=E dist=randint(lo=1, hi=G)'
+  P2:
+    provenance: baseline
+    tensors:
+      x: '[64, 128] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 4, 128] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P3:
+    provenance: baseline
+    tensors:
+      x: '[256, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[16, 8, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[17] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[16] int64 axes=E dist=randint(lo=1, hi=G)'
+  P4:
+    provenance: baseline
+    tensors:
+      x: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      weights: '[32, 8, 1024] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[33] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[32] int64 axes=E dist=randint(lo=1, hi=G)'
+  P5:
+    provenance: synthetic
+    tensors:
+      x: '[8, 2048] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 4, 2048] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P6:
+    provenance: synthetic
+    tensors:
+      x: '[1, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 16, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P9:
+    provenance: synthetic
+    tensors:
+      x: '[64, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 12, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P10:
+    provenance: synthetic
+    tensors:
+      x: '[64, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 16, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P11:
+    provenance: synthetic
+    tensors:
+      x: '[64, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[48, 4, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[49] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[48] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[48] int64 axes=E dist=randint(lo=1, hi=G)'
+  P12:
+    provenance: synthetic
+    tensors:
+      x: '[1, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P13:
+    provenance: synthetic
+    tensors:
+      x: '[2, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P14:
+    provenance: synthetic
+    tensors:
+      x: '[3, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P15:
+    provenance: synthetic
+    tensors:
+      x: '[4, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P16:
+    provenance: synthetic
+    tensors:
+      x: '[8, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P17:
+    provenance: synthetic
+    tensors:
+      x: '[16, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P18:
+    provenance: synthetic
+    tensors:
+      x: '[32, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P19:
+    provenance: synthetic
+    tensors:
+      x: '[64, 1] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 1] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P20:
+    provenance: synthetic
+    tensors:
+      x: '[64, 2] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 2] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P21:
+    provenance: synthetic
+    tensors:
+      x: '[64, 3] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 3] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P22:
+    provenance: synthetic
+    tensors:
+      x: '[64, 4] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 4] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P23:
+    provenance: synthetic
+    tensors:
+      x: '[64, 8] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 8] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P24:
+    provenance: synthetic
+    tensors:
+      x: '[64, 16] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 16] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P25:
+    provenance: synthetic
+    tensors:
+      x: '[64, 32] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 32] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P26:
+    provenance: synthetic
+    tensors:
+      x: '[64, 64] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 64] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P27:
+    provenance: synthetic
+    tensors:
+      x: '[64, 96] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 96] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P28:
+    provenance: synthetic
+    tensors:
+      x: '[64, 128] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 128] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P29:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[1, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[2] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[1] int64 axes=E dist=randint(lo=1, hi=G)'
+  P30:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[2, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[3] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[2] int64 axes=E dist=randint(lo=1, hi=G)'
+  P31:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[3, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[4] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[3] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[3] int64 axes=E dist=randint(lo=1, hi=G)'
+  P32:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[4, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[5] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[4] int64 axes=E dist=randint(lo=1, hi=G)'
+  P33:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 1, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P34:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 2, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P35:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 3, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P36:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 4, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P37:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P38:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 16, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P39:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 24, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P40:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 32, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  P41:
+    provenance: synthetic
+    tensors:
+      x: '[64, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 64, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  H1:
+    provenance: synthetic
+    tensors:
+      x: '[96, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[6, 4, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[7] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[6] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[6] int64 axes=E dist=randint(lo=1, hi=G)'
+  H2:
+    provenance: edge
+    tensors:
+      x: '[2, 16] bfloat16 axes=B,D dist=randn'
+      weights: '[2, 2, 16] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[3] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[2] int64 axes=E dist=randint(lo=1, hi=G)'
+  H3:
+    provenance: synthetic
+    tensors:
+      x: '[4, 4096] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 8, 4096] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  H4:
+    provenance: synthetic
+    tensors:
+      x: '[1024, 128] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 4, 128] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  H5:
+    provenance: edge
+    tensors:
+      x: '[1, 1] bfloat16 axes=B,D dist=randn'
+      weights: '[1, 1, 1] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[2] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[1] int64 axes=E dist=randint(lo=1, hi=G)'
+  H6:
+    provenance: edge
+    tensors:
+      x: '[1, 512] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 4, 512] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  H7:
+    provenance: edge
+    tensors:
+      x: '[1, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 64, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
+  H8:
+    provenance: edge
+    tensors:
+      x: '[4096, 192] bfloat16 axes=B,D dist=randn'
+      weights: '[8, 1, 192] bfloat16 axes=E,G,D dist=randn'
+      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
+      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'

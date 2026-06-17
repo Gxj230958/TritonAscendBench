@@ -358,3 +358,356 @@ inputs:
     - B
     dtype: float32
     dist: zeros
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      prefix_output: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[4, 2] float32 axes=H,B dist=randn'
+      suffix_output: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[4, 2] float32 axes=H,B dist=randn'
+      output: '[2, 4, 32] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[4, 2] float32 axes=H,B dist=zeros'
+  P2:
+    provenance: baseline
+    tensors:
+      prefix_output: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[8, 4] float32 axes=H,B dist=randn'
+      suffix_output: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[8, 4] float32 axes=H,B dist=randn'
+      output: '[4, 8, 64] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[8, 4] float32 axes=H,B dist=zeros'
+  P3:
+    provenance: baseline
+    tensors:
+      prefix_output: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[16, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[16, 8] float32 axes=H,B dist=randn'
+      output: '[8, 16, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[16, 8] float32 axes=H,B dist=zeros'
+  P4:
+    provenance: baseline
+    tensors:
+      prefix_output: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[32, 16] float32 axes=H,B dist=randn'
+      suffix_output: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[32, 16] float32 axes=H,B dist=randn'
+      output: '[16, 32, 256] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[32, 16] float32 axes=H,B dist=zeros'
+  P5:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[64, 2] float32 axes=H,B dist=randn'
+      suffix_output: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[64, 2] float32 axes=H,B dist=randn'
+      output: '[2, 64, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[64, 2] float32 axes=H,B dist=zeros'
+  P6:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[1, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 1] float32 axes=H,B dist=randn'
+      suffix_output: '[1, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 1] float32 axes=H,B dist=randn'
+      output: '[1, 12, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 1] float32 axes=H,B dist=zeros'
+  P7:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 2] float32 axes=H,B dist=randn'
+      suffix_output: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 2] float32 axes=H,B dist=randn'
+      output: '[2, 12, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 2] float32 axes=H,B dist=zeros'
+  P8:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[3, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 3] float32 axes=H,B dist=randn'
+      suffix_output: '[3, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 3] float32 axes=H,B dist=randn'
+      output: '[3, 12, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 3] float32 axes=H,B dist=zeros'
+  P10:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 1] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 1] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 1] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P11:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 2] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 2] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 2] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P12:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 3] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 3] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 3] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P13:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 4] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 4] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 4] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P14:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 8] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 8] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 8] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P15:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 16] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 16] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 16] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P16:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 32] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 32] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 32] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P17:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 64] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P18:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 96] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 96] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 96] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P19:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 1, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[1, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 1, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[1, 8] float32 axes=H,B dist=randn'
+      output: '[8, 1, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[1, 8] float32 axes=H,B dist=zeros'
+  P20:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 2, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[2, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 2, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[2, 8] float32 axes=H,B dist=randn'
+      output: '[8, 2, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[2, 8] float32 axes=H,B dist=zeros'
+  P21:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 3, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[3, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 3, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[3, 8] float32 axes=H,B dist=randn'
+      output: '[8, 3, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[3, 8] float32 axes=H,B dist=zeros'
+  P22:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 4, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[4, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 4, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[4, 8] float32 axes=H,B dist=randn'
+      output: '[8, 4, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[4, 8] float32 axes=H,B dist=zeros'
+  P23:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[8, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[8, 8] float32 axes=H,B dist=randn'
+      output: '[8, 8, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[8, 8] float32 axes=H,B dist=zeros'
+  P24:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P25:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 32, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[32, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 32, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[32, 8] float32 axes=H,B dist=randn'
+      output: '[8, 32, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[32, 8] float32 axes=H,B dist=zeros'
+  P26:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[64, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[64, 8] float32 axes=H,B dist=randn'
+      output: '[8, 64, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[64, 8] float32 axes=H,B dist=zeros'
+  P27:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[96, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[96, 8] float32 axes=H,B dist=randn'
+      output: '[8, 96, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[96, 8] float32 axes=H,B dist=zeros'
+  P28:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 128, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[128, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 128, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[128, 8] float32 axes=H,B dist=randn'
+      output: '[8, 128, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[128, 8] float32 axes=H,B dist=zeros'
+  P29:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 192, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[192, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 192, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[192, 8] float32 axes=H,B dist=randn'
+      output: '[8, 192, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[192, 8] float32 axes=H,B dist=zeros'
+  P30:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 256, 128] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[256, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 256, 128] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[256, 8] float32 axes=H,B dist=randn'
+      output: '[8, 256, 128] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[256, 8] float32 axes=H,B dist=zeros'
+  P31:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 192] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 192] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 192] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P32:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 256] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 256] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 256] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  P33:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      suffix_output: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 8] float32 axes=H,B dist=randn'
+      output: '[8, 12, 384] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 8] float32 axes=H,B dist=zeros'
+  H1:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 3] float32 axes=H,B dist=randn'
+      suffix_output: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 3] float32 axes=H,B dist=randn'
+      output: '[3, 12, 64] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 3] float32 axes=H,B dist=zeros'
+  H2:
+    provenance: edge
+    tensors:
+      prefix_output: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[2, 2] float32 axes=H,B dist=randn'
+      suffix_output: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[2, 2] float32 axes=H,B dist=randn'
+      output: '[2, 2, 32] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[2, 2] float32 axes=H,B dist=zeros'
+  H3:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[8, 2] float32 axes=H,B dist=randn'
+      suffix_output: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[8, 2] float32 axes=H,B dist=randn'
+      output: '[2, 8, 256] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[8, 2] float32 axes=H,B dist=zeros'
+  H4:
+    provenance: synthetic
+    tensors:
+      prefix_output: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[8, 32] float32 axes=H,B dist=randn'
+      suffix_output: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[8, 32] float32 axes=H,B dist=randn'
+      output: '[32, 8, 64] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[8, 32] float32 axes=H,B dist=zeros'
+  H5:
+    provenance: edge
+    tensors:
+      prefix_output: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[1, 1] float32 axes=H,B dist=randn'
+      suffix_output: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[1, 1] float32 axes=H,B dist=randn'
+      output: '[1, 1, 1] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[1, 1] float32 axes=H,B dist=zeros'
+  H6:
+    provenance: edge
+    tensors:
+      prefix_output: '[1, 12, 1024] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 1] float32 axes=H,B dist=randn'
+      suffix_output: '[1, 12, 1024] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 1] float32 axes=H,B dist=randn'
+      output: '[1, 12, 1024] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 1] float32 axes=H,B dist=zeros'
+  H7:
+    provenance: edge
+    tensors:
+      prefix_output: '[128, 12, 1] bfloat16 axes=B,H,D dist=randn'
+      prefix_lse: '[12, 128] float32 axes=H,B dist=randn'
+      suffix_output: '[128, 12, 1] bfloat16 axes=B,H,D dist=randn'
+      suffix_lse: '[12, 128] float32 axes=H,B dist=randn'
+      output: '[128, 12, 1] bfloat16 axes=B,H,D dist=zeros'
+      output_lse: '[12, 128] float32 axes=H,B dist=zeros'

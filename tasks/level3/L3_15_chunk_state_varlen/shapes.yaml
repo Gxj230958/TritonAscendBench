@@ -426,3 +426,341 @@ inputs:
     - B+1
     dtype: int64
     dist: offsets:to=B*L
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      B: '[32, 4, 16] bf16 axes=B*L,H,N dist=randn'
+      x: '[32, 4, 32] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[32, 4] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[32, 4] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
+  P2:
+    provenance: baseline
+    tensors:
+      B: '[256, 8, 32] bf16 axes=B*L,H,N dist=randn'
+      x: '[256, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[256, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[256, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
+  P3:
+    provenance: baseline
+    tensors:
+      B: '[1024, 16, 64] bf16 axes=B*L,H,N dist=randn'
+      x: '[1024, 16, 128] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[1024, 16] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[1024, 16] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P4:
+    provenance: baseline
+    tensors:
+      B: '[4096, 32, 128] bf16 axes=B*L,H,N dist=randn'
+      x: '[4096, 32, 256] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[4096, 32] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[4096, 32] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[17] int64 axes=B+1 dist=offsets(to=B*L)'
+  P5:
+    provenance: synthetic
+    tensors:
+      B: '[128, 8, 64] bf16 axes=B*L,H,N dist=randn'
+      x: '[128, 8, 128] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[128, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[128, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
+  P6:
+    provenance: synthetic
+    tensors:
+      B: '[96, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[96, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[96, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[96, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
+  P7:
+    provenance: synthetic
+    tensors:
+      B: '[192, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[192, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[192, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[192, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
+  P8:
+    provenance: synthetic
+    tensors:
+      B: '[288, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[288, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[288, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[288, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
+  P9:
+    provenance: synthetic
+    tensors:
+      B: '[384, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[384, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[384, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[384, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
+  P10:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 1] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P11:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 2] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P12:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 3] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P13:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 4] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P14:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 8] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P15:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 16] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P16:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 32] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P17:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P18:
+    provenance: synthetic
+    tensors:
+      B: '[768, 1, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 1, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 1] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 1] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P19:
+    provenance: synthetic
+    tensors:
+      B: '[768, 2, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 2, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 2] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 2] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P20:
+    provenance: synthetic
+    tensors:
+      B: '[768, 3, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 3, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 3] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 3] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P21:
+    provenance: synthetic
+    tensors:
+      B: '[768, 4, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 4, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 4] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 4] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P22:
+    provenance: synthetic
+    tensors:
+      B: '[8, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[8, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[8, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[8, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P23:
+    provenance: synthetic
+    tensors:
+      B: '[16, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[16, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[16, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[16, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P24:
+    provenance: synthetic
+    tensors:
+      B: '[24, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[24, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[24, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[24, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P25:
+    provenance: synthetic
+    tensors:
+      B: '[32, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[32, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[32, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[32, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P26:
+    provenance: synthetic
+    tensors:
+      B: '[64, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[64, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[64, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[64, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P27:
+    provenance: synthetic
+    tensors:
+      B: '[128, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[128, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[128, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[128, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P28:
+    provenance: synthetic
+    tensors:
+      B: '[256, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[256, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[256, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[256, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P29:
+    provenance: synthetic
+    tensors:
+      B: '[512, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[512, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[512, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[512, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P30:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 1] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P31:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 2] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P32:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 3] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P33:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 4] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P34:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 8] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  P35:
+    provenance: synthetic
+    tensors:
+      B: '[768, 8, 16] bf16 axes=B*L,H,N dist=randn'
+      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[768, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
+  H1:
+    provenance: synthetic
+    tensors:
+      B: '[288, 6, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[288, 6, 96] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[288, 6] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[288, 6] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
+  H2:
+    provenance: edge
+    tensors:
+      B: '[32, 2, 8] bf16 axes=B*L,H,N dist=randn'
+      x: '[32, 2, 16] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[32, 2] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[32, 2] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
+  H3:
+    provenance: synthetic
+    tensors:
+      B: '[1024, 8, 128] bf16 axes=B*L,H,N dist=randn'
+      x: '[1024, 8, 256] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[1024, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[1024, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
+  H4:
+    provenance: synthetic
+    tensors:
+      B: '[1024, 8, 32] bf16 axes=B*L,H,N dist=randn'
+      x: '[1024, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[1024, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[1024, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[33] int64 axes=B+1 dist=offsets(to=B*L)'
+  H5:
+    provenance: edge
+    tensors:
+      B: '[1, 1, 1] bf16 axes=B*L,H,N dist=randn'
+      x: '[1, 1, 1] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[1, 1] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[1, 1] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
+  H6:
+    provenance: edge
+    tensors:
+      B: '[96, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[96, 8, 1024] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[96, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[96, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
+  H7:
+    provenance: edge
+    tensors:
+      B: '[12288, 8, 48] bf16 axes=B*L,H,N dist=randn'
+      x: '[12288, 8, 1] bf16 axes=B*L,H,Dv dist=randn'
+      dt: '[12288, 8] float32 axes=B*L,H dist=rand'
+      dA_cumsum: '[12288, 8] float32 axes=B*L,H dist=rand'
+      cu_seqlens: '[129] int64 axes=B+1 dist=offsets(to=B*L)'

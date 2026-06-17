@@ -265,3 +265,566 @@ inputs:
   logit_cap: {scalar: 0.0}
   use_rope: {scalar: true}
   is_neox_style: {scalar: true}
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[2, 4, 80] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[16, 1, 80] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[16] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[32, 16] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 64
+      rotary_dim: 16
+      num_kv_splits: 1
+      sm_scale: 0.11180339887498948
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[3, 8, 160] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[48, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[48] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 128
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.07905694150420949
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[4, 16, 320] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[96, 1, 320] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[96] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 256
+      rotary_dim: 64
+      num_kv_splits: 1
+      sm_scale: 0.05590169943749474
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P4:
+    provenance: synthetic
+    tensors:
+      q: '[4, 16, 576] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[128, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[128] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 512
+      rotary_dim: 64
+      num_kv_splits: 1
+      sm_scale: 0.041666666666666664
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[2, 32, 576] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[32, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[32] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[32, 64] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 512
+      rotary_dim: 64
+      num_kv_splits: 1
+      sm_scale: 0.041666666666666664
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[1, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[20, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[2] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[20] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[2, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[40, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[40] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[3, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[60, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[60] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 48] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 48] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 16
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.14433756729740646
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 64] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 64] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 32
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.125
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 96] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 96] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 64
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.10206207261596577
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 128] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 128] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 96
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.08838834764831843
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 160] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 128
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.07905694150420949
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[4, 1, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[4, 2, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[4, 3, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[4, 4, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[4, 8, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[1, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[2, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[3, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[4, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[8, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[16, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[32, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 208] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[80, 1, 208] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[80] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 16] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 16
+      num_kv_splits: 1
+      sm_scale: 0.06933752452815364
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[4, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[4] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[3, 12, 256] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[60, 1, 256] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[60] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[48, 64] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 64
+      num_kv_splits: 1
+      sm_scale: 0.0625
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 2, 80] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[8, 1, 80] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[8] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[16, 16] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 64
+      rotary_dim: 16
+      num_kv_splits: 1
+      sm_scale: 0.11180339887498948
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[2, 8, 576] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[64, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[64] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 512
+      rotary_dim: 64
+      num_kv_splits: 1
+      sm_scale: 0.041666666666666664
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[8, 16, 160] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[64, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[9] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[64] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[16, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[8] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 128
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.07905694150420949
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H5:
+    provenance: edge
+    tensors:
+      q: '[1, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[20, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[2] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[20] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[256, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[1] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true
+  H6:
+    provenance: edge
+    tensors:
+      q: '[64, 12, 224] bf16 axes=B,H,C+R dist=randn'
+      k_buffer: '[1280, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
+      kv_indptr: '[65] int32 axes=B+1 dist=offsets(to=B*S)'
+      kv_indices: '[1280] int64 axes=B*S dist=arange'
+      cos_sin_cache: '[1, 32] bf16 axes=P,R dist=rope_cos_sin'
+      positions: '[64] int64 axes=B dist=randint(lo=0, hi=P)'
+    params:
+      kv_lora_rank: 192
+      rotary_dim: 32
+      num_kv_splits: 1
+      sm_scale: 0.0668153104781061
+      logit_cap: 0.0
+      use_rope: true
+      is_neox_style: true

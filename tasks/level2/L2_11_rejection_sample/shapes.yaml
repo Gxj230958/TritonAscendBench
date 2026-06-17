@@ -191,3 +191,155 @@ inputs:
     dist: randn
   num_draft_tokens:
     scalar: 4
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      draft_token_ids: '[8] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[4] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[8, 128] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[8, 128] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[8] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[8] float32 axes=E*2 dist=rand'
+      is_greedy: '[4] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[4, 128, 64] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  P2:
+    provenance: baseline
+    tensors:
+      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[16, 512] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[16, 512] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[16] float32 axes=E*2 dist=rand'
+      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[16, 512, 256] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  P3:
+    provenance: baseline
+    tensors:
+      draft_token_ids: '[32] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[16] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[32, 4096] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[32, 4096] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[32] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[32] float32 axes=E*2 dist=rand'
+      is_greedy: '[16] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[64, 4096, 512] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  P4:
+    provenance: baseline
+    tensors:
+      draft_token_ids: '[64] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[32] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[64, 32768] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[64, 32768] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[32] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[64] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[64] float32 axes=E*2 dist=rand'
+      is_greedy: '[32] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[128, 32768, 1024] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  P5:
+    provenance: synthetic
+    tensors:
+      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[16, 2048] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[16, 2048] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[16] float32 axes=E*2 dist=rand'
+      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[8, 2048, 512] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  H1:
+    provenance: synthetic
+    tensors:
+      draft_token_ids: '[24] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[12] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[24, 1536] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[24, 1536] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[24] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[24] float32 axes=E*2 dist=rand'
+      is_greedy: '[12] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[48, 1536, 384] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  H2:
+    provenance: edge
+    tensors:
+      draft_token_ids: '[4] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[2] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[4, 16] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[4, 16] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[4] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[4] float32 axes=E*2 dist=rand'
+      is_greedy: '[2] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[2, 16, 64] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  H3:
+    provenance: synthetic
+    tensors:
+      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[16, 65536] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[16, 65536] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[16] float32 axes=E*2 dist=rand'
+      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[2, 65536, 4096] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  H4:
+    provenance: synthetic
+    tensors:
+      draft_token_ids: '[512] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[256] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[512, 256] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[512, 256] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[256] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[512] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[512] float32 axes=E*2 dist=rand'
+      is_greedy: '[256] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[256, 256, 128] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4
+  H5:
+    provenance: edge
+    tensors:
+      draft_token_ids: '[2] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      cu_num_draft_tokens: '[1] int32 axes=E dist=cumcount(to=E*2)'
+      draft_probs: '[2, 1] float32 axes=E*2,N dist=softmax_rows'
+      target_probs: '[2, 1] float32 axes=E*2,N dist=softmax_rows'
+      bonus_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=N)'
+      recovered_token_ids: '[2] int64 axes=E*2 dist=randint(lo=0, hi=N)'
+      uniform_probs: '[2] float32 axes=E*2 dist=rand'
+      is_greedy: '[1] int64 axes=E dist=randint(lo=0, hi=2)'
+      x: '[1, 1, 1] float16 axes=B,N,D dist=randn'
+    params:
+      max_spec_len: 2
+      num_draft_tokens: 4

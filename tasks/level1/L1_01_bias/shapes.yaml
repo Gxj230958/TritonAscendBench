@@ -377,3 +377,565 @@ inputs:
     - '4'
     dtype: int64
     dist: randint:0:N
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      logits: '[4, 128] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[4] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[4, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[4] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[4, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[4, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[4] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[4, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P2:
+    provenance: baseline
+    tensors:
+      logits: '[16, 512] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[16] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[8, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[8, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P3:
+    provenance: baseline
+    tensors:
+      logits: '[64, 4096] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[64] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[64] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P4:
+    provenance: baseline
+    tensors:
+      logits: '[128, 32768] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[128] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[128] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[32] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[32, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[32] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[32, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[32, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[32] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[32] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[32, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P5:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 2048] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[8, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[8, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P6:
+    provenance: synthetic
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[512] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[512, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[512] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[512, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[512, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[512] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[512] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[512, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P7:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[384] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[384, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[384] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[384, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[384, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[384] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[384] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[384, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P8:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[512] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[512, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[512] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[512, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[512, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[512] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[512] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[512, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P9:
+    provenance: synthetic
+    tensors:
+      logits: '[384, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[384] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[384] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[12, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[12, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P10:
+    provenance: synthetic
+    tensors:
+      logits: '[512, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[512] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[512] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[12, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[12, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P11:
+    provenance: synthetic
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P12:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P13:
+    provenance: synthetic
+    tensors:
+      logits: '[3, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[3] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[3] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P14:
+    provenance: synthetic
+    tensors:
+      logits: '[4, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[4] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P15:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[8] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P16:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[16] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P17:
+    provenance: synthetic
+    tensors:
+      logits: '[32, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[32] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[32] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P18:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[1, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[1] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[1, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[1, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[1] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[1, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P19:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[2, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[2] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[2, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[2, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[2] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[2, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P20:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[3] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[3, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[3] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[3, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[3, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[3] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[3] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[3, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P21:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[4, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[4] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[4, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[4, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[4] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[4, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P22:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[8, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[8, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P30:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 64] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P31:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 96] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P32:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 128] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P33:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 192] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P34:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 256] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P35:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 384] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P36:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 512] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P37:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 640] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P38:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 768] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P39:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1024] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  P40:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1280] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[16] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[16, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[16, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[16, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H1:
+    provenance: synthetic
+    tensors:
+      logits: '[48, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[48] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[48] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[12, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[12, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H2:
+    provenance: edge
+    tensors:
+      logits: '[2, 16] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[2, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[2] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[2, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[2, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[2] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[2, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H3:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 65536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[2] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[8] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[8, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[8, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[8, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H4:
+    provenance: synthetic
+    tensors:
+      logits: '[256, 256] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[256] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[256] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[256] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[256, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[256] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[256, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[256, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[256] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[256] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[256, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H5:
+    provenance: edge
+    tensors:
+      logits: '[1, 1] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[1, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[1] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[1, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[1, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[1] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[1, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H6:
+    provenance: edge
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[12] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[12, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[12, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[12, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'
+  H7:
+    provenance: edge
+    tensors:
+      logits: '[1, 1536] float32 axes=B,N dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
+      pos: '[1] int64 axes=B dist=randint(lo=0, hi=N)'
+      num_allowed_token_ids: '[2048] int64 axes=E dist=randint(lo=0, hi=8)'
+      allowed_token_ids: '[2048, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      num_logit_bias: '[2048] int64 axes=E dist=randint(lo=0, hi=8)'
+      logit_bias_token_ids: '[2048, 8] int64 axes=E,8 dist=randint(lo=0, hi=N)'
+      logit_bias: '[2048, 8] float32 axes=E,8 dist=randn'
+      min_lens: '[2048] int64 axes=E dist=randint(lo=0, hi=N)'
+      num_stop_token_ids: '[2048] int64 axes=E dist=randint(lo=0, hi=4)'
+      stop_token_ids: '[2048, 4] int64 axes=E,4 dist=randint(lo=0, hi=N)'

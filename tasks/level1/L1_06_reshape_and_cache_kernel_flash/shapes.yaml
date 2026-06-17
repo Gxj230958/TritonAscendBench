@@ -478,3 +478,557 @@ inputs:
     - 1
     dtype: float32
     dist: rand
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      key: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[8, 16, 4, 32] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 16, 4, 32] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P2:
+    provenance: baseline
+    tensors:
+      key: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      value: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[16, 32, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 32, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[4] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P3:
+    provenance: baseline
+    tensors:
+      key: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P4:
+    provenance: baseline
+    tensors:
+      key: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[64, 128, 32, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[64, 128, 32, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[16] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P5:
+    provenance: synthetic
+    tensors:
+      key: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[16, 32, 64, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 32, 64, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P6:
+    provenance: synthetic
+    tensors:
+      key: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 384, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 384, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P7:
+    provenance: synthetic
+    tensors:
+      key: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 96, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 96, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P8:
+    provenance: synthetic
+    tensors:
+      key: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 384] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 384] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P9:
+    provenance: synthetic
+    tensors:
+      key: '[8, 12, 512] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 12, 512] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 512] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 512] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P10:
+    provenance: synthetic
+    tensors:
+      key: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[192, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[192, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P11:
+    provenance: synthetic
+    tensors:
+      key: '[48, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[48, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[48] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P12:
+    provenance: synthetic
+    tensors:
+      key: '[2, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P13:
+    provenance: synthetic
+    tensors:
+      key: '[4, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[4, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[4] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P14:
+    provenance: synthetic
+    tensors:
+      key: '[6, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[6, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[6] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P15:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[1, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[1, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P16:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[2, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[2, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P17:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[3, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[3, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P18:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[4, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[4, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P19:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[8, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P20:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[16, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[16, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P21:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 1] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 1] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 1] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 1] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P22:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 2] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 2] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 2] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 2] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P23:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 3] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 3] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 3] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 3] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P24:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 4] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 4] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 4] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 4] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P25:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 8] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 8] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 8] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 8] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P26:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 16] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 16] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 16] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 16] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P27:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 32] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 32] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 32] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 32] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P28:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 64] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 64] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 64] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 64] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P29:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 96] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 96] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P30:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 192] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 192] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 16, 192] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 16, 192] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P31:
+    provenance: synthetic
+    tensors:
+      key: '[8, 1, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 1, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 1, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 1, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P32:
+    provenance: synthetic
+    tensors:
+      key: '[8, 2, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 2, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 2, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 2, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P33:
+    provenance: synthetic
+    tensors:
+      key: '[8, 3, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 3, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 3, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 3, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P34:
+    provenance: synthetic
+    tensors:
+      key: '[8, 4, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 4, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 4, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 4, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P35:
+    provenance: synthetic
+    tensors:
+      key: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 64, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 64, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P36:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 1, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 1, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P37:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 2, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 2, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P38:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 3, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 3, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P39:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 4, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 4, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P40:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 8, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 8, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  P41:
+    provenance: synthetic
+    tensors:
+      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[32, 16, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[32, 16, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  H1:
+    provenance: synthetic
+    tensors:
+      key: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      value: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 64] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 64] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[3] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  H2:
+    provenance: edge
+    tensors:
+      key: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[4, 8, 2, 32] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[4, 8, 2, 32] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  H3:
+    provenance: synthetic
+    tensors:
+      key: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[128, 256, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[128, 256, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  H4:
+    provenance: synthetic
+    tensors:
+      key: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      value: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[8, 16, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[8, 16, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[32] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto
+  H5:
+    provenance: edge
+    tensors:
+      key: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      value: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      key_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      value_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
+      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
+      k_scale: '[1] bfloat16 axes=1 dist=rand'
+      v_scale: '[1] float32 axes=1 dist=rand'
+    params:
+      kv_cache_dtype: auto

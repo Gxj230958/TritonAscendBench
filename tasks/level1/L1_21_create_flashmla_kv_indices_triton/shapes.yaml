@@ -358,3 +358,405 @@ inputs:
     dist: randint:1:L
   page_size:
     scalar: 16
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      req_to_token: '[4, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[4] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[4] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P2:
+    provenance: baseline
+    tensors:
+      req_to_token: '[8, 256] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P3:
+    provenance: baseline
+    tensors:
+      req_to_token: '[16, 512] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[16] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[16] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P4:
+    provenance: baseline
+    tensors:
+      req_to_token: '[32, 1024] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[32] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[32] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P5:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 128] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P6:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[1, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P7:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[48, 3072] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[48] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[48] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P8:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[64, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[64] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[64] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P9:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3072] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P10:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P11:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[48, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[48] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[48] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P12:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[2, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[2] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[2] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P13:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[3, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[3] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[3] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P14:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[4, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[4] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[4] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P15:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P16:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P17:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P18:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P19:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 4] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P20:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 8] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P21:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 16] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P22:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 32] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P23:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P24:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 96] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P25:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 128] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P26:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 192] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P27:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 256] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P28:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 384] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P29:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 512] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P30:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 640] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P31:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 768] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P32:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1024] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P33:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1280] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P34:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 1536] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P35:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2048] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P36:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 2560] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P37:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 3584] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P38:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 5120] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P39:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 6144] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P40:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 8192] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  P41:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 12288] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H1:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[12, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H2:
+    provenance: edge
+    tensors:
+      req_to_token: '[2, 16] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[2] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[2] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H3:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[16, 2048] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[16] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[16] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H4:
+    provenance: synthetic
+    tensors:
+      req_to_token: '[8, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H5:
+    provenance: edge
+    tensors:
+      req_to_token: '[1, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H6:
+    provenance: edge
+    tensors:
+      req_to_token: '[1, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H7:
+    provenance: edge
+    tensors:
+      req_to_token: '[1, 16384] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H8:
+    provenance: edge
+    tensors:
+      req_to_token: '[256, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[256] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[256] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16
+  H9:
+    provenance: edge
+    tensors:
+      req_to_token: '[256, 16384] int32 axes=E,L dist=randint(lo=0, hi=N)'
+      req_pool_indices: '[256] int32 axes=E dist=randint(lo=0, hi=E)'
+      page_kernel_lens: '[256] int32 axes=E dist=randint(lo=1, hi=L)'
+    params:
+      page_size: 16

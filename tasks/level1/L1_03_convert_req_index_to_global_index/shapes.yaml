@@ -402,3 +402,445 @@ inputs:
     scalar_knob: L
   BLOCK_N:
     scalar: 8
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      req_id: '[2] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[4, 64] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[2, 32] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 32
+      BLOCK_N: 8
+  P2:
+    provenance: baseline
+    tensors:
+      req_id: '[4] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[8, 256] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[4, 128] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 128
+      BLOCK_N: 8
+  P3:
+    provenance: baseline
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 512] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P4:
+    provenance: baseline
+    tensors:
+      req_id: '[16] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[32, 512] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[16, 2048] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 2048
+      BLOCK_N: 8
+  P5:
+    provenance: synthetic
+    tensors:
+      req_id: '[2] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[8, 512] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[2, 256] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 256
+      BLOCK_N: 8
+  P6:
+    provenance: synthetic
+    tensors:
+      req_id: '[1] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 256] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[1, 8192] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 8192
+      BLOCK_N: 8
+  P7:
+    provenance: synthetic
+    tensors:
+      req_id: '[48] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[48, 768] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[48, 6144] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 6144
+      BLOCK_N: 8
+  P8:
+    provenance: synthetic
+    tensors:
+      req_id: '[64] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[64, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[64, 8192] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 8192
+      BLOCK_N: 8
+  P9:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 768] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 384] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 384
+      BLOCK_N: 8
+  P10:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 1024] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 384] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 384
+      BLOCK_N: 8
+  P11:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 256] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 6144] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 6144
+      BLOCK_N: 8
+  P12:
+    provenance: synthetic
+    tensors:
+      req_id: '[1] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[1, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P13:
+    provenance: synthetic
+    tensors:
+      req_id: '[2] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[2, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P14:
+    provenance: synthetic
+    tensors:
+      req_id: '[3] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[3, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P15:
+    provenance: synthetic
+    tensors:
+      req_id: '[4] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[4, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P16:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[1, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P17:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[2, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P18:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[3, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P19:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[4, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P20:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[8, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P25:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 8] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 8
+      BLOCK_N: 8
+  P26:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 16] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 16
+      BLOCK_N: 8
+  P27:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 32] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 32
+      BLOCK_N: 8
+  P28:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 64] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 64
+      BLOCK_N: 8
+  P29:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 96] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 96
+      BLOCK_N: 8
+  P30:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 128] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 128
+      BLOCK_N: 8
+  P31:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 192] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 192
+      BLOCK_N: 8
+  P32:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 256] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 256
+      BLOCK_N: 8
+  P33:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 384] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 384
+      BLOCK_N: 8
+  P34:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 1] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P35:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 2] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P36:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 3] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P37:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 4] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P38:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 8] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P39:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 16] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P40:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 32] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  P41:
+    provenance: synthetic
+    tensors:
+      req_id: '[8] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 64] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[8, 512] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 512
+      BLOCK_N: 8
+  H1:
+    provenance: synthetic
+    tensors:
+      req_id: '[3] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[3, 384] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 384
+      BLOCK_N: 8
+  H2:
+    provenance: edge
+    tensors:
+      req_id: '[2] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[2, 8] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[2, 8] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 8
+      BLOCK_N: 8
+  H3:
+    provenance: synthetic
+    tensors:
+      req_id: '[2] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[8, 512] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[2, 4096] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 4096
+      BLOCK_N: 8
+  H4:
+    provenance: synthetic
+    tensors:
+      req_id: '[32] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[8, 128] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[32, 32] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 32
+      BLOCK_N: 8
+  H6:
+    provenance: edge
+    tensors:
+      req_id: '[1] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[12, 256] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[1, 384] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 384
+      BLOCK_N: 8
+  H8:
+    provenance: edge
+    tensors:
+      req_id: '[1] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[16, 384] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[1, 32768] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 32768
+      BLOCK_N: 8
+  H10:
+    provenance: edge
+    tensors:
+      req_id: '[256] int32 axes=B dist=randint(lo=0, hi=E)'
+      block_table: '[256, 4096] int32 axes=E,N dist=randint(lo=0, hi=N)'
+      token_indices: '[256, 32768] int32 axes=B,L dist=randint(lo=-1, hi=N)'
+    params:
+      BLOCK_SIZE: 4
+      NUM_TOPK_TOKENS: 32768
+      BLOCK_N: 8

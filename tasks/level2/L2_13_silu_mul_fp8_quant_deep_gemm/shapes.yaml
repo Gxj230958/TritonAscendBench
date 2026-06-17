@@ -357,3 +357,357 @@ inputs:
     scalar: 128
   fp8_max:
     scalar: 448.0
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      y: '[4, 16, 256] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P2:
+    provenance: baseline
+    tensors:
+      y: '[8, 64, 512] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P3:
+    provenance: baseline
+    tensors:
+      y: '[32, 256, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P4:
+    provenance: baseline
+    tensors:
+      y: '[64, 512, 4096] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P5:
+    provenance: synthetic
+    tensors:
+      y: '[128, 64, 1024] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[128] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P6:
+    provenance: synthetic
+    tensors:
+      y: '[1, 96, 16384] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P7:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 256] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P8:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 512] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P9:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 768] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P10:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 1024] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P11:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 1280] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P12:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 1536] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P13:
+    provenance: synthetic
+    tensors:
+      y: '[1, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P14:
+    provenance: synthetic
+    tensors:
+      y: '[2, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P15:
+    provenance: synthetic
+    tensors:
+      y: '[3, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P16:
+    provenance: synthetic
+    tensors:
+      y: '[4, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P17:
+    provenance: synthetic
+    tensors:
+      y: '[8, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P18:
+    provenance: synthetic
+    tensors:
+      y: '[12, 1, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P19:
+    provenance: synthetic
+    tensors:
+      y: '[12, 2, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P20:
+    provenance: synthetic
+    tensors:
+      y: '[12, 3, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P21:
+    provenance: synthetic
+    tensors:
+      y: '[12, 4, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P22:
+    provenance: synthetic
+    tensors:
+      y: '[12, 8, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P23:
+    provenance: synthetic
+    tensors:
+      y: '[12, 16, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P24:
+    provenance: synthetic
+    tensors:
+      y: '[12, 32, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P25:
+    provenance: synthetic
+    tensors:
+      y: '[12, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P26:
+    provenance: synthetic
+    tensors:
+      y: '[12, 96, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P27:
+    provenance: synthetic
+    tensors:
+      y: '[12, 128, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P28:
+    provenance: synthetic
+    tensors:
+      y: '[12, 192, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P29:
+    provenance: synthetic
+    tensors:
+      y: '[12, 256, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P30:
+    provenance: synthetic
+    tensors:
+      y: '[12, 384, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P31:
+    provenance: synthetic
+    tensors:
+      y: '[12, 512, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P32:
+    provenance: synthetic
+    tensors:
+      y: '[12, 640, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P33:
+    provenance: synthetic
+    tensors:
+      y: '[16, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[16] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P34:
+    provenance: synthetic
+    tensors:
+      y: '[32, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P35:
+    provenance: synthetic
+    tensors:
+      y: '[64, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P36:
+    provenance: synthetic
+    tensors:
+      y: '[96, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[96] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H1:
+    provenance: synthetic
+    tensors:
+      y: '[12, 96, 768] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H2:
+    provenance: edge
+    tensors:
+      y: '[2, 8, 256] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H3:
+    provenance: synthetic
+    tensors:
+      y: '[8, 512, 8192] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H4:
+    provenance: synthetic
+    tensors:
+      y: '[256, 16, 512] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[256] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H5:
+    provenance: edge
+    tensors:
+      y: '[1, 1, 256] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H6:
+    provenance: edge
+    tensors:
+      y: '[1, 96, 1024] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H7:
+    provenance: edge
+    tensors:
+      y: '[1024, 64, 256] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1024] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H8:
+    provenance: edge
+    tensors:
+      y: '[1, 64, 65536] bfloat16 axes=E,T,2*D dist=randn'
+      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+    params:
+      group_size: 128
+      fp8_max: 448.0

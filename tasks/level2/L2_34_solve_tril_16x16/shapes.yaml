@@ -345,3 +345,189 @@ inputs:
     # plain `tril` masks the [H,BT] axes, leaving blocks nilpotent of degree H+1
     # so a solver that drops the forward-substitution recurrence passes trivially.
     dist: tril_chunk
+
+explicit_view:
+  P1:
+    provenance: synthetic
+    tensors:
+      A: '[1, 16, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P2:
+    provenance: synthetic
+    tensors:
+      A: '[2, 32, 2, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P3:
+    provenance: baseline
+    tensors:
+      A: '[4, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P4:
+    provenance: baseline
+    tensors:
+      A: '[8, 128, 8, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P5:
+    provenance: synthetic
+    tensors:
+      A: '[2, 256, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P6:
+    provenance: synthetic
+    tensors:
+      A: '[4, 768, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P7:
+    provenance: synthetic
+    tensors:
+      A: '[4, 1024, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P8:
+    provenance: synthetic
+    tensors:
+      A: '[4, 64, 12, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P9:
+    provenance: synthetic
+    tensors:
+      A: '[4, 64, 16, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P10:
+    provenance: synthetic
+    tensors:
+      A: '[24, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P11:
+    provenance: synthetic
+    tensors:
+      A: '[32, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P12:
+    provenance: synthetic
+    tensors:
+      A: '[1, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P13:
+    provenance: synthetic
+    tensors:
+      A: '[2, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P14:
+    provenance: synthetic
+    tensors:
+      A: '[3, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P15:
+    provenance: synthetic
+    tensors:
+      A: '[4, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P16:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P17:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 2, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P18:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 3, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P19:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P20:
+    provenance: synthetic
+    tensors:
+      A: '[8, 16, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P21:
+    provenance: synthetic
+    tensors:
+      A: '[8, 32, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P22:
+    provenance: synthetic
+    tensors:
+      A: '[8, 48, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P23:
+    provenance: synthetic
+    tensors:
+      A: '[8, 64, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P24:
+    provenance: synthetic
+    tensors:
+      A: '[8, 96, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P25:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P26:
+    provenance: synthetic
+    tensors:
+      A: '[8, 192, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P27:
+    provenance: synthetic
+    tensors:
+      A: '[8, 256, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P28:
+    provenance: synthetic
+    tensors:
+      A: '[8, 384, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P29:
+    provenance: synthetic
+    tensors:
+      A: '[8, 512, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P30:
+    provenance: synthetic
+    tensors:
+      A: '[8, 640, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P31:
+    provenance: synthetic
+    tensors:
+      A: '[8, 768, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P32:
+    provenance: synthetic
+    tensors:
+      A: '[8, 1024, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P33:
+    provenance: synthetic
+    tensors:
+      A: '[8, 1280, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P34:
+    provenance: synthetic
+    tensors:
+      A: '[8, 1536, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P35:
+    provenance: synthetic
+    tensors:
+      A: '[8, 2048, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P36:
+    provenance: synthetic
+    tensors:
+      A: '[8, 2560, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P37:
+    provenance: synthetic
+    tensors:
+      A: '[8, 3072, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P38:
+    provenance: synthetic
+    tensors:
+      A: '[8, 3584, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P39:
+    provenance: synthetic
+    tensors:
+      A: '[8, 4096, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P40:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 16, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  P41:
+    provenance: synthetic
+    tensors:
+      A: '[8, 128, 24, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  H1:
+    provenance: synthetic
+    tensors:
+      A: '[3, 48, 3, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  H2:
+    provenance: edge
+    tensors:
+      A: '[1, 16, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  H3:
+    provenance: synthetic
+    tensors:
+      A: '[2, 512, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  H4:
+    provenance: synthetic
+    tensors:
+      A: '[16, 16, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  H5:
+    provenance: edge
+    tensors:
+      A: '[1, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'

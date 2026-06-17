@@ -293,3 +293,425 @@ inputs:
     dist: randint:0:1024
   apply_temperature:
     scalar: true
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      logits: '[4, 2048] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[3] float32 axes=R dist=gumbel_temps'
+      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[4] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P2:
+    provenance: baseline
+    tensors:
+      logits: '[32, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[32] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[32] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P3:
+    provenance: synthetic
+    tensors:
+      logits: '[64, 5000] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[64] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[64] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P4:
+    provenance: baseline
+    tensors:
+      logits: '[256, 8192] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[256] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[16] float32 axes=R dist=gumbel_temps'
+      seed: '[16] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[256] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P5:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 12000] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[4] float32 axes=R dist=gumbel_temps'
+      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[8] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P6:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[1] float32 axes=R dist=gumbel_temps'
+      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P7:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[2] float32 axes=R dist=gumbel_temps'
+      seed: '[2] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P8:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[3] float32 axes=R dist=gumbel_temps'
+      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P9:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[4] float32 axes=R dist=gumbel_temps'
+      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P10:
+    provenance: synthetic
+    tensors:
+      logits: '[1, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P11:
+    provenance: synthetic
+    tensors:
+      logits: '[2, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[2] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P12:
+    provenance: synthetic
+    tensors:
+      logits: '[3, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[3] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[3] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P13:
+    provenance: synthetic
+    tensors:
+      logits: '[4, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[4] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[4] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P14:
+    provenance: synthetic
+    tensors:
+      logits: '[8, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[8] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[8] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P15:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P16:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 2] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P17:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 3] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P18:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 4] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P19:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 8] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P20:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 16] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P21:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 32] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P22:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 64] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P23:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 96] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P24:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 128] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P25:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 192] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P26:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 256] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P27:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 384] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P28:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 512] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P29:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 640] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P30:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 768] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P31:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1024] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P32:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1280] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P33:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 1536] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P34:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 2048] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  P35:
+    provenance: synthetic
+    tensors:
+      logits: '[16, 2560] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[8] float32 axes=R dist=gumbel_temps'
+      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H1:
+    provenance: edge
+    tensors:
+      logits: '[16, 1024] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[4] float32 axes=R dist=gumbel_temps'
+      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H2:
+    provenance: edge
+    tensors:
+      logits: '[2, 1500] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[2] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[2] float32 axes=R dist=gumbel_temps'
+      seed: '[2] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[2] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H3:
+    provenance: synthetic
+    tensors:
+      logits: '[6, 3072] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[6] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[3] float32 axes=R dist=gumbel_temps'
+      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[6] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H4:
+    provenance: synthetic
+    tensors:
+      logits: '[96, 6000] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[96] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[32] float32 axes=R dist=gumbel_temps'
+      seed: '[32] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[96] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H5:
+    provenance: edge
+    tensors:
+      logits: '[1, 1] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[1] float32 axes=R dist=gumbel_temps'
+      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H6:
+    provenance: edge
+    tensors:
+      logits: '[1024, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[1024] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[1] float32 axes=R dist=gumbel_temps'
+      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[1024] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true
+  H7:
+    provenance: edge
+    tensors:
+      logits: '[1, 4096] float32 axes=T,V dist=randn'
+      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
+      temperature: '[128] float32 axes=R dist=gumbel_temps'
+      seed: '[128] int64 axes=R dist=randint(lo=0, hi=2147483647)'
+      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
+    params:
+      apply_temperature: true

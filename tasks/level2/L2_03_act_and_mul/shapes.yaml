@@ -309,3 +309,299 @@ inputs:
     - B
     dtype: int64
     dist: routing_ids:E
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      gateup_output: '[8, 64] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[8] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P2:
+    provenance: baseline
+    tensors:
+      gateup_output: '[64, 256] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[64] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P3:
+    provenance: baseline
+    tensors:
+      gateup_output: '[512, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[512] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P4:
+    provenance: baseline
+    tensors:
+      gateup_output: '[2048, 4096] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[2048] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P5:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[16, 8192] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[16] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P6:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[1, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P7:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[2, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P8:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[3, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[3] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P9:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[4, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[4] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P10:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[8, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[8] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P11:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[16, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[16] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P12:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[32, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[32] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P13:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[64, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[64] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P14:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[96, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[96] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P15:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[128, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[128] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P16:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[192, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[192] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P17:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[256, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[256] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P18:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 2] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P19:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 4] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P20:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 6] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P21:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 8] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P22:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 16] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P23:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 32] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P24:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 64] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P25:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 96] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P26:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 128] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P27:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 192] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P28:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 256] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P29:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 512] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P30:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 640] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P31:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 768] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P32:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 1024] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P33:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 1280] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P34:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 1536] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  P35:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 2048] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H1:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[384, 384] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H2:
+    provenance: edge
+    tensors:
+      gateup_output: '[2, 16] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H3:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[2, 16384] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H4:
+    provenance: synthetic
+    tensors:
+      gateup_output: '[4096, 64] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[4096] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H5:
+    provenance: edge
+    tensors:
+      gateup_output: '[1, 2] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H6:
+    provenance: edge
+    tensors:
+      gateup_output: '[1, 32768] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu
+  H7:
+    provenance: edge
+    tensors:
+      gateup_output: '[16384, 2] bfloat16 axes=B,D dist=randn'
+      topk_ids: '[16384] int64 axes=B dist=routing_ids(E=E)'
+    params:
+      act: silu

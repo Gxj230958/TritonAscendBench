@@ -488,3 +488,649 @@ inputs:
     derive: GS
   apply_weight:
     scalar_knob: APPW
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      a: '[8, 64] bf16 axes=B,D dist=randn'
+      b: '[4, 64, 32] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[4, 64, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[4, 32, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[16] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 32.0
+      apply_weight: 0
+  P2:
+    provenance: baseline
+    tensors:
+      a: '[32, 128] bf16 axes=B,D dist=randn'
+      b: '[8, 128, 64] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 128, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 64, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P3:
+    provenance: baseline
+    tensors:
+      a: '[64, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 256, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 128, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[64, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 0
+  P4:
+    provenance: baseline
+    tensors:
+      a: '[128, 512] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 256] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[128, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P5:
+    provenance: synthetic
+    tensors:
+      a: '[16, 128] bf16 axes=B,D dist=randn'
+      b: '[32, 256, 64] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[32, 256, 1] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[32, 128, 1] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[16, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[128] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 0
+  P6:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 1536, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 1536, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 768, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P7:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 2048, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 2048, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 1024, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P8:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 256, 1] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 128, 1] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 256.0
+      apply_weight: 1
+  P9:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[96, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[96, 256, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[96, 128, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[384] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[96] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P10:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[128, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[128, 256, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[128, 128, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[512] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[128] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P11:
+    provenance: synthetic
+    tensors:
+      a: '[32, 1536] bf16 axes=B,D dist=randn'
+      b: '[8, 256, 768] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 256, 24] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 128, 24] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P12:
+    provenance: synthetic
+    tensors:
+      a: '[1, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[1, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P13:
+    provenance: synthetic
+    tensors:
+      a: '[2, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[2, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P14:
+    provenance: synthetic
+    tensors:
+      a: '[3, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[3, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P15:
+    provenance: synthetic
+    tensors:
+      a: '[4, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[4, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P16:
+    provenance: synthetic
+    tensors:
+      a: '[8, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P17:
+    provenance: synthetic
+    tensors:
+      a: '[16, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[16, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P18:
+    provenance: synthetic
+    tensors:
+      a: '[32, 128] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 64] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 1] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 1] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P19:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[1, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[1, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[1, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[4] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P20:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[2, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[2, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[2, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[8] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P21:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[3, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[3, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[3, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[12] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[3] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P22:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[4, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[4, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[4, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[16] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P23:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 512, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 256, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P24:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 256] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 256] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 1.0
+      apply_weight: 1
+  P25:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 128] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 128] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 2.0
+      apply_weight: 1
+  P26:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 64] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 64] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 4.0
+      apply_weight: 1
+  P27:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 32] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 32] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 8.0
+      apply_weight: 1
+  P28:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 16] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 16] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 16.0
+      apply_weight: 1
+  P29:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 8] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 8] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 32.0
+      apply_weight: 1
+  P30:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 512, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 512, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 256, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  P31:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 2, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 2, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 1, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P32:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 4, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 4, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 2, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P33:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 8, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 8, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 4, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P34:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 16, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 16, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 8, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P35:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 32, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 32, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 16, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P36:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 64, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 64, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 32, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P37:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 96, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 96, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 48, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P38:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 128, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 128, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 64, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P39:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 192, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 192, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 96, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P40:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 256, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 128, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  P41:
+    provenance: synthetic
+    tensors:
+      a: '[32, 256] bf16 axes=B,D dist=randn'
+      b: '[16, 384, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[16, 384, 2] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[16, 192, 2] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[32, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[64] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  H1:
+    provenance: synthetic
+    tensors:
+      a: '[48, 192] bf16 axes=B,D dist=randn'
+      b: '[6, 128, 96] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[6, 128, 3] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[6, 64, 3] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[48, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[24] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[6] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1
+  H2:
+    provenance: edge
+    tensors:
+      a: '[4, 64] bf16 axes=B,D dist=randn'
+      b: '[2, 64, 32] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[2, 64, 1] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[2, 32, 1] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[4, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[8] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 0
+  H3:
+    provenance: synthetic
+    tensors:
+      a: '[8, 1024] bf16 axes=B,D dist=randn'
+      b: '[8, 1024, 512] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 1024, 8] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 512, 8] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[8, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 1
+  H4:
+    provenance: synthetic
+    tensors:
+      a: '[64, 128] bf16 axes=B,D dist=randn'
+      b: '[64, 128, 64] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[64, 128, 1] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[64, 64, 1] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[64, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[256] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[64] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 128.0
+      apply_weight: 0
+  H5:
+    provenance: edge
+    tensors:
+      a: '[1, 256] bf16 axes=B,D dist=randn'
+      b: '[8, 256, 128] int32 axes=E,N,D//2 dist=randint(lo=0, hi=256)'
+      b_scale: '[8, 256, 4] float32 axes=E,N,D//GS dist=rand'
+      b_zp: '[8, 128, 4] int32 axes=E,N//2,D//GS dist=randint(lo=0, hi=256)'
+      topk_weights: '[1, 1] float32 axes=B,1 dist=rand'
+      sorted_token_ids: '[32] int64 axes=E*4 dist=moe_sorted_ids(B=B)'
+      expert_ids: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
+    params:
+      block_size: 4
+      group_size: 64.0
+      apply_weight: 1

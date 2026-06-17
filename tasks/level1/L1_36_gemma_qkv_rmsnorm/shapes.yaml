@@ -333,3 +333,389 @@ inputs:
     dims: [D]
     dtype: float32
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      q: '[8, 64] bf16 axes=M,QH*D dist=randn'
+      k: '[8, 32] bf16 axes=M,KVH*D dist=randn'
+      v: '[8, 32] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[32] float32 axes=D dist=randn'
+      k_weight: '[32] float32 axes=D dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      q: '[64, 256] bf16 axes=M,QH*D dist=randn'
+      k: '[64, 128] bf16 axes=M,KVH*D dist=randn'
+      v: '[64, 128] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[64] float32 axes=D dist=randn'
+      k_weight: '[64] float32 axes=D dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      q: '[256, 1024] bf16 axes=M,QH*D dist=randn'
+      k: '[256, 256] bf16 axes=M,KVH*D dist=randn'
+      v: '[256, 256] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      q: '[1024, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[1024, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[1024, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      q: '[32, 8192] bf16 axes=M,QH*D dist=randn'
+      k: '[32, 2048] bf16 axes=M,KVH*D dist=randn'
+      v: '[32, 2048] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[256] float32 axes=D dist=randn'
+      k_weight: '[256] float32 axes=D dist=randn'
+  P6:
+    provenance: synthetic
+    tensors:
+      q: '[128, 4608] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  P7:
+    provenance: synthetic
+    tensors:
+      q: '[128, 6144] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  P8:
+    provenance: synthetic
+    tensors:
+      q: '[1536, 768] bf16 axes=M,QH*D dist=randn'
+      k: '[1536, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[1536, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  P9:
+    provenance: synthetic
+    tensors:
+      q: '[2048, 768] bf16 axes=M,QH*D dist=randn'
+      k: '[2048, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[2048, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  P10:
+    provenance: synthetic
+    tensors:
+      q: '[128, 3072] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 1536] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 1536] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[384] float32 axes=D dist=randn'
+      k_weight: '[384] float32 axes=D dist=randn'
+  P11:
+    provenance: synthetic
+    tensors:
+      q: '[128, 4096] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 2048] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 2048] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[512] float32 axes=D dist=randn'
+      k_weight: '[512] float32 axes=D dist=randn'
+  P12:
+    provenance: synthetic
+    tensors:
+      q: '[128, 16] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 4] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 4] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[1] float32 axes=D dist=randn'
+      k_weight: '[1] float32 axes=D dist=randn'
+  P13:
+    provenance: synthetic
+    tensors:
+      q: '[128, 32] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 8] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 8] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[2] float32 axes=D dist=randn'
+      k_weight: '[2] float32 axes=D dist=randn'
+  P14:
+    provenance: synthetic
+    tensors:
+      q: '[128, 48] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 12] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 12] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[3] float32 axes=D dist=randn'
+      k_weight: '[3] float32 axes=D dist=randn'
+  P15:
+    provenance: synthetic
+    tensors:
+      q: '[128, 64] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 16] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 16] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[4] float32 axes=D dist=randn'
+      k_weight: '[4] float32 axes=D dist=randn'
+  P16:
+    provenance: synthetic
+    tensors:
+      q: '[128, 128] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 32] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 32] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[8] float32 axes=D dist=randn'
+      k_weight: '[8] float32 axes=D dist=randn'
+  P17:
+    provenance: synthetic
+    tensors:
+      q: '[128, 256] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 64] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 64] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[16] float32 axes=D dist=randn'
+      k_weight: '[16] float32 axes=D dist=randn'
+  P18:
+    provenance: synthetic
+    tensors:
+      q: '[128, 512] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 128] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 128] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[32] float32 axes=D dist=randn'
+      k_weight: '[32] float32 axes=D dist=randn'
+  P19:
+    provenance: synthetic
+    tensors:
+      q: '[128, 1024] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 256] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 256] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[64] float32 axes=D dist=randn'
+      k_weight: '[64] float32 axes=D dist=randn'
+  P20:
+    provenance: synthetic
+    tensors:
+      q: '[128, 1536] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  P21:
+    provenance: synthetic
+    tensors:
+      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 128] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 128] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P22:
+    provenance: synthetic
+    tensors:
+      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 256] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 256] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P23:
+    provenance: synthetic
+    tensors:
+      q: '[1, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[1, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[1, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P24:
+    provenance: synthetic
+    tensors:
+      q: '[2, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[2, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[2, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P25:
+    provenance: synthetic
+    tensors:
+      q: '[3, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[3, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[3, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P26:
+    provenance: synthetic
+    tensors:
+      q: '[4, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[4, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[4, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P27:
+    provenance: synthetic
+    tensors:
+      q: '[8, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[8, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[8, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P28:
+    provenance: synthetic
+    tensors:
+      q: '[16, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[16, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[16, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P29:
+    provenance: synthetic
+    tensors:
+      q: '[32, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[32, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[32, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P30:
+    provenance: synthetic
+    tensors:
+      q: '[64, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[64, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[64, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P31:
+    provenance: synthetic
+    tensors:
+      q: '[96, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[96, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[96, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P32:
+    provenance: synthetic
+    tensors:
+      q: '[128, 512] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P33:
+    provenance: synthetic
+    tensors:
+      q: '[128, 1024] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P34:
+    provenance: synthetic
+    tensors:
+      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P35:
+    provenance: synthetic
+    tensors:
+      q: '[128, 4096] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P36:
+    provenance: synthetic
+    tensors:
+      q: '[128, 8192] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P37:
+    provenance: synthetic
+    tensors:
+      q: '[128, 12288] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P38:
+    provenance: synthetic
+    tensors:
+      q: '[128, 16384] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P39:
+    provenance: synthetic
+    tensors:
+      q: '[128, 24576] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P40:
+    provenance: synthetic
+    tensors:
+      q: '[128, 32768] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  P41:
+    provenance: synthetic
+    tensors:
+      q: '[192, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[192, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[192, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      q: '[128, 768] bf16 axes=M,QH*D dist=randn'
+      k: '[128, 96] bf16 axes=M,KVH*D dist=randn'
+      v: '[128, 96] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  H2:
+    provenance: edge
+    tensors:
+      q: '[2, 64] bf16 axes=M,QH*D dist=randn'
+      k: '[2, 64] bf16 axes=M,KVH*D dist=randn'
+      v: '[2, 64] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[64] float32 axes=D dist=randn'
+      k_weight: '[64] float32 axes=D dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      q: '[512, 4096] bf16 axes=M,QH*D dist=randn'
+      k: '[512, 512] bf16 axes=M,KVH*D dist=randn'
+      v: '[512, 512] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[256] float32 axes=D dist=randn'
+      k_weight: '[256] float32 axes=D dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      q: '[64, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[64, 2048] bf16 axes=M,KVH*D dist=randn'
+      v: '[64, 2048] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'
+  H5:
+    provenance: edge
+    tensors:
+      q: '[1, 1] bf16 axes=M,QH*D dist=randn'
+      k: '[1, 1] bf16 axes=M,KVH*D dist=randn'
+      v: '[1, 1] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[1] float32 axes=D dist=randn'
+      k_weight: '[1] float32 axes=D dist=randn'
+  H6:
+    provenance: edge
+    tensors:
+      q: '[1, 768] bf16 axes=M,QH*D dist=randn'
+      k: '[1, 384] bf16 axes=M,KVH*D dist=randn'
+      v: '[1, 384] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[96] float32 axes=D dist=randn'
+      k_weight: '[96] float32 axes=D dist=randn'
+  H7:
+    provenance: edge
+    tensors:
+      q: '[8192, 2048] bf16 axes=M,QH*D dist=randn'
+      k: '[8192, 128] bf16 axes=M,KVH*D dist=randn'
+      v: '[8192, 128] bf16 axes=M,KVH*D dist=randn'
+      q_weight: '[128] float32 axes=D dist=randn'
+      k_weight: '[128] float32 axes=D dist=randn'

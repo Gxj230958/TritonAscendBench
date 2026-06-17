@@ -154,3 +154,245 @@ inputs:
     scalar: 128
   fp8_max:
     scalar: 448.0
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      k_nope: '[4, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[4, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P2:
+    provenance: baseline
+    tensors:
+      k_nope: '[16, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[16, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P3:
+    provenance: baseline
+    tensors:
+      k_nope: '[64, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[64, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P4:
+    provenance: baseline
+    tensors:
+      k_nope: '[256, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[256, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P5:
+    provenance: synthetic
+    tensors:
+      k_nope: '[1024, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[1024, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P6:
+    provenance: synthetic
+    tensors:
+      k_nope: '[3072, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[3072, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P7:
+    provenance: synthetic
+    tensors:
+      k_nope: '[4096, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[4096, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P8:
+    provenance: synthetic
+    tensors:
+      k_nope: '[2, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[2, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P9:
+    provenance: synthetic
+    tensors:
+      k_nope: '[3, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[3, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P10:
+    provenance: synthetic
+    tensors:
+      k_nope: '[8, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[8, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P11:
+    provenance: synthetic
+    tensors:
+      k_nope: '[32, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[32, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P12:
+    provenance: synthetic
+    tensors:
+      k_nope: '[96, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[96, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P13:
+    provenance: synthetic
+    tensors:
+      k_nope: '[128, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[128, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P14:
+    provenance: synthetic
+    tensors:
+      k_nope: '[192, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[192, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P15:
+    provenance: synthetic
+    tensors:
+      k_nope: '[384, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[384, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P16:
+    provenance: synthetic
+    tensors:
+      k_nope: '[640, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[640, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P17:
+    provenance: synthetic
+    tensors:
+      k_nope: '[768, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[768, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P18:
+    provenance: synthetic
+    tensors:
+      k_nope: '[1280, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[1280, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P19:
+    provenance: synthetic
+    tensors:
+      k_nope: '[1536, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[1536, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P20:
+    provenance: synthetic
+    tensors:
+      k_nope: '[2560, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[2560, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P21:
+    provenance: synthetic
+    tensors:
+      k_nope: '[3584, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[3584, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P22:
+    provenance: synthetic
+    tensors:
+      k_nope: '[5120, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[5120, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P23:
+    provenance: synthetic
+    tensors:
+      k_nope: '[6144, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[6144, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P24:
+    provenance: synthetic
+    tensors:
+      k_nope: '[8192, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[8192, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P25:
+    provenance: synthetic
+    tensors:
+      k_nope: '[12288, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[12288, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  P26:
+    provenance: synthetic
+    tensors:
+      k_nope: '[16384, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[16384, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H1:
+    provenance: edge
+    tensors:
+      k_nope: '[1, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[1, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H2:
+    provenance: synthetic
+    tensors:
+      k_nope: '[37, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[37, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H3:
+    provenance: synthetic
+    tensors:
+      k_nope: '[2048, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[2048, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0
+  H4:
+    provenance: synthetic
+    tensors:
+      k_nope: '[512, 512] bfloat16 axes=B,512 dist=randn'
+      k_rope: '[512, 64] bfloat16 axes=B,64 dist=randn'
+    params:
+      group_size: 128
+      fp8_max: 448.0

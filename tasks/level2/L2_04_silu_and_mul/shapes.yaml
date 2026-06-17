@@ -162,3 +162,61 @@ inputs:
     - 2*D
     dtype: bfloat16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      hidden_states: '[8, 128] bfloat16 axes=B,2*D dist=randn'
+  P2:
+    provenance: baseline
+    tensors:
+      hidden_states: '[64, 512] bfloat16 axes=B,2*D dist=randn'
+  P3:
+    provenance: baseline
+    tensors:
+      hidden_states: '[512, 2048] bfloat16 axes=B,2*D dist=randn'
+  P4:
+    provenance: baseline
+    tensors:
+      hidden_states: '[2048, 8192] bfloat16 axes=B,2*D dist=randn'
+  P5:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[16, 16384] bfloat16 axes=B,2*D dist=randn'
+  P6:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[1, 65536] bfloat16 axes=B,2*D dist=randn'
+  P7:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[6144, 2048] bfloat16 axes=B,2*D dist=randn'
+  P8:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[8192, 2048] bfloat16 axes=B,2*D dist=randn'
+  H1:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[384, 768] bfloat16 axes=B,2*D dist=randn'
+  H2:
+    provenance: edge
+    tensors:
+      hidden_states: '[2, 32] bfloat16 axes=B,2*D dist=randn'
+  H3:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[2, 32768] bfloat16 axes=B,2*D dist=randn'
+  H4:
+    provenance: synthetic
+    tensors:
+      hidden_states: '[4096, 128] bfloat16 axes=B,2*D dist=randn'
+  H5:
+    provenance: edge
+    tensors:
+      hidden_states: '[1, 8] bfloat16 axes=B,2*D dist=randn'
+  H6:
+    provenance: edge
+    tensors:
+      hidden_states: '[1, 2048] bfloat16 axes=B,2*D dist=randn'

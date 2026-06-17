@@ -347,3 +347,348 @@ inputs:
     dist: randint:-1:D
   page_size:
     scalar: 1
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      page_table: '[2, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P2:
+    provenance: baseline
+    tensors:
+      page_table: '[4, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[4, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P3:
+    provenance: baseline
+    tensors:
+      page_table: '[8, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P4:
+    provenance: baseline
+    tensors:
+      page_table: '[16, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[16, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P5:
+    provenance: synthetic
+    tensors:
+      page_table: '[2, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P6:
+    provenance: synthetic
+    tensors:
+      page_table: '[1, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P7:
+    provenance: synthetic
+    tensors:
+      page_table: '[48, 384] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[48, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P8:
+    provenance: synthetic
+    tensors:
+      page_table: '[64, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[64, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P9:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 384] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P10:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P11:
+    provenance: synthetic
+    tensors:
+      page_table: '[48, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[48, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P12:
+    provenance: synthetic
+    tensors:
+      page_table: '[3, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[3, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P13:
+    provenance: synthetic
+    tensors:
+      page_table: '[4, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[4, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P14:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 1] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P15:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 2] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P16:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 3] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P17:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 4] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P18:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 8] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P19:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 16] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P20:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P21:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P22:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 96] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P23:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 192] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P24:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P25:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 640] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P26:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 768] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P27:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 1024] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P28:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 1280] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P29:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 1536] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P30:
+    provenance: synthetic
+    tensors:
+      page_table: '[8, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P31:
+    provenance: synthetic
+    tensors:
+      page_table: '[16, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[16, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P32:
+    provenance: synthetic
+    tensors:
+      page_table: '[32, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[32, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P33:
+    provenance: synthetic
+    tensors:
+      page_table: '[64, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[64, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P34:
+    provenance: synthetic
+    tensors:
+      page_table: '[96, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[96, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P35:
+    provenance: synthetic
+    tensors:
+      page_table: '[128, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[128, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P36:
+    provenance: synthetic
+    tensors:
+      page_table: '[192, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[192, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P37:
+    provenance: synthetic
+    tensors:
+      page_table: '[256, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[256, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P38:
+    provenance: synthetic
+    tensors:
+      page_table: '[1, 2] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P39:
+    provenance: synthetic
+    tensors:
+      page_table: '[1, 16] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P40:
+    provenance: synthetic
+    tensors:
+      page_table: '[2, 192] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  P41:
+    provenance: synthetic
+    tensors:
+      page_table: '[2, 1536] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H1:
+    provenance: synthetic
+    tensors:
+      page_table: '[3, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[3, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H2:
+    provenance: edge
+    tensors:
+      page_table: '[2, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H3:
+    provenance: synthetic
+    tensors:
+      page_table: '[2, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H4:
+    provenance: synthetic
+    tensors:
+      page_table: '[32, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[32, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H5:
+    provenance: edge
+    tensors:
+      page_table: '[1, 1] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H6:
+    provenance: edge
+    tensors:
+      page_table: '[1, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H7:
+    provenance: edge
+    tensors:
+      page_table: '[1, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1
+  H8:
+    provenance: edge
+    tensors:
+      page_table: '[256, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
+      topk_indices: '[256, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
+    params:
+      page_size: 1

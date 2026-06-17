@@ -283,3 +283,255 @@ inputs:
     - B
     dtype: int64
     dist: randint:0:C
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[4, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[4] int64 axes=B dist=randint(lo=0, hi=C)'
+  P2:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
+  P3:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[32] int64 axes=B dist=randint(lo=0, hi=C)'
+  P4:
+    provenance: baseline
+    tensors:
+      quant_k_cache: '[32, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[64] int64 axes=B dist=randint(lo=0, hi=C)'
+  P5:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
+  P6:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[96, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
+  P7:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
+  P8:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[128, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
+  P9:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[96, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P10:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[128, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P11:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
+  P12:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
+  P13:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[2] int64 axes=B dist=randint(lo=0, hi=C)'
+  P14:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[3] int64 axes=B dist=randint(lo=0, hi=C)'
+  P15:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[4] int64 axes=B dist=randint(lo=0, hi=C)'
+  P16:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
+  P17:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[2, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P18:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[3, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P19:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P20:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P21:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[32, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P22:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P23:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[192, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P24:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[256, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P25:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[384, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P26:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  P27:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[64] int64 axes=B dist=randint(lo=0, hi=C)'
+  P28:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[96] int64 axes=B dist=randint(lo=0, hi=C)'
+  P29:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[128] int64 axes=B dist=randint(lo=0, hi=C)'
+  P30:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[192] int64 axes=B dist=randint(lo=0, hi=C)'
+  P31:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[256] int64 axes=B dist=randint(lo=0, hi=C)'
+  P32:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
+  P33:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
+  P34:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[640] int64 axes=B dist=randint(lo=0, hi=C)'
+  P35:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[768] int64 axes=B dist=randint(lo=0, hi=C)'
+  P36:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1024] int64 axes=B dist=randint(lo=0, hi=C)'
+  P37:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1280] int64 axes=B dist=randint(lo=0, hi=C)'
+  P38:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1536] int64 axes=B dist=randint(lo=0, hi=C)'
+  P39:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'
+  P40:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[2, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
+  P41:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[256, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
+  H1:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[6, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[13] int64 axes=B dist=randint(lo=0, hi=C)'
+  H2:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[3, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[3] int64 axes=B dist=randint(lo=0, hi=C)'
+  H3:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[256] int64 axes=B dist=randint(lo=0, hi=C)'
+  H4:
+    provenance: synthetic
+    tensors:
+      quant_k_cache: '[4, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  H5:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
+  H6:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
+  H7:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
+  H8:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'
+  H9:
+    provenance: edge
+    tensors:
+      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
+      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'

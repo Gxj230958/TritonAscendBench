@@ -443,3 +443,357 @@ inputs:
     scalar: 0
   is_lse_base_on_e:
     scalar_knob: LSEB
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      out: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
+      lses: '[4, 2, 4] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 0
+  P2:
+    provenance: baseline
+    tensors:
+      out: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 4, 8] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P3:
+    provenance: baseline
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[16, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 0
+  P4:
+    provenance: baseline
+    tensors:
+      out: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
+      lses: '[32, 16, 32] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P5:
+    provenance: synthetic
+    tensors:
+      out: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 2, 64] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 0
+  P6:
+    provenance: synthetic
+    tensors:
+      out: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 96] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P7:
+    provenance: synthetic
+    tensors:
+      out: '[8, 128, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 128] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P8:
+    provenance: synthetic
+    tensors:
+      out: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[64, 8, 12] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P10:
+    provenance: synthetic
+    tensors:
+      out: '[8, 12, 512] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 12] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P11:
+    provenance: synthetic
+    tensors:
+      out: '[48, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 48, 12] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P12:
+    provenance: synthetic
+    tensors:
+      out: '[1, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 1, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P13:
+    provenance: synthetic
+    tensors:
+      out: '[2, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 2, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P14:
+    provenance: synthetic
+    tensors:
+      out: '[3, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 3, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P15:
+    provenance: synthetic
+    tensors:
+      out: '[4, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 4, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P16:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 1] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P17:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 2] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P19:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 4] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P20:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 8] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P21:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 16] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P22:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 32] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P23:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 64] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P25:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[1, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P26:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[2, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P27:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[4, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P28:
+    provenance: synthetic
+    tensors:
+      out: '[8, 1, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 1] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P29:
+    provenance: synthetic
+    tensors:
+      out: '[8, 2, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 2] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P30:
+    provenance: synthetic
+    tensors:
+      out: '[8, 3, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 3] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P31:
+    provenance: synthetic
+    tensors:
+      out: '[8, 4, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 4] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P32:
+    provenance: synthetic
+    tensors:
+      out: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 8] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P33:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P34:
+    provenance: synthetic
+    tensors:
+      out: '[8, 32, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 32] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P35:
+    provenance: synthetic
+    tensors:
+      out: '[8, 64, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 64] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P36:
+    provenance: synthetic
+    tensors:
+      out: '[8, 192, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 192] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P37:
+    provenance: synthetic
+    tensors:
+      out: '[8, 256, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 256] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P38:
+    provenance: synthetic
+    tensors:
+      out: '[8, 384, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 384] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P39:
+    provenance: synthetic
+    tensors:
+      out: '[8, 512, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 8, 512] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P40:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[16, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  P41:
+    provenance: synthetic
+    tensors:
+      out: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[32, 8, 16] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  H1:
+    provenance: synthetic
+    tensors:
+      out: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 3, 12] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  H2:
+    provenance: edge
+    tensors:
+      out: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
+      lses: '[2, 2, 2] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 0
+  H3:
+    provenance: synthetic
+    tensors:
+      out: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
+      lses: '[16, 2, 8] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  H4:
+    provenance: synthetic
+    tensors:
+      out: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 32, 8] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 0
+  H5:
+    provenance: edge
+    tensors:
+      out: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
+      lses: '[1, 1, 1] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1
+  H6:
+    provenance: edge
+    tensors:
+      out: '[1, 12, 128] bfloat16 axes=B,H,D dist=randn'
+      lses: '[8, 1, 12] float32 axes=E,B,H dist=randn'
+    params:
+      cp_rank: 0
+      is_lse_base_on_e: 1

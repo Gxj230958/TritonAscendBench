@@ -475,3 +475,299 @@ inputs:
     - B
     dtype: int64
     dist: cumcount:to=C-1
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      states: '[4, 4, 32] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[4, 4, 16] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[2] int64 axes=B dist=cumcount(to=C-1)'
+  P2:
+    provenance: baseline
+    tensors:
+      states: '[8, 8, 64] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 8, 64] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[4] int64 axes=B dist=cumcount(to=C-1)'
+  P3:
+    provenance: baseline
+    tensors:
+      states: '[16, 16, 128] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[16, 16, 128] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P4:
+    provenance: baseline
+    tensors:
+      states: '[32, 32, 256] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[32, 32, 256] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[16] int64 axes=B dist=cumcount(to=C-1)'
+  P5:
+    provenance: synthetic
+    tensors:
+      states: '[8, 8, 128] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 8, 32] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[2] int64 axes=B dist=cumcount(to=C-1)'
+  P6:
+    provenance: synthetic
+    tensors:
+      states: '[96, 48, 384] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[48, 96, 768] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[48] int64 axes=B dist=cumcount(to=C-1)'
+  P7:
+    provenance: synthetic
+    tensors:
+      states: '[1, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 1, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[64] int64 axes=B dist=cumcount(to=C-1)'
+  P8:
+    provenance: synthetic
+    tensors:
+      states: '[128, 64, 512] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[64, 128, 1024] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[64] int64 axes=B dist=cumcount(to=C-1)'
+  P9:
+    provenance: synthetic
+    tensors:
+      states: '[12, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 12, 768] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P10:
+    provenance: synthetic
+    tensors:
+      states: '[12, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 12, 1024] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P11:
+    provenance: synthetic
+    tensors:
+      states: '[12, 48, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[48, 12, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P12:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[1] int64 axes=B dist=cumcount(to=C-1)'
+  P13:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[2] int64 axes=B dist=cumcount(to=C-1)'
+  P14:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[3] int64 axes=B dist=cumcount(to=C-1)'
+  P15:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[4] int64 axes=B dist=cumcount(to=C-1)'
+  P16:
+    provenance: synthetic
+    tensors:
+      states: '[2, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 2, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P17:
+    provenance: synthetic
+    tensors:
+      states: '[3, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 3, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P18:
+    provenance: synthetic
+    tensors:
+      states: '[4, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 4, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P19:
+    provenance: synthetic
+    tensors:
+      states: '[8, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 8, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P20:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 1] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P21:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 2] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P22:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 3] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P23:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 4] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P24:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 8] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P25:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 16] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P26:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 32] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P27:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 64] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P28:
+    provenance: synthetic
+    tensors:
+      states: '[16, 1, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[1, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P29:
+    provenance: synthetic
+    tensors:
+      states: '[16, 2, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[2, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P30:
+    provenance: synthetic
+    tensors:
+      states: '[16, 3, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[3, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P31:
+    provenance: synthetic
+    tensors:
+      states: '[16, 4, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[4, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P32:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 1] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P33:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 2] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P34:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 3] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P35:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 4] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P36:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 8] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P37:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 16] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P38:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 32] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P39:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 64] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P40:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  P41:
+    provenance: synthetic
+    tensors:
+      states: '[16, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 16, 128] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  H1:
+    provenance: synthetic
+    tensors:
+      states: '[12, 6, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[6, 12, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[3] int64 axes=B dist=cumcount(to=C-1)'
+  H2:
+    provenance: edge
+    tensors:
+      states: '[2, 2, 16] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[2, 2, 8] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[2] int64 axes=B dist=cumcount(to=C-1)'
+  H3:
+    provenance: synthetic
+    tensors:
+      states: '[64, 8, 256] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 64, 512] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[2] int64 axes=B dist=cumcount(to=C-1)'
+  H4:
+    provenance: synthetic
+    tensors:
+      states: '[8, 8, 64] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 8, 16] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[32] int64 axes=B dist=cumcount(to=C-1)'
+  H5:
+    provenance: edge
+    tensors:
+      states: '[1, 1, 1] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[1, 1, 1] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[1] int64 axes=B dist=cumcount(to=C-1)'
+  H6:
+    provenance: edge
+    tensors:
+      states: '[1, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 1, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[8] int64 axes=B dist=cumcount(to=C-1)'
+  H7:
+    provenance: edge
+    tensors:
+      states: '[512, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 512, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[1] int64 axes=B dist=cumcount(to=C-1)'
+  H8:
+    provenance: edge
+    tensors:
+      states: '[1, 8, 96] float32 axes=C,H,D dist=randn'
+      dA_cumsum: '[8, 1, 96] float32 axes=H,C,T dist=rand'
+      last_chunk_indices: '[256] int64 axes=B dist=cumcount(to=C-1)'

@@ -490,3 +490,428 @@ inputs:
     scalar: 16
   head_first:
     scalar: false
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      g: '[1, 33, 4, 32] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 0
+      chunk_size: 16
+      head_first: false
+  P2:
+    provenance: baseline
+    tensors:
+      g: '[1, 257, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P3:
+    provenance: baseline
+    tensors:
+      g: '[1, 1025, 16, 128] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 0
+      chunk_size: 16
+      head_first: false
+  P4:
+    provenance: baseline
+    tensors:
+      g: '[1, 4097, 32, 256] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[17] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P5:
+    provenance: synthetic
+    tensors:
+      g: '[1, 129, 8, 128] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 0
+      chunk_size: 16
+      head_first: false
+  P6:
+    provenance: synthetic
+    tensors:
+      g: '[1, 6145, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P7:
+    provenance: synthetic
+    tensors:
+      g: '[1, 8193, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P8:
+    provenance: synthetic
+    tensors:
+      g: '[1, 769, 48, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P9:
+    provenance: synthetic
+    tensors:
+      g: '[1, 769, 64, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P10:
+    provenance: synthetic
+    tensors:
+      g: '[1, 769, 8, 384] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P11:
+    provenance: synthetic
+    tensors:
+      g: '[1, 769, 8, 512] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P12:
+    provenance: synthetic
+    tensors:
+      g: '[1, 129, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P13:
+    provenance: synthetic
+    tensors:
+      g: '[1, 257, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P14:
+    provenance: synthetic
+    tensors:
+      g: '[1, 385, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P15:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 1] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P16:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 2] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P17:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 3] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P18:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 4] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P19:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 8] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P20:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 16] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P21:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 32] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P22:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P23:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 1, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P24:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 2, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P25:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 3, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P26:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 4, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P27:
+    provenance: synthetic
+    tensors:
+      g: '[1, 65, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P28:
+    provenance: synthetic
+    tensors:
+      g: '[1, 129, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P29:
+    provenance: synthetic
+    tensors:
+      g: '[1, 193, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P30:
+    provenance: synthetic
+    tensors:
+      g: '[1, 257, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P31:
+    provenance: synthetic
+    tensors:
+      g: '[1, 385, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P32:
+    provenance: synthetic
+    tensors:
+      g: '[1, 513, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P33:
+    provenance: synthetic
+    tensors:
+      g: '[1, 769, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P34:
+    provenance: synthetic
+    tensors:
+      g: '[1, 1025, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P35:
+    provenance: synthetic
+    tensors:
+      g: '[1, 1537, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P36:
+    provenance: synthetic
+    tensors:
+      g: '[1, 2049, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P37:
+    provenance: synthetic
+    tensors:
+      g: '[1, 2561, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P38:
+    provenance: synthetic
+    tensors:
+      g: '[1, 3073, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P39:
+    provenance: synthetic
+    tensors:
+      g: '[1, 4097, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P40:
+    provenance: synthetic
+    tensors:
+      g: '[1, 5121, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  P41:
+    provenance: synthetic
+    tensors:
+      g: '[1, 6145, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  H1:
+    provenance: synthetic
+    tensors:
+      g: '[1, 289, 6, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  H2:
+    provenance: edge
+    tensors:
+      g: '[1, 33, 2, 16] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 0
+      chunk_size: 16
+      head_first: false
+  H3:
+    provenance: synthetic
+    tensors:
+      g: '[1, 1025, 8, 256] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  H4:
+    provenance: synthetic
+    tensors:
+      g: '[1, 1025, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[33] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 0
+      chunk_size: 16
+      head_first: false
+  H5:
+    provenance: edge
+    tensors:
+      g: '[1, 17, 1, 1] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false
+  H6:
+    provenance: edge
+    tensors:
+      g: '[1, 97, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
+      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
+    params:
+      reverse: 1
+      chunk_size: 16
+      head_first: false

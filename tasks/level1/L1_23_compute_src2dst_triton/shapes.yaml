@@ -374,3 +374,445 @@ inputs:
     - D
     dtype: float16
     dist: randn
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      reorder_ids: '[8] int64 axes=B dist=randperm'
+      masked_m: '[8, 64] bool axes=B,N dist=randn'
+      input_tensor: '[8, 64, 64] float16 axes=B,N,D dist=randn'
+      recv_x: '[8, 64, 64] float16 axes=B,N,D dist=randn'
+      x: '[8, 64, 64] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 8
+  P2:
+    provenance: baseline
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 256] bool axes=B,N dist=randn'
+      input_tensor: '[32, 256, 256] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 256, 256] float16 axes=B,N,D dist=randn'
+      x: '[32, 256, 256] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P3:
+    provenance: baseline
+    tensors:
+      reorder_ids: '[128] int64 axes=B dist=randperm'
+      masked_m: '[128, 1024] bool axes=B,N dist=randn'
+      input_tensor: '[128, 1024, 1024] float16 axes=B,N,D dist=randn'
+      recv_x: '[128, 1024, 1024] float16 axes=B,N,D dist=randn'
+      x: '[128, 1024, 1024] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 128
+  P4:
+    provenance: baseline
+    tensors:
+      reorder_ids: '[256] int64 axes=B dist=randperm'
+      masked_m: '[256, 2048] bool axes=B,N dist=randn'
+      input_tensor: '[256, 2048, 2048] float16 axes=B,N,D dist=randn'
+      recv_x: '[256, 2048, 2048] float16 axes=B,N,D dist=randn'
+      x: '[256, 2048, 2048] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 256
+  P5:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[8] int64 axes=B dist=randperm'
+      masked_m: '[8, 512] bool axes=B,N dist=randn'
+      input_tensor: '[8, 512, 512] float16 axes=B,N,D dist=randn'
+      recv_x: '[8, 512, 512] float16 axes=B,N,D dist=randn'
+      x: '[8, 512, 512] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 8
+  P6:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[1] int64 axes=B dist=randperm'
+      masked_m: '[1, 384] bool axes=B,N dist=randn'
+      input_tensor: '[1, 384, 8192] float16 axes=B,N,D dist=randn'
+      recv_x: '[1, 384, 8192] float16 axes=B,N,D dist=randn'
+      x: '[1, 384, 8192] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 1
+  P7:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[2] int64 axes=B dist=randperm'
+      masked_m: '[2, 384] bool axes=B,N dist=randn'
+      input_tensor: '[2, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[2, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[2, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 2
+  P8:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[3] int64 axes=B dist=randperm'
+      masked_m: '[3, 384] bool axes=B,N dist=randn'
+      input_tensor: '[3, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[3, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[3, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 3
+  P9:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[4] int64 axes=B dist=randperm'
+      masked_m: '[4, 384] bool axes=B,N dist=randn'
+      input_tensor: '[4, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[4, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[4, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 4
+  P10:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[8] int64 axes=B dist=randperm'
+      masked_m: '[8, 384] bool axes=B,N dist=randn'
+      input_tensor: '[8, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[8, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[8, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 8
+  P11:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[16] int64 axes=B dist=randperm'
+      masked_m: '[16, 384] bool axes=B,N dist=randn'
+      input_tensor: '[16, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[16, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[16, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 16
+  P12:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 1] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 1] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 1] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P13:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 2] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 2] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 2] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P14:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 3] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 3] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 3] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P15:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 4] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 4] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 4] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P16:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 8] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 8] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 8] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P17:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 16] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 16] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 16] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P18:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 32] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 32] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 32] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P19:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 64] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 64] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 64] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P20:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 96] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 96] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 96] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P21:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 128] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 128] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 128] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P22:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 192] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 192] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 192] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P23:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 256] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 256] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 256] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P24:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 1] bool axes=B,N dist=randn'
+      input_tensor: '[32, 1, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 1, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 1, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P25:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 2] bool axes=B,N dist=randn'
+      input_tensor: '[32, 2, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 2, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 2, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P26:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 3] bool axes=B,N dist=randn'
+      input_tensor: '[32, 3, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 3, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 3, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P27:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 4] bool axes=B,N dist=randn'
+      input_tensor: '[32, 4, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 4, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 4, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P28:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 8] bool axes=B,N dist=randn'
+      input_tensor: '[32, 8, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 8, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 8, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P29:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 16] bool axes=B,N dist=randn'
+      input_tensor: '[32, 16, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 16, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 16, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P30:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 32] bool axes=B,N dist=randn'
+      input_tensor: '[32, 32, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 32, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 32, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P31:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 64] bool axes=B,N dist=randn'
+      input_tensor: '[32, 64, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 64, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 64, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P32:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 96] bool axes=B,N dist=randn'
+      input_tensor: '[32, 96, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 96, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 96, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P33:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 128] bool axes=B,N dist=randn'
+      input_tensor: '[32, 128, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 128, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 128, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P34:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 192] bool axes=B,N dist=randn'
+      input_tensor: '[32, 192, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 192, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 192, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P35:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 256] bool axes=B,N dist=randn'
+      input_tensor: '[32, 256, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 256, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 256, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  P36:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[32] int64 axes=B dist=randperm'
+      masked_m: '[32, 384] bool axes=B,N dist=randn'
+      input_tensor: '[32, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[32, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[32, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 32
+  H1:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[96] int64 axes=B dist=randperm'
+      masked_m: '[96, 384] bool axes=B,N dist=randn'
+      input_tensor: '[96, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[96, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[96, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 96
+  H2:
+    provenance: edge
+    tensors:
+      reorder_ids: '[2] int64 axes=B dist=randperm'
+      masked_m: '[2, 8] bool axes=B,N dist=randn'
+      input_tensor: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+      recv_x: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+      x: '[2, 8, 16] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 2
+  H3:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[4] int64 axes=B dist=randperm'
+      masked_m: '[4, 4096] bool axes=B,N dist=randn'
+      input_tensor: '[4, 4096, 4096] float16 axes=B,N,D dist=randn'
+      recv_x: '[4, 4096, 4096] float16 axes=B,N,D dist=randn'
+      x: '[4, 4096, 4096] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 4
+  H4:
+    provenance: synthetic
+    tensors:
+      reorder_ids: '[512] int64 axes=B dist=randperm'
+      masked_m: '[512, 128] bool axes=B,N dist=randn'
+      input_tensor: '[512, 128, 128] float16 axes=B,N,D dist=randn'
+      recv_x: '[512, 128, 128] float16 axes=B,N,D dist=randn'
+      x: '[512, 128, 128] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 512
+  H5:
+    provenance: edge
+    tensors:
+      reorder_ids: '[1] int64 axes=B dist=randperm'
+      masked_m: '[1, 1] bool axes=B,N dist=randn'
+      input_tensor: '[1, 1, 1] float16 axes=B,N,D dist=randn'
+      recv_x: '[1, 1, 1] float16 axes=B,N,D dist=randn'
+      x: '[1, 1, 1] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 1
+  H6:
+    provenance: edge
+    tensors:
+      reorder_ids: '[1] int64 axes=B dist=randperm'
+      masked_m: '[1, 384] bool axes=B,N dist=randn'
+      input_tensor: '[1, 384, 384] float16 axes=B,N,D dist=randn'
+      recv_x: '[1, 384, 384] float16 axes=B,N,D dist=randn'
+      x: '[1, 384, 384] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 1
+  H7:
+    provenance: edge
+    tensors:
+      reorder_ids: '[1] int64 axes=B dist=randperm'
+      masked_m: '[1, 384] bool axes=B,N dist=randn'
+      input_tensor: '[1, 384, 32768] float16 axes=B,N,D dist=randn'
+      recv_x: '[1, 384, 32768] float16 axes=B,N,D dist=randn'
+      x: '[1, 384, 32768] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 1
+  H8:
+    provenance: edge
+    tensors:
+      reorder_ids: '[2048] int64 axes=B dist=randperm'
+      masked_m: '[2048, 384] bool axes=B,N dist=randn'
+      input_tensor: '[2048, 384, 1] float16 axes=B,N,D dist=randn'
+      recv_x: '[2048, 384, 1] float16 axes=B,N,D dist=randn'
+      x: '[2048, 384, 1] float16 axes=B,N,D dist=randn'
+    params:
+      num_toks: 2048

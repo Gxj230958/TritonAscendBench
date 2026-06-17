@@ -342,3 +342,325 @@ inputs:
     dist: randn
   activation:
     scalar: silu
+
+explicit_view:
+  P1:
+    provenance: baseline
+    tensors:
+      x: '[64, 32] bfloat16 axes=D,L dist=randn'
+      weight: '[64, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[64] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P2:
+    provenance: baseline
+    tensors:
+      x: '[256, 128] bfloat16 axes=D,L dist=randn'
+      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[256] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P3:
+    provenance: baseline
+    tensors:
+      x: '[512, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[512, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[512] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P4:
+    provenance: baseline
+    tensors:
+      x: '[1024, 2048] bfloat16 axes=D,L dist=randn'
+      weight: '[1024, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[1024] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P5:
+    provenance: synthetic
+    tensors:
+      x: '[2048, 256] bfloat16 axes=D,L dist=randn'
+      weight: '[2048, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[2048] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P7:
+    provenance: synthetic
+    tensors:
+      x: '[384, 6144] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P8:
+    provenance: synthetic
+    tensors:
+      x: '[384, 8192] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P11:
+    provenance: synthetic
+    tensors:
+      x: '[3072, 384] bfloat16 axes=D,L dist=randn'
+      weight: '[3072, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[3072] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P13:
+    provenance: synthetic
+    tensors:
+      x: '[2, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[2, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[2] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P14:
+    provenance: synthetic
+    tensors:
+      x: '[3, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[3, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[3] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P15:
+    provenance: synthetic
+    tensors:
+      x: '[4, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[4, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[4] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P16:
+    provenance: synthetic
+    tensors:
+      x: '[8, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[8, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[8] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P17:
+    provenance: synthetic
+    tensors:
+      x: '[16, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[16, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[16] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P18:
+    provenance: synthetic
+    tensors:
+      x: '[32, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[32, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[32] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P19:
+    provenance: synthetic
+    tensors:
+      x: '[64, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[64, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[64] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P20:
+    provenance: synthetic
+    tensors:
+      x: '[96, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[96, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[96] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P21:
+    provenance: synthetic
+    tensors:
+      x: '[128, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[128, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[128] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P22:
+    provenance: synthetic
+    tensors:
+      x: '[192, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[192, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[192] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P23:
+    provenance: synthetic
+    tensors:
+      x: '[256, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[256] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P25:
+    provenance: synthetic
+    tensors:
+      x: '[384, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 2] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P26:
+    provenance: synthetic
+    tensors:
+      x: '[384, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P27:
+    provenance: synthetic
+    tensors:
+      x: '[384, 1] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P28:
+    provenance: synthetic
+    tensors:
+      x: '[384, 2] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P29:
+    provenance: synthetic
+    tensors:
+      x: '[384, 3] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P30:
+    provenance: synthetic
+    tensors:
+      x: '[384, 4] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P31:
+    provenance: synthetic
+    tensors:
+      x: '[384, 8] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P32:
+    provenance: synthetic
+    tensors:
+      x: '[384, 16] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P33:
+    provenance: synthetic
+    tensors:
+      x: '[384, 32] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P34:
+    provenance: synthetic
+    tensors:
+      x: '[384, 64] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P35:
+    provenance: synthetic
+    tensors:
+      x: '[384, 96] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P36:
+    provenance: synthetic
+    tensors:
+      x: '[384, 128] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P37:
+    provenance: synthetic
+    tensors:
+      x: '[384, 192] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P38:
+    provenance: synthetic
+    tensors:
+      x: '[384, 256] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P39:
+    provenance: synthetic
+    tensors:
+      x: '[384, 512] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P40:
+    provenance: synthetic
+    tensors:
+      x: '[384, 640] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  P41:
+    provenance: synthetic
+    tensors:
+      x: '[384, 768] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  H1:
+    provenance: synthetic
+    tensors:
+      x: '[384, 384] bfloat16 axes=D,L dist=randn'
+      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[384] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  H2:
+    provenance: edge
+    tensors:
+      x: '[16, 8] bfloat16 axes=D,L dist=randn'
+      weight: '[16, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[16] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  H3:
+    provenance: synthetic
+    tensors:
+      x: '[256, 4096] bfloat16 axes=D,L dist=randn'
+      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[256] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
+  H4:
+    provenance: synthetic
+    tensors:
+      x: '[128, 32] bfloat16 axes=D,L dist=randn'
+      weight: '[128, 4] bfloat16 axes=D,KW dist=randn'
+      bias: '[128] bfloat16 axes=D dist=randn'
+    params:
+      activation: silu
