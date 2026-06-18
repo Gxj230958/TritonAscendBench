@@ -22,6 +22,11 @@ import hashlib
 import json
 from typing import Any
 
+from ascendbench.input_spec.shape_format import (
+    explicit_canonical_projection,
+    is_explicit_shapes_doc,
+)
+
 
 def _ord(value: Any) -> Any:
     """Recursively order-preserve every mapping as a list of ``[key, value]`` pairs.
@@ -41,8 +46,16 @@ def _ord(value: Any) -> Any:
 
 
 def canonical_manifest(shapes_doc: dict | None) -> dict:
-    """Build the canonical (hash-input) projection of a shapes.yaml document."""
+    """Build the canonical (hash-input) projection of a shapes.yaml document.
+
+    Dual-format (U8): an EXPLICIT-format doc projects via the adapter's full-row projection (so any
+    semantic edit moves the hash); a knob-format doc keeps the projection below BYTE-IDENTICAL (the
+    explicit branch is gated on the strict discriminator, which returns False for every knob doc -- the
+    all-101 re-hash == HEAD is the manifest-neutrality gate).
+    """
     d = shapes_doc if isinstance(shapes_doc, dict) else {}
+    if is_explicit_shapes_doc(d):
+        return explicit_canonical_projection(d)
     shapes: list[dict] = []
     for role in ("public", "hidden"):
         for s in (d.get(f"{role}_shapes") or []):

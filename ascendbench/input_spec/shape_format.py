@@ -19,10 +19,12 @@ is a nested advisory map (no top-level ``public`` list, no ``schema_version``) a
 """
 from __future__ import annotations
 
-from ascendbench.input_spec.explicit_build import build_from_explicit
-from ascendbench.input_spec.inputs import build_inputs
-from ascendbench.input_spec.materialize import effective_knobs
 from ascendbench.input_spec.row_ir import SCHEMA_VERSION
+
+# NOTE: the torch-pulling deps (inputs / explicit_build / materialize) are imported LAZILY inside the two
+# functions that need them (effective_env / build_inputs_for). Importing this module -- and therefore the
+# discriminator / projection / sanitiser that a torch-less caller like shape_manifest uses -- stays
+# torch-free; torch is only pulled when you actually materialise a row's inputs or env.
 
 # declared-dtype -> element byte width (the representative dtype_size convention shared by the cost
 # audit / xcheck). Kept here so the adapter answers dtype_size for BOTH formats from one table.
@@ -106,13 +108,16 @@ def effective_env(doc: dict, sid: str) -> dict:
     """The named row-environment symbol->value map for a row (knobs for knob-format; row ``env`` for explicit)."""
     if is_explicit_shapes_doc(doc):
         return dict(_explicit_row(doc, sid).get("env") or {})
+    from ascendbench.input_spec.materialize import effective_knobs
     return effective_knobs(doc, sid)
 
 
 def build_inputs_for(doc: dict, sid: str, seed: int = 0) -> dict:
     """Materialise a row's full inputs dict, dispatching to build_inputs (knob) or build_from_explicit."""
     if is_explicit_shapes_doc(doc):
+        from ascendbench.input_spec.explicit_build import build_from_explicit
         return build_from_explicit(_explicit_row(doc, sid), seed)
+    from ascendbench.input_spec.inputs import build_inputs
     return build_inputs(doc, sid, seed)
 
 
