@@ -789,13 +789,14 @@ def sanitised_shapes_view(shapes_doc: dict) -> dict:
     ``hidden_shapes`` alone would leak the hidden shapes through it. Project
     it down to public ids only, keeping the public readability while honouring
     the hidden-is-gone contract.
+
+    U8: delegates to the single dual-format sealing in
+    :func:`ascendbench.input_spec.shape_format.sanitised_view`, which applies
+    the same knob-format sealing here AND seals an explicit-format doc's
+    ``hidden`` row list -- one implementation, no drift.
     """
-    public_ids = {r.get("id") for r in (shapes_doc.get("public_shapes") or [])}
-    view = {k: v for k, v in shapes_doc.items() if k != "hidden_shapes"}
-    ev = view.get("explicit_view")
-    if isinstance(ev, dict):
-        view["explicit_view"] = {k: v for k, v in ev.items() if k in public_ids}
-    return view
+    from ascendbench.input_spec.shape_format import sanitised_view
+    return sanitised_view(shapes_doc)
 
 
 def run_candidate_isolated(
