@@ -127,7 +127,7 @@ def _maybe_restart_self() -> None:
 
 def _utc_now() -> str:
     # `isoformat() + "Z"` would emit invalid `...+00:00Z`; use strftime for `...Z`.
-    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 import builtins as _builtins

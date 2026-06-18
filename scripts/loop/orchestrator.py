@@ -586,7 +586,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def _utc_now() -> str:
     # `isoformat() + "Z"` would emit invalid `...+00:00Z`; use strftime for `...Z`.
-    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _new_batch_id() -> str:
@@ -595,7 +595,7 @@ def _new_batch_id() -> str:
     # second on busy days.
     return (
         "b"
-        + datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%S")
+        + datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S")
         + "-"
         + secrets.token_hex(3)
     )

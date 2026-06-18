@@ -894,7 +894,7 @@ def build_provenance_stamp() -> dict:
         "infer_state": build_infer_state(),
         "tool_version": RESOLVER_TOOL_VERSION,
         "generated_at": datetime.datetime.now(
-            datetime.UTC
+            datetime.timezone.utc
         ).isoformat(),
         "code_files": [f.name for f in _PROVENANCE_CODE_FILES],
         "note": (
