@@ -352,7 +352,7 @@ except Exception as e:  # noqa: BLE001
 # import system's module-code execution, and the hook blocks `exec`; an
 # install before the candidate module load would block the load itself.
 # The candidate module body already passed the static AST whitelist
-# (Layers A–D/F); the audit hook is the runtime net for the *graded*
+# (Layers A-D/F); the audit hook is the runtime net for the *graded*
 # `fn(inp)` calls — see the install site after the candidate load below.
 
 
@@ -783,8 +783,19 @@ def sanitised_shapes_view(shapes_doc: dict) -> dict:
     testable sanitiser for any path that does need to expose a public
     shapes view (e.g. a debug bundle), and the contract is the same: the
     hidden section is gone.
+
+    The advisory ``explicit_view`` (Phase-1 readable annotation) is a FLAT
+    ``{id: ...}`` map that carries BOTH public and hidden rows, so dropping
+    ``hidden_shapes`` alone would leak the hidden shapes through it. Project
+    it down to public ids only, keeping the public readability while honouring
+    the hidden-is-gone contract.
     """
-    return {k: v for k, v in shapes_doc.items() if k != "hidden_shapes"}
+    public_ids = {r.get("id") for r in (shapes_doc.get("public_shapes") or [])}
+    view = {k: v for k, v in shapes_doc.items() if k != "hidden_shapes"}
+    ev = view.get("explicit_view")
+    if isinstance(ev, dict):
+        view["explicit_view"] = {k: v for k, v in ev.items() if k in public_ids}
+    return view
 
 
 def run_candidate_isolated(

@@ -22,8 +22,8 @@ from pathlib import Path
 
 import pytest
 
-from ascendbench.integrity import process_isolation as pi
 from ascendbench.engine.eval import evaluate
+from ascendbench.integrity import process_isolation as pi
 
 REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"
@@ -119,6 +119,8 @@ def test_sanitised_shapes_view_strips_hidden_section():
         "public_shapes": [{"id": "P1", "knobs": {"B": 1}}],
         "hidden_shapes": [{"id": "H1", "knobs": {"B": 3, "L": 13}}],
         "inputs": {"x": {"dims": ["B"], "dtype": "float32"}},
+        # the Phase-1 advisory view is a FLAT {id: ...} map carrying public AND hidden rows.
+        "explicit_view": {"P1": "[1] float32 axes=B", "H1": "[3] float32 axes=B"},
     }
     view = pi.sanitised_shapes_view(full)
 
@@ -127,8 +129,12 @@ def test_sanitised_shapes_view_strips_hidden_section():
     assert view["public_shapes"] == full["public_shapes"]
     assert view["size_knobs"] == full["size_knobs"]
     assert view["inputs"] == full["inputs"]
+    # explicit_view is projected to public ids only -- the hidden row must NOT leak through it.
+    assert view["explicit_view"] == {"P1": "[1] float32 axes=B"}
+    assert "H1" not in view["explicit_view"]
     # The original document is not mutated.
     assert "hidden_shapes" in full
+    assert "H1" in full["explicit_view"]
 
 
 def test_candidate_view_has_no_hidden_knobs():
