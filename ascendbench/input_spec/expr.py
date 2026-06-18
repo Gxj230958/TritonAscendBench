@@ -383,6 +383,22 @@ def _parse(expr: str) -> ast.AST:
 # Public entrypoints.
 # --------------------------------------------------------------------------
 
+def free_symbols(expr: str) -> set[str]:
+    """Return the free variable names of an expression (the names ``eval_numeric`` resolves vs ``symbols``).
+
+    Uses the SAME AST parse as evaluation, so a name in call-function position (``ceil`` / ``min`` / ...)
+    is a helper, not a symbol, and a variable that merely shares a helper's spelling but is used as a
+    VALUE is still reported -- unlike a regex scan, which would mis-drop it. This is the faithful symbol
+    set for the cost-model named-universe check (U7).
+    """
+    tree = _parse(expr)
+    # exclude by NODE IDENTITY (the specific Name in call-function position), not by id string -- a name
+    # used as BOTH a call func and a value in one expr (``min(B, N) + min``) must still report the value.
+    func_nodes = {n.func for n in ast.walk(tree)
+                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+    return {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and n not in func_nodes}
+
+
 def eval_numeric(expr: str, symbols: Mapping[str, Any] | None = None) -> float:
     """Safely evaluate a numeric size-knob expression.
 

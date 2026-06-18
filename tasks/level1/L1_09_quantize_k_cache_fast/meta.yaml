@@ -33,6 +33,7 @@ cost_model:
   flops_class: vector
   bytes: (B*D + B*64)*dtype_size
   bytes_resource: hbm
+  row_only_params: [D]   # head width used only in the cost; tensor widths are literals (no D axis)
   gpu_xcheck_tol: 0.05
   status: PASS
   status_reason: all 2 gate (large) shape(s) within gpu_xcheck_tol=0.05; 7 small shape(s)

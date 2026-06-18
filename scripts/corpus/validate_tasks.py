@@ -57,6 +57,7 @@ from ascendbench.release_gate.eligibility import (  # noqa: E402
     golden_artifact_usable,
     is_score_eligible,
 )
+from scripts.corpus.cost_environment import check_cost_symbols  # noqa: E402
 
 REQUIRED_FILES = {
     "kernel.py",
@@ -277,7 +278,12 @@ def _validate_cost_model(tid: str, meta: dict, task_dir: Path) -> list[str]:
         validate_formulas(model, _shapes_knob_names(task_dir))
     except CostModelError as e:
         return [f"{tid}: cost_model formula not evaluable: {e}"]
-    return []
+    # U7: every cost symbol must resolve in the NAMED row environment (tensor-axis / scalar / dist input,
+    # a declared row_only_param, or a derived symbol) -- a homeless symbol is a typo or an undeclared
+    # row-only param, not silently accepted as it was under the raw-knob universe.
+    shapes_path = task_dir / "shapes.yaml"
+    shapes_doc = yaml.safe_load(shapes_path.read_text()) if shapes_path.exists() else {}
+    return [f"{tid}: cost_model {v}" for v in check_cost_symbols(shapes_doc, meta)]
 
 
 def _validate_param_constraints(tid: str, meta: dict) -> list[str]:
@@ -606,7 +612,7 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
     #     jit; the resolver / phase_a_prime splice it onto kernel.py at S2/oracle
     #     time (siblings L2_06, L2_26 ship this way). Accept it here so the
     #     static validator stays consistent with the actual resolution pipeline.
-    _ALLOWED_MODULE_PARTS = ("kernel.py", "_pa_launcher.py")
+    allowed_module_parts = ("kernel.py", "_pa_launcher.py")
     if "::" not in str(gpu_triton):
         errs.append(
             f"{tid}: meta.oracle.gpu_triton {gpu_triton!r} is not in "
@@ -614,7 +620,7 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
         )
         return errs
     module_part, _, symbol = str(gpu_triton).partition("::")
-    if module_part not in _ALLOWED_MODULE_PARTS or not symbol:
+    if module_part not in allowed_module_parts or not symbol:
         errs.append(
             f"{tid}: meta.oracle.gpu_triton {gpu_triton!r} is not in "
             f"'kernel.py::<symbol>' or '_pa_launcher.py::run' form"
@@ -953,7 +959,7 @@ def _validate_provenance_golden(tid: str, meta: dict) -> list[str]:
     # where the package's optional deps aren't installed (the
     # cli/dataset path imports torch transitively; this validator
     # script is run from CI on minimal envs).
-    from ascendbench.corpus.provenance import (  # noqa: PLC0415
+    from ascendbench.corpus.provenance import (
         validate_provenance_golden,
     )
 

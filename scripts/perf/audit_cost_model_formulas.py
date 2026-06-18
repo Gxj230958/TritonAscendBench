@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-import re
 import sys
 from pathlib import Path
 
@@ -39,8 +38,10 @@ if str(REPO) not in sys.path:
 
 import torch  # noqa: E402
 
-from ascendbench.perf.cost_model import FormulaEnv, parse_cost_model  # noqa: E402
+from ascendbench.input_spec.expr import free_symbols  # noqa: E402
 from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.perf.cost_model import FormulaEnv, parse_cost_model  # noqa: E402
+from scripts.corpus.cost_environment import named_cost_universe  # noqa: E402
 
 #: declared-dtype -> element byte width (mirrors phase_a_cost_xcheck dtype_size).
 _DTYPE_BYTES = {
@@ -48,9 +49,6 @@ _DTYPE_BYTES = {
     "bfloat16": 2, "float16": 2, "int16": 2, "float8_e4m3fn": 1,
     "float8_e5m2": 1, "int8": 1, "uint8": 1, "bool": 1,
 }
-
-#: formula function names (ceil/cdiv/...) -- NOT symbols, never flag as unknown.
-_FORMULA_FUNCS = {"ceil", "floor", "round", "cdiv", "min", "max", "int", "abs", "sqrt"}
 
 
 def _tensor_bytes(d: dict) -> float:
@@ -93,7 +91,6 @@ def audit_task(tid: str) -> dict:
         _DTYPE_BYTES[v["dtype"]] for v in inputs_decl.values()
         if isinstance(v, dict) and v.get("dtype") in _DTYPE_BYTES
     }
-    knob_names = set(shapes_doc.get("size_knobs", {}) or {})
     public = shapes_doc.get("public_shapes", []) or []
 
     try:
@@ -167,17 +164,13 @@ def audit_task(tid: str) -> dict:
                 flags.append(f"MISSING_OUTPUT_TERM?[{sid}]: {detail}; NO measured "
                              f"evidence to confirm/refute")
             # else: oracle output > formula but measured ~ formula -> formula OK
-    # symbol audit (any shape's knobs are representative)
-    merged0 = ({**size_knobs, **(public[0].get("knobs") or {})}
-               if public else dict(size_knobs))
-    try:
-        sample_env = FormulaEnv(merged0, derived={"dtype_size": dtype_size or 2})
-        known = set(sample_env.symbols) | {"dtype_size"}
-    except Exception:
-        known = set(merged0) | set(knob_names) | {"dtype_size"}
+    # symbol audit against the U7 NAMED row environment (tensor-axis/scalar/dist inputs + declared
+    # row_only_params + derived) -- the shared universe validate_tasks uses, so an undeclared homeless
+    # symbol is flagged here too, not just a non-knob name.
+    known = named_cost_universe(shapes_doc, meta)
     for f in cost_model.bytes.values():
-        for sym in set(re.findall(r"[A-Za-z_]\w*", f)):
-            if sym not in known and sym not in _FORMULA_FUNCS:
+        for sym in free_symbols(f):
+            if sym not in known:
                 flags.append(f"UNKNOWN_SYMBOL: '{sym}' in bytes formula {f!r}")
     return {"task": tid, "status": cm_raw.get("status"),
             "dtype_size": dtype_size, "declared_widths": sorted(declared_widths),

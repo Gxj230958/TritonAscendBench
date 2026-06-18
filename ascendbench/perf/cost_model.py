@@ -124,6 +124,11 @@ class CostModel:
     flops_scalar: bool = False
     #: True when ``bytes`` was authored in the scalar (degenerate) form.
     bytes_scalar: bool = False
+    #: Symbols a cost formula references that are intentionally NOT a tensor axis / scalar / dist input --
+    #: a named ROW-ENVIRONMENT param (block/group/flag) with no input home (U4 ``row-only-param``). They
+    #: are declared here so the named-environment universe check (U7) accepts them while still rejecting an
+    #: UNdeclared homeless symbol (a typo). The 3 corpus cases: L1_09 ``D``, L3_13 ``CAUSAL``, L3_15 ``G``.
+    row_only_params: tuple[str, ...] = ()
 
 
 # --------------------------------------------------------------------------
@@ -363,12 +368,24 @@ def parse_cost_model(raw: Any) -> CostModel:
             f"cost_model.gpu_xcheck_tol must be in (0, 1), got {tol_raw}"
         )
 
+    row_only_raw = raw.get("row_only_params", ())
+    if isinstance(row_only_raw, str) or not isinstance(row_only_raw, (list, tuple)):
+        raise CostModelError(
+            f"cost_model.row_only_params must be a list of symbol strings, "
+            f"got {type(row_only_raw).__name__}"
+        )
+    if not all(isinstance(s, str) and s for s in row_only_raw):
+        raise CostModelError(
+            "cost_model.row_only_params must contain only non-empty strings"
+        )
+
     model = CostModel(
         flops=flops,
         bytes=bytes_,
         gpu_xcheck_tol=float(tol_raw),
         flops_scalar=flops_scalar,
         bytes_scalar=bytes_scalar,
+        row_only_params=tuple(row_only_raw),
     )
     # Confirm every formula is parseable + evaluable so a malformed formula is
     # caught at load/validate time, not deep inside scoring. The knob set a

@@ -40,10 +40,14 @@ def _write_task(td: Path, *, cost_model=_OMIT, shapes_knobs=None) -> None:
     sha = hashlib.sha256(kernel.encode()).hexdigest()
     (td / "oracle_pytorch.py").write_text("def run(i):\n    return {}\n")
     knobs = shapes_knobs if shapes_knobs is not None else {"B": 2, "N": 4}
+    # Declare a tensor whose dims are every knob, so each cost symbol is a tensor-AXIS in the named
+    # environment (U7) -- a real task's cost symbols always have an input home; a fixture with no inputs
+    # would (correctly) trip the U7 homeless-symbol check.
     (td / "shapes.yaml").write_text(
         yaml.safe_dump(
             {
                 "size_knobs": knobs,
+                "inputs": {"x": {"dims": list(knobs), "dtype": "float32", "dist": "randn"}},
                 "public_shapes": [{"id": "P1", "name": "tiny", "knobs": knobs}],
             }
         )

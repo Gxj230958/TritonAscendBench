@@ -34,6 +34,7 @@ cost_model:
     vector: 3*B*L*H
   bytes:
     hbm: 3*B*L*H*Dv + 3*B*L*G*N + 12*B*L*H + 16*B*H*Dv*N + 8*(B + 1)
+  row_only_params: [G]   # group count used only in the cost; no tensor carries a G axis
   gpu_xcheck_tol: 0.05
   status: BLOCKED
   status_reason: 'GPU_UNVERIFIABLE (analytic-vs-H200-ncu gap, not necessarily a formula
