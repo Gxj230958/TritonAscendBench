@@ -63,7 +63,9 @@ def explicit_row(shapes_doc: dict[str, Any], shape_id: str) -> dict[str, Any]:
     ``inputs`` is an ORDERED list (authored ``shapes.yaml`` inputs order) -- load-bearing because a
     coupled dist references a tensor declared earlier. Returns
     ``{id, inputs: [{name, kind, ...}, ...]}``: tensor entries carry ``shape``/``dtype``/``axes``/``dist``
-    (dist args resolved), non-tensor entries carry the resolved ``value``, struct entries the raw spec.
+    (dist args resolved), non-tensor entries carry the resolved ``value`` (and ``expr`` for derive /
+    scalar_knob -- the source formula a ``param_constraints`` structure check compares against), struct
+    entries the raw spec.
     """
     knobs = effective_knobs(shapes_doc, shape_id)
     desc = materialize_row(shapes_doc, shape_id)
@@ -76,9 +78,14 @@ def explicit_row(shapes_doc: dict[str, Any], shape_id: str) -> dict[str, Any]:
             })
         elif d["kind"] == "struct":
             inputs.append({"name": name, "kind": "struct", "struct": d.get("struct")})
-        else:   # scalar / derive / scalar_seq / scalar_knob / optional -- resolved value
-            inputs.append({"name": name, "kind": d["kind"], "value": d.get("value")})
-    return {"id": shape_id, "inputs": inputs}
+        else:   # scalar / derive / scalar_seq / scalar_knob / optional -- resolved value (+ source expr)
+            entry = {"name": name, "kind": d["kind"], "value": d.get("value")}
+            if d.get("expr") is not None:   # derive / scalar_knob keep the formula for constraint checks
+                entry["expr"] = d["expr"]
+            inputs.append(entry)
+    # `env` = the named row-environment symbol->value map (the atomic factors D/L/E + row-only params),
+    # carried losslessly so cost_model + param_constraints evaluate against the row without the knob grid.
+    return {"id": shape_id, "inputs": inputs, "env": dict(knobs)}
 
 
 def build_from_explicit(row: dict[str, Any], seed: int = 0) -> dict[str, Any]:
