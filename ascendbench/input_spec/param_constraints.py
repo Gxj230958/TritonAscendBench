@@ -578,7 +578,13 @@ def _validate_dists_explicit(
     """Explicit-format dists check: the constraint's SYMBOLIC dist, resolved per row's env, must equal that
     row's RESOLVED dist (kind + args). The explicit row stores literal dist args, so a symbolic-vs-symbolic
     compare is impossible -- instead the constraint's args are resolved to each row's env (reusing the same
-    resolver, so ``randn_inf_excl.ref`` stays a tensor name) and matched against the row's literal args."""
+    resolver, so ``randn_inf_excl.ref`` stays a tensor name) and matched against the row's literal args.
+
+    KNOWN LIMITATION (closed by U9's ``dist_symbolic`` -- approach A): this compares RESOLVED values, so a
+    symbol-level disagreement that coincidentally resolves equal in every row (constraint ``hi=B`` vs shapes
+    ``hi=A`` with B==A) is NOT caught, whereas the knob check compares symbolically. Harmless today (no task
+    is explicit-format); U9 carries the row-invariant symbolic dist in the explicit format and compares it
+    symbolically FIRST, then this resolved compare for generator integrity."""
     from ascendbench.input_spec.explicit_build import resolve_dist_args
     from ascendbench.input_spec.shape_format import (
         effective_env,
