@@ -53,6 +53,88 @@ def test_discriminator_fail_closed_cases():
     # not silently route to the knob path (detect by key presence, not list-typed).
     with pytest.raises(sf.ShapeFormatError, match="no schema_version"):
         sf.is_explicit_shapes_doc({"public": {"oops": "not a list"}})
+    with pytest.raises(sf.ShapeFormatError, match="id must be a non-empty string"):
+        sf.is_explicit_shapes_doc({"schema_version": SCHEMA_VERSION, "public": [{"inputs": []}]})
+    # an unhashable id (a list) would crash `set(ids)` with a raw TypeError -- must raise ShapeFormatError
+    with pytest.raises(sf.ShapeFormatError, match="id must be a non-empty string"):
+        sf.is_explicit_shapes_doc({"schema_version": SCHEMA_VERSION, "public": [{"id": [1, 2], "inputs": []}]})
+
+
+def test_row_invariant_input_forms_enforced():
+    # input_specs reconstructs from row 0, so a form-inconsistent doc (a tensor input becoming a scalar in
+    # another row, or a differing dtype) must fail closed -- not silently slip a false PASS past dtype/derive.
+    bad_kind = {"schema_version": SCHEMA_VERSION, "public": [
+        {"id": "P1", "inputs": [{"name": "x", "kind": "tensor", "dtype": "float32"}]},
+        {"id": "P2", "inputs": [{"name": "x", "kind": "scalar", "value": 1}]},
+    ]}
+    with pytest.raises(sf.ShapeFormatError, match="inconsistent input forms"):
+        sf.is_explicit_shapes_doc(bad_kind)
+    bad_dtype = {"schema_version": SCHEMA_VERSION, "public": [
+        {"id": "P1", "inputs": [{"name": "x", "kind": "tensor", "dtype": "float32"}]},
+        {"id": "P2", "inputs": [{"name": "x", "kind": "tensor", "dtype": "int32"}]},
+    ]}
+    with pytest.raises(sf.ShapeFormatError, match="inconsistent input forms"):
+        sf.is_explicit_shapes_doc(bad_dtype)
+
+
+def test_malformed_input_entry_raises_shapeformat_not_attributeerror():
+    # an explicit doc whose `inputs` list holds a non-dict element must raise ShapeFormatError (so the
+    # caught fail-closed path fires), NOT a raw AttributeError from a downstream .get on a string.
+    for bad in (
+        {"schema_version": SCHEMA_VERSION, "public": [{"id": "P1", "inputs": ["junk"]}]},
+        {"schema_version": SCHEMA_VERSION, "public": [{"id": "P1", "inputs": [{"kind": "tensor"}]}]},  # no name
+    ):
+        with pytest.raises(sf.ShapeFormatError, match="malformed input entry"):
+            sf.is_explicit_shapes_doc(bad)
+
+
+def test_non_dict_doc_is_not_explicit():
+    assert sf.is_explicit_shapes_doc(None) is False
+    assert sf.is_explicit_shapes_doc("nope") is False
+
+
+def test_is_explicit_only_ever_raises_shapeformaterror_fuzz():
+    # is_explicit_shapes_doc is called all over check_param_constraints; it must NEVER leak a raw
+    # exception (AttributeError/TypeError/...) -- only return a bool or raise ShapeFormatError, so the
+    # entrypoint's `except ShapeFormatError` always catches a malformed doc into a clean blocked verdict.
+    ver = SCHEMA_VERSION
+    malformed = [
+        None, "nope", 42, [],
+        {"schema_version": True, "public": []},
+        {"schema_version": ver + 9, "public": []},
+        {"schema_version": ver, "public": "x"},
+        {"schema_version": ver, "public": [], "hidden": "x"},
+        {"schema_version": ver, "public": ["junk"]},
+        {"schema_version": ver, "public": [{"inputs": []}]},          # no id
+        {"schema_version": ver, "public": [{"id": None, "inputs": []}]},
+        {"schema_version": ver, "public": [{"id": [1], "inputs": []}]},   # unhashable id
+        {"schema_version": ver, "public": [{"id": {}, "inputs": []}]},    # dict id
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": "x"}]},
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": [None]}]},
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": ["s"]}]},
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": [{"kind": "tensor"}]}]},  # no name
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": [{"name": "x"}]}]},       # no kind
+        {"schema_version": ver, "public": [{"id": "P1", "inputs": [{"name": "x", "kind": "tensor", "dtype": [1]}]},
+                                           {"id": "P2", "inputs": [{"name": "x", "kind": "scalar"}]}]},  # inconsistent
+        {"public": [{"id": "P1", "inputs": []}]},   # explicit keys, no version
+    ]
+    for doc in malformed:
+        try:
+            r = sf.is_explicit_shapes_doc(doc)
+            assert isinstance(r, bool), f"expected bool, got {r!r} for {doc!r}"
+        except sf.ShapeFormatError:
+            pass   # the only acceptable raise
+        except Exception as e:
+            raise AssertionError(
+                f"is_explicit leaked {type(e).__name__} (not ShapeFormatError) on {doc!r}: {e}") from e
+
+
+def test_public_ids_defensive_on_malformed_knob_row():
+    # the knob branch must skip a non-dict / id-less row (it replaced code that did so) -- never crash.
+    doc = {"size_knobs": {"B": 1},
+           "public_shapes": [{"id": "P1", "knobs": {}}, "junk", {"knobs": {}}],
+           "inputs": {"x": {"dims": ["B"], "dtype": "float32"}}}
+    assert sf.public_ids(doc) == ["P1"]
 
 
 # --- uniform accessors ------------------------------------------------------------------------------

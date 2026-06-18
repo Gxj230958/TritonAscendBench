@@ -43,7 +43,6 @@ from ascendbench.input_spec.inputs import (
     DIST_KINDS,
     DTYPE_ALIASES,
     DistSpecError,
-    build_inputs,
     parse_dist_spec,
 )
 
@@ -203,8 +202,15 @@ def check_param_constraints(
     if schema_errs:
         return ParamConstraintsResult(ok=False, reasons=schema_errs)
 
-    # Decision order step 3 — five-subsection semantic check.
-    semantic_errs = _validate_semantics(raw, shapes_doc, tid=tid)
+    # Decision order step 3 — five-subsection semantic check. A malformed EXPLICIT shapes doc makes the
+    # dual-format adapter raise ShapeFormatError; this entrypoint must return a clean fail-closed verdict
+    # (callers expect a result, never an exception), so the task resolves to `blocked`, not a crash.
+    from ascendbench.input_spec.shape_format import ShapeFormatError
+    try:
+        semantic_errs = _validate_semantics(raw, shapes_doc, tid=tid)
+    except ShapeFormatError as e:
+        return ParamConstraintsResult(
+            ok=False, reasons=[f"{tid}: shapes.yaml is a malformed explicit-format doc: {e}"])
     if semantic_errs:
         return ParamConstraintsResult(ok=False, reasons=semantic_errs)
 
@@ -388,12 +394,20 @@ def validate_schema_shape(raw: dict[str, Any], *, tid: str = "task") -> list[str
 # --------------------------------------------------------------------------
 
 def _knob_rows(shapes_doc: dict[str, Any]) -> list[tuple[str, dict[str, int]]]:
-    """Enumerate every (label, knob-dict) pair a ``shapes.yaml`` declares.
+    """Enumerate every (label, row-environment) pair a ``shapes.yaml`` declares (U8: dual-format).
 
-    A row's effective knob set is ``size_knobs`` overlaid by the per-row
-    ``knobs``. The ``size_knobs`` defaults alone are also returned as a row so
-    a ``dims`` predicate must hold for the document's default point too.
+    Knob-format: a row's effective env is ``size_knobs`` overlaid by the per-row ``knobs``; the
+    ``size_knobs`` defaults alone are ALSO returned as a row so a ``dims`` predicate must hold at the
+    document's default point too. Explicit-format: each row carries its own named ``env`` (the atomic
+    factors + row-only params) and there is no defaults point, so only the authored rows are returned.
     """
+    from ascendbench.input_spec.shape_format import (
+        effective_env,
+        is_explicit_shapes_doc,
+        iter_rows,
+    )
+    if is_explicit_shapes_doc(shapes_doc):
+        return [(sid, effective_env(shapes_doc, sid)) for _role, sid, _row in iter_rows(shapes_doc)]
     base = dict(shapes_doc.get("size_knobs", {}) or {})
     rows: list[tuple[str, dict[str, int]]] = [("size_knobs", dict(base))]
     for section in ("public_shapes", "hidden_shapes"):
@@ -428,9 +442,14 @@ def _validate_dims(
 
 
 def _input_specs(shapes_doc: dict[str, Any]) -> dict[str, Any]:
-    """Return ``shapes.yaml.inputs`` as a mapping (empty when absent)."""
-    inputs = shapes_doc.get("inputs", {}) or {}
-    return inputs if isinstance(inputs, dict) else {}
+    """Return ``{name: knob-style input spec}`` for either format (U8).
+
+    Knob-format: the top-level ``inputs`` mapping. Explicit-format: the adapter reconstructs the structural
+    form per input (no resolved dist args -- the dist check revalidates those per row). So the dtype /
+    dist-kind / derive-formula structural checks below are format-agnostic.
+    """
+    from ascendbench.input_spec.shape_format import input_specs
+    return input_specs(shapes_doc)
 
 
 # The keys that mark a `shapes.yaml.inputs.*` entry as a **non-tensor** input.
@@ -517,6 +536,9 @@ def _validate_dists(
     rejected rather than silently passing through a missing-``dist``
     fallback to ``randn`` .
     """
+    from ascendbench.input_spec.shape_format import is_explicit_shapes_doc
+    if is_explicit_shapes_doc(shapes_doc):
+        return _validate_dists_explicit(dists, shapes_doc, tid)
     errs: list[str] = []
     inputs = _input_specs(shapes_doc)
     for name, declared in dists.items():
@@ -547,6 +569,48 @@ def _validate_dists(
         if want != got:
             errs.append(f"{tid}: param_constraints.dists[{name!r}] requires "
                         f"{want} but shapes.yaml materialises {got}")
+    return errs
+
+
+def _validate_dists_explicit(
+    dists: dict[str, Any], shapes_doc: dict[str, Any], tid: str,
+) -> list[str]:
+    """Explicit-format dists check: the constraint's SYMBOLIC dist, resolved per row's env, must equal that
+    row's RESOLVED dist (kind + args). The explicit row stores literal dist args, so a symbolic-vs-symbolic
+    compare is impossible -- instead the constraint's args are resolved to each row's env (reusing the same
+    resolver, so ``randn_inf_excl.ref`` stays a tensor name) and matched against the row's literal args."""
+    from ascendbench.input_spec.explicit_build import resolve_dist_args
+    from ascendbench.input_spec.shape_format import (
+        effective_env,
+        explicit_row_dist,
+        hidden_ids,
+        public_ids,
+    )
+    errs: list[str] = []
+    specs = _input_specs(shapes_doc)
+    sids = public_ids(shapes_doc) + hidden_ids(shapes_doc)
+    for name, declared in dists.items():
+        spec = specs.get(name)
+        if not isinstance(spec, dict) or not _is_tensor_input(spec):
+            errs.append(f"{tid}: param_constraints.dists declares {name!r} but it is not a tensor input "
+                        f"in the explicit rows (only tensor inputs have a materialised distribution)")
+            continue
+        try:
+            want = parse_dist_spec(declared)
+        except DistSpecError as e:
+            errs.append(f"{tid}: param_constraints.dists[{name!r}] is not a valid dist spec: {e}")
+            continue
+        for sid in sids:
+            got = explicit_row_dist(shapes_doc, sid, name)
+            try:
+                want_r = resolve_dist_args(want, effective_env(shapes_doc, sid))
+            except (ValueError, ExprError) as e:
+                errs.append(f"{tid}: param_constraints.dists[{name!r}] not resolvable at row {sid}: {e}")
+                break
+            if want_r != got:
+                errs.append(f"{tid}: param_constraints.dists[{name!r}] requires {want_r} but row {sid} "
+                            f"materialises {got}")
+                break   # one mismatch per name is enough
     return errs
 
 
@@ -751,17 +815,16 @@ def _validate_tensor_invariants(
     :func:`ascendbench.input_spec.inputs.build_inputs`; each enumerated invariant
     type dispatches to its checker (`docs/reference/task_api_contract.md §5.2`).
     """
+    from ascendbench.input_spec.shape_format import (
+        build_inputs_for,
+        effective_env,
+        hidden_ids,
+        public_ids,
+    )
     errs: list[str] = []
-    rows = _knob_rows(shapes_doc)
-    knob_rows = dict(rows)
-    # Materialise once per shape-id row (skip the synthetic `size_knobs` row —
-    # build_inputs needs a real shape id). Fall back to the first real row.
-    real_ids = [
-        s.get("id")
-        for s in (list(shapes_doc.get("public_shapes") or [])
-                  + list(shapes_doc.get("hidden_shapes") or []))
-        if isinstance(s, dict) and s.get("id")
-    ]
+    # Materialise once per real shape-id row (dual-format via the adapter -- build_inputs_for dispatches
+    # knob vs explicit; the env for invariant value expressions comes from effective_env, not a knob merge).
+    real_ids = list(public_ids(shapes_doc)) + list(hidden_ids(shapes_doc))
     if not real_ids:
         errs.append(f"{tid}: param_constraints.tensor_invariants need at "
                     f"least one public/hidden shape row to materialise")
@@ -769,12 +832,12 @@ def _validate_tensor_invariants(
 
     for sid in real_ids:
         try:
-            built = build_inputs(shapes_doc, sid, seed=0)
+            built = build_inputs_for(shapes_doc, sid, seed=0)
         except Exception as e:  # report, do not crash
             errs.append(f"{tid}: param_constraints.tensor_invariants — "
                         f"shape row {sid} did not materialise: {e}")
             continue
-        knobs = knob_rows.get(sid, {})
+        knobs = effective_env(shapes_doc, sid)
         for i, inv in enumerate(invariants):
             inv_type = inv.get("type")
             args = inv.get("args", {}) or {}

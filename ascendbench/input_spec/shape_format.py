@@ -47,6 +47,8 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
     carry an ``inputs`` list; ids unique across public+hidden. Top-level ``public``/``hidden`` without a
     ``schema_version`` is malformed-explicit (fail closed), not knob-format.
     """
+    if not isinstance(doc, dict):
+        return False   # a non-dict is not an explicit doc (and the knob path also rejects it)
     v = doc.get("schema_version")
     # Detect the explicit marker by KEY PRESENCE (any type), not list-typed -- a malformed explicit doc
     # whose `public` is not a list must still fail closed, not silently route to the knob path. A knob doc
@@ -70,22 +72,66 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
         if not isinstance(row, dict) or not isinstance(row.get("inputs"), list):
             raise ShapeFormatError(f"explicit row {row.get('id') if isinstance(row, dict) else row!r} "
                                    f"missing an 'inputs' list")
+        row_id = row.get("id")
+        if type(row_id) is not str or not row_id:
+            # a non-string id (None, a list, a dict, a hostile str subclass) would also make `set(ids)` below
+            # raise a raw TypeError -- require an exact non-empty str so the doc fails closed, never crashes.
+            raise ShapeFormatError(f"explicit shapes doc row id must be a non-empty string, got {row_id!r}")
+        if "env" in row and row["env"] is not None:
+            env = row["env"]
+            if not isinstance(env, dict):
+                raise ShapeFormatError(f"explicit row {row_id!r} env must be a mapping, got {env!r}")
+            for key, value in env.items():
+                if type(key) is not str or not key:
+                    raise ShapeFormatError(
+                        f"explicit row {row_id!r} env keys must be non-empty strings, got {key!r}")
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ShapeFormatError(
+                        f"explicit row {row_id!r} env[{key!r}] must be numeric, got {value!r}")
+        # every input must be a dict with string name+kind, so the row-invariance signature + the downstream
+        # input_specs / explicit_row_dist readers never hit raw AttributeError/TypeError on malformed entries.
+        for i in row["inputs"]:
+            if not isinstance(i, dict):
+                raise ShapeFormatError(
+                    f"explicit row {row_id!r} has a malformed input entry "
+                    f"(each input needs a dict with non-empty string 'name' and 'kind'): {i!r}")
+            name, kind = i.get("name"), i.get("kind")
+            if type(name) is not str or not name or type(kind) is not str or not kind:
+                raise ShapeFormatError(
+                    f"explicit row {row_id!r} has a malformed input entry "
+                    f"(each input needs a dict with non-empty string 'name' and 'kind'): {i!r}")
     ids = [r.get("id") for r in rows]
     if len(ids) != len(set(ids)):
         raise ShapeFormatError(f"explicit shapes doc has duplicate row ids: {ids}")
+    # ROW-INVARIANT input forms: input_specs reconstructs the structural form (name/kind/dtype) from row 0,
+    # so every row MUST declare the same ordered (name, kind, tensor-dtype) signature -- else a
+    # form-inconsistent hand-authored doc (an input derive in one row + scalar in another, or a differing
+    # dtype) would slip a false PASS past the dtype/derive checks. Fail closed on a mismatch.
+    def _sig(row: dict) -> tuple:
+        return tuple((i.get("name"), i.get("kind"),
+                      i.get("dtype") if i.get("kind") == "tensor" else None)
+                     for i in (row.get("inputs") or []))
+    sig0 = _sig(rows[0]) if rows else ()
+    for row in rows[1:]:
+        if _sig(row) != sig0:
+            raise ShapeFormatError(
+                f"explicit rows have inconsistent input forms: row {row.get('id')!r} differs from "
+                f"{rows[0].get('id')!r} (input_specs requires a row-invariant name/kind/dtype signature)")
     return True
 
 
 def public_ids(doc: dict) -> list[str]:
+    # knob branch is DEFENSIVE (skip a non-dict / id-less row) -- it replaces code that did so; the explicit
+    # branch is already validated by is_explicit_shapes_doc (every row has an id).
     if is_explicit_shapes_doc(doc):
         return [r["id"] for r in (doc.get("public") or [])]
-    return [r["id"] for r in (doc.get("public_shapes") or [])]
+    return [r["id"] for r in (doc.get("public_shapes") or []) if isinstance(r, dict) and r.get("id")]
 
 
 def hidden_ids(doc: dict) -> list[str]:
     if is_explicit_shapes_doc(doc):
         return [r["id"] for r in (doc.get("hidden") or [])]
-    return [r["id"] for r in (doc.get("hidden_shapes") or [])]
+    return [r["id"] for r in (doc.get("hidden_shapes") or []) if isinstance(r, dict) and r.get("id")]
 
 
 def iter_rows(doc: dict) -> list[tuple[str, str, dict]]:
@@ -139,6 +185,50 @@ def representative_dtype_size(doc: dict) -> float | None:
     for spec in (doc.get("inputs") or {}).values():
         if isinstance(spec, dict) and "dims" in spec:
             return _DTYPE_BYTES.get(str(spec.get("dtype", "float32")))
+    return None
+
+
+def input_specs(doc: dict) -> dict:
+    """Return ``{name: knob-style input spec}`` for either format -- the STRUCTURAL form only.
+
+    Knob-format: the top-level ``inputs`` mapping verbatim (symbolic ``dims`` / ``dist`` / ``derive``).
+    Explicit-format: reconstruct the form from the first row (forms are row-invariant -- a derive input is
+    derive in every row), conveying ONLY structure, NEVER resolved dist args (those are revalidated per row
+    by the dist check). An optional/``null`` input maps to ``None`` (a NON-DICT, exactly as a knob-format
+    ``null`` input does), so a tensor-detector never mistakes it for a tensor. Used for the dtype / dist-kind
+    / derive-formula structural checks; value- and dist-arg-dependent checks read the rows directly.
+    """
+    if not is_explicit_shapes_doc(doc):
+        inp = doc.get("inputs") or {}
+        return inp if isinstance(inp, dict) else {}
+    rows = iter_rows(doc)
+    if not rows:
+        return {}
+    out: dict = {}
+    for inp in rows[0][2].get("inputs") or []:
+        name, kind = inp.get("name"), inp.get("kind")
+        if kind == "tensor":
+            out[name] = {"dims": inp.get("axes") or [], "dtype": inp.get("dtype")}
+        elif kind == "derive":
+            out[name] = {"derive": inp.get("expr")}
+        elif kind == "scalar_knob":
+            out[name] = {"scalar_knob": inp.get("expr")}
+        elif kind == "scalar":
+            out[name] = {"scalar": inp.get("value")}
+        elif kind == "scalar_seq":
+            out[name] = {"scalar_seq": inp.get("value")}
+        elif kind == "struct":
+            out[name] = {"struct": inp.get("struct")}
+        else:   # optional / null -> a non-dict, matching a knob-format `null` input
+            out[name] = None
+    return out
+
+
+def explicit_row_dist(doc: dict, sid: str, name: str) -> dict | None:
+    """The RESOLVED ``{kind, args}`` dist of tensor input ``name`` in explicit row ``sid`` (None if absent/non-tensor)."""
+    for inp in _explicit_row(doc, sid).get("inputs") or []:
+        if inp.get("name") == name:
+            return inp.get("dist") if inp.get("kind") == "tensor" else None
     return None
 
 
