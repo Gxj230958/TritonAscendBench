@@ -59,7 +59,7 @@ _PERFORMANCE_STATUS_PRECEDENCE: dict[str, int] = {
 }
 
 
-def _raise_performance_status(result: "TaskEvalResult", proposed: str) -> None:
+def _raise_performance_status(result: TaskEvalResult, proposed: str) -> None:
     """Escalate ``result.performance_status`` to ``proposed`` iff ``proposed``
     is strictly more severe .
 
@@ -249,7 +249,7 @@ def _verify_sampled_outputs(
 
     Returns ``{"checked": int, "mismatch": bool, "errors": int}``.
     """
-    from ascendbench.input_spec import inputs as _inputs
+    from ascendbench.input_spec.shape_format import build_inputs_for
 
     # Group the flat "{t}::{key}" payload by trial index.
     by_trial: dict[int, dict[str, torch.Tensor]] = {}
@@ -267,7 +267,7 @@ def _verify_sampled_outputs(
     for t, cand_out in sorted(by_trial.items()):
         try:
             golden = omod.run(
-                _inputs.build_inputs(shapes_doc, shape_id,
+                build_inputs_for(shapes_doc, shape_id,
                                      seed=meas_seed + t))
         except Exception as e:
             # : fail-closed — an unverifiable sampled trial invalidates
@@ -537,12 +537,12 @@ def _build_metamorphic_context(
     tensor compare. Returns ``None`` if the representative shape's inputs
     cannot be built.
     """
-    from ascendbench.input_spec import inputs as _inputs
+    from ascendbench.input_spec.shape_format import build_inputs_for
     from ascendbench.integrity import adversarial, process_isolation
 
     try:
-        base_inputs = _inputs.build_inputs(shapes_doc, rep_shape_id, seed=0)
-    except Exception as e:                              # noqa: BLE001
+        base_inputs = build_inputs_for(shapes_doc, rep_shape_id, seed=0)
+    except Exception as e:
         logger.warning("metamorphic: cannot build inputs for %s: %s",
                         rep_shape_id, e)
         return None
@@ -553,7 +553,7 @@ def _build_metamorphic_context(
             res = process_isolation.run_candidate_isolated(
                 solution_path, {rep_shape_id: inp},
                 pass_kind="correctness", backend=backend)
-        except Exception as e:                          # noqa: BLE001
+        except Exception as e:
             logger.warning("metamorphic: candidate run failed: %s", e)
             return None
         scr = res.per_shape.get(rep_shape_id)
@@ -941,7 +941,7 @@ def _resolve_eval_task_status(task: TaskDef, mode: str) -> str:
             loaded = yaml.safe_load(shapes_path.read_text())
             if isinstance(loaded, dict):
                 shapes_doc = loaded
-    except (OSError, yaml.YAMLError) as e:  # noqa: BLE001
+    except (OSError, yaml.YAMLError) as e:
         logger.warning("param_constraints gate: shapes.yaml unreadable for "
                         "%s: %s", task.task_id, e)
     pc_result = param_constraints.check_param_constraints(
@@ -1050,6 +1050,7 @@ def evaluate(
 
         from ascendbench.correctness import tolerance
         from ascendbench.input_spec import inputs as _inputs
+        from ascendbench.input_spec.shape_format import build_inputs_for
         from ascendbench.integrity import process_isolation
         from ascendbench.perf import timing
 
@@ -1135,15 +1136,15 @@ def evaluate(
             n_repeat = process_isolation.DEFAULT_N_TRIALS
             warm_seed, meas_seed = 1, 1000
             correctness_inputs = {
-                sid: _inputs.build_inputs(shapes_doc, sid, seed=0)
+                sid: build_inputs_for(shapes_doc, sid, seed=0)
                 for sid in eval_shape_ids
             }
             timing_inputs = {
                 sid: (
-                    [_inputs.build_inputs(shapes_doc, sid,
+                    [build_inputs_for(shapes_doc, sid,
                                           seed=warm_seed + w)
                      for w in range(n_warmup)]
-                    + [_inputs.build_inputs(shapes_doc, sid,
+                    + [build_inputs_for(shapes_doc, sid,
                                             seed=meas_seed + t)
                        for t in range(n_repeat)]
                 )

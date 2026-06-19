@@ -39,7 +39,7 @@ This script is the missing producer of those artifacts. It:
      goldens can be captured, and the resulting artifacts stay sealed at
      the same confidentiality level as the hidden shapes themselves);
   3. materialises each shape's inputs with the verified-runner seed
-     (``inputs.build_inputs(..., seed=0)`` -- byte-identical to the
+     (``inputs.build_inputs_for(..., seed=0)`` -- byte-identical to the
      ``correctness_inputs`` ``eval.evaluate`` feeds the candidate, and
      to the seed-0 input the offline-golden cheat-path closure relies
      on, see ``eval._verify_sampled_outputs_offline``);
@@ -147,7 +147,7 @@ try:
             sys.path.insert(0, extra)
     import torch
     from safetensors.torch import save_file
-    from ascendbench.input_spec.inputs import build_inputs
+    from ascendbench.input_spec.shape_format import build_inputs_for
 
     if not torch.cuda.is_available():
         status["fatal"] = ("torch.cuda.is_available() is False -- the "
@@ -206,7 +206,7 @@ try:
     for sid in args["shape_ids"]:
         rec = {"captured": False, "error": None, "keys": []}
         try:
-            built = build_inputs(shapes_doc, sid, seed=args["seed"])
+            built = build_inputs_for(shapes_doc, sid, seed=args["seed"])
             inp = {k: _to_device(v) for k, v in built.items()}
             out = run_fn(inp)
             if not isinstance(out, dict):

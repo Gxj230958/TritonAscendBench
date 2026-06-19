@@ -39,7 +39,7 @@ if str(REPO) not in sys.path:
 import torch  # noqa: E402
 
 from ascendbench.input_spec.expr import free_symbols  # noqa: E402
-from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.input_spec.shape_format import build_inputs_for  # noqa: E402
 from ascendbench.perf.cost_model import FormulaEnv, parse_cost_model  # noqa: E402
 from scripts.corpus.cost_environment import named_cost_universe  # noqa: E402
 
@@ -109,7 +109,7 @@ def audit_task(tid: str) -> dict:
         # size_knobs and is not re-listed per shape.
         knobs = {**size_knobs, **(sh.get("knobs") or {})}
         try:
-            ins = build_inputs(shapes_doc, sid, seed=0)
+            ins = build_inputs_for(shapes_doc, sid, seed=0)
             outs = run(ins)
         except Exception as e:
             warnings.append(f"ORACLE_RUN_FAILED[{sid}]: {type(e).__name__}: {e}")

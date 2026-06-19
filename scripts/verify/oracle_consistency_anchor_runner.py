@@ -361,7 +361,7 @@ def _flatten(obj, prefix=""):
 
 def _check_one_shape(
     task_dir, entrypoint, sid, shapes_doc, tcls, tol_name,
-    compare, build_inputs, _map_inputs_by_name,
+    compare, build_inputs_for, _map_inputs_by_name,
     upstream_roots: list[Path] | None = None,
     device: str = "cpu",
 ) -> tuple[bool, str, bool, bool]:
@@ -391,7 +391,7 @@ def _check_one_shape(
     fallback positional pairing, not the same-key match)."""
     import torch
 
-    inputs = build_inputs(shapes_doc, sid, seed=0)
+    inputs = build_inputs_for(shapes_doc, sid, seed=0)
     # Snapshot inputs before the kernel call so an in-place upstream
     # entrypoint (e.g. apply_logit_bias on L1_01: writes -inf into the
     # supplied ``logits`` tensor and returns None) does not double-apply
@@ -809,10 +809,10 @@ def main() -> int:
     result = {"consistent": False, "detail": ""}
     try:
         import yaml
-
         from severance_subprocess_runner import _map_inputs_by_name
-        from ascendbench.input_spec.inputs import build_inputs
+
         from ascendbench.correctness.tolerance import compare, load_policy
+        from ascendbench.input_spec.shape_format import build_inputs_for
 
         shapes_doc = yaml.safe_load(
             (task_dir / "shapes.yaml").read_text()
@@ -848,7 +848,7 @@ def main() -> int:
         for sid in sids:
             ok, det, _fp8_only, narrow_out = _check_one_shape(
                 task_dir, entrypoint, sid, shapes_doc, tcls, tol_name,
-                compare, build_inputs, _map_inputs_by_name,
+                compare, build_inputs_for, _map_inputs_by_name,
                 upstream_roots=upstream_roots,
                 device=("cpu" if interpret else "cuda"),
             )

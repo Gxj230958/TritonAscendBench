@@ -32,7 +32,7 @@ import sys
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.input_spec.shape_format import build_inputs_for  # noqa: E402
 
 
 @dataclass
@@ -103,7 +103,7 @@ def lint_task(task_dir: Path) -> list[Finding]:
     required = {"A", "B", "As", "Bs", "block_size"}
     if required.issubset(inputs):
         for sid in _shape_ids(shapes_doc):
-            built = build_inputs(shapes_doc, sid, seed=0)
+            built = build_inputs_for(shapes_doc, sid, seed=0)
             block_n, block_k = built["block_size"]
             a = built["A"]
             b = built["B"]

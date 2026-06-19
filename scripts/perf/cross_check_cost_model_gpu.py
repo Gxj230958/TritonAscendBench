@@ -104,12 +104,12 @@ REPO_ROOT = _SCRIPTS_DIR.parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ascendbench.corpus.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
 from ascendbench.perf.cost_model import (  # noqa: E402
     CostModel,
     CostModelError,
     FormulaEnv,
 )
-from ascendbench.corpus.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
 from ascendbench.release_gate.eligibility import is_score_eligible  # noqa: E402
 
 #: ``meta.cost_model.status`` values this script writes.
@@ -316,7 +316,7 @@ def _require_cuda():
     """
     try:
         import torch
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise CudaUnavailableError(f"torch import failed: {e}") from e
     if not torch.cuda.is_available():
         raise CudaUnavailableError(
@@ -386,7 +386,7 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
         print("XCHECK_WORKER_ERROR: torch.cuda.is_available() is False",
               file=sys.stderr)
         raise SystemExit(3)
-    from ascendbench.input_spec.inputs import build_inputs
+    from ascendbench.input_spec.shape_format import build_inputs_for
     import yaml
 
     runner_path = {runner_path!r}
@@ -424,13 +424,13 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
     # Warmup call: triggers Triton JIT compilation + its launches. This is
     # OUTSIDE the NVTX range, so `ncu --nvtx-include` never profiles it --
     # compile cost is excluded, the warmup discipline timing.py uses.
-    warm = _to_cuda(build_inputs(shapes_doc, {shape_id!r}, seed=1))
+    warm = _to_cuda(build_inputs_for(shapes_doc, {shape_id!r}, seed=1))
     fn(warm)
     torch.cuda.synchronize()
 
     # The single measured call, wrapped in the NVTX range `ncu` filters on.
     # Every kernel launch here -- and ONLY here -- is profiled for DRAM bytes.
-    measured = _to_cuda(build_inputs(shapes_doc, {shape_id!r}, seed=1000))
+    measured = _to_cuda(build_inputs_for(shapes_doc, {shape_id!r}, seed=1000))
     torch.cuda.synchronize()
     torch.cuda.nvtx.range_push({nvtx_range!r})
     fn(measured)
@@ -1146,7 +1146,7 @@ def main(argv: list[str] | None = None) -> int:
         except CudaUnavailableError as e:
             logger.error("%s: %s", task.task_id, e)
             return 2
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.error("%s: cross-check raised %s: %s",
                          task.task_id, type(e).__name__, e)
             v = TaskXCheck(

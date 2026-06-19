@@ -56,7 +56,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.input_spec.shape_format import build_inputs_for  # noqa: E402
 
 GOLDEN_SEED = 0
 DEFAULT_SHAPES = ["P1", "P2"]
@@ -420,7 +420,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
     ):
         try:
             shapes_doc_preview = yaml.safe_load(shapes_path.read_text())
-            preview_inputs = build_inputs(
+            preview_inputs = build_inputs_for(
                 shapes_doc_preview, DEFAULT_SHAPES[0], seed=GOLDEN_SEED
             )
             input_ranks = {
@@ -502,12 +502,12 @@ def _audit_task(task_dir: Path) -> TaskAudit:
                 and shape_id in _sweep_extra
             )
             try:
-                inputs = build_inputs(shapes_doc, shape_id, seed=GOLDEN_SEED)
+                inputs = build_inputs_for(shapes_doc, shape_id, seed=GOLDEN_SEED)
             except Exception as e:
                 if _extra:
                     continue  # sweep-only shape that won't build -- skip, keep aligned
                 audit.status = "RUNTIME_ERROR"
-                audit.runtime_error = f"build_inputs({shape_id}): {e}"
+                audit.runtime_error = f"build_inputs_for({shape_id}): {e}"
                 return audit
 
             # CPU device

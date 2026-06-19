@@ -42,7 +42,7 @@ from ascendbench.correctness.tolerance import (  # noqa: E402
     compare,
     load_policy,
 )
-from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from ascendbench.input_spec.shape_format import build_inputs_for  # noqa: E402
 
 GOLDEN_SEED = 0  # mirror oracle_pyref_precompute.py's seed for determinism
 
@@ -490,7 +490,7 @@ def _verify_one_task(
     ):
         for sid in all_shape_ids:
             try:
-                inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+                inputs_full = build_inputs_for(shapes_doc, sid, seed=GOLDEN_SEED)
             except Exception as e:
                 sv = ShapeVerdict(shape_id=sid, status="LAUNCH_BLOCKED")
                 sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"
@@ -642,7 +642,7 @@ def _verify_one_task(
         inputs_full = per_shape_inputs.get(sid)
         if inputs_full is None:
             try:
-                inputs_full = build_inputs(shapes_doc, sid, seed=GOLDEN_SEED)
+                inputs_full = build_inputs_for(shapes_doc, sid, seed=GOLDEN_SEED)
             except Exception as e:
                 sv.status = "LAUNCH_BLOCKED"
                 sv.blocker_reason = f"build_inputs: {type(e).__name__}: {e}"

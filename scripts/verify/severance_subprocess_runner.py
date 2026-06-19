@@ -729,7 +729,6 @@ def _run_side(args: argparse.Namespace) -> int:
     }
 
     try:
-        import importlib.util
 
         import torch
         from safetensors.torch import save_file
@@ -745,7 +744,7 @@ def _run_side(args: argparse.Namespace) -> int:
         # skipped on the CUDA S2-gpu pass where ``torch.cuda.device`` is real.
         if str(spec.get("device", "cpu")) == "cpu":
             try:
-                from ascendbench.upstream_shims.torch_cpu_device_interp import (  # noqa: E501
+                from ascendbench.upstream_shims.torch_cpu_device_interp import (
                     install as _install_cpu_device_shim,
                 )
 
@@ -803,7 +802,7 @@ def _run_side(args: argparse.Namespace) -> int:
             return 2
 
         sys.path.insert(0, str(REPO_ROOT))
-        from ascendbench.input_spec.inputs import build_inputs
+        from ascendbench.input_spec.shape_format import build_inputs_for
 
         shapes_doc = json.loads(Path(spec["shapes_json"]).read_text())
         out_dir = Path(spec["out_dir"])
@@ -830,7 +829,7 @@ def _run_side(args: argparse.Namespace) -> int:
             return 2
         manifest: dict = {"shapes": {}}
         for sid in spec["shape_ids"]:
-            inp = build_inputs(shapes_doc, sid, seed=spec["seed"])
+            inp = build_inputs_for(shapes_doc, sid, seed=spec["seed"])
             # Move inputs onto the target device BEFORE the entrypoint
             # runs (no-op when device='cpu'). All stride/alias evidence
             # is captured from the resulting on-device tensors below.
