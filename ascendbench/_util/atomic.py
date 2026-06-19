@@ -23,7 +23,7 @@ import subprocess
 import tarfile
 import tempfile
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -149,7 +149,7 @@ def atomic_write_text(path: os.PathLike[str] | str, text: str) -> None:
 # ----------------------------------------------------------------------------
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _sha256_file(path: Path) -> str:

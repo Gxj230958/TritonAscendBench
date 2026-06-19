@@ -69,7 +69,7 @@ if str(_REPO_ROOT / "scripts") not in sys.path:
 import argparse  # noqa: E402
 import logging  # noqa: E402
 from collections import Counter  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
 
 import yaml  # noqa: E402
@@ -440,11 +440,11 @@ def render_json(
 
 
 def _iso_utc_now_seconds() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _today_iso() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%d")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 # ---------------------------------------------------------------------------

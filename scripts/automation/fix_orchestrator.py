@@ -50,7 +50,7 @@ import os  # noqa: E402
 import re  # noqa: E402
 import uuid  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
 
 import yaml  # noqa: E402
@@ -195,7 +195,7 @@ def _validate_state_object(obj: Any) -> dict[str, Any]:
 
 
 def _quarantine_corrupt(state_path: Path) -> Path:
-    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     target = state_path.parent / f".corrupt.{ts}.bak"
     os.rename(state_path, target)
     return target
@@ -967,7 +967,7 @@ def _mint_run_id(tier: int = 1) -> str:
     layouts are identical across tiers (the daemon also writes the
     canonical 9-field ``result.json`` + DONE barrier).
     """
-    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"tier{tier}-{ts}-{uuid.uuid4().hex[:8]}"
 
 
@@ -1212,7 +1212,7 @@ def _maybe_handle_tier2_daemon_timeout(
     if anchor_ts is None:
         anchor_ts = _iso_to_epoch(entry.get("last_updated_at", "")) or 0.0
 
-    now_s = datetime.now(UTC).timestamp()
+    now_s = datetime.now(timezone.utc).timestamp()
     if now_s - anchor_ts < timeout_window_s:
         # Still within grace window; do not record yet.
         return False

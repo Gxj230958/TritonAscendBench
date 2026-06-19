@@ -38,7 +38,7 @@ import argparse  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
 from collections import Counter  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
 
 from automation.fix_orchestrator import (  # noqa: E402
@@ -82,11 +82,11 @@ _VERDICT_HOURS: dict[str, str] = {
 
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _iso_utc_today() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%d")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 # ---------------------------------------------------------------------------

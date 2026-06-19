@@ -51,7 +51,7 @@ import subprocess  # noqa: E402
 import time  # noqa: E402
 import uuid  # noqa: E402
 from dataclasses import dataclass, field  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
 
 from automation import extract_verdict  # noqa: E402
@@ -129,7 +129,7 @@ _VALID_CMDS = ("resolve", "phase_a_verify")
 
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _read_task_json(task_json_path: Path) -> dict[str, Any]:

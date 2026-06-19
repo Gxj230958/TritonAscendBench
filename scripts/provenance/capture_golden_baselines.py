@@ -83,7 +83,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 logging.basicConfig(
@@ -333,7 +333,7 @@ def _iso8601_utc_now() -> str:
     Compatible with ``datetime.fromisoformat`` (the trailing ``Z``
     is interpreted as ``+00:00``).
     """
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _atomic_write_meta_yaml(meta_path: Path, meta: dict) -> None:

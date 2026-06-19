@@ -33,7 +33,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger("automation.lib.lock")
@@ -47,11 +47,11 @@ DEFAULT_HEARTBEAT_S = 300
 # ---------------------------------------------------------------------------
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _now_ts_filename() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ%f")
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ%f")
 
 
 def _pid_alive(pid: int) -> bool:
@@ -209,14 +209,14 @@ def _process_starttime(pid: int) -> int:
 
 
 def _iso_offset(epoch_s: float) -> str:
-    return datetime.fromtimestamp(epoch_s, tz=UTC).strftime(
+    return datetime.fromtimestamp(epoch_s, tz=timezone.utc).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
 
 
 def _parse_iso(s: str) -> float:
     return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(
-        tzinfo=UTC
+        tzinfo=timezone.utc
     ).timestamp()
 
 

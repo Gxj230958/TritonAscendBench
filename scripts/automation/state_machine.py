@@ -29,7 +29,7 @@ Canonical state enum (17 states; ANY alias is REJECTED by validators)
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 logger = logging.getLogger("automation.state_machine")
@@ -173,7 +173,7 @@ class StateTransitionError(StateError):
 # ---------------------------------------------------------------------------
 
 def iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def validate_state_name(state: str) -> None:

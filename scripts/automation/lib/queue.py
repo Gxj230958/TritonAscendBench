@@ -43,7 +43,7 @@ import socket
 import threading
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -57,12 +57,12 @@ logger = logging.getLogger("automation.lib.queue")
 # ---------------------------------------------------------------------------
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _now_ts() -> str:
     """Filesystem-safe UTC timestamp suffix used in marker filenames."""
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ%f")
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ%f")
 
 
 def _process_starttime(pid: int) -> int:

@@ -29,7 +29,7 @@ import logging  # noqa: E402
 import subprocess  # noqa: E402
 import time  # noqa: E402
 import uuid  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 
 from automation import extract_verdict  # noqa: E402
 
@@ -39,7 +39,7 @@ DEFAULT_TIMEOUT_S = 1800
 
 
 def _now_id() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _mint_run_id() -> str:

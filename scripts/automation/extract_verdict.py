@@ -44,7 +44,7 @@ import logging  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
 import socket  # noqa: E402
-from datetime import UTC, datetime  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any  # noqa: E402
 
 import yaml  # noqa: E402
@@ -72,7 +72,7 @@ _RESULT_SCHEMA_KEYS = {
 
 
 def _iso_utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _sha256_file(path: Path) -> str:
