@@ -54,7 +54,64 @@ def _syms_deep(obj) -> set[str]:
     return set()
 
 
+def _classify_from_homes(knobs: set[str], in_dims: set[str], in_scalar: set[str], in_dist: set[str],
+                         meta: dict) -> dict[str, str]:
+    """Assign each knob a class from its discovered input homes + the (format-independent) meta references."""
+    in_cost = _syms_deep(meta.get("cost_model") or {}) & knobs
+    in_constraint = _syms_deep(meta.get("param_constraints") or {}) & knobs
+    out: dict[str, str] = {}
+    for k in knobs:
+        if k in in_dims:
+            out[k] = "tensor-axis"
+        elif k in in_scalar:
+            out[k] = "scalar-input"
+        elif k in in_dist:
+            out[k] = "dist-param"
+        elif k in in_cost or k in in_constraint:
+            out[k] = "row-only-param"      # homeless: cost/constraint use but no input home
+        else:
+            out[k] = "dead"
+    return out
+
+
+def _classify_explicit(shapes_doc: dict, meta: dict) -> dict[str, str]:
+    """Classify on an EXPLICIT-format doc (U9 c4b). The symbol universe is the row ``env`` keys -- the named
+    row environment that replaces ``size_knobs`` (the explicit format has no top-level ``size_knobs``). For
+    every task env keys == size_knobs keys; the corpus-wide parity test enforces that equality (it cannot be
+    re-derived from the explicit doc alone, since size_knobs is gone). Input homes come from the explicit
+    rows, mirroring the knob path's (scalar_knob/derive/scalar) field scan so the verdict is format-invariant:
+      * tensor-axis  -- each tensor's ``axes`` (the dim EXPRESSIONS, so a ``2*D`` dim still homes ``D``);
+      * scalar-input -- a derive/scalar_knob input's source ``expr``, or a plain ``scalar`` input's raw
+        ``value`` (which may itself be a symbol string -- knob scans the scalar field, so we must too);
+      * dist-param   -- each tensor's row-invariant ``dist_symbolic`` args (approach A -- the resolved rows
+        alone lost these symbols). NOTE the ``randn_inf_excl`` ref arg is a tensor NAME; both classifiers
+        regex-scan dist args, so a ref that collides with a knob name would be mis-homed (0 in the corpus).
+    """
+    rows = (shapes_doc.get("public") or []) + (shapes_doc.get("hidden") or [])
+    knobs: set[str] = set()
+    for row in rows:
+        knobs |= set((row.get("env") or {}).keys())
+    in_dims: set[str] = set()
+    in_scalar: set[str] = set()
+    in_dist: set[str] = set()
+    for row in rows:
+        for inp in row.get("inputs") or []:
+            if inp.get("kind") == "tensor":
+                for ax in inp.get("axes") or []:
+                    in_dims |= _syms(ax) & knobs
+                for v in ((inp.get("dist_symbolic") or {}).get("args") or {}).values():
+                    in_dist |= _syms(v) & knobs
+            elif inp.get("expr") is not None:        # derive / scalar_knob source formula
+                in_scalar |= _syms(inp["expr"]) & knobs
+            elif inp.get("kind") == "scalar":        # plain scalar: the raw value may be a symbol string
+                in_scalar |= _syms(inp.get("value")) & knobs
+    return _classify_from_homes(knobs, in_dims, in_scalar, in_dist, meta)
+
+
 def classify(shapes_doc: dict, meta: dict) -> dict[str, str]:
+    from ascendbench.input_spec.shape_format import is_explicit_shapes_doc
+    if is_explicit_shapes_doc(shapes_doc):
+        return _classify_explicit(shapes_doc, meta)
     knobs = set((shapes_doc.get("size_knobs") or {}).keys())
     in_dims: set[str] = set()
     in_scalar: set[str] = set()   # scalar_knob / derive / scalar
@@ -73,22 +130,7 @@ def classify(shapes_doc: dict, meta: dict) -> dict[str, str]:
     # scan the WHOLE cost_model + param_constraints blocks (values, deeply): cost references live in
     # flops/bytes; constraint references live in dims AND dists/scalars/tensor_invariants[*].args.value
     # (codex: 149 refs the dims-only scan missed -- none currently dead, but the scan must be complete).
-    in_cost = _syms_deep(meta.get("cost_model") or {}) & knobs
-    in_constraint = _syms_deep(meta.get("param_constraints") or {}) & knobs
-
-    out: dict[str, str] = {}
-    for k in knobs:
-        if k in in_dims:
-            out[k] = "tensor-axis"
-        elif k in in_scalar:
-            out[k] = "scalar-input"
-        elif k in in_dist:
-            out[k] = "dist-param"
-        elif k in in_cost or k in in_constraint:
-            out[k] = "row-only-param"      # homeless: cost/constraint use but no input home
-        else:
-            out[k] = "dead"
-    return out
+    return _classify_from_homes(knobs, in_dims, in_scalar, in_dist, meta)
 
 
 def main() -> None:
