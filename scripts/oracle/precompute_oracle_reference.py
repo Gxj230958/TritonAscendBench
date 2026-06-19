@@ -188,9 +188,12 @@ def _shapes_input_keys(shapes_path: Path) -> tuple[list[str], list[str]]:
         d = yaml.safe_load(shapes_path.read_text())
     except yaml.YAMLError:
         return ([], [])
-    inputs = list((d or {}).get("inputs", {}).keys())
-    knobs = list((d or {}).get("size_knobs", {}).keys())
-    return (sorted(inputs), sorted(knobs))
+    # input NAMES via the adapter (knob branch == the verbatim top-level inputs mapping keys; explicit
+    # reconstructs them) so the C2 signature gate does not false-MISMATCH an explicit doc. The size-knob
+    # keys are discarded by the sole caller, so they have no explicit equivalent -> [].
+    from ascendbench.input_spec.shape_format import input_specs
+    inputs = list((input_specs(d or {}) or {}).keys())
+    return (sorted(inputs), [])
 
 
 _RESOLVE_CACHE: dict[str, list[str]] | None = None

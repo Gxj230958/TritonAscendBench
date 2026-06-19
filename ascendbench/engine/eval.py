@@ -579,61 +579,30 @@ def _build_metamorphic_context(
 # derive the representative cost-model `dtype_size` from a task's inputs
 # block so a non-fp16 task (e.g. float32) scores against the right
 # element size instead of the fp16 default (2.0).
-_DTYPE_BYTES: dict[str, float] = {
-    "float32": 4.0, "fp32": 4.0,
-    "float16": 2.0, "fp16": 2.0,
-    "bfloat16": 2.0, "bf16": 2.0,
-    "int8": 1.0,
-    "int32": 4.0,
-    "int64": 8.0, "long": 8.0,
-    "bool": 1.0,
-    "float8_e4m3fn": 1.0,
-}
-
-
 def _representative_dtype_size(shapes_doc: dict) -> float | None:
-    """Derive the cost model's representative ``dtype_size`` (element bytes)
-    from a task's ``shapes.yaml`` ``inputs`` block .
+    """The cost model's representative ``dtype_size`` (first dims-bearing input's element bytes).
 
-    Rule (documented here and in ``docs/reference/task_api_contract.md`` §5.1): the
-    representative element size is the byte width of the **first declared
-    tensor input** — i.e. the first ``inputs`` entry that is a tensor spec
-    (carries ``dims``), in YAML declaration order, skipping the non-tensor
-    forms (``scalar`` / ``derive`` / ``scalar_seq`` / ``scalar_knob``) which
-    have no element size. A task authors its primary operand first, so this
-    picks the dominant dtype for the common single-dtype task. Per-input
-    precise handling for genuinely mixed-dtype tasks is 's long tail;
-    until then this one representative value is fed to ``compute_t_ref`` /
-    ``FormulaEnv``.
-
-    Returns ``None`` when no tensor input is declared (a scalar-only inputs
-    block) — the caller then falls back to the fp16 default ``dtype_size``.
-    """
-    for spec in (shapes_doc.get("inputs", {}) or {}).values():
-        if not isinstance(spec, dict):
-            continue
-        # A tensor spec carries `dims`; the non-tensor forms (scalar /
-        # derive / scalar_seq / scalar_knob) have no element size.
-        if "dims" not in spec:
-            continue
-        dtype_name = str(spec.get("dtype", "float32"))
-        return _DTYPE_BYTES.get(dtype_name)
-    return None
+    Delegates to the shape_format adapter so an explicit-format doc resolves too; the adapter's knob branch
+    is byte-identical to the old local helper (verified equal over all 101 knob docs). Returns ``None`` for a
+    scalar-only inputs block (the caller falls back to the default dtype_size)."""
+    from ascendbench.input_spec.shape_format import representative_dtype_size
+    return representative_dtype_size(shapes_doc)
 
 
 def _shape_knobs(shapes_doc: dict, shape_id: str) -> dict[str, float] | None:
-    """Resolve a shape's size-knob values: ``size_knobs`` defaults merged
-    with the per-row ``knobs`` override (same merge ``inputs.build_inputs``
-    does). Returns ``None`` if the shape id is not in the document."""
-    for row in (shapes_doc.get("public_shapes", [])
-                + shapes_doc.get("hidden_shapes", [])):
-        if row.get("id") == shape_id:
-            knobs = dict(shapes_doc.get("size_knobs", {}))
-            knobs.update(row.get("knobs", {}))
-            # Cost-model formulas need numeric knobs only.
-            return {k: float(v) for k, v in knobs.items()
-                    if isinstance(v, (int, float)) and not isinstance(v, bool)}
-    return None
+    """Resolve a shape's row environment (``size_knobs`` defaults + per-row ``knobs``, or the explicit row
+    ``env``), filtered to the NUMERIC values a cost formula needs. Returns ``None`` if the shape id is absent.
+
+    effective_env supplies the same merge for knob docs (and the named row env for explicit); the numeric
+    filter + None-on-missing wrapper is kept here because effective_env returns the FULL map and raises
+    KeyError on a missing id."""
+    from ascendbench.input_spec.shape_format import effective_env
+    try:
+        env = effective_env(shapes_doc, shape_id)
+    except KeyError:
+        return None
+    return {k: float(v) for k, v in env.items()
+            if isinstance(v, (int, float)) and not isinstance(v, bool)}
 
 
 def _apply_roofline(

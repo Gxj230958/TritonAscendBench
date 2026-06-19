@@ -24,20 +24,13 @@ sys.path.insert(0, str(REPO))
 
 from ascendbench.perf.cost_model import CostModelError, FormulaEnv, parse_cost_model  # noqa: E402
 
-# declared-dtype -> element byte width (mirrors audit_cost_model_formulas / phase_a_cost_xcheck).
-_DTYPE_BYTES = {
-    "float64": 8, "int64": 8, "float32": 4, "fp32": 4, "int32": 4, "uint32": 4,
-    "bfloat16": 2, "bf16": 2, "float16": 2, "fp16": 2, "int16": 2,
-    "float8_e4m3fn": 1, "float8_e5m2": 1, "int8": 1, "uint8": 1, "bool": 1,
-}
-
 
 def _dtype_size(shapes_doc: dict) -> float:
-    """Representative dtype_size = first declared input's width (matches the xcheck/audit convention)."""
-    for v in (shapes_doc.get("inputs") or {}).values():
-        if isinstance(v, dict) and v.get("dtype") in _DTYPE_BYTES:
-            return float(_DTYPE_BYTES[v["dtype"]])
-    return 2.0
+    """Representative dtype_size = first dims-bearing input's width, via the shape_format adapter (so an
+    explicit doc resolves too); keep the 2.0 fallback for a scalar-only block. Byte-identical to the old
+    local helper over all 101 knob docs."""
+    from ascendbench.input_spec.shape_format import representative_dtype_size
+    return representative_dtype_size(shapes_doc) or 2.0
 
 
 def _outcome(formula: str, knobs: dict, dtype_size: float):
@@ -56,13 +49,12 @@ def snapshot_task(task_dir: Path) -> dict:
     if not cm_raw:
         return {}
     model = parse_cost_model(cm_raw)
+    from ascendbench.input_spec.shape_format import effective_env, iter_rows
     dtype_size = _dtype_size(shapes_doc)
-    size_knobs = shapes_doc.get("size_knobs") or {}
     out: dict = {}
-    rows = (shapes_doc.get("public_shapes") or []) + (shapes_doc.get("hidden_shapes") or [])
-    for row in rows:
-        knobs = {**size_knobs, **(row.get("knobs") or {})}
-        out[row["id"]] = {
+    for _role, sid, _row in iter_rows(shapes_doc):
+        knobs = effective_env(shapes_doc, sid)   # size_knobs+row knobs (knob) / row env (explicit)
+        out[sid] = {
             "flops": {c: _outcome(f, knobs, dtype_size) for c, f in model.flops.items()},
             "bytes": {r: _outcome(f, knobs, dtype_size) for r, f in model.bytes.items()},
         }

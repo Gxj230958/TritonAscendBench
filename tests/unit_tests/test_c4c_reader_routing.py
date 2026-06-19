@@ -74,6 +74,19 @@ def test_shape_ids_stays_fail_loud_on_idless_knob_row():
         shape_ids(bad)
 
 
+def test_adapter_dtype_table_covers_every_inputs_alias():
+    # the cost dtype_size now comes from the adapter's single _DTYPE_BYTES table; it MUST map every legal
+    # inputs._DTYPES alias (e.g. `long` -> int64 -> 8) or a task declaring that dtype silently drifts to the
+    # cost fallback. Pins the superset invariant so a future inputs alias can't regress dtype_size.
+    from ascendbench.input_spec.inputs import _DTYPES
+    from ascendbench.input_spec.shape_format import _DTYPE_BYTES, representative_dtype_size
+    missing = [k for k in _DTYPES if k not in _DTYPE_BYTES]
+    assert not missing, f"adapter _DTYPE_BYTES misses legal inputs dtypes: {missing}"
+    doc = {"size_knobs": {"B": 4}, "public_shapes": [{"id": "P1", "knobs": {"B": 4}}],
+           "inputs": {"x": {"dims": ["B"], "dtype": "long"}}}
+    assert representative_dtype_size(doc) == 8
+
+
 def test_explicit_doc_enumerates_without_crashing():
     # the whole point: an explicit doc routes through the same adapter and yields the same ids.
     td = REPO / "tasks" / "level1" / "L1_01_bias"

@@ -247,11 +247,13 @@ def _shapes_knob_names(task_dir: Path) -> set[str]:
     if not shapes_path.is_file():
         return names
     doc = yaml.safe_load(shapes_path.read_text()) or {}
-    names.update((doc.get("size_knobs") or {}).keys())
-    for section in ("public_shapes", "hidden_shapes"):
-        for row in doc.get(section, []) or []:
-            if isinstance(row, dict):
-                names.update((row.get("knobs") or {}).keys())
+    # the formula universe = every named row-environment symbol. For knob docs that is size_knobs defaults
+    # overlaid by per-row knobs (== the union of effective_env keys over the rows); for explicit it is the row
+    # env keys. This is a MORE-permissive "any declared symbol is legal" check, distinct from c4b's stricter
+    # named_cost_universe -- route to env-keys, do NOT merge the two checks.
+    from ascendbench.input_spec.shape_format import effective_env, iter_rows
+    for _role, sid, _row in iter_rows(doc):
+        names.update(effective_env(doc, sid).keys())
     return names
 
 

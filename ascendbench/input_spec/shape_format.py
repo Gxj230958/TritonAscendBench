@@ -29,10 +29,12 @@ from ascendbench.input_spec.row_ir import SCHEMA_VERSION
 # declared-dtype -> element byte width (the representative dtype_size convention shared by the cost
 # audit / xcheck). Kept here so the adapter answers dtype_size for BOTH formats from one table.
 _DTYPE_BYTES = {
-    "float64": 8, "int64": 8, "float32": 4, "fp32": 4, "int32": 4, "uint32": 4,
+    "float64": 8, "int64": 8, "long": 8, "float32": 4, "fp32": 4, "int32": 4, "uint32": 4,
     "bfloat16": 2, "bf16": 2, "float16": 2, "fp16": 2, "int16": 2,
     "float8_e4m3fn": 1, "float8_e5m2": 1, "int8": 1, "uint8": 1, "bool": 1,
 }
+# every legal inputs._DTYPES alias must map here (e.g. ``long`` -> int64 -> 8), else the representative
+# dtype_size of a task whose first tensor declares that alias silently drops to the cost fallback.
 
 
 class ShapeFormatError(ValueError):

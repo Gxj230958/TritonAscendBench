@@ -82,16 +82,19 @@ def audit_task(tid: str) -> dict:
         return {"task": tid, "error": "no cost_model.bytes"}
     cost_model = parse_cost_model(cm_raw)
     shapes_doc = yaml.safe_load((d / "shapes.yaml").read_text())
-    inputs_decl = shapes_doc.get("inputs", {})
-    # representative dtype_size = first declared input's width (matches xcheck).
-    first_dtype = next((v.get("dtype") for v in inputs_decl.values()
-                        if isinstance(v, dict) and v.get("dtype")), None)
-    dtype_size = _DTYPE_BYTES.get(first_dtype)
+    from ascendbench.input_spec.shape_format import (
+        effective_env,
+        input_specs,
+        public_ids,
+        representative_dtype_size,
+    )
+    inputs_decl = input_specs(shapes_doc) or {}
+    # representative dtype_size = first dims-bearing input's width (via the adapter, explicit-aware).
+    dtype_size = representative_dtype_size(shapes_doc)
     declared_widths = {
         _DTYPE_BYTES[v["dtype"]] for v in inputs_decl.values()
         if isinstance(v, dict) and v.get("dtype") in _DTYPE_BYTES
     }
-    public = shapes_doc.get("public_shapes", []) or []
 
     try:
         run = _load_oracle_run(d)
@@ -101,13 +104,10 @@ def audit_task(tid: str) -> dict:
     flags: list[str] = []
     warnings: list[str] = []
     records = []  # (sid, formula_val, out_b, in_b, measured)
-    size_knobs = shapes_doc.get("size_knobs") or {}
-    for sh in public:
-        sid = sh["id"]
-        # merge size_knobs defaults with the shape's overrides, exactly as the
-        # cost-xcheck path does -- a knob like KW (conv kernel width) lives in
-        # size_knobs and is not re-listed per shape.
-        knobs = {**size_knobs, **(sh.get("knobs") or {})}
+    for sid in public_ids(shapes_doc):
+        # row environment (size_knobs defaults + per-row overrides for knob, or the explicit row env),
+        # exactly as the cost-xcheck path -- a knob like KW lives in size_knobs and is not re-listed per shape.
+        knobs = effective_env(shapes_doc, sid)
         try:
             ins = build_inputs_for(shapes_doc, sid, seed=0)
             outs = run(ins)

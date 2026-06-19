@@ -70,7 +70,9 @@ _REL_IMPORT_RE = re.compile(
 
 
 def _vol(r: dict) -> int:
-    k = r.get("knobs", {})
+    # knob rows: the RAW per-row knobs (NO size_knobs overlay) -- overlaying would reorder the volume sort and
+    # reselect the anchored shapes. Explicit rows carry their resolved values under `env`.
+    k = r.get("knobs") or r.get("env") or {}
     v = 1
     for x in k.values():
         try:
@@ -88,9 +90,10 @@ def _anchor_shape_ids(shapes_doc: dict) -> list[str]:
     two independent shapes is far less likely than on one. If only one
     shape exists we honestly check that one (and the softened wording
     documents this is not a formal impossibility proof)."""
-    rows = shapes_doc.get("public_shapes", []) + shapes_doc.get(
-        "hidden_shapes", []
-    )
+    # via the adapter so an explicit doc enumerates too; for knob it is the public+hidden rows verbatim, so
+    # the _vol sort + anchor selection is byte-identical. _vol reads each row's raw knobs (knob) / env (explicit).
+    from ascendbench.input_spec.shape_format import iter_rows
+    rows = [row for _role, _sid, row in iter_rows(shapes_doc)]
     rows = [r for r in rows if r.get("id")]
     if not rows:
         return []

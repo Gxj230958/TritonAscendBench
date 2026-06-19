@@ -1117,7 +1117,9 @@ def _shapes_input_names(task_dir: Path) -> set[str]:
         doc = yaml.safe_load(sp.read_text())
     except (OSError, ValueError):
         return set()
-    return set((doc.get("inputs") or {}).keys())
+    # input NAMES via the adapter (knob branch == doc["inputs"].keys(); explicit reconstructs them).
+    from ascendbench.input_spec.shape_format import input_specs
+    return set(input_specs(doc) or {})
 
 
 def _name_core(task_id: str) -> str:

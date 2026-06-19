@@ -204,66 +204,29 @@ class TaskXCheck:
 # --------------------------------------------------------------------------
 
 # Element byte widths for the representative ``dtype_size`` derived symbol.
-# Mirrors ``eval._DTYPE_BYTES`` -- kept local so this script does not import
-# the (heavyweight) eval module just for a small lookup table.
-_DTYPE_BYTES: dict[str, float] = {
-    "float64": 8.0, "double": 8.0, "int64": 8.0, "long": 8.0,
-    "float32": 4.0, "float": 4.0, "int32": 4.0, "int": 4.0,
-    "float16": 2.0, "half": 2.0, "bfloat16": 2.0, "int16": 2.0,
-    "int8": 1.0, "uint8": 1.0, "bool": 1.0, "float8_e4m3fn": 1.0,
-}
-
-
 def _representative_dtype_size(shapes_doc: dict[str, Any]) -> float | None:
-    """Element byte width of the first declared tensor input.
-
-    Mirrors ``eval._representative_dtype_size`` (``docs/reference/task_api_contract.md``
-    §5.1): the first ``inputs`` entry carrying ``dims`` (a tensor spec, in
-    YAML declaration order) gives the representative ``dtype_size``.
-
-    Args:
-        shapes_doc: the parsed ``shapes.yaml`` document.
-
-    Returns:
-        The element size in bytes, or ``None`` for a scalar-only ``inputs``
-        block (the caller then uses the fp16 default).
-    """
-    for spec in (shapes_doc.get("inputs", {}) or {}).values():
-        if not isinstance(spec, dict) or "dims" not in spec:
-            continue
-        return _DTYPE_BYTES.get(str(spec.get("dtype", "float32")))
-    return None
+    """Representative ``dtype_size`` (first dims-bearing input's element bytes), via the shape_format adapter
+    so an explicit doc resolves too. Knob branch byte-identical to the old local helper (verified over 101)."""
+    from ascendbench.input_spec.shape_format import representative_dtype_size
+    return representative_dtype_size(shapes_doc)
 
 
 def _shape_knobs(
     shapes_doc: dict[str, Any], shape_id: str,
 ) -> dict[str, float] | None:
-    """Resolve a shape's numeric size-knob table.
-
-    ``size_knobs`` defaults merged with the per-row ``knobs`` override -- the
-    same merge :func:`ascendbench.input_spec.inputs.build_inputs` performs.
-
-    Args:
-        shapes_doc: the parsed ``shapes.yaml`` document.
-        shape_id: the public/hidden shape id.
-
-    Returns:
-        ``{knob: float}`` for numeric knobs, or ``None`` if the shape id is
-        absent from the document.
-    """
-    rows = list(shapes_doc.get("public_shapes", []) or []) + list(
-        shapes_doc.get("hidden_shapes", []) or []
-    )
-    for row in rows:
-        if row.get("id") == shape_id:
-            knobs = dict(shapes_doc.get("size_knobs", {}) or {})
-            knobs.update(row.get("knobs", {}) or {})
-            return {
-                k: float(v)
-                for k, v in knobs.items()
-                if isinstance(v, (int, float)) and not isinstance(v, bool)
-            }
-    return None
+    """The shape's NUMERIC row environment (size_knobs+row knobs for knob, or the explicit row env), or
+    ``None`` if the id is absent. effective_env supplies the merge; the numeric filter + None-on-KeyError
+    wrapper is kept (effective_env returns the full map and raises on a missing id)."""
+    from ascendbench.input_spec.shape_format import effective_env
+    try:
+        env = effective_env(shapes_doc, shape_id)
+    except KeyError:
+        return None
+    return {
+        k: float(v)
+        for k, v in env.items()
+        if isinstance(v, (int, float)) and not isinstance(v, bool)
+    }
 
 
 def evaluate_analytic(
