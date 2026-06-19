@@ -74,7 +74,13 @@ def explicit_row(shapes_doc: dict[str, Any], shape_id: str) -> dict[str, Any]:
         if d["kind"] == "tensor":
             inputs.append({
                 "name": name, "kind": "tensor", "shape": d["shape"], "dtype": d["dtype"],
-                "axes": d["axes"], "dist": resolve_dist_args(d["dist"], knobs),
+                "axes": d["axes"],
+                # `dist` is the per-row RESOLVED {kind, literal-args}; `dist_symbolic` is the row-INVARIANT
+                # parsed {kind, symbolic-args} (e.g. {to: "D"}). The resolved form loses the symbols, so the
+                # symbolic form is carried for the cost-universe dist-param recovery (classify) and the
+                # symbolic-parity dists check (resolved-only compares miss a symbol disagreement that
+                # coincidentally resolves equal). resolve_dist_args does not mutate d["dist"].
+                "dist": resolve_dist_args(d["dist"], knobs), "dist_symbolic": d["dist"],
             })
         elif d["kind"] == "struct":
             inputs.append({"name": name, "kind": "struct", "struct": d.get("struct")})

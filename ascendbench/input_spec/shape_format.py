@@ -100,6 +100,29 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
                 raise ShapeFormatError(
                     f"explicit row {row_id!r} has a malformed input entry "
                     f"(each input needs a dict with non-empty string 'name' and 'kind'): {i!r}")
+            if kind == "tensor":
+                # a tensor input MUST carry an `axes` list + a well-formed row-invariant `dist_symbolic`
+                # {kind:str, args:dict} -- the row-invariance signature folds both in, so a tensor MISSING
+                # either would otherwise pass as a uniform `.get(None)` across rows and slip a malformed doc
+                # (or a dist-symbol disagreement) past the dtype/dists checks. Structural validation only
+                # (kind-validity is checked by parse_dist_spec downstream); this keeps the discriminator
+                # torch-free so shape_manifest can import it without pulling torch.
+                if not isinstance(i.get("axes"), list):
+                    raise ShapeFormatError(
+                        f"explicit row {row_id!r} tensor input {name!r} missing an 'axes' list")
+                ds = i.get("dist_symbolic")
+                if (not isinstance(ds, dict) or type(ds.get("kind")) is not str or not ds.get("kind")
+                        or not isinstance(ds.get("args"), dict)):
+                    raise ShapeFormatError(
+                        f"explicit row {row_id!r} tensor input {name!r} missing a well-formed "
+                        f"'dist_symbolic' {{kind: str, args: dict}}, got {ds!r}")
+                # args keys must all be strings (parse_dist_spec always emits string keys) -- a hostile doc
+                # with mixed-type keys would otherwise make the row-invariance signature's sort raise a raw
+                # TypeError instead of failing closed here.
+                if any(type(k) is not str for k in ds["args"]):
+                    raise ShapeFormatError(
+                        f"explicit row {row_id!r} tensor input {name!r} dist_symbolic args keys must all be "
+                        f"strings, got {ds['args']!r}")
     ids = [r.get("id") for r in rows]
     if len(ids) != len(set(ids)):
         raise ShapeFormatError(f"explicit shapes doc has duplicate row ids: {ids}")
@@ -108,9 +131,22 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
     # form-inconsistent hand-authored doc (an input derive in one row + scalar in another, or a differing
     # dtype) would slip a false PASS past the dtype/derive checks. Fail closed on a mismatch.
     def _sig(row: dict) -> tuple:
-        return tuple((i.get("name"), i.get("kind"),
-                      i.get("dtype") if i.get("kind") == "tensor" else None)
-                     for i in (row.get("inputs") or []))
+        out = []
+        for i in (row.get("inputs") or []):
+            if i.get("kind") == "tensor":
+                # tensor dtype, axis NAMES, and the SYMBOLIC dist are row-invariant (only the resolved
+                # shape dims / dist literal-args move per row). Fold all three into the signature so a row
+                # that silently changes a tensor's axes or its symbolic dist fails closed.
+                ds = i.get("dist_symbolic") or {}
+                # sort by str(key) -- defense in depth so this never raises a raw TypeError even if a future
+                # path reaches here with non-string arg keys (the presence check above already rejects those).
+                ds_canon = (ds.get("kind"),
+                            tuple(sorted((ds.get("args") or {}).items(), key=lambda kv: str(kv[0]))))
+                out.append((i.get("name"), "tensor", i.get("dtype"),
+                            tuple(i.get("axes") or ()), ds_canon))
+            else:
+                out.append((i.get("name"), i.get("kind"), None))
+        return tuple(out)
     sig0 = _sig(rows[0]) if rows else ()
     for row in rows[1:]:
         if _sig(row) != sig0:
@@ -232,12 +268,26 @@ def explicit_row_dist(doc: dict, sid: str, name: str) -> dict | None:
     return None
 
 
+def explicit_row_dist_symbolic(doc: dict, sid: str, name: str) -> dict | None:
+    """The row-invariant SYMBOLIC ``{kind, symbolic-args}`` dist of tensor input ``name`` (None if absent/non-tensor).
+
+    This is the ``parse_dist_spec`` form the row was built from (args still symbolic, e.g. ``{to: "D"}``),
+    so it compares directly against ``parse_dist_spec(declared_constraint)`` -- restoring the knob path's
+    symbolic-parity strength that the resolved-only compare cannot give (see ``_validate_dists_explicit``).
+    """
+    for inp in _explicit_row(doc, sid).get("inputs") or []:
+        if inp.get("name") == name:
+            return inp.get("dist_symbolic") if inp.get("kind") == "tensor" else None
+    return None
+
+
 def explicit_canonical_projection(doc: dict) -> dict:
     """The hash-input projection for an EXPLICIT doc: the FULL row (codex) so any semantic edit moves the hash.
 
     Rows sorted by (role, id); inputs kept in authored ORDER (a reorder is a real change); each input keeps
-    every field (tensor: name/kind/shape/dtype/axes/dist; non-tensor: name/kind/value/expr); plus the row
-    ``env``. (Knob-format docs keep ``shape_manifest.canonical_manifest`` unchanged -- not this function.)
+    every field (tensor: name/kind/shape/dtype/axes/dist/dist_symbolic; non-tensor: name/kind/value/expr);
+    plus the row ``env``. A symbolic-dist change is semantic, so dist_symbolic riding here (it is in the input
+    dict) correctly moves the hash. (Knob-format docs keep ``shape_manifest.canonical_manifest`` unchanged.)
     """
     rows = []
     for role in ("public", "hidden"):

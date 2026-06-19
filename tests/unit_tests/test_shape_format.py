@@ -63,15 +63,20 @@ def test_discriminator_fail_closed_cases():
 def test_row_invariant_input_forms_enforced():
     # input_specs reconstructs from row 0, so a form-inconsistent doc (a tensor input becoming a scalar in
     # another row, or a differing dtype) must fail closed -- not silently slip a false PASS past dtype/derive.
+    # tensors carry well-formed axes/dist_symbolic so the row-invariance check (not the tensor-shape presence
+    # check) is what fires.
+    def _t(dtype):
+        return {"name": "x", "kind": "tensor", "dtype": dtype,
+                "axes": ["N"], "dist_symbolic": {"kind": "randn", "args": {}}}
     bad_kind = {"schema_version": SCHEMA_VERSION, "public": [
-        {"id": "P1", "inputs": [{"name": "x", "kind": "tensor", "dtype": "float32"}]},
+        {"id": "P1", "inputs": [_t("float32")]},
         {"id": "P2", "inputs": [{"name": "x", "kind": "scalar", "value": 1}]},
     ]}
     with pytest.raises(sf.ShapeFormatError, match="inconsistent input forms"):
         sf.is_explicit_shapes_doc(bad_kind)
     bad_dtype = {"schema_version": SCHEMA_VERSION, "public": [
-        {"id": "P1", "inputs": [{"name": "x", "kind": "tensor", "dtype": "float32"}]},
-        {"id": "P2", "inputs": [{"name": "x", "kind": "tensor", "dtype": "int32"}]},
+        {"id": "P1", "inputs": [_t("float32")]},
+        {"id": "P2", "inputs": [_t("int32")]},
     ]}
     with pytest.raises(sf.ShapeFormatError, match="inconsistent input forms"):
         sf.is_explicit_shapes_doc(bad_dtype)

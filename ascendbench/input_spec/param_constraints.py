@@ -575,20 +575,21 @@ def _validate_dists(
 def _validate_dists_explicit(
     dists: dict[str, Any], shapes_doc: dict[str, Any], tid: str,
 ) -> list[str]:
-    """Explicit-format dists check: the constraint's SYMBOLIC dist, resolved per row's env, must equal that
-    row's RESOLVED dist (kind + args). The explicit row stores literal dist args, so a symbolic-vs-symbolic
-    compare is impossible -- instead the constraint's args are resolved to each row's env (reusing the same
-    resolver, so ``randn_inf_excl.ref`` stays a tensor name) and matched against the row's literal args.
+    """Explicit-format dists check: the constraint's SYMBOLIC dist must match the row's dist on TWO levels.
 
-    KNOWN LIMITATION (closed by U9's ``dist_symbolic`` -- approach A): this compares RESOLVED values, so a
-    symbol-level disagreement that coincidentally resolves equal in every row (constraint ``hi=B`` vs shapes
-    ``hi=A`` with B==A) is NOT caught, whereas the knob check compares symbolically. Harmless today (no task
-    is explicit-format); U9 carries the row-invariant symbolic dist in the explicit format and compares it
-    symbolically FIRST, then this resolved compare for generator integrity."""
+    1. SYMBOLIC parity (U9 approach A): ``parse_dist_spec(declared)`` must equal the row's row-invariant
+       ``dist_symbolic`` (the same ``parse_dist_spec`` form the row was built from). This restores the knob
+       check's full strength -- it catches a symbol-level disagreement (constraint ``hi=B`` vs shapes
+       ``hi=A``) that the resolved compare alone would miss when B==A in every row.
+    2. RESOLVED parity (generator integrity): the constraint's args resolved to each row's env (reusing the
+       same resolver, so ``randn_inf_excl.ref`` stays a tensor name) must equal the row's literal args -- a
+       belt-and-braces check that the row actually materialises what the constraint asks.
+    """
     from ascendbench.input_spec.explicit_build import resolve_dist_args
     from ascendbench.input_spec.shape_format import (
         effective_env,
         explicit_row_dist,
+        explicit_row_dist_symbolic,
         hidden_ids,
         public_ids,
     )
@@ -605,6 +606,13 @@ def _validate_dists_explicit(
             want = parse_dist_spec(declared)
         except DistSpecError as e:
             errs.append(f"{tid}: param_constraints.dists[{name!r}] is not a valid dist spec: {e}")
+            continue
+        # 1. SYMBOLIC parity against the row-invariant dist_symbolic (read once -- it is the same on every
+        # row). A symbol disagreement here is a real authoring mismatch even if it resolves equal per row.
+        sym = explicit_row_dist_symbolic(shapes_doc, sids[0], name) if sids else None
+        if sym is not None and want != sym:
+            errs.append(f"{tid}: param_constraints.dists[{name!r}] requires {want} but the rows declare "
+                        f"the symbolic dist {sym}")
             continue
         for sid in sids:
             got = explicit_row_dist(shapes_doc, sid, name)
