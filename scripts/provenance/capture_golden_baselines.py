@@ -96,8 +96,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from ascendbench.release_gate import eligibility  # noqa: E402
 from ascendbench.corpus.dataset import TaskDef, iter_all_tasks, load_task  # noqa: E402
+from ascendbench.release_gate import eligibility  # noqa: E402
 
 # The capture seed MUST match the verified runner's correctness-pass seed
 # (``eval.evaluate`` builds ``correctness_inputs`` with ``seed=0``). The
