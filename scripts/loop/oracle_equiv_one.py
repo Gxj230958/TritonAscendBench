@@ -31,6 +31,7 @@ _ORACLE_DIR = str(_SCRIPTS / "oracle")
 if _ORACLE_DIR not in sys.path:
     sys.path.insert(0, _ORACLE_DIR)
 
+from precompute_oracle_reference import _audit_task  # noqa: E402
 from run_oracle_equivalence_gpu import (  # noqa: E402
     REPO_ROOT,
     ShapeVerdict,
@@ -38,7 +39,6 @@ from run_oracle_equivalence_gpu import (  # noqa: E402
     _verify_one_task,
     serialize_verdict,
 )
-from precompute_oracle_reference import _audit_task  # noqa: E402
 
 
 def _blocked(task_id: str, overall: str, reason: str) -> TaskVerdict:
@@ -101,13 +101,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         import yaml
 
+        from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+
         sd = yaml.safe_load((task_dir / "shapes.yaml").read_text()) or {}
-        want = {
-            s.get("id")
-            for grp in ("public_shapes", "hidden_shapes")
-            for s in (sd.get(grp) or [])
-            if s.get("id")
-        }
+        want = set(public_ids(sd)) | set(hidden_ids(sd))   # either format; explicit declares ids the same way
         got = {s.shape_id for s in v.shapes if s.shape_id not in ("*", None)}
         if want and not want.issubset(got):
             print(

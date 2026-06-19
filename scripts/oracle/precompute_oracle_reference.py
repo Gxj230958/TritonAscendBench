@@ -47,9 +47,8 @@ import re
 import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
 
 import torch
 import yaml
@@ -72,14 +71,9 @@ _C2_ALL_SHAPES = os.environ.get("TAB_C2_ALL_SHAPES", "1") == "1"
 
 
 def _declared_shape_ids(shapes_doc: dict) -> set[str]:
-    """Every public + hidden shape id DECLARED in shapes.yaml."""
-    out: set[str] = set()
-    for grp in ("public_shapes", "hidden_shapes"):
-        for s in shapes_doc.get(grp) or []:
-            sid = s.get("id")
-            if sid:
-                out.add(sid)
-    return out
+    """Every public + hidden shape id DECLARED in shapes.yaml (either format, via the adapter)."""
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+    return set(public_ids(shapes_doc)) | set(hidden_ids(shapes_doc))
 
 
 def _sweep_extra_ids() -> set[str]:
@@ -95,12 +89,11 @@ def _sweep_extra_ids() -> set[str]:
 def _sweep_shape_ids(shapes_doc: dict) -> list[str]:
     """Anchors first, then every remaining public+hidden shape id, then opt-in sweep extras
     (ordered, dedup)."""
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
     ids = list(DEFAULT_SHAPES)
-    for grp in ("public_shapes", "hidden_shapes"):
-        for s in shapes_doc.get(grp) or []:
-            sid = s.get("id")
-            if sid and sid not in ids:
-                ids.append(sid)
+    for sid in list(public_ids(shapes_doc)) + list(hidden_ids(shapes_doc)):
+        if sid and sid not in ids:
+            ids.append(sid)
     for sid in sorted(_sweep_extra_ids()):
         if sid not in ids:
             ids.append(sid)
@@ -228,7 +221,7 @@ def _extract_oracle_helper_contract(oracle_path: Path):
     as a module-local name so the original call sites in this script
     keep working without touching imports (the shared helper
     consolidated the implementation)."""
-    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (
         extract_oracle_helper_contract,
     )
 
@@ -279,7 +272,7 @@ def _resolve_kernel_entrypoint(
     :func:`ascendbench.corpus.kernel_resolver.resolve_kernel_entrypoint`
     -- preserves the local name R10.a / tests already use.
     """
-    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (
         resolve_kernel_entrypoint,
     )
 
@@ -416,7 +409,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
     # here and classify by whether the oracle agrees (WRAPPER_CONTRACT_
     # MISMATCH = patch shapes fixes both) or disagrees
     # (ORACLE_KERNEL_LAYOUT_MISMATCH = oracle needs rewrite, route to ②).
-    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (
         check_against_inputs,
         extract_wrapper_contract,
     )
@@ -552,7 +545,7 @@ def _audit_task(task_dir: Path) -> TaskAudit:
             # Snapshot inputs before run(): an in-place oracle mutates inputs_cpu,
             # so the H2 input artifact must hold pre-mutation values (R10.b
             # rebuilds fresh pre-mutation inputs). Cheap, so always clone.
-            from scripts.oracle.run_oracle_equivalence_gpu import (  # noqa: PLC0415
+            from scripts.oracle.run_oracle_equivalence_gpu import (
                 _mutated_input_keys,
             )
 
@@ -576,8 +569,9 @@ def _audit_task(task_dir: Path) -> TaskAudit:
                 return audit
 
             # Save inputs + ref_out as safetensors
-            from safetensors.torch import save_file
             import hashlib
+
+            from safetensors.torch import save_file
 
             # ``safetensors.save_file`` rejects non-contiguous tensors,
             # so a oracle that returns a view (e.g. via in-place

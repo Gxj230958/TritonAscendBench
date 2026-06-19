@@ -193,11 +193,15 @@ def _legacy_golden_complete(tasks_root: Path, task_id: str) -> bool:
         return False
     if not isinstance(doc, dict):
         return False
-    shape_ids: list[str] = []
-    for section in ("public_shapes", "hidden_shapes"):
-        for row in doc.get(section, []) or []:
-            if isinstance(row, dict) and row.get("id"):
-                shape_ids.append(str(row["id"]))
+    from ascendbench.input_spec.shape_format import (
+        ShapeFormatError,
+        hidden_ids,
+        public_ids,
+    )
+    try:   # adapter handles either format; a malformed explicit doc fails closed (return False)
+        shape_ids = [str(s) for s in (list(public_ids(doc)) + list(hidden_ids(doc)))]
+    except ShapeFormatError:
+        return False
     if not shape_ids:
         return False
     golden_dir = task_dir / "golden"

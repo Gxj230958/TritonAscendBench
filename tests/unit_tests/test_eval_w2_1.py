@@ -29,9 +29,19 @@ REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"
 _SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
-# L1_01_bias ships 5 public (P1..P5) + 4 hidden (H1..H4) shapes.
-_PUBLIC_IDS = {"P1", "P2", "P3", "P4", "P5"}
-_HIDDEN_IDS = {"H1", "H2", "H3", "H4"}
+
+def _declared_ids() -> tuple[set[str], set[str]]:
+    """The task's public/hidden eval-shape ids, derived from shapes.yaml so they never go stale as the
+    shape-coverage set grows (was hardcoded to a pre-expansion P1..P5 / H1..H4)."""
+    import yaml
+
+    from ascendbench.input_spec.inputs import shape_ids
+    doc = yaml.safe_load((REPO / "tasks" / "level1" / _TASK / "shapes.yaml").read_text())
+    pub, hid = shape_ids(doc)
+    return set(pub), set(hid)
+
+
+_PUBLIC_IDS, _HIDDEN_IDS = _declared_ids()
 
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:

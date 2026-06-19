@@ -57,7 +57,8 @@ def _expected_shapes(tid: str) -> list[str]:
     if not sp.exists():
         return []
     d = yaml.safe_load(sp.read_text())
-    return [s["id"] for g in ("public_shapes", "hidden_shapes") for s in (d.get(g) or [])]
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+    return list(public_ids(d)) + list(hidden_ids(d))
 
 
 def analyze(results_dir: Path):

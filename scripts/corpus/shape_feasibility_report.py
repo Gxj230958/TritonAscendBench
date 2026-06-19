@@ -146,12 +146,8 @@ def _classify_shape(meta: dict, launcher_src: str | None) -> tuple[str, list[str
 
 
 def _shape_ids(shapes_doc: dict) -> list[str]:
-    out: list[str] = []
-    for grp in ("public_shapes", "hidden_shapes"):
-        for s in shapes_doc.get(grp) or []:
-            if isinstance(s, dict) and s.get("id"):
-                out.append(s["id"])
-    return out
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+    return list(public_ids(shapes_doc)) + list(hidden_ids(shapes_doc))
 
 
 def assess_task(task_dir: Path) -> TaskFeasibility:

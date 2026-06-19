@@ -404,6 +404,9 @@ def _write_validatable_task(td: Path, *, oracle_simplified: str) -> None:
         "cost_model": {
             "flops": "B*N", "flops_class": "vector",
             "bytes": "B*N", "bytes_resource": "hbm",
+            # this minimal fixture declares no tensor inputs, so B/N have no input home; declare them
+            # row-only so the U7 cost-symbol-universe check (validate_tasks) sees them as legal, not homeless.
+            "row_only_params": ["B", "N"],
         },
         # WA.1/WA.4: `param_constraints` is a required top-level meta key.
         # Use a reconciled (`scaffold: false`) schema-closed block — WA.4's

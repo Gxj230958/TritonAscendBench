@@ -51,12 +51,10 @@ def _ceiling_allowlist() -> set[str]:
 
 
 def _shape_ids(shapes_doc: dict) -> set[str]:
-    out: set[str] = set()
-    for grp in ("public_shapes", "hidden_shapes"):
-        for s in shapes_doc.get(grp) or []:
-            if s.get("id"):
-                out.add(s["id"])
-    return out
+    # via the adapter so an explicit-format doc enumerates too; the knob branch is byte-identical. A malformed
+    # explicit doc raises ShapeFormatError, caught by the caller's try/except -> "shapes.yaml unreadable".
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+    return set(public_ids(shapes_doc)) | set(hidden_ids(shapes_doc))
 
 
 def check_task(task_dir: Path, allowlist: set[str]) -> tuple[str, list[str]]:

@@ -163,7 +163,9 @@ ascendbench = ["policies/*.yaml", "policies/*.json", "policies/*.toml"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+# match requires-python (>=3.10): py311 here makes UP017 rewrite datetime.timezone.utc -> datetime.UTC,
+# which breaks the 3.10 daemon env. Keep in lockstep with project.requires-python.
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "C4", "UP", "RUF"]
@@ -171,7 +173,7 @@ ignore = ["E501"]  # line length handled by formatter
 
 [tool.black]
 line-length = 120
-target-version = ["py311"]
+target-version = ["py310"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

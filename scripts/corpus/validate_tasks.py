@@ -715,14 +715,12 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
         return []
 
     errs: list[str] = []
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
     shapes_path = task_dir / "shapes.yaml"
     expected: list[str] = []
     if shapes_path.is_file():
         doc = yaml.safe_load(shapes_path.read_text()) or {}
-        for section in ("public_shapes", "hidden_shapes"):
-            for row in doc.get(section, []) or []:
-                if isinstance(row, dict) and row.get("id"):
-                    expected.append(str(row["id"]))
+        expected = [str(s) for s in (list(public_ids(doc)) + list(hidden_ids(doc)))]
 
     golden_dir = task_dir / "golden"
     if not golden_dir.is_dir():

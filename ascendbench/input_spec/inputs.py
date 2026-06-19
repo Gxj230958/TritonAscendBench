@@ -435,7 +435,7 @@ def _resolve_dims(dims: list[Any], knobs: dict[str, int]) -> list[int]:
     return out
 
 
-def _resolve_dtype(name: str) -> "torch.dtype":
+def _resolve_dtype(name: str) -> torch.dtype:
     """Resolve a ``shapes.yaml`` dtype alias to a ``torch.dtype`` — fail-loud.
 
     The dtype alias must be a key of the shared :data:`DTYPE_ALIASES` table
@@ -1013,7 +1013,20 @@ def build_inputs(
 
 
 def shape_ids(shapes_doc: dict[str, Any]) -> tuple[list[str], list[str]]:
-    """(public_ids, hidden_ids)."""
+    """(public_ids, hidden_ids), for either the knob or explicit format.
+
+    Explicit docs route through the adapter; KNOB docs keep the exact old ``r["id"]`` enumeration, which is
+    FAIL-LOUD on an id-less row (a malformed task raises rather than silently grading a reduced shape set --
+    the adapter's defensive ``.get("id")`` skip would hide that, so it is reserved for the explicit path).
+    Lazy-imported to avoid an import cycle (shape_format pulls input_spec siblings).
+    """
+    from ascendbench.input_spec.shape_format import (
+        hidden_ids,
+        is_explicit_shapes_doc,
+        public_ids,
+    )
+    if is_explicit_shapes_doc(shapes_doc):
+        return list(public_ids(shapes_doc)), list(hidden_ids(shapes_doc))
     pub = [r["id"] for r in shapes_doc.get("public_shapes", [])]
     hid = [r["id"] for r in shapes_doc.get("hidden_shapes", [])]
     return pub, hid

@@ -22,6 +22,7 @@ from ascendbench.corpus.provenance import (
     ProvenanceGoldenSpec,
     parse_provenance_golden,
 )
+from ascendbench.input_spec.shape_format import iter_rows
 from ascendbench.perf.cost_model import CostModel, CostModelError, parse_cost_model
 
 logger = logging.getLogger(__name__)
@@ -121,13 +122,17 @@ def load_task(task_id: str) -> TaskDef:
     contract_md = (task_dir / "contract.md").read_text()
     kernel_py = (task_dir / "kernel.py").read_text()
 
+    # Route row selection through the adapter (iter_rows) so an explicit-format doc loads too; for the knob
+    # format iter_rows == doc["public_shapes"], so id/name/params packing is byte-identical. name falls back
+    # to id (explicit rows carry no 'name'); the explicit ShapeSpec.params semantics is a migration choice.
     public_shapes = [
         ShapeSpec(
-            id=s["id"],
-            name=s["name"],
-            params={k: v for k, v in s.items() if k not in {"id", "name"}},
+            id=sid,
+            name=row.get("name") or sid,
+            params={k: v for k, v in row.items() if k not in {"id", "name"}},
         )
-        for s in shapes_doc["public_shapes"]
+        for role, sid, row in iter_rows(shapes_doc)
+        if role == "public"
     ]
 
     raw_level = meta["level"]
@@ -292,11 +297,12 @@ def load_canary_task(canary_id: str) -> CanaryTaskDef:
 
     public_shapes = [
         ShapeSpec(
-            id=s["id"],
-            name=s["name"],
-            params={k: v for k, v in s.items() if k not in {"id", "name"}},
+            id=sid,
+            name=row.get("name") or sid,
+            params={k: v for k, v in row.items() if k not in {"id", "name"}},
         )
-        for s in (shapes_doc.get("public_shapes") or [])
+        for role, sid, row in iter_rows(shapes_doc)
+        if role == "public"
     ]
 
     return CanaryTaskDef(

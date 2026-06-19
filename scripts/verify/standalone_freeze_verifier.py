@@ -1048,7 +1048,7 @@ def _source_has_dynamic_exec(src: str) -> bool:
 
 
 def _vendor_triton_helper_module(
-    module: str, src_path: "Path", repo: str
+    module: str, src_path: Path, repo: str
 ) -> str | None:
     """Whole-module-vendor a tiny upstream triton helper into the U2 pool.
 
@@ -1144,7 +1144,7 @@ def _kernel_uses_triton_autotune(src: str) -> bool:
     return False
 
 
-def _task_upstream_repo(task_dir: "Path | None") -> str:
+def _task_upstream_repo(task_dir: Path | None) -> str:
     """Normalised upstream repo name for the task (``"vllm"`` / ``"sglang"`` /
     ``""``), read from ``meta.yaml.repo`` (or ``meta.upstream.repo``). Used to
     repo-gate on-path vendoring so a vLLM-only helper is never vendored for an
@@ -1164,7 +1164,7 @@ def _task_upstream_repo(task_dir: "Path | None") -> str:
     return ""
 
 
-def _mamba_softplus_on_path(src: str, task_dir: "Path | None") -> bool:
+def _mamba_softplus_on_path(src: str, task_dir: Path | None) -> bool:
     """True iff this is a launcher task whose graded surface may reach the
     real mamba ``softplus`` -- the case where the off-path raising stub is
     WRONG and the real device function must be vendored.
@@ -1247,7 +1247,7 @@ _KVQUANTMODE_REL = "vllm/v1/kv_cache_interface.py"
 _PY_BUILTIN_NAMES = set(dir(builtins))
 
 
-def _global_refs_in_symtable(table: "symtable.SymbolTable") -> set[str]:
+def _global_refs_in_symtable(table: symtable.SymbolTable) -> set[str]:
     """Names a (sub)scope references that resolve to the ENCLOSING module --
     i.e. implicit globals (referenced but neither local nor a closure var).
     ``is_free()`` is deliberately NOT used: a closure variable captured from an
@@ -1507,7 +1507,7 @@ _FLA_OPS_MODULES = frozenset({
 _FLA_OPS_CLOSURE = tuple(sorted(_FLA_OPS_MODULES))
 
 
-def _vendor_fla_ops_package(fla_ops_dir: "Path", repo: str) -> str | None:
+def _vendor_fla_ops_package(fla_ops_dir: Path, repo: str) -> str | None:
     """Vendor the minimal FLA-ops closure ({utils,index,op}) into the U2
     pool as a package and return its dotted prefix, or None if any module
     is unreadable or carries an unsanctioned import (fail-closed)."""
@@ -2159,14 +2159,9 @@ def _shape_ids_for(shapes_doc: dict) -> list[str]:
     """S2 sampling (plan D2): public {small,med,large} rows. Hidden
     A'-only validation rows are appended when present (disjoint from
     B' sealed score-hidden seeds by construction)."""
-    ids: list[str] = []
-    for r in shapes_doc.get("public_shapes", []) or []:
-        if r.get("id"):
-            ids.append(r["id"])
-    for r in shapes_doc.get("hidden_shapes", []) or []:
-        if r.get("id"):
-            ids.append(r["id"])
-    return ids
+    # via the adapter (either format); the knob branch reproduces the public-then-hidden id list byte-for-byte.
+    from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+    return list(public_ids(shapes_doc)) + list(hidden_ids(shapes_doc))
 
 
 def _spawn_side(
@@ -4116,7 +4111,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 _SLICE_FREE_NAME_ALLOW = frozenset({"torch", "triton", "tl", "math"})
 
 
-def _has_top_level_flashinfer_import(tree: "ast.Module") -> bool:
+def _has_top_level_flashinfer_import(tree: ast.Module) -> bool:
     """True iff the module has a MODULE-LEVEL (executed at import) ``import
     flashinfer`` / ``from flashinfer... import ...`` statement. A flashinfer
     import nested inside a function body (lazy, only run when that off-path
@@ -4134,7 +4129,7 @@ def _has_top_level_flashinfer_import(tree: "ast.Module") -> bool:
 
 
 def _has_top_level_dead_vllm_import(
-    tree: "ast.Module", src: str, task_dir: "Path | None"
+    tree: ast.Module, src: str, task_dir: Path | None
 ) -> bool:
     """True iff the module has a MODULE-LEVEL ``from vllm/sglang... import X``
     whose binding ``X`` is referenced by NO def in the launcher's launched-jit
@@ -4207,7 +4202,7 @@ def _jit_launches_in(node: ast.AST, jit_names: set[str]) -> set[str]:
 
 
 def _launcher_launched_jit_roots(
-    task_dir: "Path | None", jit_names: set[str], kernel_src: "str | None" = None
+    task_dir: Path | None, jit_names: set[str], kernel_src: str | None = None
 ) -> set[str]:
     """Return the kernel.py ``@triton.jit`` kernels that ``_pa_launcher.py``
     drives, restricted to the kernel's own jit names.
@@ -4338,7 +4333,7 @@ def _launcher_launched_jit_roots(
 
 
 def _symbol_off_launched_closure(
-    src: str, task_dir: "Path | None", symbol: str
+    src: str, task_dir: Path | None, symbol: str
 ) -> bool:
     """Return True iff ``symbol`` is referenced by NO kernel.py def in the
     transitive module-level def-to-def closure of the @triton.jit kernels the
@@ -4405,8 +4400,8 @@ def _symbol_off_launched_closure(
 
 
 def _slice_to_entrypoint_closure(
-    src: str, task_dir: "Path | None"
-) -> "str | None":
+    src: str, task_dir: Path | None
+) -> str | None:
     """Reduce a whole-module vendored ``kernel.py`` to just the graded
     entrypoint's transitive module-level closure.
 
@@ -4627,7 +4622,7 @@ _RESIDUAL_UPSTREAM_IMPORT_RE = re.compile(
 
 def rewrite_imports_to_standalone(
     src: str, classification: TaskClassification,
-    task_dir: "Path | None" = None,
+    task_dir: Path | None = None,
     _try_slice: bool = True,
 ) -> str:
     """Rewrite a kernel.py's external imports to the standalone
@@ -4677,7 +4672,7 @@ def rewrite_imports_to_standalone(
     # line-level redirect below can rewrite it verbatim. The bundled
     # cutlass-moe / w4a8 files carry this fp8-quant import; the single-line
     # rules cannot see a parenthesised continuation.
-    def _collapse_fp8(m: "re.Match") -> str:
+    def _collapse_fp8(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return (
             "from sglang.srt.layers.quantization.fp8_kernel import "
@@ -4698,7 +4693,7 @@ def rewrite_imports_to_standalone(
     # check is not actually fail-closed (it cannot read continuation lines).
     # Only the exact L1_18 sibling-surface modules are collapsed; any other
     # parenthesised sglang import falls through untouched.
-    def _collapse_sglang_multiline(m: "re.Match") -> str:
+    def _collapse_sglang_multiline(m: re.Match) -> str:
         mod = m.group(1)
         syms = [s.strip() for s in m.group(2).split(",") if s.strip()]
         return f"from sglang.srt.{mod} import " + ", ".join(syms)
@@ -4726,7 +4721,7 @@ def rewrite_imports_to_standalone(
     # read continuation lines). Only the exact L1_28 sibling-surface fused_moe
     # modules are collapsed; any other parenthesised vllm import falls through
     # untouched (and stays caught by the fail-closed guard).
-    def _collapse_vllm_fused_moe_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_fused_moe_multiline(m: re.Match) -> str:
         mod = m.group(1)
         syms = [s.strip() for s in m.group(2).split(",") if s.strip()]
         return f"from vllm.model_executor.layers.fused_moe.{mod} import " + ", ".join(syms)
@@ -4749,7 +4744,7 @@ def rewrite_imports_to_standalone(
     # .quantization.utils.quant_utils import (...)`` form (L1_28) to one line so
     # the symbol-aware quant_utils redirect below sees the full symbol set
     # (otherwise its allowlist check cannot read continuation lines).
-    def _collapse_vllm_quant_utils_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_quant_utils_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return (
             "from vllm.model_executor.layers.quantization.utils.quant_utils import "
@@ -4769,7 +4764,7 @@ def rewrite_imports_to_standalone(
     # subset-allowlist deep_gemm redirect below sees the full symbol set
     # (otherwise its allowlist check cannot read continuation lines and the
     # rule is not actually fail-closed).
-    def _collapse_vllm_deep_gemm_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_deep_gemm_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return "from vllm.utils.deep_gemm import " + ", ".join(syms)
 
@@ -4785,7 +4780,7 @@ def rewrite_imports_to_standalone(
     # attention_3d) to one line so the U2 helper-vendor redirect below sees the
     # full symbol set (otherwise its subset-allowlist check cannot read
     # continuation lines and the rule is not actually fail-closed).
-    def _collapse_vllm_attn_helpers_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_attn_helpers_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return (
             "from vllm.v1.attention.ops.triton_attention_helpers import "
@@ -4805,7 +4800,7 @@ def rewrite_imports_to_standalone(
     # vllm.model_executor.parameter import (...)`` forms (L2_11) to one line so
     # their subset-allowlist redirects below see the full symbol set (otherwise
     # the allowlist check cannot read continuation lines -> not fail-closed).
-    def _collapse_vllm_w8a8_utils_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_w8a8_utils_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return (
             "from vllm.model_executor.layers.quantization.utils.w8a8_utils import "
@@ -4820,7 +4815,7 @@ def rewrite_imports_to_standalone(
         flags=re.DOTALL,
     )
 
-    def _collapse_vllm_me_parameter_multiline(m: "re.Match") -> str:
+    def _collapse_vllm_me_parameter_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return "from vllm.model_executor.parameter import " + ", ".join(syms)
 
@@ -4840,7 +4835,7 @@ def rewrite_imports_to_standalone(
     # L1_15 sibling-surface modules are collapsed; any other parenthesised
     # sglang import falls through untouched (and stays caught by the fail-closed
     # guard).
-    def _collapse_sglang_int8_kernel_multiline(m: "re.Match") -> str:
+    def _collapse_sglang_int8_kernel_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return (
             "from sglang.srt.layers.quantization.int8_kernel import "
@@ -4855,7 +4850,7 @@ def rewrite_imports_to_standalone(
         flags=re.DOTALL,
     )
 
-    def _collapse_sglang_srt_utils_multiline(m: "re.Match") -> str:
+    def _collapse_sglang_srt_utils_multiline(m: re.Match) -> str:
         syms = [s.strip() for s in m.group(1).split(",") if s.strip()]
         return "from sglang.srt.utils import " + ", ".join(syms)
 

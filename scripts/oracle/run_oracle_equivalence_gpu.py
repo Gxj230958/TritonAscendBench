@@ -26,23 +26,23 @@ import logging
 import os
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import torch
+import yaml
 from safetensors import safe_open
 from safetensors.torch import load_file
-import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
 from ascendbench.correctness.tolerance import (  # noqa: E402
     ToleranceClass,
     compare,
     load_policy,
 )
+from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
 
 GOLDEN_SEED = 0  # mirror oracle_pyref_precompute.py's seed for determinism
 
@@ -65,7 +65,7 @@ def _ceiling_config() -> dict:
     return _CEILING_CFG
 
 
-def _ceiling_verdict(task_id: str, sv: "ShapeVerdict") -> tuple[bool, str, str]:
+def _ceiling_verdict(task_id: str, sv: ShapeVerdict) -> tuple[bool, str, str]:
     """Decide whether a STRICT-failing shape of an allowlisted task is an accepted
     dtype-ULP ceiling. Returns (accepted, mode, reason). FAIL-CLOSED: any missing config,
     unknown mode, missing/zero/non-finite scale, or non-allowlisted task -> (False, ...).
@@ -280,7 +280,7 @@ def _resolve_kernel_entrypoint(
     patch scripts all delegate here so they can never drift on jaccard
     thresholds, jit gating, or tried-cache trust rules.
     """
-    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (
         resolve_kernel_entrypoint,
     )
 
@@ -456,7 +456,7 @@ def _verify_one_task(
     # trace; AND when ALL shapes are static-blocked we skip kernel
     # import entirely, so import-time failures cannot mask a clean
     # static verdict.
-    from ascendbench.integrity.wrapper_contract import (  # noqa: PLC0415
+    from ascendbench.integrity.wrapper_contract import (
         check_against_inputs,
         extract_oracle_helper_contract,
         extract_wrapper_contract,
@@ -658,7 +658,7 @@ def _verify_one_task(
         # makes a correct kernel falsely FAIL. Fail-closed: artifacts must
         # exist+load and the full payload (tensor bytes + non-tensor values)
         # must match R10.a, else INPUT_DRIFT (never a silent precision FAILED).
-        from ascendbench.input_spec.inputs import split_inputs  # noqa: PLC0415
+        from ascendbench.input_spec.inputs import split_inputs
 
         inputs_file = ref_dir / f"inputs_{sid}.safetensors"
         sidecar_file = ref_dir / f"inputs_{sid}.sidecar.json"
@@ -1180,12 +1180,8 @@ def _verify_one_task(
     # passing overall to SHAPE_COVERAGE_GAP. (graded-but-not-declared stale refs surface downstream
     # via validate_corpus_consistency's equivalence_per_shape==ids check.)
     try:
-        _declared_ids = {
-            s.get("id")
-            for grp in ("public_shapes", "hidden_shapes")
-            for s in (shapes_doc.get(grp) or [])
-            if isinstance(s, dict) and s.get("id")
-        }
+        from ascendbench.input_spec.shape_format import hidden_ids, public_ids
+        _declared_ids = set(public_ids(shapes_doc)) | set(hidden_ids(shapes_doc))
     except Exception:
         _declared_ids = set()
     _graded_ids = {sv.shape_id for sv in verdict.shapes if sv.shape_id and sv.shape_id != "*"}

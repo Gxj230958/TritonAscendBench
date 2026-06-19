@@ -280,6 +280,12 @@ def shapes_eval_ids(task: _TaskLike) -> list[str] | None:
     """
     import yaml
 
+    from ascendbench.input_spec.shape_format import (
+        ShapeFormatError,
+        hidden_ids,
+        public_ids,
+    )
+
     try:
         shapes_doc = yaml.safe_load(
             (task.task_dir / "shapes.yaml").read_text())
@@ -287,12 +293,12 @@ def shapes_eval_ids(task: _TaskLike) -> list[str] | None:
         return None
     if not isinstance(shapes_doc, dict):
         return None
-    shape_ids = [
-        s.get("id")
-        for s in (list(shapes_doc.get("public_shapes") or [])
-                  + list(shapes_doc.get("hidden_shapes") or []))
-        if isinstance(s, dict) and s.get("id")
-    ]
+    # via the adapter (either format); a malformed explicit doc raises ShapeFormatError -> None, preserving
+    # the conservative "cannot determine the golden set" contract instead of crashing the release gate.
+    try:
+        shape_ids = list(public_ids(shapes_doc)) + list(hidden_ids(shapes_doc))
+    except ShapeFormatError:
+        return None
     return shape_ids or None
 
 
