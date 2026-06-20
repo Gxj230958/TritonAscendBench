@@ -124,6 +124,17 @@ def test_v2_requires_shape_and_dtype():
         sf.is_explicit_shapes_doc(bad)
 
 
+@pytest.mark.parametrize("task", _TASKS)
+def test_writer_output_reparses_and_round_trips(task):
+    # the migrate_to_v2 writer's compact flow-style serialization must re-parse to a doc the adapter accepts
+    # and that still round-trips to the v1 form (the committed migrated file is correct, not just the in-memory v2).
+    from scripts.corpus.migrate_to_v2 import to_yaml
+    knob = _knob(task)
+    reparsed = yaml.safe_load(to_yaml(generate_compact_shapes(knob)))
+    assert sf.is_explicit_shapes_doc(reparsed) is True
+    assert expand_compact(reparsed) == generate_explicit_shapes(knob)
+
+
 def test_corpus_wide_round_trip():
     mism = []
     for sp in sorted((REPO / "tasks").rglob("shapes.yaml")):
