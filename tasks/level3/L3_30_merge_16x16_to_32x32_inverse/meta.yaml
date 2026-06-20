@@ -38,44 +38,44 @@ cost_model:
   status: PASS
   status_reason: all 1 gate (large) shape(s) within gpu_xcheck_tol=0.05; 3 small shape(s)
     FLOOR_OBSERVED (non-blocking)
-  xcheck_run_id: xcheck-2026-06-16-65c0b1bc
-  xchecked_at: '2026-06-16'
+  xcheck_run_id: xcheck-2026-06-20-da4cecca
+  xchecked_at: '2026-06-20'
   xcheck_evidence:
   - shape_id: P1
     analytic_bytes_total: 3072.0
-    measured_bytes: 21760.0
+    measured_bytes: 22016.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.8588235294117647
+    bytes_deviation: 0.8604651162790697
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.8588 > tol 0.0500 (analytic=3072 measured=21760) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=21760 < 0.5xmax=1591552); non-blocking
+    note: 'bytes deviation 0.8605 > tol 0.0500 (analytic=3072 measured=22016) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=22016 < 0.5xmax=1591552); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P2
     analytic_bytes_total: 24576.0
-    measured_bytes: 43008.0
+    measured_bytes: 43264.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.42857142857142855
+    bytes_deviation: 0.4319526627218935
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.4286 > tol 0.0500 (analytic=24576 measured=43008) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=43008 < 0.5xmax=1591552); non-blocking
+    note: 'bytes deviation 0.4320 > tol 0.0500 (analytic=24576 measured=43264) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=43264 < 0.5xmax=1591552); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P3
     analytic_bytes_total: 196608.0
-    measured_bytes: 215040.0
+    measured_bytes: 215296.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.08571428571428572
+    bytes_deviation: 0.08680142687277051
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: false
-    note: 'bytes deviation 0.0857 > tol 0.0500 (analytic=196608 measured=215040) [FLOOR_OBSERVED:
-      small-shape HBM burst floor (measured=215040 < 0.5xmax=1591552); non-blocking
+    note: 'bytes deviation 0.0868 > tol 0.0500 (analytic=196608 measured=215296) [FLOOR_OBSERVED:
+      small-shape HBM burst floor (measured=215296 < 0.5xmax=1591552); non-blocking
       per asymptotic_hbm_xcheck]'
   - shape_id: P4
     analytic_bytes_total: 1572864.0
@@ -90,14 +90,14 @@ cost_model:
       -- see module docstring)
   - shape_id: P5
     analytic_bytes_total: 393216.0
-    measured_bytes: 411648.0
+    measured_bytes: 411904.0
     measured_via: ncu_dram_bytes
-    bytes_deviation: 0.04477611940298507
+    bytes_deviation: 0.045369794903666875
     kernel_launched: true
     flops_checked: false
     blocked: false
     within_tol: true
-    note: bytes deviation 0.0448 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
+    note: bytes deviation 0.0454 <= tol 0.0500 (FLOPs analytic-only, not GPU-measured
       -- see module docstring)
 oracle_simplified: formula_exact_manual
 runner_checks:
@@ -131,7 +131,7 @@ provenance:
   source_md_id: L3-23
   golden:
     oracle_kernel_equivalence: VERIFIED
-    verified_at: '2026-06-16T14:51:47Z'
+    verified_at: '2026-06-20T06:00:33Z'
     tolerance_class_used: recurrent_chunk
     equivalence_per_shape:
       H1:
@@ -191,11 +191,11 @@ param_constraints:
 phase_a_prime:
   status: PASS
   reason: bit-exact (values + alias + mutated-input)
-  s2_gpu_run_id: s2-L3_30_merge_16x16_to_32x32_inverse-20260616T202807
-  classified_at: '2026-06-16'
+  s2_gpu_run_id: s2-L3_30_merge_16x16_to_32x32_inverse-20260620T113114
+  classified_at: '2026-06-20'
   standalone_sha256: 344f0b577d491707392331c48f6413a9c7e6bb44b60223968148b76f3efeed70
   kernel_sha256: 344f0b577d491707392331c48f6413a9c7e6bb44b60223968148b76f3efeed70
-  shape_manifest_sha256: 068d2961857189f060441b13671321dcb20f0c8514e14627bac1f9d70ff290cd
+  shape_manifest_sha256: 3ada94da8fc9226265ebd309ddf87d417164c17a2b0e2966fbcbfc6d95a120d1
 frozen_deps:
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.index
 - ascendbench.frozen.deps.h_af43637ae818.fla_ops.op
