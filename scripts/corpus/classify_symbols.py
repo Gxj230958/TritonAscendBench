@@ -87,6 +87,8 @@ def _classify_explicit(shapes_doc: dict, meta: dict) -> dict[str, str]:
         alone lost these symbols). NOTE the ``randn_inf_excl`` ref arg is a tensor NAME; both classifiers
         regex-scan dist args, so a ref that collides with a knob name would be mis-homed (0 in the corpus).
     """
+    from ascendbench.input_spec.compact_shapes import COMPACT_SCHEMA_VERSION
+    is_v2 = shapes_doc.get("schema_version") == COMPACT_SCHEMA_VERSION   # branch on SCHEMA, not field presence
     rows = (shapes_doc.get("public") or []) + (shapes_doc.get("hidden") or [])
     knobs: set[str] = set()
     for row in rows:
@@ -99,8 +101,12 @@ def _classify_explicit(shapes_doc: dict, meta: dict) -> dict[str, str]:
             if inp.get("kind") == "tensor":
                 for ax in inp.get("axes") or []:
                     in_dims |= _syms(ax) & knobs
-                for v in ((inp.get("dist_symbolic") or {}).get("args") or {}).values():
-                    in_dist |= _syms(v) & knobs
+                if is_v2:             # v2 compact: the dist is a string -- scan its ARGS only (torch-free)
+                    from ascendbench.input_spec.compact_shapes import dist_arg_symbols
+                    in_dist |= dist_arg_symbols(inp.get("dist") or "") & knobs
+                else:                 # v1 explicit: scan the parsed symbolic dist ARGS values
+                    for v in ((inp.get("dist_symbolic") or {}).get("args") or {}).values():
+                        in_dist |= _syms(v) & knobs
             elif inp.get("expr") is not None:        # derive / scalar_knob source formula
                 in_scalar |= _syms(inp["expr"]) & knobs
             elif inp.get("kind") == "scalar":        # plain scalar: the raw value may be a symbol string

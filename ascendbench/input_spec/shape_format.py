@@ -19,6 +19,7 @@ is a nested advisory map (no top-level ``public`` list, no ``schema_version``) a
 """
 from __future__ import annotations
 
+from ascendbench.input_spec.compact_shapes import COMPACT_SCHEMA_VERSION
 from ascendbench.input_spec.row_ir import SCHEMA_VERSION
 
 # NOTE: the torch-pulling deps (inputs / explicit_build / materialize) are imported LAZILY inside the two
@@ -63,8 +64,16 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
         return False
     if type(v) is not int:   # excludes bool (YAML true) -- bool is an int subclass
         raise ShapeFormatError(f"schema_version must be an int, got {type(v).__name__}")
-    if v != SCHEMA_VERSION:
-        raise ShapeFormatError(f"unsupported schema_version {v} (this reader supports {SCHEMA_VERSION})")
+    if v not in (SCHEMA_VERSION, COMPACT_SCHEMA_VERSION):
+        raise ShapeFormatError(
+            f"unsupported schema_version {v} (this reader supports {SCHEMA_VERSION} or {COMPACT_SCHEMA_VERSION})")
+    is_v2 = v == COMPACT_SCHEMA_VERSION   # compact form: tensors carry a string `dist`, dist_symbolic is derived
+    # a versioned explicit doc must NOT also carry knob-format keys -- a mixed doc is malformed (its leftover
+    # hidden_shapes would escape the sandbox sealer + the explicit manifest, leaking hidden rows). Fail closed.
+    _knob_keys = [k for k in ("size_knobs", "public_shapes", "hidden_shapes") if k in doc]
+    if _knob_keys:
+        raise ShapeFormatError(
+            f"explicit (schema {v}) doc also carries knob-format keys {_knob_keys} -- malformed mixed doc")
     if not isinstance(doc.get("public"), list):
         raise ShapeFormatError("explicit shapes doc missing a top-level 'public' list")
     if "hidden" in doc and not isinstance(doc["hidden"], list):
@@ -112,19 +121,41 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
                 if not isinstance(i.get("axes"), list):
                     raise ShapeFormatError(
                         f"explicit row {row_id!r} tensor input {name!r} missing an 'axes' list")
-                ds = i.get("dist_symbolic")
-                if (not isinstance(ds, dict) or type(ds.get("kind")) is not str or not ds.get("kind")
-                        or not isinstance(ds.get("args"), dict)):
-                    raise ShapeFormatError(
-                        f"explicit row {row_id!r} tensor input {name!r} missing a well-formed "
-                        f"'dist_symbolic' {{kind: str, args: dict}}, got {ds!r}")
-                # args keys must all be strings (parse_dist_spec always emits string keys) -- a hostile doc
-                # with mixed-type keys would otherwise make the row-invariance signature's sort raise a raw
-                # TypeError instead of failing closed here.
-                if any(type(k) is not str for k in ds["args"]):
-                    raise ShapeFormatError(
-                        f"explicit row {row_id!r} tensor input {name!r} dist_symbolic args keys must all be "
-                        f"strings, got {ds['args']!r}")
+                if is_v2:
+                    # v2 (compact): the SYMBOLIC dist is a non-empty string; dist_symbolic + resolved dist are
+                    # DERIVED on expansion (expand_compact), never committed. Require shape + dtype (the
+                    # expander/build index them) and REJECT a committed dist_symbolic (a stale field would make
+                    # classify trust it over the v2 dist string).
+                    if not isinstance(i.get("shape"), list):
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} (schema {COMPACT_SCHEMA_VERSION}) "
+                            f"missing a 'shape' list")
+                    if type(i.get("dtype")) is not str or not i.get("dtype"):
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} (schema {COMPACT_SCHEMA_VERSION}) "
+                            f"missing a string 'dtype'")
+                    if "dist_symbolic" in i:
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} (schema {COMPACT_SCHEMA_VERSION}) "
+                            f"must NOT commit 'dist_symbolic' -- it is derived from the string 'dist'")
+                    if type(i.get("dist")) is not str or not i.get("dist"):
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} (schema {COMPACT_SCHEMA_VERSION}) "
+                            f"needs a non-empty string 'dist', got {i.get('dist')!r}")
+                else:
+                    ds = i.get("dist_symbolic")
+                    if (not isinstance(ds, dict) or type(ds.get("kind")) is not str or not ds.get("kind")
+                            or not isinstance(ds.get("args"), dict)):
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} missing a well-formed "
+                            f"'dist_symbolic' {{kind: str, args: dict}}, got {ds!r}")
+                    # args keys must all be strings (parse_dist_spec always emits string keys) -- a hostile doc
+                    # with mixed-type keys would otherwise make the row-invariance signature's sort raise a raw
+                    # TypeError instead of failing closed here.
+                    if any(type(k) is not str for k in ds["args"]):
+                        raise ShapeFormatError(
+                            f"explicit row {row_id!r} tensor input {name!r} dist_symbolic args keys must all be "
+                            f"strings, got {ds['args']!r}")
     ids = [r.get("id") for r in rows]
     if len(ids) != len(set(ids)):
         raise ShapeFormatError(f"explicit shapes doc has duplicate row ids: {ids}")
@@ -138,14 +169,18 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
             if i.get("kind") == "tensor":
                 # tensor dtype, axis NAMES, and the SYMBOLIC dist are row-invariant (only the resolved
                 # shape dims / dist literal-args move per row). Fold all three into the signature so a row
-                # that silently changes a tensor's axes or its symbolic dist fails closed.
-                ds = i.get("dist_symbolic") or {}
-                # sort by str(key) -- defense in depth so this never raises a raw TypeError even if a future
-                # path reaches here with non-string arg keys (the presence check above already rejects those).
-                ds_canon = (ds.get("kind"),
-                            tuple(sorted((ds.get("args") or {}).items(), key=lambda kv: str(kv[0]))))
+                # that silently changes a tensor's axes or its symbolic dist fails closed. v2 carries the
+                # symbolic dist as a string; v1 as a {kind, args} dict.
+                if is_v2:
+                    dist_canon: object = i.get("dist")
+                else:
+                    ds = i.get("dist_symbolic") or {}
+                    # sort by str(key) -- defense in depth so this never raises a raw TypeError even if a future
+                    # path reaches here with non-string arg keys (the presence check already rejects those).
+                    dist_canon = (ds.get("kind"),
+                                  tuple(sorted((ds.get("args") or {}).items(), key=lambda kv: str(kv[0]))))
                 out.append((i.get("name"), "tensor", i.get("dtype"),
-                            tuple(i.get("axes") or ()), ds_canon))
+                            tuple(i.get("axes") or ()), dist_canon))
             else:
                 out.append((i.get("name"), i.get("kind"), None))
         return tuple(out)
@@ -188,6 +223,17 @@ def _explicit_row(doc: dict, sid: str) -> dict:
     raise KeyError(f"shape id {sid!r} not in explicit shapes doc")
 
 
+def _materialized_row(doc: dict, sid: str) -> dict:
+    """The EXPANDED v1 row for ``sid``: a v2 (compact) row is expanded so ``dist_symbolic`` + the resolved
+    ``dist`` exist; a v1 row passes through. TORCH-OK (v2 expansion pulls parse_dist_spec) -- use it for the
+    materialisation + dist-value accessors, NEVER the torch-free structural readers."""
+    row = _explicit_row(doc, sid)
+    if doc.get("schema_version") == COMPACT_SCHEMA_VERSION:
+        from ascendbench.input_spec.compact_shapes import _expand_row
+        return _expand_row(row, role="public")   # role is irrelevant for materialisation/dist access
+    return row
+
+
 def effective_env(doc: dict, sid: str) -> dict:
     """The named row-environment symbol->value map for a row (knobs for knob-format; row ``env`` for explicit)."""
     if is_explicit_shapes_doc(doc):
@@ -200,7 +246,7 @@ def build_inputs_for(doc: dict, sid: str, seed: int = 0) -> dict:
     """Materialise a row's full inputs dict, dispatching to build_inputs (knob) or build_from_explicit."""
     if is_explicit_shapes_doc(doc):
         from ascendbench.input_spec.explicit_build import build_from_explicit
-        return build_from_explicit(_explicit_row(doc, sid), seed)
+        return build_from_explicit(_materialized_row(doc, sid), seed)
     from ascendbench.input_spec.inputs import build_inputs
     return build_inputs(doc, sid, seed)
 
@@ -264,7 +310,7 @@ def input_specs(doc: dict) -> dict:
 
 def explicit_row_dist(doc: dict, sid: str, name: str) -> dict | None:
     """The RESOLVED ``{kind, args}`` dist of tensor input ``name`` in explicit row ``sid`` (None if absent/non-tensor)."""
-    for inp in _explicit_row(doc, sid).get("inputs") or []:
+    for inp in _materialized_row(doc, sid).get("inputs") or []:
         if inp.get("name") == name:
             return inp.get("dist") if inp.get("kind") == "tensor" else None
     return None
@@ -277,7 +323,7 @@ def explicit_row_dist_symbolic(doc: dict, sid: str, name: str) -> dict | None:
     so it compares directly against ``parse_dist_spec(declared_constraint)`` -- restoring the knob path's
     symbolic-parity strength that the resolved-only compare cannot give (see ``_validate_dists_explicit``).
     """
-    for inp in _explicit_row(doc, sid).get("inputs") or []:
+    for inp in _materialized_row(doc, sid).get("inputs") or []:
         if inp.get("name") == name:
             return inp.get("dist_symbolic") if inp.get("kind") == "tensor" else None
     return None
