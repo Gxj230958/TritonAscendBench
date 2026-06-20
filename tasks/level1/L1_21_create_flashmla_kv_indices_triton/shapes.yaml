@@ -1,762 +1,353 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [4, 64], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [8, 256], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [16, 512], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [32, 1024], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [32], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [32], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [8, 128], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 1
-    L: 4096
+  env: {B: 8, L: 4096, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [1, 4096], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 48
-    L: 3072
+  env: {B: 8, L: 3072, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [48, 3072], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [48], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [48], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 64
-    L: 4096
+  env: {B: 8, L: 4096, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [64, 4096], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [64], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [64], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 3072
+  env: {B: 8, L: 3072, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 3072], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 4096
+  env: {B: 8, L: 4096, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 4096], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 48
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [48, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [48], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [48], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 2
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [2, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 3
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [3, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [3], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [3], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 4
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [4, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 8
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [8, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 1
+  env: {B: 8, L: 1, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 2
+  env: {B: 8, L: 2, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 2], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 3
+  env: {B: 8, L: 3, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 3], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 4
+  env: {B: 8, L: 4, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 4], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 8
+  env: {B: 8, L: 8, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 8], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 16
+  env: {B: 8, L: 16, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 16], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 32
+  env: {B: 8, L: 32, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 32], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 64
+  env: {B: 8, L: 64, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 64], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 96
+  env: {B: 8, L: 96, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 96], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 128
+  env: {B: 8, L: 128, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 128], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 192
+  env: {B: 8, L: 192, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 192], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 256
+  env: {B: 8, L: 256, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 256], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 384
+  env: {B: 8, L: 384, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 384], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 512
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 512], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 640
+  env: {B: 8, L: 640, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 640], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 768
+  env: {B: 8, L: 768, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 768], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 1024
+  env: {B: 8, L: 1024, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 1024], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 1280
+  env: {B: 8, L: 1280, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 1280], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 1536
+  env: {B: 8, L: 1536, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 1536], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 2048
+  env: {B: 8, L: 2048, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 2048], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 2560
+  env: {B: 8, L: 2560, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 2560], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 3584
+  env: {B: 8, L: 3584, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 3584], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 5120
+  env: {B: 8, L: 5120, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 5120], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 6144
+  env: {B: 8, L: 6144, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 6144], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 8192
+  env: {B: 8, L: 8192, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 8192], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    L: 12288
-hidden_shapes:
+  env: {B: 8, L: 12288, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 12288], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [12, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [2, 16], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [16, 2048], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-# FlashMLA paged-KV page-index inputs (kernel.py::create_flashmla_kv_indices_triton).
-# req_to_token [E, L] is the token-slot table (E pool rows, L = max context len);
-# req_pool_indices [E] selects a pool row per request; page_kernel_lens [E] is the
-# per-request seq_len. page_size is the PAGED_SIZE constexpr (page granularity).
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [8, 64], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    L: 1
+  env: {B: 8, L: 1, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [1, 1], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [1, 320], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    L: 16384
+  env: {B: 8, L: 16384, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [1, 16384], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 256
-    L: 1
+  env: {B: 8, L: 1, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 256, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [256, 1], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}
 - id: H9
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 256
-    L: 16384
-inputs:
-  req_to_token:
-    dims:
-    - E
-    - L
-    dtype: int32
-    dist: randint:0:N
-  req_pool_indices:
-    dims:
-    - E
-    dtype: int32
-    dist: randint:0:E
-  page_kernel_lens:
-    dims:
-    - E
-    dtype: int32
-    dist: randint:1:L
-  page_size:
-    scalar: 16
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      req_to_token: '[4, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[4] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[4] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P2:
-    provenance: baseline
-    tensors:
-      req_to_token: '[8, 256] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P3:
-    provenance: baseline
-    tensors:
-      req_to_token: '[16, 512] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[16] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[16] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P4:
-    provenance: baseline
-    tensors:
-      req_to_token: '[32, 1024] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[32] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[32] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P5:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[8, 128] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P6:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[1, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P7:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[48, 3072] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[48] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[48] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P8:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[64, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[64] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[64] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P9:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 3072] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P10:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 4096] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P11:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[48, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[48] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[48] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P12:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[2, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[2] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[2] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P13:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[3, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[3] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[3] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P14:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[4, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[4] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[4] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P15:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[8, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P16:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P17:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 2] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P18:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 3] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P19:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 4] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P20:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 8] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P21:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 16] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P22:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 32] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P23:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P24:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 96] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P25:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 128] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P26:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 192] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P27:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 256] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P28:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 384] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P29:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 512] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P30:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 640] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P31:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 768] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P32:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 1024] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P33:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 1280] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P34:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 1536] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P35:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 2048] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P36:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 2560] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P37:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 3584] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P38:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 5120] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P39:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 6144] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P40:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 8192] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  P41:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 12288] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H1:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[12, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[12] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[12] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H2:
-    provenance: edge
-    tensors:
-      req_to_token: '[2, 16] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[2] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[2] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H3:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[16, 2048] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[16] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[16] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H4:
-    provenance: synthetic
-    tensors:
-      req_to_token: '[8, 64] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[8] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[8] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H5:
-    provenance: edge
-    tensors:
-      req_to_token: '[1, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H6:
-    provenance: edge
-    tensors:
-      req_to_token: '[1, 320] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H7:
-    provenance: edge
-    tensors:
-      req_to_token: '[1, 16384] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[1] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[1] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H8:
-    provenance: edge
-    tensors:
-      req_to_token: '[256, 1] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[256] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[256] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
-  H9:
-    provenance: edge
-    tensors:
-      req_to_token: '[256, 16384] int32 axes=E,L dist=randint(lo=0, hi=N)'
-      req_pool_indices: '[256] int32 axes=E dist=randint(lo=0, hi=E)'
-      page_kernel_lens: '[256] int32 axes=E dist=randint(lo=1, hi=L)'
-    params:
-      page_size: 16
+  env: {B: 8, L: 16384, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 256, C: 32, G: 8}
+  inputs:
+  - {name: req_to_token, kind: tensor, shape: [256, 16384], dtype: int32, axes: [E, L], dist: 'randint:0:N'}
+  - {name: req_pool_indices, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'randint:0:E'}
+  - {name: page_kernel_lens, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'randint:1:L'}
+  - {name: page_size, kind: scalar, value: 16}

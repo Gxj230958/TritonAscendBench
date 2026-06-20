@@ -1,287 +1,91 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [32], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [64], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [128], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 384
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [384], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 512
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [512], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 3
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [3], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 16
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 96
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 96, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [96], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 192
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 192, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [192], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 640
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 640, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [640], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 768
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 768, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [768], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 1024
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 1024, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [1024], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 1280
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 1280, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [1280], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 1536
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 1536, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [1536], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 2048
-hidden_shapes:
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 2048, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [2048], dtype: int32, axes: [E], dist: 'randint:0:T'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
-# Operator input contract for `_fwd_kernel_ep_scatter_1` (the named entrypoint).
-# The kernel builds the DeepGEMM contiguous-group layout from the per-expert
-# token counts: out = (expert_start_loc[E], m_indices[M_sum]). Its ONLY data
-# input is num_recv_tokens_per_expert[E] (E = number of experts, knob `E`);
-# expert_start_loc / m_indices are launcher-allocated outputs (candidate_inplace).
-# Token counts in [0, T) so some experts may be empty (exercises the -1 padding
-# and zero-width-region path); T = per-expert token cap knob.
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'randint:0:T'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-inputs:
-  num_recv_tokens_per_expert:
-    dims:
-    - E
-    dtype: int32
-    dist: "randint:0:T"
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      num_recv_tokens_per_expert: '[4] int32 axes=E dist=randint(lo=0, hi=T)'
-  P2:
-    provenance: baseline
-    tensors:
-      num_recv_tokens_per_expert: '[8] int32 axes=E dist=randint(lo=0, hi=T)'
-  P3:
-    provenance: baseline
-    tensors:
-      num_recv_tokens_per_expert: '[32] int32 axes=E dist=randint(lo=0, hi=T)'
-  P4:
-    provenance: baseline
-    tensors:
-      num_recv_tokens_per_expert: '[64] int32 axes=E dist=randint(lo=0, hi=T)'
-  P5:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[128] int32 axes=E dist=randint(lo=0, hi=T)'
-  P6:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[384] int32 axes=E dist=randint(lo=0, hi=T)'
-  P7:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[512] int32 axes=E dist=randint(lo=0, hi=T)'
-  P8:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[3] int32 axes=E dist=randint(lo=0, hi=T)'
-  P9:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[16] int32 axes=E dist=randint(lo=0, hi=T)'
-  P10:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[96] int32 axes=E dist=randint(lo=0, hi=T)'
-  P11:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[192] int32 axes=E dist=randint(lo=0, hi=T)'
-  P12:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[640] int32 axes=E dist=randint(lo=0, hi=T)'
-  P13:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[768] int32 axes=E dist=randint(lo=0, hi=T)'
-  P14:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[1024] int32 axes=E dist=randint(lo=0, hi=T)'
-  P15:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[1280] int32 axes=E dist=randint(lo=0, hi=T)'
-  P16:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[1536] int32 axes=E dist=randint(lo=0, hi=T)'
-  P17:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[2048] int32 axes=E dist=randint(lo=0, hi=T)'
-  H1:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[12] int32 axes=E dist=randint(lo=0, hi=T)'
-  H2:
-    provenance: edge
-    tensors:
-      num_recv_tokens_per_expert: '[2] int32 axes=E dist=randint(lo=0, hi=T)'
-  H3:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[8] int32 axes=E dist=randint(lo=0, hi=T)'
-  H4:
-    provenance: synthetic
-    tensors:
-      num_recv_tokens_per_expert: '[256] int32 axes=E dist=randint(lo=0, hi=T)'
-  H5:
-    provenance: edge
-    tensors:
-      num_recv_tokens_per_expert: '[1] int32 axes=E dist=randint(lo=0, hi=T)'
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: num_recv_tokens_per_expert, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'randint:0:T'}
