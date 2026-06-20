@@ -59,6 +59,12 @@ if str(_SCRIPTS_DIR) not in sys.path:
 import freeze_upstream_sources as paf  # noqa: E402
 
 REPO_ROOT = paf.REPO_ROOT
+# the VERIFIER (harness, not the severed kernel) needs `from ascendbench ...` to resolve regardless of the
+# daemon's CWD -- _SCRIPTS_DIR above only puts scripts/verify/ on the path, so the c4c shape_format / the
+# shape_manifest lazy imports would ModuleNotFoundError on a fresh S2 verify. The severed kernel runs in a
+# separate stripped subprocess (severance_subprocess_runner), so this does not weaken the severance contract.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 TASKS_ROOT = paf.TASKS_ROOT
 INFER_ROOT = paf.INFER_ROOT
 VLLM_ROOT = paf.VLLM_ROOT                       # infer/vllm
