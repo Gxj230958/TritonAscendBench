@@ -21,6 +21,9 @@ from ascendbench.input_spec import shape_format as sf  # noqa: E402
 from ascendbench.input_spec.param_constraints import check_param_constraints  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 # diverse passing tasks: dists / scalars / tensor_invariants / dtypes / dims + randn_inf_excl + optional-null
 _PARITY_TASKS = [
     "tasks/level1/L1_01_bias",
@@ -37,7 +40,7 @@ def _task(task: str):
     if not (d / "shapes.yaml").exists():
         pytest.skip(f"{task} absent")
     meta = yaml.safe_load((d / "meta.yaml").read_text()) or {}
-    doc = yaml.safe_load((d / "shapes.yaml").read_text())
+    doc = knob_doc(task)   # the corpus is v2 now; the knob form (for the knob-vs-explicit parity) is in git
     return meta.get("param_constraints"), doc
 
 

@@ -11,13 +11,15 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
 
 from ascendbench.input_spec import row_ir  # noqa: E402
 from ascendbench.input_spec.materialize import materialize_row  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
 
 
 def test_registries_bootstrap_from_inputs():
@@ -41,7 +43,7 @@ def test_validate_rejects_bad_role_and_provenance_and_param():
 
 
 def test_row_from_materialized_hosts_all_forms():
-    doc = yaml.safe_load((REPO / "tasks/level3/L3_13_kernel_unified_attention_3d/shapes.yaml").read_text())
+    doc = knob_doc("tasks/level3/L3_13_kernel_unified_attention_3d")   # corpus is v2; materialize the KNOB
     desc = materialize_row(doc, doc["public_shapes"][0]["id"])
     row = row_ir.row_from_materialized("P1", "public", "baseline", desc)
     row.validate()                                  # all tensors have known dtype + dist, rank-consistent

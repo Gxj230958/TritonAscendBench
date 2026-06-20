@@ -298,11 +298,13 @@ def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
     """The re-authored L3 tasks expose a 4-D input that matches their
     4-D wrapper contract, so the static checker reports no rank
     mismatch."""
-    import sys
     import re
+    import sys
+
     import yaml
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "oracle"))
     from run_oracle_equivalence_gpu import _resolve_kernel_entrypoint
+
     from ascendbench.input_spec.inputs import build_inputs
 
     td = Path(f"tasks/level3/{task_id}")
@@ -321,7 +323,9 @@ def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
     c = extract_wrapper_contract(td / "kernel.py", fn)
     assert c is not None
 
-    shapes = yaml.safe_load((td / "shapes.yaml").read_text())
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from _knob_corpus import knob_doc
+    shapes = knob_doc(str(td))   # corpus is v2; the re-authored 4-D shapes are in the knob form (git history)
     inputs = build_inputs(shapes, "P1", seed=0)
     input_ranks = {k: v.ndim for k, v in inputs.items() if hasattr(v, "ndim")}
     # The re-authored input is 4-D ...

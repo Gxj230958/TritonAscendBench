@@ -16,11 +16,15 @@ from ascendbench.corpus.shape_manifest import canonical_manifest, shape_manifest
 from ascendbench.input_spec import shape_format as sf  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 _KNOB_TASK = "tasks/level3/L3_13_kernel_unified_attention_3d"
 
 
 def _knob_doc():
-    return yaml.safe_load((REPO / _KNOB_TASK / "shapes.yaml").read_text())
+    # the corpus is migrated to v2; the KNOB form for these projection tests comes from git history.
+    return knob_doc(_KNOB_TASK)
 
 
 def _sha(obj):
@@ -56,10 +60,12 @@ def test_explicit_manifest_is_edit_sensitive():
     assert shape_manifest_sha256(m) != base
 
 
-def test_manifest_neutral_all_101_not_explicit():
-    # every current task is knob-format -> the dispatch never takes the explicit branch -> the knob hash
-    # is unchanged (the patched-vs-HEAD all-101 diff is empty; this locks the discriminator side of it).
+def test_manifest_all_101_corpus_explicit():
+    # the corpus is migrated to v2 -> the manifest dispatch takes the EXPLICIT branch (full-row projection)
+    # for every task, so each task's manifest is the explicit projection carrying schema_version + rows.
     for shp in sorted(REPO.glob("tasks/level*/*/shapes.yaml")):
         doc = yaml.safe_load(shp.read_text())
-        assert sf.is_explicit_shapes_doc(doc) is False, shp
-        assert set(canonical_manifest(doc)) == {"inputs", "size_knobs", "shapes"}, shp
+        assert sf.is_explicit_shapes_doc(doc) is True, shp
+        m = canonical_manifest(doc)
+        assert m == sf.explicit_canonical_projection(doc), shp
+        assert "schema_version" in m and "rows" in m, shp

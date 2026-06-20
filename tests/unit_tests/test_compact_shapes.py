@@ -28,15 +28,16 @@ from ascendbench.input_spec.inputs import build_inputs, shape_ids  # noqa: E402
 from scripts.corpus.classify_symbols import classify  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 _TASKS = ["tasks/level1/L1_01_bias", "tasks/level1/L1_21_create_flashmla_kv_indices_triton",
           "tasks/level2/L2_01_layer_norm_fwd", "tasks/level3/L3_13_kernel_unified_attention_3d"]
 
 
 def _knob(task: str) -> dict:
-    p = REPO / task / "shapes.yaml"
-    if not p.exists():
-        pytest.skip(f"{task} absent")
-    return yaml.safe_load(p.read_text())
+    # the corpus is migrated to v2; the knob source for the knob->v2 round-trip gate is in git history.
+    return knob_doc(task)
 
 
 def test_dist_arg_symbols_extracts_args_only():
@@ -136,11 +137,29 @@ def test_writer_output_reparses_and_round_trips(task):
 
 
 def test_corpus_wide_round_trip():
-    mism = []
-    for sp in sorted((REPO / "tasks").rglob("shapes.yaml")):
-        knob = yaml.safe_load(sp.read_text())
-        if not isinstance(knob, dict) or not knob.get("size_knobs"):
-            continue
+    # the 101 real corpus tasks (excludes the v2-only tasks/_canary fixture, which has no knob baseline).
+    tasks = sorted((REPO / "tasks").glob("level*/*/shapes.yaml"))
+    mism, processed = [], 0
+    for sp in tasks:
+        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob->v2 round-trip gate reads the KNOB from git
+        processed += 1
         if expand_compact(generate_compact_shapes(knob)) != generate_explicit_shapes(knob):
             mism.append(sp.parent.name)
-    assert not mism, mism
+    assert mism == [], mism
+    assert processed >= 100, processed   # rows actually checked, not just globbed (guards a vacuous all-skip)
+
+
+def test_committed_v2_corpus_matches_regenerated():
+    # the ON-DISK migrated corpus must be EXACTLY what migrate_to_v2 writes from the knob. The round-trip test
+    # above only exercises the in-memory machinery (it never reads the committed file); this catches a
+    # corrupted / hand-edited committed shapes.yaml. Compare the FILE TEXT (not parsed dicts): dict equality
+    # is not type-strict (YAML 4.0 == int 4), so a float dim would pass yet break _resolve_dims at build time.
+    from scripts.corpus.migrate_to_v2 import to_yaml
+    mism, processed = [], 0
+    for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
+        expected_text = to_yaml(generate_compact_shapes(knob_doc(str(sp.parent))))
+        if sp.read_text() != expected_text:
+            mism.append(sp.parent.name)
+        processed += 1
+    assert mism == [], mism
+    assert processed >= 100, processed

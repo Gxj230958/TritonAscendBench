@@ -24,6 +24,9 @@ from scripts.corpus.cost_environment import (  # noqa: E402
 )
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 _TASKS = [
     "tasks/level1/L1_01_bias",
     "tasks/level1/L1_09_quantize_k_cache_fast",      # declared cost row_only_param D
@@ -38,7 +41,7 @@ def _docs(task: str):
     d = REPO / task
     if not (d / "shapes.yaml").exists():
         pytest.skip(f"{task} absent")
-    knob = yaml.safe_load((d / "shapes.yaml").read_text())
+    knob = knob_doc(task)   # corpus is v2 now; knob (for the knob-vs-explicit parity) comes from git history
     meta = yaml.safe_load((d / "meta.yaml").read_text()) or {}
     return knob, meta, generate_explicit_shapes(knob)
 
@@ -90,15 +93,17 @@ def test_plain_scalar_symbol_recovered_on_explicit():
 def test_corpus_wide_classify_and_cost_parity():
     # the strong guarantee: across EVERY task, classify + the cost universe are byte-identical knob vs explicit.
     cls_mism, cost_mism = [], []
-    for sp in sorted((REPO / "tasks").rglob("shapes.yaml")):
-        knob = yaml.safe_load(sp.read_text())
-        if not isinstance(knob, dict) or not knob.get("size_knobs"):
-            continue
+    processed = 0
+    # the 101 real corpus tasks (excludes the v2-only tasks/_canary fixture, which has no knob baseline).
+    for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
+        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob-vs-explicit parity reads the KNOB from git
         meta = yaml.safe_load((sp.parent / "meta.yaml").read_text()) or {}
         exp = generate_explicit_shapes(knob)
         if classify(knob, meta) != classify(exp, meta):
             cls_mism.append(sp.parent.name)
         if check_cost_symbols(knob, meta) != check_cost_symbols(exp, meta):
             cost_mism.append(sp.parent.name)
+        processed += 1
     assert not cls_mism, f"classify mismatches: {cls_mism}"
     assert not cost_mism, f"cost-universe mismatches: {cost_mism}"
+    assert processed >= 100, processed   # rows actually checked (guards a vacuous all-skip)

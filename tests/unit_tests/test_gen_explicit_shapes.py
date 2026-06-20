@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
@@ -25,6 +24,9 @@ from ascendbench.input_spec.explicit_build import (  # noqa: E402
 )
 from ascendbench.input_spec.inputs import build_inputs, shape_ids  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
 
 # Diverse tasks: +inf-sentinel coupled dist (L1_15), int32 offsets + arange + rope + randint (L3_11),
 # optional-null input (L3_13), norm / gated / cumsum / moe / elementwise / chunked-offsets.
@@ -44,10 +46,8 @@ _SEEDS = [0, 1000]   # correctness seed 0 + a sampled measured-timing seed; valu
 
 
 def _load(task: str) -> dict:
-    p = REPO / task / "shapes.yaml"
-    if not p.exists():
-        pytest.skip(f"{task} not present")
-    return yaml.safe_load(p.read_text())
+    # the corpus is migrated to v2; generate_explicit_shapes' input is the KNOB form (from git history).
+    return knob_doc(task)
 
 
 @pytest.mark.parametrize("task", _GATE_TASKS)

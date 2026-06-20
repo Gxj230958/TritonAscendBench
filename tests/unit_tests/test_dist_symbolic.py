@@ -24,6 +24,9 @@ from ascendbench.input_spec.inputs import parse_dist_spec  # noqa: E402
 from ascendbench.input_spec.param_constraints import check_param_constraints  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import SCHEMA_VERSION, generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 # a task whose tensors carry several dist kinds incl a symbolic-arg dist (randint:0:N)
 _SYMBOLIC_DIST_TASK = "tasks/level1/L1_02_compute_slot_mappings"
 
@@ -33,7 +36,7 @@ def _task(task: str):
     if not (d / "shapes.yaml").exists():
         pytest.skip(f"{task} absent")
     meta = yaml.safe_load((d / "meta.yaml").read_text()) or {}
-    doc = yaml.safe_load((d / "shapes.yaml").read_text())
+    doc = knob_doc(task)   # corpus is v2; the knob form (for generate_explicit_shapes) is in git history
     return meta.get("param_constraints"), doc
 
 

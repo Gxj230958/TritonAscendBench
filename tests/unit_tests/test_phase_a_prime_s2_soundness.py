@@ -30,6 +30,9 @@ import torch
 import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 _spec = importlib.util.spec_from_file_location(
     "phase_a_prime", REPO / "scripts" / "verify" / "standalone_freeze_verifier.py"
 )
@@ -821,12 +824,7 @@ def test_L2_10_w8a8_inputs_are_int8_per_contract():
     produced int64 (-> 'Unsupported lhs dtype int64' smoke error, a
     FIXTURE defect, not a severing one). FAILS ON REVERT: with
     dtype:int64 these dtype asserts fail."""
-    import yaml as _yaml
-
-    sh = _yaml.safe_load(
-        (REPO / "tasks" / "level2" / "L2_17_w8a8_block_int8_matmul"
-         / "shapes.yaml").read_text()
-    )
+    sh = knob_doc("tasks/level2/L2_17_w8a8_block_int8_matmul")   # corpus is v2; this asserts the KNOB fixture
     assert sh["inputs"]["A"]["dtype"] == "int8", sh["inputs"]["A"]
     assert sh["inputs"]["B"]["dtype"] == "int8", sh["inputs"]["B"]
 

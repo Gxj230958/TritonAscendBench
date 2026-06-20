@@ -16,20 +16,30 @@ from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
 from ascendbench.input_spec.row_ir import SCHEMA_VERSION  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 _KNOB_TASK = "tasks/level3/L3_13_kernel_unified_attention_3d"
 
 
 def _knob_doc():
-    return yaml.safe_load((REPO / _KNOB_TASK / "shapes.yaml").read_text())
+    # the corpus is migrated to v2; the KNOB form for these machinery tests comes from git history.
+    return knob_doc(_KNOB_TASK)
 
 
 # --- discriminator (strict + fail-closed) ----------------------------------------------------------
 
-def test_all_101_knob_docs_are_not_explicit():
-    # every current task is knob-format -- the discriminator must NOT false-positive (the Phase-1
-    # explicit_view + provenance are nested/advisory, not a top-level explicit doc).
+def test_all_101_corpus_docs_are_explicit():
+    # the corpus is migrated to the compact v2 explicit format -- the discriminator must recognise every one.
     for shp in sorted(REPO.glob("tasks/level*/*/shapes.yaml")):
-        assert sf.is_explicit_shapes_doc(yaml.safe_load(shp.read_text())) is False, shp
+        assert sf.is_explicit_shapes_doc(yaml.safe_load(shp.read_text())) is True, shp
+
+
+def test_knob_docs_are_not_explicit():
+    # a (pre-migration) knob doc is NOT explicit -- the discriminator must not false-positive on the nested
+    # advisory explicit_view / provenance a knob doc may carry.
+    for task in ("tasks/level1/L1_01_bias", "tasks/level3/L3_13_kernel_unified_attention_3d"):
+        assert sf.is_explicit_shapes_doc(knob_doc(task)) is False, task
 
 
 def test_generated_explicit_doc_is_explicit():
@@ -166,7 +176,7 @@ def test_representative_dtype_size_knob_parity_all_101():
     # (commits 2-4 replace the duplicated helpers with the adapter -- parity guarantees no drift).
     from ascendbench.engine.eval import _representative_dtype_size as eval_rds
     for shp in sorted(REPO.glob("tasks/level*/*/shapes.yaml")):
-        doc = yaml.safe_load(shp.read_text())
+        doc = knob_doc(str(shp.parent))   # the corpus is v2 now; this parity is about the KNOB path
         assert sf.representative_dtype_size(doc) == eval_rds(doc), shp
 
 

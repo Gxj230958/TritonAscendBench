@@ -12,13 +12,15 @@ from pathlib import Path
 
 import pytest
 import torch
-import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
 
 from ascendbench.input_spec.inputs import _DTYPES, build_inputs, shape_ids  # noqa: E402
 from ascendbench.input_spec.materialize import materialize_row  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
 
 # diverse families: norm, attention (+null optional), moe, elementwise, lora, the 2 null-optional tasks
 SAMPLE = [
@@ -32,7 +34,8 @@ SAMPLE = [
 
 
 def _doc(rel):
-    return yaml.safe_load((REPO / "tasks" / rel / "shapes.yaml").read_text())
+    # the corpus is migrated to v2; the materializer-vs-build_inputs faithfulness is a KNOB-path test.
+    return knob_doc(rel)
 
 
 @pytest.mark.parametrize("rel", SAMPLE)

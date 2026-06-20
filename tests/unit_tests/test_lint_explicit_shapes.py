@@ -4,19 +4,20 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import yaml
-
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
 
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 from scripts.corpus.lint_explicit_shapes import lint_row, lint_task  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 
 def test_real_task_lints_clean():
-    # a real generated task obeys the invariant by construction (axis name -> single extent per row)
-    doc = generate_explicit_shapes(
-        yaml.safe_load((REPO / "tasks/level3/L3_13_kernel_unified_attention_3d/shapes.yaml").read_text()))
+    # a real generated task obeys the invariant by construction (axis name -> single extent per row).
+    # corpus is v2 now; generate the explicit view from the KNOB (git history).
+    doc = generate_explicit_shapes(knob_doc("tasks/level3/L3_13_kernel_unified_attention_3d"))
     assert lint_task(doc) == []
 
 

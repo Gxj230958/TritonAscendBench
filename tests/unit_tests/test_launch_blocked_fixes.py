@@ -8,7 +8,6 @@ from importlib.machinery import EXTENSION_SUFFIXES
 from pathlib import Path
 
 import torch
-import yaml
 
 from ascendbench.input_spec.inputs import build_inputs
 from ascendbench.upstream_shims.vllm_runtime_hygiene import (
@@ -20,6 +19,9 @@ from ascendbench.upstream_shims.vllm_runtime_hygiene import (
 
 REPO = Path(__file__).resolve().parents[2]
 INFER_VLLM_ROOT = REPO.parent / "infer" / "vllm"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
 
 
 def _load_script(rel_path: str, module_name: str):
@@ -150,7 +152,7 @@ def test_install_vllm_flash_attn_stub_injects_inert_surface(
     monkeypatch.syspath_prepend(str(vroot))
 
     saved = _save_fa_mods()
-    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    _restore_fa_mods(dict.fromkeys(_FA_STUB_MODS))
     try:
         # Autodiscovery from sys.path (the form clear_conflicting uses).
         assert install_vllm_flash_attn_stub() is True
@@ -193,7 +195,7 @@ def test_install_vllm_flash_attn_stub_skips_when_compiled_extension_exists(
     monkeypatch.syspath_prepend(str(vroot))
 
     saved = _save_fa_mods()
-    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    _restore_fa_mods(dict.fromkeys(_FA_STUB_MODS))
     try:
         # Compiled extension present -> real flash-attn, leave it untouched.
         assert install_vllm_flash_attn_stub(vroot) is False
@@ -206,7 +208,7 @@ def test_install_vllm_flash_attn_stub_noop_without_source_checkout(monkeypatch):
     # No source-checkout vLLM on sys.path -> nothing to close, no-op.
     monkeypatch.setattr(sys, "path", [p for p in sys.path if "vllm" not in p])
     saved = _save_fa_mods()
-    _restore_fa_mods({n: None for n in _FA_STUB_MODS})
+    _restore_fa_mods(dict.fromkeys(_FA_STUB_MODS))
     try:
         assert install_vllm_flash_attn_stub() is False
         assert "vllm.vllm_flash_attn" not in sys.modules
@@ -380,7 +382,7 @@ def test_l2_34_shapes_and_oracle_follow_wrapper_contract():
         REPO / "tasks" / "level2"
         / "L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe"
     )
-    shapes = yaml.safe_load((td / "shapes.yaml").read_text())
+    shapes = knob_doc(str(td))   # corpus is v2; build the inputs from the KNOB form (git history)
     inputs = build_inputs(shapes, "P1", seed=0)
 
     assert inputs["input"].ndim == 3

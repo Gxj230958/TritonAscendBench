@@ -21,6 +21,9 @@ from ascendbench.input_spec.inputs import shape_ids  # noqa: E402
 from ascendbench.input_spec.shape_format import hidden_ids, public_ids  # noqa: E402
 from scripts.corpus.gen_explicit_shapes import generate_explicit_shapes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _knob_corpus import knob_doc  # noqa: E402
+
 
 def _old_inline_ids(doc: dict) -> tuple[list[str], list[str]]:
     pub = [s["id"] for s in doc.get("public_shapes", []) if isinstance(s, dict) and s.get("id")]
@@ -29,26 +32,31 @@ def _old_inline_ids(doc: dict) -> tuple[list[str], list[str]]:
 
 
 def _knob_docs():
-    for sp in sorted((REPO / "tasks").rglob("shapes.yaml")):
-        doc = yaml.safe_load(sp.read_text())
+    # the 101 real corpus tasks (excludes the v2-only tasks/_canary fixture, which has no knob baseline).
+    for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
+        doc = knob_doc(str(sp.parent))   # corpus is v2; this routing test compares against the KNOB ids (git)
         if isinstance(doc, dict) and doc.get("size_knobs"):
             yield sp.parent.name, doc
 
 
 def test_shape_ids_byte_identical_to_old_inline_all_101():
     mism = []
+    processed = 0
     for name, doc in _knob_docs():
         old_pub, old_hid = _old_inline_ids(doc)
         if list(public_ids(doc)) != old_pub or list(hidden_ids(doc)) != old_hid:
             mism.append(name)
         if shape_ids(doc) != (old_pub, old_hid):
             mism.append(name + ":shape_ids")
+        processed += 1
     assert not mism, mism
+    assert processed >= 100, processed   # rows actually checked (guards a vacuous all-skip)
 
 
-def test_load_task_shapespec_unchanged():
-    # load_task now selects rows via iter_rows; for knob that is byte-identical, so the ShapeSpec id/name/params
-    # must match the old `for s in doc["public_shapes"]` packing.
+def test_load_task_v2_shapespec_packing():
+    # the corpus is v2 now; load_task selects rows via iter_rows, packing each as
+    # ShapeSpec(id=sid, name=row.name or sid, params=row minus id/name). For a v2 row (no 'name') the name
+    # falls back to the id and params carry env+inputs -- the documented migration packing (dataset.py).
     for task in ("L1_01_bias", "L1_09_quantize_k_cache_fast", "L2_01_layer_norm_fwd"):
         td = None
         for lvl in ("level1", "level2", "level3"):
@@ -57,12 +65,12 @@ def test_load_task_shapespec_unchanged():
                 break
         if td is None:
             continue
-        doc = yaml.safe_load((td / "shapes.yaml").read_text())
+        doc = yaml.safe_load((td / "shapes.yaml").read_text())   # the committed v2 doc
         t = load_task(task)
-        old = [(s["id"], s["name"], {k: v for k, v in s.items() if k not in {"id", "name"}})
-               for s in doc["public_shapes"]]
+        exp = [(r["id"], r.get("name") or r["id"], {k: v for k, v in r.items() if k not in {"id", "name"}})
+               for r in doc["public"]]
         got = [(sp.id, sp.name, sp.params) for sp in t.public_shapes]
-        assert got == old, task
+        assert got == exp, task
 
 
 def test_shape_ids_stays_fail_loud_on_idless_knob_row():
@@ -90,7 +98,7 @@ def test_adapter_dtype_table_covers_every_inputs_alias():
 def test_explicit_doc_enumerates_without_crashing():
     # the whole point: an explicit doc routes through the same adapter and yields the same ids.
     td = REPO / "tasks" / "level1" / "L1_01_bias"
-    knob = yaml.safe_load((td / "shapes.yaml").read_text())
+    knob = knob_doc(str(td))   # corpus is v2; build the explicit view from the KNOB (git history)
     exp = generate_explicit_shapes(knob)
     assert shape_ids(exp) == shape_ids(knob)
     assert list(public_ids(exp)) == list(public_ids(knob))
