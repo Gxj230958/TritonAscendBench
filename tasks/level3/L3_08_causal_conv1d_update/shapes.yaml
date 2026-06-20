@@ -1,848 +1,463 @@
-# Operator-family knob grid: causal_conv1d_update is a single-step decode
-# state update. The load-bearing axes are B (batch == num conv-state cache
-# lines), D (feature dim) and KW (conv kernel width). The frozen update jit
-# `_causal_conv1d_update_kernel` only implements KERNEL_WIDTH in {2..6}, so KW
-# is held to small realistic conv widths {2,3,4}; conv_state carries the
-# state_len == KW-1 history window the wrapper contract requires.
-size_knobs:
-  B: 8
-  D: 512
-  KW: 4
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    D: 64
-    KW: 2
+  env: {B: 2, D: 64, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [2, 64, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [64, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    D: 256
-    KW: 3
+  env: {B: 4, D: 256, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [4, 256, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    D: 512
-    KW: 4
+  env: {B: 8, D: 512, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 512, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [512, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    D: 1024
-    KW: 4
+  env: {B: 16, D: 1024, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [16, 1024, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1024, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    D: 2048
-    KW: 3
+  env: {B: 2, D: 2048, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [2, 2048, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [2048, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 5
-    D: 384
-    KW: 6
+  env: {B: 5, D: 384, KW: 6}
+  inputs:
+  - {name: x, kind: tensor, shape: [5, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [5, 384, 5], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 6], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [5], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 5
-    D: 3072
-    KW: 3
+  env: {B: 5, D: 3072, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [5, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [5, 3072, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [3072, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [5], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 5
-    D: 4096
-    KW: 3
+  env: {B: 5, D: 4096, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [5, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [5, 4096, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [4096, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [5], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 384
-    KW: 3
+  env: {B: 48, D: 384, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [48, 384, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 384
-    KW: 3
+  env: {B: 64, D: 384, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [64, 384, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 384
-    KW: 4
+  env: {B: 1, D: 384, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [1, 384, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 384
-    KW: 4
+  env: {B: 2, D: 384, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [2, 384, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 384
-    KW: 4
+  env: {B: 4, D: 384, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [4, 384, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1
-    KW: 4
+  env: {B: 8, D: 1, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 1, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2
-    KW: 4
+  env: {B: 8, D: 2, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 2, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [2, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 3
-    KW: 4
+  env: {B: 8, D: 3, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 3], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 3, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [3, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 4
-    KW: 4
+  env: {B: 8, D: 4, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 4, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [4, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [4], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 8
-    KW: 4
+  env: {B: 8, D: 8, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 8, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [8, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [8], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 16
-    KW: 4
+  env: {B: 8, D: 16, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 16, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [16, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 32
-    KW: 4
+  env: {B: 8, D: 32, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 32, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [32, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [32], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    KW: 4
+  env: {B: 8, D: 96, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 96, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [96], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    KW: 4
+  env: {B: 8, D: 128, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 128, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [128, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 192
-    KW: 4
+  env: {B: 8, D: 192, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 192, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [192, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 256
-    KW: 4
+  env: {B: 8, D: 256, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 256, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    KW: 2
+  env: {B: 8, D: 384, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 384, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    KW: 3
+  env: {B: 8, D: 384, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 384, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    KW: 4
+  env: {B: 8, D: 384, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 384, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    KW: 6
+  env: {B: 8, D: 384, KW: 6}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 384, 5], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 6], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 640
-    KW: 4
+  env: {B: 8, D: 640, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 640], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 640, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [640, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [640], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 768
-    KW: 4
+  env: {B: 8, D: 768, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 768, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [768, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [768], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
-    KW: 4
+  env: {B: 8, D: 1024, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 1024, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1024, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1280
-    KW: 4
+  env: {B: 8, D: 1280, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 1280], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 1280, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1280, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1280], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1536
-    KW: 4
+  env: {B: 8, D: 1536, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 1536], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 1536, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1536, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1536], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2048
-    KW: 4
+  env: {B: 8, D: 2048, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 2048, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [2048, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2560
-    KW: 4
+  env: {B: 8, D: 2560, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 2560], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 2560, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [2560, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2560], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 3072
-    KW: 4
+  env: {B: 8, D: 3072, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 3072, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [3072, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 3584
-    KW: 4
+  env: {B: 8, D: 3584, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 3584], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 3584, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [3584, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3584], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 4096
-    KW: 4
+  env: {B: 8, D: 4096, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 4096, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [4096, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 5120
-    KW: 4
-hidden_shapes:
+  env: {B: 8, D: 5120, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 5120], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [8, 5120, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [5120, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [5120], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    D: 384
-    KW: 4
+  env: {B: 3, D: 384, KW: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [3, 384, 3], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [3], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    D: 16
-    KW: 2
+  env: {B: 2, D: 16, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [2, 16, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [16, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 5
-    D: 256
-    KW: 3
+  env: {B: 5, D: 256, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [5, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [5, 256, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [5], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    D: 128
-    KW: 2
+  env: {B: 32, D: 128, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [32, 128, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [128, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    KW: 2
+  env: {B: 1, D: 1, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [1, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
-    KW: 3
+  env: {B: 1, D: 384, KW: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [1, 384, 2], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 256
-    D: 384
-    KW: 2
-inputs:
-  # x: [batch, dim] -- the single new decode token. The wrapper unsqueezes to
-  # [batch, dim, seqlen=1] internally.
-  x:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  # conv_state: [num_cache_lines, dim, state_len] with num_cache_lines == B and
-  # state_len == KW-1 (the rolling history window). Mutated in place: the kernel
-  # rolls each selected line left by one and appends the new token.
-  conv_state:
-    dims:
-    - B
-    - D
-    - KW-1
-    dtype: bfloat16
-    dist: randn
-  # weight: [dim, KW] depthwise conv taps.
-  weight:
-    dims:
-    - D
-    - KW
-    dtype: bfloat16
-    dist: randn
-  # bias: [dim] -- the kernel loads `bias_ptr + idx_feats` (no batch stride).
-  bias:
-    dims:
-    - D
-    dtype: bfloat16
-    dist: randn
-  # conv_state_indices: [batch] int32 -- LOAD-BEARING. Selects which cache line
-  # each batch element reads its prior state from and writes the rolled state
-  # back to. A single-cycle permutation (perm[i] = (i+1) % B) guarantees the
-  # selected line differs from the batch position for every row, so a kernel
-  # that ignores the index (reads/writes line i) mismatches the oracle on every
-  # output and every cache line. Never an arange/identity here.
-  conv_state_indices:
-    dims:
-    - B
-    dtype: int32
-    dist: cyclic_perm
-  # activation: SiLU gate on the conv output.
-  activation:
-    scalar: silu
-  # null_block_id: None -> HAS_NULL_BLOCK=False so no batch row is skipped as a
-  # null/padding entry (this is a fully-populated decode batch, no padding). With
-  # the upstream default NULL_BLOCK_ID==0, any index value 0 would otherwise make
-  # the kernel early-return and leave that row's output/state untouched.
-  null_block_id:
-    scalar: null
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[2, 64] bfloat16 axes=B,D dist=randn'
-      conv_state: '[2, 64, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[64, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[64] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[2] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[4, 256] bfloat16 axes=B,D dist=randn'
-      conv_state: '[4, 256, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[256, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[4] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[8, 512] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 512, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[512, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[512] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
-      conv_state: '[16, 1024, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1024, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1024] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[16] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[2, 2048] bfloat16 axes=B,D dist=randn'
-      conv_state: '[2, 2048, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[2048, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[2048] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[2] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[5, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[5, 384, 5] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 6] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[5] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[5, 3072] bfloat16 axes=B,D dist=randn'
-      conv_state: '[5, 3072, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[3072, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[3072] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[5] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[5, 4096] bfloat16 axes=B,D dist=randn'
-      conv_state: '[5, 4096, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[4096, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[4096] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[5] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[48, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[48, 384, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[48] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[64, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[64, 384, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[64] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[1, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[1, 384, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[1] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[2, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[2, 384, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[2] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[4, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[4, 384, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[4] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[8, 1] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 1, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[8, 2] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 2, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[2, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[2] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[8, 3] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 3, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[3, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[3] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[8, 4] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 4, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[4, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[4] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[8, 8] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 8, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[8, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[8] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[8, 16] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 16, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[16, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[16] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[8, 32] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 32, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[32, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[32] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[8, 96] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 96, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[96, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[96] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[8, 128] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 128, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[128, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[128] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[8, 192] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 192, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[192, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[192] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[8, 256] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 256, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[8, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 384, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[8, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 384, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[8, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 384, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[8, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 384, 5] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 6] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[8, 640] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 640, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[640, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[640] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[8, 768] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 768, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[768, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[768] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[8, 1024] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 1024, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1024, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1024] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[8, 1280] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 1280, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1280, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1280] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[8, 1536] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 1536, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1536, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1536] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[8, 2048] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 2048, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[2048, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[2048] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[8, 2560] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 2560, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[2560, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[2560] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[8, 3072] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 3072, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[3072, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[3072] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[8, 3584] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 3584, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[3584, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[3584] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[8, 4096] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 4096, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[4096, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[4096] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[8, 5120] bfloat16 axes=B,D dist=randn'
-      conv_state: '[8, 5120, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[5120, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[5120] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[8] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[3, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[3, 384, 3] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[3] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 16] bfloat16 axes=B,D dist=randn'
-      conv_state: '[2, 16, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[16, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[16] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[2] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[5, 256] bfloat16 axes=B,D dist=randn'
-      conv_state: '[5, 256, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[256, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[5] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[32, 128] bfloat16 axes=B,D dist=randn'
-      conv_state: '[32, 128, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[128, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[128] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[32] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H5:
-    provenance: edge
-    tensors:
-      x: '[1, 1] bfloat16 axes=B,D dist=randn'
-      conv_state: '[1, 1, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[1, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[1] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[1] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[1, 384, 2] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[1] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
-  H7:
-    provenance: edge
-    tensors:
-      x: '[256, 384] bfloat16 axes=B,D dist=randn'
-      conv_state: '[256, 384, 1] bfloat16 axes=B,D,KW-1 dist=randn'
-      weight: '[384, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-      conv_state_indices: '[256] int32 axes=B dist=cyclic_perm'
-    params:
-      activation: silu
-      null_block_id: null
+  env: {B: 256, D: 384, KW: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: conv_state, kind: tensor, shape: [256, 384, 1], dtype: bfloat16, axes: [B, D, KW-1], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: conv_state_indices, kind: tensor, shape: [256], dtype: int32, axes: [B], dist: cyclic_perm}
+  - {name: activation, kind: scalar, value: silu}
+  - {name: null_block_id, kind: scalar, value: null}

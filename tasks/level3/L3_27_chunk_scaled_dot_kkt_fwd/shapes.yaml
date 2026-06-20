@@ -1,703 +1,304 @@
-# Operator-family knob grid for chunk_scaled_dot_kkt_fwd (varlen / packed B=1).
-# Layout follows the frozen upstream wrapper's IS_VARLEN path exactly:
-#   k: [1, T, Hg, K]   beta: [1, T, H]   g: [1, T, H]
-#   cu_seqlens: [NSEG+1] int64, monotonic, cu_seqlens[-1] == T (packed tokens).
-#   output A: [1, T, H, BT], BT = FLA_CHUNK_SIZE = 64.
-# Supplying cu_seqlens flips the kernel's IS_VARLEN heuristic on, so the host
-# wrapper computes chunk_indices = prepare_chunk_indices(cu_seqlens, 64) and the
-# kernel takes the varlen branch (bos/eos from cu_seqlens, per-segment chunk
-# reset). B is pinned to 1: the varlen branch ignores i_b and addresses k / beta
-# / g / A from the flat bos offset, so a packed batch MUST be a single B=1 plane
-# (B>1 would alias the same packed storage). Hg == H here (the fla common case
-# where Q/K share head counts), so the head-grouping i_h // (H // Hg) is the
-# identity; the oracle keeps the GQA-general head_idx so the contract stays
-# Hg<=H ready. T per row spans single-chunk segments (len < 64), multi-chunk
-# segments (len > 64 with a non-64-multiple tail that exercises the m_t row
-# mask), and multi-segment packs so the per-segment chunk grid genuinely shifts
-# off the fixed-length BT boundary. `offsets:to=T` distributes T evenly over
-# NSEG segments; T >= NSEG on every row keeps every segment non-empty (an empty
-# segment would make prepare_chunk_indices renumber chunk seq ids densely and
-# misalign bos/eos for later chunks).
-size_knobs:
-  T: 200
-  H: 16
-  Hg: 16
-  K: 128
-  NSEG: 4
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    T: 80
-    H: 4
-    Hg: 4
-    K: 32
-    NSEG: 2
+  env: {T: 80, H: 4, Hg: 4, K: 32, NSEG: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 80, 4, 32], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 80, 4], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 80, 4], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P2
-  name: small
-  knobs:
-    T: 130
-    H: 8
-    Hg: 8
-    K: 64
-    NSEG: 2
+  env: {T: 130, H: 8, Hg: 8, K: 64, NSEG: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 130, 8, 64], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 130, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 130, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P3
-  name: medium
-  knobs:
-    T: 200
-    H: 16
-    Hg: 16
-    K: 128
-    NSEG: 3
+  env: {T: 200, H: 16, Hg: 16, K: 128, NSEG: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 200, 16, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 200, 16], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 200, 16], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P5
-  name: wide
-  knobs:
-    T: 100
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 1
+  env: {T: 100, H: 8, Hg: 8, K: 128, NSEG: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 100, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 100, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 100, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    H: 24
-    Hg: 24
-    K: 384
-    NSEG: 6
-    T: 576
+  env: {T: 576, H: 24, Hg: 24, K: 384, NSEG: 6}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 576, 24, 384], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 576, 24], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 576, 24], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [7], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    H: 32
-    Hg: 32
-    K: 512
-    NSEG: 8
-    T: 768
+  env: {T: 768, H: 32, Hg: 32, K: 512, NSEG: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 768, 32, 512], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 768, 32], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 768, 32], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 96
-    NSEG: 3
-    T: 576
+  env: {T: 576, H: 8, Hg: 8, K: 96, NSEG: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 576, 8, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 576, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 576, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 96
-    NSEG: 3
-    T: 768
+  env: {T: 768, H: 8, Hg: 8, K: 96, NSEG: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 768, 8, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 768, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 768, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 96
-    NSEG: 6
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 96, NSEG: 6}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [7], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 96
-    NSEG: 8
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 96, NSEG: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 1
-    K: 128
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 1, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 1, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 2
-    K: 128
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 2, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 2, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 4
-    K: 128
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 4, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 4, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 1
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 1, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 1], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 2
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 2, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 2], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 3
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 3, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 3], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 4
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 4, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 4], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 8
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 8, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 8], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 16
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 16, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 16], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 32
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 32, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 32], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 64
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 64, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 64], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 96
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 96, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 1
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 128, NSEG: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 2
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 128, NSEG: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 3
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 128, NSEG: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 4
+  env: {T: 4, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 4, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 4, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 4, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 8
+  env: {T: 8, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 8, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 8, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 8, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 16
+  env: {T: 16, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 16, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 16, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 16, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 32
+  env: {T: 32, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 32, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 32, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 32, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 64
+  env: {T: 64, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 64, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 64, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 64, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 96
+  env: {T: 96, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 96, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 96, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 96, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 128
+  env: {T: 128, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 128, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 128, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 128, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 150
+  env: {T: 150, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 192
+  env: {T: 192, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 192, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 192, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 192, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 256
+  env: {T: 256, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 256, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 256, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 256, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 384
+  env: {T: 384, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 384, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 384, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 384, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 512
+  env: {T: 512, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 512, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 512, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 512, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 640
+  env: {T: 640, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 640, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 640, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 640, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 768
+  env: {T: 768, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 768, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 768, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 768, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 4
-    T: 1024
-hidden_shapes:
+  env: {T: 1024, H: 8, Hg: 8, K: 128, NSEG: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 1024, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 1024, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 1024, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
+hidden:
 - id: H1
-  name: h_multiseg
-  knobs:
-    T: 150
-    H: 6
-    Hg: 6
-    K: 96
-    NSEG: 3
+  env: {T: 150, H: 6, Hg: 6, K: 96, NSEG: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 150, 6, 96], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 150, 6], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 150, 6], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: H2
-  name: edge_CPU-valid; pending 
-  knobs:
-    H: 1
-    Hg: 1
-    K: 1
-    NSEG: 1
-    T: 1
+  env: {T: 1, H: 1, Hg: 1, K: 1, NSEG: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 1, 1, 1], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}
 - id: H3
-  name: edge_CPU-valid; pending 
-  knobs:
-    H: 8
-    Hg: 8
-    K: 128
-    NSEG: 1
-    T: 3072
-inputs:
-  k:
-    dims:
-    - 1
-    - T
-    - Hg
-    - K
-    dtype: bfloat16
-    dist: randn
-  beta:
-    dims:
-    - 1
-    - T
-    - H
-    dtype: float32
-    dist: rand
-  g:
-    dims:
-    - 1
-    - T
-    - H
-    dtype: float32
-    dist: rand
-  cu_seqlens:
-    dims:
-    - NSEG+1
-    dtype: int64
-    dist: offsets:to=T
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      k: '[1, 80, 4, 32] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 80, 4] float32 axes=1,T,H dist=rand'
-      g: '[1, 80, 4] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P2:
-    provenance: baseline
-    tensors:
-      k: '[1, 130, 8, 64] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 130, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 130, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P3:
-    provenance: baseline
-    tensors:
-      k: '[1, 200, 16, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 200, 16] float32 axes=1,T,H dist=rand'
-      g: '[1, 200, 16] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P5:
-    provenance: synthetic
-    tensors:
-      k: '[1, 100, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 100, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 100, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P6:
-    provenance: synthetic
-    tensors:
-      k: '[1, 576, 24, 384] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 576, 24] float32 axes=1,T,H dist=rand'
-      g: '[1, 576, 24] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[7] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P7:
-    provenance: synthetic
-    tensors:
-      k: '[1, 768, 32, 512] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 768, 32] float32 axes=1,T,H dist=rand'
-      g: '[1, 768, 32] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[9] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P8:
-    provenance: synthetic
-    tensors:
-      k: '[1, 576, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 576, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 576, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P9:
-    provenance: synthetic
-    tensors:
-      k: '[1, 768, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 768, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 768, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P10:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[7] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P11:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[9] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P12:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 1, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P13:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 2, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P14:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 4, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P15:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 1] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P16:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 2] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P17:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 3] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P18:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 4] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P19:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 8] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P20:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 16] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P21:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 32] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P22:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 64] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P23:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P24:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P25:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[3] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P26:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P27:
-    provenance: synthetic
-    tensors:
-      k: '[1, 4, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 4, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 4, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P28:
-    provenance: synthetic
-    tensors:
-      k: '[1, 8, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 8, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 8, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P29:
-    provenance: synthetic
-    tensors:
-      k: '[1, 16, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 16, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 16, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P30:
-    provenance: synthetic
-    tensors:
-      k: '[1, 32, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 32, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 32, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P31:
-    provenance: synthetic
-    tensors:
-      k: '[1, 64, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 64, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 64, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P32:
-    provenance: synthetic
-    tensors:
-      k: '[1, 96, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 96, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 96, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P33:
-    provenance: synthetic
-    tensors:
-      k: '[1, 128, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 128, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 128, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P34:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P35:
-    provenance: synthetic
-    tensors:
-      k: '[1, 192, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 192, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 192, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P36:
-    provenance: synthetic
-    tensors:
-      k: '[1, 256, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 256, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 256, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P37:
-    provenance: synthetic
-    tensors:
-      k: '[1, 384, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 384, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 384, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P38:
-    provenance: synthetic
-    tensors:
-      k: '[1, 512, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 512, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 512, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P39:
-    provenance: synthetic
-    tensors:
-      k: '[1, 640, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 640, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 640, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P40:
-    provenance: synthetic
-    tensors:
-      k: '[1, 768, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 768, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 768, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  P41:
-    provenance: synthetic
-    tensors:
-      k: '[1, 1024, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 1024, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 1024, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[5] int64 axes=NSEG+1 dist=offsets(to=T)'
-  H1:
-    provenance: synthetic
-    tensors:
-      k: '[1, 150, 6, 96] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 150, 6] float32 axes=1,T,H dist=rand'
-      g: '[1, 150, 6] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[4] int64 axes=NSEG+1 dist=offsets(to=T)'
-  H2:
-    provenance: edge
-    tensors:
-      k: '[1, 1, 1, 1] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 1, 1] float32 axes=1,T,H dist=rand'
-      g: '[1, 1, 1] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
-  H3:
-    provenance: edge
-    tensors:
-      k: '[1, 3072, 8, 128] bfloat16 axes=1,T,Hg,K dist=randn'
-      beta: '[1, 3072, 8] float32 axes=1,T,H dist=rand'
-      g: '[1, 3072, 8] float32 axes=1,T,H dist=rand'
-      cu_seqlens: '[2] int64 axes=NSEG+1 dist=offsets(to=T)'
+  env: {T: 3072, H: 8, Hg: 8, K: 128, NSEG: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 3072, 8, 128], dtype: bfloat16, axes: ['1', T, Hg, K], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 3072, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: g, kind: tensor, shape: [1, 3072, 8], dtype: float32, axes: ['1', T, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [NSEG+1], dist: 'offsets:to=T'}

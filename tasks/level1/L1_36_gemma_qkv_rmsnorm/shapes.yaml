@@ -1,721 +1,387 @@
-# Gemma3 per-head QKV RMSNorm knob grid. q is [M, QH*D], k/v are [M, KVH*D]
-# (heads packed contiguously in the last dim); q_weight/k_weight are [D].
-# Each head is normalized independently: x * rsqrt(mean(x^2)+eps) * w.
-# D (head_dim) is kept a power of two so BLOCK == D (no masked lanes), and
-# QH is a multiple of KVH (grouped-query attention head ratio).
-size_knobs:
-  M: 256
-  QH: 8
-  KVH: 2
-  D: 128
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs: {M: 8, QH: 2, KVH: 1, D: 32}
+  env: {M: 8, QH: 2, KVH: 1, D: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 64], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 32], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 32], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [32], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [32], dtype: float32, axes: [D], dist: randn}
 - id: P2
-  name: small
-  knobs: {M: 64, QH: 4, KVH: 2, D: 64}
+  env: {M: 64, QH: 4, KVH: 2, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 256], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
 - id: P3
-  name: medium
-  knobs: {M: 256, QH: 8, KVH: 2, D: 128}
+  env: {M: 256, QH: 8, KVH: 2, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [256, 1024], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [256, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [256, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P4
-  name: large
-  knobs: {M: 1024, QH: 16, KVH: 4, D: 128}
+  env: {M: 1024, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [1024, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [1024, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [1024, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P5
-  name: wide
-  knobs: {M: 32, QH: 32, KVH: 8, D: 256}
+  env: {M: 32, QH: 32, KVH: 8, D: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 8192], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [256], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [256], dtype: float32, axes: [D], dist: randn}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 96
-    KVH: 4
-    M: 128
-    QH: 48
+  env: {M: 128, QH: 48, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 4608], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 96
-    KVH: 4
-    M: 128
-    QH: 64
+  env: {M: 128, QH: 64, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 6144], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 96
-    KVH: 4
-    M: 1536
-    QH: 8
+  env: {M: 1536, QH: 8, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [1536, 768], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [1536, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [1536, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 96
-    KVH: 4
-    M: 2048
-    QH: 8
+  env: {M: 2048, QH: 8, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2048, 768], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [2048, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [2048, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 384
-    KVH: 4
-    M: 128
-    QH: 8
+  env: {M: 128, QH: 8, KVH: 4, D: 384}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 3072], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 1536], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 1536], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [384], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [384], dtype: float32, axes: [D], dist: randn}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 512
-    KVH: 4
-    M: 128
-    QH: 8
+  env: {M: 128, QH: 8, KVH: 4, D: 512}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 4096], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [512], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [512], dtype: float32, axes: [D], dist: randn}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 16], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 4], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 4], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [1], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [1], dtype: float32, axes: [D], dist: randn}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 2
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 32], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 8], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 8], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [2], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [2], dtype: float32, axes: [D], dist: randn}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 3
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 3}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 48], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 12], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 12], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [3], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [3], dtype: float32, axes: [D], dist: randn}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 4
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 64], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 16], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 16], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [4], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [4], dtype: float32, axes: [D], dist: randn}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 8
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 128], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 32], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 32], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [8], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [8], dtype: float32, axes: [D], dist: randn}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 16
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 256], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 64], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 64], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [16], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [16], dtype: float32, axes: [D], dist: randn}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 32
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [32], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [32], dtype: float32, axes: [D], dist: randn}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 64
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 1024], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 96
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 1536], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 1
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 1, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 2
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 2, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 256], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 1
-    QH: 16
+  env: {M: 1, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 2
-    QH: 16
+  env: {M: 2, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 3
-    QH: 16
+  env: {M: 3, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [3, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 4
-    QH: 16
+  env: {M: 4, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 8
-    QH: 16
+  env: {M: 8, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 16
-    QH: 16
+  env: {M: 16, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 32
-    QH: 16
+  env: {M: 32, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 64
-    QH: 16
+  env: {M: 64, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 96
-    QH: 16
+  env: {M: 96, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [96, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [96, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [96, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 4
+  env: {M: 128, QH: 4, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 8
+  env: {M: 128, QH: 8, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 1024], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 16
+  env: {M: 128, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 32
+  env: {M: 128, QH: 32, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 4096], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 64
+  env: {M: 128, QH: 64, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 8192], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 96
+  env: {M: 128, QH: 96, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 12288], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 128
+  env: {M: 128, QH: 128, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 16384], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 192
+  env: {M: 128, QH: 192, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 24576], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 128
-    QH: 256
+  env: {M: 128, QH: 256, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 32768], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KVH: 4
-    M: 192
-    QH: 16
-hidden_shapes:
+  env: {M: 192, QH: 16, KVH: 4, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [192, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [192, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [192, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+hidden:
 - id: H1
-  name: h_tail_nonpow2_mqa
-  # D=96 is not a power of two, so BLOCK=next_pow2(96)=128 and the kernel's
-  # `cols < HEAD_DIM` mask must drop lanes 96..127 (tail-masking coverage).
-  knobs: {M: 128, QH: 8, KVH: 1, D: 96}
+  env: {M: 128, QH: 8, KVH: 1, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 768], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 96], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 96], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: H2
-  name: h_singleton
-  knobs: {M: 2, QH: 1, KVH: 1, D: 64}
+  env: {M: 2, QH: 1, KVH: 1, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 64], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 64], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 64], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [64], dtype: float32, axes: [D], dist: randn}
 - id: H3
-  name: h_deep
-  knobs: {M: 512, QH: 16, KVH: 2, D: 256}
+  env: {M: 512, QH: 16, KVH: 2, D: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [512, 4096], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [512, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [512, 512], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [256], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [256], dtype: float32, axes: [D], dist: randn}
 - id: H4
-  name: h_mha
-  knobs: {M: 64, QH: 16, KVH: 16, D: 128}
+  env: {M: 64, QH: 16, KVH: 16, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 2048], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 1
-    KVH: 1
-    M: 1
-    QH: 1
+  env: {M: 1, QH: 1, KVH: 1, D: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 1], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 1], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 1], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [1], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [1], dtype: float32, axes: [D], dist: randn}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 96
-    KVH: 4
-    M: 1
-    QH: 8
+  env: {M: 1, QH: 8, KVH: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 768], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 384], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [96], dtype: float32, axes: [D], dist: randn}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 128
-    KVH: 1
-    M: 8192
-    QH: 16
-inputs:
-  q:
-    dims: [M, "QH*D"]
-    dtype: bf16
-    dist: randn
-  k:
-    dims: [M, "KVH*D"]
-    dtype: bf16
-    dist: randn
-  v:
-    dims: [M, "KVH*D"]
-    dtype: bf16
-    dist: randn
-  q_weight:
-    dims: [D]
-    dtype: float32
-    dist: randn
-  k_weight:
-    dims: [D]
-    dtype: float32
-    dist: randn
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[8, 64] bf16 axes=M,QH*D dist=randn'
-      k: '[8, 32] bf16 axes=M,KVH*D dist=randn'
-      v: '[8, 32] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[32] float32 axes=D dist=randn'
-      k_weight: '[32] float32 axes=D dist=randn'
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[64, 256] bf16 axes=M,QH*D dist=randn'
-      k: '[64, 128] bf16 axes=M,KVH*D dist=randn'
-      v: '[64, 128] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[64] float32 axes=D dist=randn'
-      k_weight: '[64] float32 axes=D dist=randn'
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[256, 1024] bf16 axes=M,QH*D dist=randn'
-      k: '[256, 256] bf16 axes=M,KVH*D dist=randn'
-      v: '[256, 256] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[1024, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[1024, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[1024, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[32, 8192] bf16 axes=M,QH*D dist=randn'
-      k: '[32, 2048] bf16 axes=M,KVH*D dist=randn'
-      v: '[32, 2048] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[256] float32 axes=D dist=randn'
-      k_weight: '[256] float32 axes=D dist=randn'
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[128, 4608] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[128, 6144] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[1536, 768] bf16 axes=M,QH*D dist=randn'
-      k: '[1536, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[1536, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[2048, 768] bf16 axes=M,QH*D dist=randn'
-      k: '[2048, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[2048, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[128, 3072] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 1536] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 1536] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[384] float32 axes=D dist=randn'
-      k_weight: '[384] float32 axes=D dist=randn'
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[128, 4096] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 2048] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 2048] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[512] float32 axes=D dist=randn'
-      k_weight: '[512] float32 axes=D dist=randn'
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[128, 16] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 4] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 4] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[1] float32 axes=D dist=randn'
-      k_weight: '[1] float32 axes=D dist=randn'
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[128, 32] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 8] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 8] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[2] float32 axes=D dist=randn'
-      k_weight: '[2] float32 axes=D dist=randn'
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[128, 48] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 12] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 12] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[3] float32 axes=D dist=randn'
-      k_weight: '[3] float32 axes=D dist=randn'
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[128, 64] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 16] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 16] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[4] float32 axes=D dist=randn'
-      k_weight: '[4] float32 axes=D dist=randn'
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[128, 128] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 32] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 32] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[8] float32 axes=D dist=randn'
-      k_weight: '[8] float32 axes=D dist=randn'
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[128, 256] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 64] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 64] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[16] float32 axes=D dist=randn'
-      k_weight: '[16] float32 axes=D dist=randn'
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[128, 512] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 128] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 128] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[32] float32 axes=D dist=randn'
-      k_weight: '[32] float32 axes=D dist=randn'
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[128, 1024] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 256] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 256] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[64] float32 axes=D dist=randn'
-      k_weight: '[64] float32 axes=D dist=randn'
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[128, 1536] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 128] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 128] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 256] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 256] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[1, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[1, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[1, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[2, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[2, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[2, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[3, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[3, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[3, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[4, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[4, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[4, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[8, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[8, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[8, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[16, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[16, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[16, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[32, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[32, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[32, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[64, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[64, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[64, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[96, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[96, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[96, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[128, 512] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[128, 1024] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[128, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[128, 4096] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[128, 8192] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[128, 12288] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[128, 16384] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[128, 24576] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P40:
-    provenance: synthetic
-    tensors:
-      q: '[128, 32768] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  P41:
-    provenance: synthetic
-    tensors:
-      q: '[192, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[192, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[192, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[128, 768] bf16 axes=M,QH*D dist=randn'
-      k: '[128, 96] bf16 axes=M,KVH*D dist=randn'
-      v: '[128, 96] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 64] bf16 axes=M,QH*D dist=randn'
-      k: '[2, 64] bf16 axes=M,KVH*D dist=randn'
-      v: '[2, 64] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[64] float32 axes=D dist=randn'
-      k_weight: '[64] float32 axes=D dist=randn'
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[512, 4096] bf16 axes=M,QH*D dist=randn'
-      k: '[512, 512] bf16 axes=M,KVH*D dist=randn'
-      v: '[512, 512] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[256] float32 axes=D dist=randn'
-      k_weight: '[256] float32 axes=D dist=randn'
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[64, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[64, 2048] bf16 axes=M,KVH*D dist=randn'
-      v: '[64, 2048] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
-  H5:
-    provenance: edge
-    tensors:
-      q: '[1, 1] bf16 axes=M,QH*D dist=randn'
-      k: '[1, 1] bf16 axes=M,KVH*D dist=randn'
-      v: '[1, 1] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[1] float32 axes=D dist=randn'
-      k_weight: '[1] float32 axes=D dist=randn'
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 768] bf16 axes=M,QH*D dist=randn'
-      k: '[1, 384] bf16 axes=M,KVH*D dist=randn'
-      v: '[1, 384] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[96] float32 axes=D dist=randn'
-      k_weight: '[96] float32 axes=D dist=randn'
-  H7:
-    provenance: edge
-    tensors:
-      q: '[8192, 2048] bf16 axes=M,QH*D dist=randn'
-      k: '[8192, 128] bf16 axes=M,KVH*D dist=randn'
-      v: '[8192, 128] bf16 axes=M,KVH*D dist=randn'
-      q_weight: '[128] float32 axes=D dist=randn'
-      k_weight: '[128] float32 axes=D dist=randn'
+  env: {M: 8192, QH: 16, KVH: 1, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [8192, 2048], dtype: bf16, axes: [M, QH*D], dist: randn}
+  - {name: k, kind: tensor, shape: [8192, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: v, kind: tensor, shape: [8192, 128], dtype: bf16, axes: [M, KVH*D], dist: randn}
+  - {name: q_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}
+  - {name: k_weight, kind: tensor, shape: [128], dtype: float32, axes: [D], dist: randn}

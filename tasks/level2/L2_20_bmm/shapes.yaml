@@ -1,314 +1,105 @@
-# Operator-family knob grid: values reflect
-# the gemm family's real axes.
-size_knobs:
-  B: 256
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 8
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 16
-    L: 16
-    D: 32
-    Dv: 8
-    N: 64
-    T: 8
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 16, L: 16, D: 32, Dv: 8, N: 64, T: 8, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: a, kind: tensor, shape: [16, 16, 32], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [16, 32, 64], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [16, 64, 32], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    L: 64
-    D: 128
-    Dv: 8
-    N: 256
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 64, L: 64, D: 128, Dv: 8, N: 256, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [64, 64, 128], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [64, 128, 256], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [64, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P3
-  name: medium
-  knobs:
-    B: 256
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 8
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 256, L: 128, D: 512, Dv: 8, N: 1024, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [256, 128, 512], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [256, 512, 1024], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [256, 1024, 512], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P4
-  name: large
-  knobs:
-    B: 512
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 8
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 512, L: 256, D: 1024, Dv: 8, N: 2048, T: 8, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [512, 256, 1024], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [512, 1024, 2048], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [512, 2048, 1024], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [8, 64, 2048], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [8, 2048, 512], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [8, 512, 2048], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P6
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 1
-    D: 4
-    L: 2
-    N: 2
+  env: {B: 1, L: 2, D: 4, Dv: 8, N: 2, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 2, 4], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 4, 2], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [1, 2, 4], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P7
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 2
-    D: 32
-    L: 16
-    N: 16
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 16, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 16, 32], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 32, 16], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [2, 16, 32], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P8
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 2
-    D: 64
-    L: 32
-    N: 32
+  env: {B: 2, L: 32, D: 64, Dv: 8, N: 32, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 32, 64], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 64, 32], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [2, 32, 64], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P9
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 2
-    D: 128
-    L: 64
-    N: 64
+  env: {B: 2, L: 64, D: 128, Dv: 8, N: 64, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 64, 128], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 128, 64], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [2, 64, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P10
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 3
-    D: 12
-    L: 6
-    N: 6
+  env: {B: 3, L: 6, D: 12, Dv: 8, N: 6, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [3, 6, 12], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [3, 12, 6], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [3, 6, 12], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P11
-  name: borrow_CPU-valid; pendin
-  knobs:
-    B: 8
-    D: 128
-    L: 64
-    N: 64
-hidden_shapes:
+  env: {B: 8, L: 64, D: 128, Dv: 8, N: 64, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [8, 64, 128], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [8, 128, 64], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [8, 64, 128], dtype: float16, axes: [B, N, D], dist: randn}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 192
-    Dv: 8
-    N: 384
-    T: 8
-    H: 6
-    E: 6
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 192, Dv: 8, N: 384, T: 8, H: 6, E: 6, C: 24, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [96, 96, 192], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [96, 192, 384], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [96, 384, 192], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 16, 16], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 16, 8], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [2, 8, 16], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 8
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 8, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [4, 512, 4096], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [4, 4096, 4096], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [4, 4096, 4096], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 1024
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 1024, L: 32, D: 128, Dv: 8, N: 128, T: 8, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [1024, 32, 128], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1024, 128, 128], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [1024, 128, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    L: 1
-    N: 1
+  env: {B: 1, L: 1, D: 1, Dv: 8, N: 1, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [1, 1, 1], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 512
-    L: 96
-    N: 384
-inputs:
-  a:
-    dims:
-    - B
-    - L
-    - D
-    dtype: float32
-    dist: randn
-  b:
-    dims:
-    - B
-    - D
-    - N
-    dtype: float32
-    dist: randn
-  input:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      a: '[16, 16, 32] float32 axes=B,L,D dist=randn'
-      b: '[16, 32, 64] float32 axes=B,D,N dist=randn'
-      input: '[16, 64, 32] float16 axes=B,N,D dist=randn'
-  P2:
-    provenance: baseline
-    tensors:
-      a: '[64, 64, 128] float32 axes=B,L,D dist=randn'
-      b: '[64, 128, 256] float32 axes=B,D,N dist=randn'
-      input: '[64, 256, 128] float16 axes=B,N,D dist=randn'
-  P3:
-    provenance: baseline
-    tensors:
-      a: '[256, 128, 512] float32 axes=B,L,D dist=randn'
-      b: '[256, 512, 1024] float32 axes=B,D,N dist=randn'
-      input: '[256, 1024, 512] float16 axes=B,N,D dist=randn'
-  P4:
-    provenance: baseline
-    tensors:
-      a: '[512, 256, 1024] float32 axes=B,L,D dist=randn'
-      b: '[512, 1024, 2048] float32 axes=B,D,N dist=randn'
-      input: '[512, 2048, 1024] float16 axes=B,N,D dist=randn'
-  P5:
-    provenance: synthetic
-    tensors:
-      a: '[8, 64, 2048] float32 axes=B,L,D dist=randn'
-      b: '[8, 2048, 512] float32 axes=B,D,N dist=randn'
-      input: '[8, 512, 2048] float16 axes=B,N,D dist=randn'
-  P6:
-    provenance: synthetic
-    tensors:
-      a: '[1, 2, 4] float32 axes=B,L,D dist=randn'
-      b: '[1, 4, 2] float32 axes=B,D,N dist=randn'
-      input: '[1, 2, 4] float16 axes=B,N,D dist=randn'
-  P7:
-    provenance: synthetic
-    tensors:
-      a: '[2, 16, 32] float32 axes=B,L,D dist=randn'
-      b: '[2, 32, 16] float32 axes=B,D,N dist=randn'
-      input: '[2, 16, 32] float16 axes=B,N,D dist=randn'
-  P8:
-    provenance: synthetic
-    tensors:
-      a: '[2, 32, 64] float32 axes=B,L,D dist=randn'
-      b: '[2, 64, 32] float32 axes=B,D,N dist=randn'
-      input: '[2, 32, 64] float16 axes=B,N,D dist=randn'
-  P9:
-    provenance: synthetic
-    tensors:
-      a: '[2, 64, 128] float32 axes=B,L,D dist=randn'
-      b: '[2, 128, 64] float32 axes=B,D,N dist=randn'
-      input: '[2, 64, 128] float16 axes=B,N,D dist=randn'
-  P10:
-    provenance: synthetic
-    tensors:
-      a: '[3, 6, 12] float32 axes=B,L,D dist=randn'
-      b: '[3, 12, 6] float32 axes=B,D,N dist=randn'
-      input: '[3, 6, 12] float16 axes=B,N,D dist=randn'
-  P11:
-    provenance: synthetic
-    tensors:
-      a: '[8, 64, 128] float32 axes=B,L,D dist=randn'
-      b: '[8, 128, 64] float32 axes=B,D,N dist=randn'
-      input: '[8, 64, 128] float16 axes=B,N,D dist=randn'
-  H1:
-    provenance: synthetic
-    tensors:
-      a: '[96, 96, 192] float32 axes=B,L,D dist=randn'
-      b: '[96, 192, 384] float32 axes=B,D,N dist=randn'
-      input: '[96, 384, 192] float16 axes=B,N,D dist=randn'
-  H2:
-    provenance: edge
-    tensors:
-      a: '[2, 16, 16] float32 axes=B,L,D dist=randn'
-      b: '[2, 16, 8] float32 axes=B,D,N dist=randn'
-      input: '[2, 8, 16] float16 axes=B,N,D dist=randn'
-  H3:
-    provenance: synthetic
-    tensors:
-      a: '[4, 512, 4096] float32 axes=B,L,D dist=randn'
-      b: '[4, 4096, 4096] float32 axes=B,D,N dist=randn'
-      input: '[4, 4096, 4096] float16 axes=B,N,D dist=randn'
-  H4:
-    provenance: synthetic
-    tensors:
-      a: '[1024, 32, 128] float32 axes=B,L,D dist=randn'
-      b: '[1024, 128, 128] float32 axes=B,D,N dist=randn'
-      input: '[1024, 128, 128] float16 axes=B,N,D dist=randn'
-  H5:
-    provenance: edge
-    tensors:
-      a: '[1, 1, 1] float32 axes=B,L,D dist=randn'
-      b: '[1, 1, 1] float32 axes=B,D,N dist=randn'
-      input: '[1, 1, 1] float16 axes=B,N,D dist=randn'
-  H6:
-    provenance: edge
-    tensors:
-      a: '[1, 96, 512] float32 axes=B,L,D dist=randn'
-      b: '[1, 512, 384] float32 axes=B,D,N dist=randn'
-      input: '[1, 384, 512] float16 axes=B,N,D dist=randn'
+  env: {B: 1, L: 96, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 96, 512], dtype: float32, axes: [B, L, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 512, 384], dtype: float32, axes: [B, D, N], dist: randn}
+  - {name: input, kind: tensor, shape: [1, 384, 512], dtype: float16, axes: [B, N, D], dist: randn}

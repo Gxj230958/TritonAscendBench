@@ -1,973 +1,579 @@
-# Mamba2 selective-state single-step decode update knob grid.
-#   state [BS,H,HD,DS], x/dt/z [BS,H,HD], A [H,HD,DS], B/C [BS,G,DS],
-#   D/dt_bias [H,HD]. BS=decode batch, H=nheads, G=ngroups (H % G == 0),
-#   HD=head dim, DS=state dim. A uses the `logsigmoid` dist so A < 0 and the
-#   decay exp(A*dt) lies in (0, 1).
-#
-# dtypes mirror vLLM Mamba2: activations (x, dt, z, B, C) are bf16; the SSM
-# parameters (A, D, dt_bias) and the recurrent state are fp32; the ssm output is
-# fp32. Shapes cover power-of-two DS (P1..P5: 16/32/64/128) AND a non-power-of-two
-# DS=48 (H1) so the kernel's BLOCK_SIZE_DSTATE = next_power_of_2(DS) tail masking
-# is exercised; HD=48 (H1) likewise exercises the dim tail mask.
-size_knobs:
-  BS: 8
-  H: 8
-  G: 2
-  HD: 64
-  DS: 64
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs: {BS: 2, H: 2, G: 1, HD: 32, DS: 16}
+  env: {BS: 2, H: 2, G: 1, HD: 32, DS: 16}
+  inputs:
+  - {name: state, kind: tensor, shape: [2, 2, 32, 16], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 2, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 2, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [2, 32, 16], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [2, 1, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [2, 1, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [2, 32], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [2, 2, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [2, 32], dtype: float32, axes: [H, HD], dist: randn}
 - id: P2
-  name: small
-  knobs: {BS: 4, H: 4, G: 2, HD: 64, DS: 32}
+  env: {BS: 4, H: 4, G: 2, HD: 64, DS: 32}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 4, 64, 32], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [4, 64, 32], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 2, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 2, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P3
-  name: medium
-  knobs: {BS: 8, H: 8, G: 2, HD: 64, DS: 64}
+  env: {BS: 8, H: 8, G: 2, HD: 64, DS: 64}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 8, 64, 64], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 64], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 2, 64], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 2, 64], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P4
-  name: large
-  knobs: {BS: 16, H: 16, G: 2, HD: 128, DS: 128}
+  env: {BS: 16, H: 16, G: 2, HD: 128, DS: 128}
+  inputs:
+  - {name: state, kind: tensor, shape: [16, 16, 128, 128], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [16, 16, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [16, 16, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [16, 128, 128], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [16, 2, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [16, 2, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [16, 128], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [16, 16, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [16, 128], dtype: float32, axes: [H, HD], dist: randn}
 - id: P5
-  name: wide
-  knobs: {BS: 2, H: 32, G: 4, HD: 64, DS: 128}
+  env: {BS: 2, H: 32, G: 4, HD: 64, DS: 128}
+  inputs:
+  - {name: state, kind: tensor, shape: [2, 32, 64, 128], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 32, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 32, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [32, 64, 128], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [2, 4, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [2, 4, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [32, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [2, 32, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [32, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    BS: 1
-    DS: 48
-    G: 8
-    H: 8
-    HD: 48
+  env: {BS: 1, H: 8, G: 8, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [1, 8, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    BS: 8
-    DS: 48
-    G: 2
-    H: 8
-    HD: 192
+  env: {BS: 8, H: 8, G: 2, HD: 192, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 8, 192, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 192, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 192], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 192], dtype: float32, axes: [H, HD], dist: randn}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    BS: 8
-    DS: 48
-    G: 2
-    H: 8
-    HD: 256
+  env: {BS: 8, H: 8, G: 2, HD: 256, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 8, 256, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 256, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 256], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 256], dtype: float32, axes: [H, HD], dist: randn}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    BS: 8
-    DS: 48
-    G: 2
-    H: 48
-    HD: 48
+  env: {BS: 8, H: 48, G: 2, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 48, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 48, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 48, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [48, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [48, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 48, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [48, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    BS: 8
-    DS: 48
-    G: 2
-    H: 64
-    HD: 48
+  env: {BS: 8, H: 64, G: 2, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 64, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 64, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 64, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [64, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [64, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 64, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [64, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    BS: 8
-    DS: 48
-    G: 8
-    H: 8
-    HD: 48
+  env: {BS: 8, H: 8, G: 8, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [8, 8, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [8, 8, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [8, 8, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [8, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 1
-    DS: 48
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 1, H: 8, G: 4, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [1, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [1, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [1, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [1, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 2
-    DS: 48
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 2, H: 8, G: 4, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [2, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [2, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [2, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [2, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 3
-    DS: 48
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 3, H: 8, G: 4, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [3, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [3, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [3, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [3, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [3, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [3, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 1
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 1}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 1], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 1], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 1], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 1], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 2
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 2}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 2], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 2], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 2], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 2], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 3
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 3}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 3], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 3], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 3], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 3], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 4
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 4}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 4], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 4], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 4], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 4], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 8
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 8}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 8], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 8], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 8], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 8], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 16
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 16}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 16], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 16], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 32
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 32}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 32], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 32], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 1
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 1, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 2
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 2, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 4
-    HD: 64
+  env: {BS: 4, H: 4, G: 4, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 4, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [4, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 1
+  env: {BS: 4, H: 8, G: 4, HD: 1, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 1, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 1, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 1], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 1], dtype: float32, axes: [H, HD], dist: randn}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 2
+  env: {BS: 4, H: 8, G: 4, HD: 2, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 2, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 2], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 2], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 2, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 2], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 2], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 2], dtype: float32, axes: [H, HD], dist: randn}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 3
+  env: {BS: 4, H: 8, G: 4, HD: 3, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 3, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 3], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 3], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 3, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 3], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 3], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 3], dtype: float32, axes: [H, HD], dist: randn}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 4
+  env: {BS: 4, H: 8, G: 4, HD: 4, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 4, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 4], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 4], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 4, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 4], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 4], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 4], dtype: float32, axes: [H, HD], dist: randn}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 8
+  env: {BS: 4, H: 8, G: 4, HD: 8, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 8, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 8], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 8], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 8, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 8], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 8], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 8], dtype: float32, axes: [H, HD], dist: randn}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 16
+  env: {BS: 4, H: 8, G: 4, HD: 16, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 16, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 16, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 16], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 16], dtype: float32, axes: [H, HD], dist: randn}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 32
+  env: {BS: 4, H: 8, G: 4, HD: 32, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 32, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 32, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 32], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 32], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 32], dtype: float32, axes: [H, HD], dist: randn}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 64
+  env: {BS: 4, H: 8, G: 4, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 96
+  env: {BS: 4, H: 8, G: 4, HD: 96, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 96, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 96, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 96], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 96], dtype: float32, axes: [H, HD], dist: randn}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 128
+  env: {BS: 4, H: 8, G: 4, HD: 128, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 128, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 128, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 128], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 128], dtype: float32, axes: [H, HD], dist: randn}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 192
+  env: {BS: 4, H: 8, G: 4, HD: 192, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 192, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 192, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 192], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 192], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 192], dtype: float32, axes: [H, HD], dist: randn}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 256
+  env: {BS: 4, H: 8, G: 4, HD: 256, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 256, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 256, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 256], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 256], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 256], dtype: float32, axes: [H, HD], dist: randn}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 384
+  env: {BS: 4, H: 8, G: 4, HD: 384, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 384, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 384], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 384], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 384, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 384], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 384], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 384], dtype: float32, axes: [H, HD], dist: randn}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 512
+  env: {BS: 4, H: 8, G: 4, HD: 512, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 512, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 512], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 512], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 512, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 512], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 512], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 512], dtype: float32, axes: [H, HD], dist: randn}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 640
+  env: {BS: 4, H: 8, G: 4, HD: 640, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 640, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 640], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 640], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 640, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 640], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 640], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 640], dtype: float32, axes: [H, HD], dist: randn}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 768
+  env: {BS: 4, H: 8, G: 4, HD: 768, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 768, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 768], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 768], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 768, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 768], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 768], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 768], dtype: float32, axes: [H, HD], dist: randn}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    BS: 4
-    DS: 48
-    G: 4
-    H: 8
-    HD: 1024
-hidden_shapes:
+  env: {BS: 4, H: 8, G: 4, HD: 1024, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [4, 8, 1024, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 8, 1024], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 8, 1024], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 1024, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [4, 4, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 1024], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [4, 8, 1024], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 1024], dtype: float32, axes: [H, HD], dist: randn}
+hidden:
 - id: H1
-  name: h_tail_nonpow2
-  knobs: {BS: 3, H: 6, G: 1, HD: 48, DS: 48}
+  env: {BS: 3, H: 6, G: 1, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [3, 6, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [3, 6, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [3, 6, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [6, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [3, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [3, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [3, 6, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: H2
-  name: h_singleton
-  knobs: {BS: 2, H: 2, G: 1, HD: 16, DS: 16}
+  env: {BS: 2, H: 2, G: 1, HD: 16, DS: 16}
+  inputs:
+  - {name: state, kind: tensor, shape: [2, 2, 16, 16], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [2, 16, 16], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [2, 1, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [2, 1, 16], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [2, 16], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [2, 16], dtype: float32, axes: [H, HD], dist: randn}
 - id: H3
-  name: h_deep
-  knobs: {BS: 2, H: 8, G: 1, HD: 128, DS: 128}
+  env: {BS: 2, H: 8, G: 1, HD: 128, DS: 128}
+  inputs:
+  - {name: state, kind: tensor, shape: [2, 8, 128, 128], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 128, 128], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [2, 1, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [2, 1, 128], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 128], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 128], dtype: float32, axes: [H, HD], dist: randn}
 - id: H4
-  name: h_wide_batch
-  knobs: {BS: 32, H: 4, G: 2, HD: 64, DS: 32}
+  env: {BS: 32, H: 4, G: 2, HD: 64, DS: 32}
+  inputs:
+  - {name: state, kind: tensor, shape: [32, 4, 64, 32], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [32, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [32, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [4, 64, 32], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [32, 2, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [32, 2, 32], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [32, 4, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [4, 64], dtype: float32, axes: [H, HD], dist: randn}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    BS: 1
-    DS: 1
-    G: 1
-    H: 1
-    HD: 1
+  env: {BS: 1, H: 1, G: 1, HD: 1, DS: 1}
+  inputs:
+  - {name: state, kind: tensor, shape: [1, 1, 1, 1], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [1, 1], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [1, 1], dtype: float32, axes: [H, HD], dist: randn}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    BS: 1
-    DS: 48
-    G: 2
-    H: 8
-    HD: 48
+  env: {BS: 1, H: 8, G: 2, HD: 48, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [1, 8, 48, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 48, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [1, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [1, 2, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [1, 8, 48], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 48], dtype: float32, axes: [H, HD], dist: randn}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    BS: 128
-    DS: 48
-    G: 1
-    H: 8
-    HD: 64
-inputs:
-  state:
-    dims: [BS, H, HD, DS]
-    dtype: float32
-    dist: randn
-  x:
-    dims: [BS, H, HD]
-    dtype: bfloat16
-    dist: randn
-  dt:
-    dims: [BS, H, HD]
-    dtype: bfloat16
-    dist: randn
-  A:
-    dims: [H, HD, DS]
-    dtype: float32
-    dist: logsigmoid
-  B:
-    dims: [BS, G, DS]
-    dtype: bfloat16
-    dist: randn
-  C:
-    dims: [BS, G, DS]
-    dtype: bfloat16
-    dist: randn
-  D:
-    dims: [H, HD]
-    dtype: float32
-    dist: randn
-  z:
-    dims: [BS, H, HD]
-    dtype: bfloat16
-    dist: randn
-  dt_bias:
-    dims: [H, HD]
-    dtype: float32
-    dist: randn
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      state: '[2, 2, 32, 16] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[2, 2, 32] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[2, 2, 32] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[2, 32, 16] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[2, 1, 16] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[2, 1, 16] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[2, 32] float32 axes=H,HD dist=randn'
-      z: '[2, 2, 32] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[2, 32] float32 axes=H,HD dist=randn'
-  P2:
-    provenance: baseline
-    tensors:
-      state: '[4, 4, 64, 32] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[4, 64, 32] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 2, 32] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 2, 32] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[4, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[4, 64] float32 axes=H,HD dist=randn'
-  P3:
-    provenance: baseline
-    tensors:
-      state: '[8, 8, 64, 64] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 64] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 2, 64] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 2, 64] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[8, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P4:
-    provenance: baseline
-    tensors:
-      state: '[16, 16, 128, 128] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[16, 16, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[16, 16, 128] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[16, 128, 128] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[16, 2, 128] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[16, 2, 128] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[16, 128] float32 axes=H,HD dist=randn'
-      z: '[16, 16, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[16, 128] float32 axes=H,HD dist=randn'
-  P5:
-    provenance: synthetic
-    tensors:
-      state: '[2, 32, 64, 128] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[2, 32, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[2, 32, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[32, 64, 128] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[2, 4, 128] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[2, 4, 128] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[32, 64] float32 axes=H,HD dist=randn'
-      z: '[2, 32, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[32, 64] float32 axes=H,HD dist=randn'
-  P6:
-    provenance: synthetic
-    tensors:
-      state: '[1, 8, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[1, 8, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[1, 8, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 48] float32 axes=H,HD dist=randn'
-      z: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 48] float32 axes=H,HD dist=randn'
-  P7:
-    provenance: synthetic
-    tensors:
-      state: '[8, 8, 192, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 192, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 192] float32 axes=H,HD dist=randn'
-      z: '[8, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 192] float32 axes=H,HD dist=randn'
-  P8:
-    provenance: synthetic
-    tensors:
-      state: '[8, 8, 256, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 256, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 256] float32 axes=H,HD dist=randn'
-      z: '[8, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 256] float32 axes=H,HD dist=randn'
-  P9:
-    provenance: synthetic
-    tensors:
-      state: '[8, 48, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 48, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 48, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[48, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[48, 48] float32 axes=H,HD dist=randn'
-      z: '[8, 48, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[48, 48] float32 axes=H,HD dist=randn'
-  P10:
-    provenance: synthetic
-    tensors:
-      state: '[8, 64, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 64, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 64, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[64, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[64, 48] float32 axes=H,HD dist=randn'
-      z: '[8, 64, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[64, 48] float32 axes=H,HD dist=randn'
-  P11:
-    provenance: synthetic
-    tensors:
-      state: '[8, 8, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[8, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[8, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[8, 8, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[8, 8, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 48] float32 axes=H,HD dist=randn'
-      z: '[8, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 48] float32 axes=H,HD dist=randn'
-  P12:
-    provenance: synthetic
-    tensors:
-      state: '[1, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[1, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[1, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[1, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[1, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[1, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P13:
-    provenance: synthetic
-    tensors:
-      state: '[2, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[2, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[2, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[2, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[2, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[2, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P14:
-    provenance: synthetic
-    tensors:
-      state: '[3, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[3, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[3, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[3, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[3, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[3, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P15:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 1] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 1] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 1] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 1] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P16:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 2] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 2] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 2] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 2] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P17:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 3] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 3] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 3] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 3] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P18:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 4] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 4] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 4] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 4] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P19:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 8] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 8] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 8] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 8] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P20:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 16] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 16] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 16] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 16] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P21:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 32] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 32] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 32] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 32] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P22:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P23:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P24:
-    provenance: synthetic
-    tensors:
-      state: '[4, 4, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[4, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[4, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[4, 64] float32 axes=H,HD dist=randn'
-  P25:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 1, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 1] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 1] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 1, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 1] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 1] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 1] float32 axes=H,HD dist=randn'
-  P26:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 2, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 2] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 2] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 2, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 2] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 2] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 2] float32 axes=H,HD dist=randn'
-  P27:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 3, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 3] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 3] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 3, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 3] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 3] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 3] float32 axes=H,HD dist=randn'
-  P28:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 4, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 4] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 4] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 4, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 4] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 4] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 4] float32 axes=H,HD dist=randn'
-  P29:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 8, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 8] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 8] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 8, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 8] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 8] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 8] float32 axes=H,HD dist=randn'
-  P30:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 16, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 16] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 16] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 16, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 16] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 16] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 16] float32 axes=H,HD dist=randn'
-  P31:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 32, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 32] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 32] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 32, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 32] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 32] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 32] float32 axes=H,HD dist=randn'
-  P32:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
-  P33:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 96, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 96] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 96] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 96, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 96] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 96] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 96] float32 axes=H,HD dist=randn'
-  P34:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 128, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 128, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 128] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 128] float32 axes=H,HD dist=randn'
-  P35:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 192, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 192, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 192] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 192] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 192] float32 axes=H,HD dist=randn'
-  P36:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 256, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 256, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 256] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 256] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 256] float32 axes=H,HD dist=randn'
-  P37:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 384, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 384] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 384] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 384, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 384] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 384] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 384] float32 axes=H,HD dist=randn'
-  P38:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 512, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 512] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 512] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 512, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 512] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 512] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 512] float32 axes=H,HD dist=randn'
-  P39:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 640, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 640] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 640] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 640, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 640] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 640] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 640] float32 axes=H,HD dist=randn'
-  P40:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 768, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 768] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 768] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 768, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 768] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 768] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 768] float32 axes=H,HD dist=randn'
-  P41:
-    provenance: synthetic
-    tensors:
-      state: '[4, 8, 1024, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[4, 8, 1024] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[4, 8, 1024] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 1024, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[4, 4, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 1024] float32 axes=H,HD dist=randn'
-      z: '[4, 8, 1024] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 1024] float32 axes=H,HD dist=randn'
-  H1:
-    provenance: synthetic
-    tensors:
-      state: '[3, 6, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[3, 6, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[3, 6, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[6, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[3, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[3, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[6, 48] float32 axes=H,HD dist=randn'
-      z: '[3, 6, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[6, 48] float32 axes=H,HD dist=randn'
-  H2:
-    provenance: edge
-    tensors:
-      state: '[2, 2, 16, 16] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[2, 2, 16] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[2, 2, 16] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[2, 16, 16] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[2, 1, 16] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[2, 1, 16] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[2, 16] float32 axes=H,HD dist=randn'
-      z: '[2, 2, 16] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[2, 16] float32 axes=H,HD dist=randn'
-  H3:
-    provenance: synthetic
-    tensors:
-      state: '[2, 8, 128, 128] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[2, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[2, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 128, 128] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[2, 1, 128] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[2, 1, 128] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 128] float32 axes=H,HD dist=randn'
-      z: '[2, 8, 128] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 128] float32 axes=H,HD dist=randn'
-  H4:
-    provenance: synthetic
-    tensors:
-      state: '[32, 4, 64, 32] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[32, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[32, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[4, 64, 32] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[32, 2, 32] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[32, 2, 32] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[4, 64] float32 axes=H,HD dist=randn'
-      z: '[32, 4, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[4, 64] float32 axes=H,HD dist=randn'
-  H5:
-    provenance: edge
-    tensors:
-      state: '[1, 1, 1, 1] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[1, 1, 1] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[1, 1, 1] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[1, 1, 1] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[1, 1, 1] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[1, 1, 1] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[1, 1] float32 axes=H,HD dist=randn'
-      z: '[1, 1, 1] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[1, 1] float32 axes=H,HD dist=randn'
-  H6:
-    provenance: edge
-    tensors:
-      state: '[1, 8, 48, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 48, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[1, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[1, 2, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 48] float32 axes=H,HD dist=randn'
-      z: '[1, 8, 48] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 48] float32 axes=H,HD dist=randn'
-  H7:
-    provenance: edge
-    tensors:
-      state: '[128, 8, 64, 48] float32 axes=BS,H,HD,DS dist=randn'
-      x: '[128, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt: '[128, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      A: '[8, 64, 48] float32 axes=H,HD,DS dist=logsigmoid'
-      B: '[128, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      C: '[128, 1, 48] bfloat16 axes=BS,G,DS dist=randn'
-      D: '[8, 64] float32 axes=H,HD dist=randn'
-      z: '[128, 8, 64] bfloat16 axes=BS,H,HD dist=randn'
-      dt_bias: '[8, 64] float32 axes=H,HD dist=randn'
+  env: {BS: 128, H: 8, G: 1, HD: 64, DS: 48}
+  inputs:
+  - {name: state, kind: tensor, shape: [128, 8, 64, 48], dtype: float32, axes: [BS, H, HD, DS], dist: randn}
+  - {name: x, kind: tensor, shape: [128, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt, kind: tensor, shape: [128, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: A, kind: tensor, shape: [8, 64, 48], dtype: float32, axes: [H, HD, DS], dist: logsigmoid}
+  - {name: B, kind: tensor, shape: [128, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: C, kind: tensor, shape: [128, 1, 48], dtype: bfloat16, axes: [BS, G, DS], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}
+  - {name: z, kind: tensor, shape: [128, 8, 64], dtype: bfloat16, axes: [BS, H, HD], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, HD], dist: randn}

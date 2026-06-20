@@ -1,657 +1,283 @@
-# Operator-family knob grid: values reflect
-# the quantization family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 128
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 128, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 16, 256], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 64, 512], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 256, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 2048, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [32, 512, 2048], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 64, 4096], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 8
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 8, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 16], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 16
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 16, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 32], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 32
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 32, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 64], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 64
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 64, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 128], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 96
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 96, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 192], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 128, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 256], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 192
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 192, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 256
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 256, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 512], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 1
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 2
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 3
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [3, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 4
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 8
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 1
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 1, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 1, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 2
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 2, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 2, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 3
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 3, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 3, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 4
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 4, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 4, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 8, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 8, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 16
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 16, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 16, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 32
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 32, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 32, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 64
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 64, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 96
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 128
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 128, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 128, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 192
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 192, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 192, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 256
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 256, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 384
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 384, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 384, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 512
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 512, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 512, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 640
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 640, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 640, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 768
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 768, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 768, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 1024
-hidden_shapes:
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 1024, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 1024, 1024], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [12, 96, 768], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 128, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 8, 256], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 512, 8192], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 16, 256], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 16384
-    E: 1
-    T: 96
-inputs:
-  input:
-    dims:
-    - E
-    - T
-    - 2*D
-    dtype: bf16
-    dist: randn
-  masked_m:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:T
-  quant_group_size:
-    scalar: 8
-  fp8_max:
-    scalar: 448.0
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      input: '[4, 16, 256] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P2:
-    provenance: baseline
-    tensors:
-      input: '[8, 64, 512] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P3:
-    provenance: baseline
-    tensors:
-      input: '[16, 256, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[16] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P4:
-    provenance: baseline
-    tensors:
-      input: '[32, 512, 2048] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P5:
-    provenance: synthetic
-    tensors:
-      input: '[8, 64, 4096] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P6:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 16] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P7:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 32] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P8:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 64] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P9:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 128] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P10:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 192] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P11:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 256] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P12:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 384] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P13:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 512] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P14:
-    provenance: synthetic
-    tensors:
-      input: '[1, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P15:
-    provenance: synthetic
-    tensors:
-      input: '[2, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P16:
-    provenance: synthetic
-    tensors:
-      input: '[3, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P17:
-    provenance: synthetic
-    tensors:
-      input: '[4, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P18:
-    provenance: synthetic
-    tensors:
-      input: '[8, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P19:
-    provenance: synthetic
-    tensors:
-      input: '[12, 1, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P20:
-    provenance: synthetic
-    tensors:
-      input: '[12, 2, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P21:
-    provenance: synthetic
-    tensors:
-      input: '[12, 3, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P22:
-    provenance: synthetic
-    tensors:
-      input: '[12, 4, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P23:
-    provenance: synthetic
-    tensors:
-      input: '[12, 8, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P24:
-    provenance: synthetic
-    tensors:
-      input: '[12, 16, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P25:
-    provenance: synthetic
-    tensors:
-      input: '[12, 32, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P26:
-    provenance: synthetic
-    tensors:
-      input: '[12, 64, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P27:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P28:
-    provenance: synthetic
-    tensors:
-      input: '[12, 128, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P29:
-    provenance: synthetic
-    tensors:
-      input: '[12, 192, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P30:
-    provenance: synthetic
-    tensors:
-      input: '[12, 256, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P31:
-    provenance: synthetic
-    tensors:
-      input: '[12, 384, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P32:
-    provenance: synthetic
-    tensors:
-      input: '[12, 512, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P33:
-    provenance: synthetic
-    tensors:
-      input: '[12, 640, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P34:
-    provenance: synthetic
-    tensors:
-      input: '[12, 768, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  P35:
-    provenance: synthetic
-    tensors:
-      input: '[12, 1024, 1024] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  H1:
-    provenance: synthetic
-    tensors:
-      input: '[12, 96, 768] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  H2:
-    provenance: edge
-    tensors:
-      input: '[2, 8, 256] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  H3:
-    provenance: synthetic
-    tensors:
-      input: '[8, 512, 8192] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  H4:
-    provenance: synthetic
-    tensors:
-      input: '[8, 16, 256] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
-  H5:
-    provenance: edge
-    tensors:
-      input: '[1, 96, 32768] bf16 axes=E,T,2*D dist=randn'
-      masked_m: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      quant_group_size: 8
-      fp8_max: 448.0
+  env: {B: 64, L: 128, D: 16384, Dv: 8, N: 1024, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 96, 32768], dtype: bf16, axes: [E, T, 2*D], dist: randn}
+  - {name: masked_m, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: quant_group_size, kind: scalar, value: 8}
+  - {name: fp8_max, kind: scalar, value: 448.0}

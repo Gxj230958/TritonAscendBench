@@ -1,805 +1,395 @@
-# Operator-family knob grid: values reflect
-# the normalization family's real axes.
-size_knobs:
-  B: 32
-  L: 8
-  D: 1024
-  Dv: 8
-  N: 8
-  T: 8
-  H: 8
-  E: 8
-  C: 8
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 8
-    D: 64
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 4, L: 8, D: 64, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [4, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 8
-    D: 256
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 16, L: 8, D: 256, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P3
-  name: medium
-  knobs:
-    B: 32
-    L: 8
-    D: 1024
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 32, L: 8, D: 1024, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [32, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P4
-  name: large
-  knobs:
-    B: 8
-    L: 8
-    D: 4096
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 8, L: 8, D: 4096, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [8, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 8
-    D: 2048
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 2, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [2, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 16384
+  env: {B: 1, L: 8, D: 16384, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 192
-    D: 12288
+  env: {B: 192, L: 8, D: 12288, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 12288], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [192, 12288], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [12288], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [12288], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 256
-    D: 16384
+  env: {B: 256, L: 8, D: 16384, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [256, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 12288
+  env: {B: 16, L: 8, D: 12288, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 12288], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 12288], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [12288], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [12288], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 16384
+  env: {B: 16, L: 8, D: 16384, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [16384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 192
-    D: 1024
+  env: {B: 192, L: 8, D: 1024, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [192, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 2048
+  env: {B: 1, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 2048
+  env: {B: 3, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [3, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 2048
+  env: {B: 4, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [4, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2048
+  env: {B: 8, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 2
+  env: {B: 16, L: 8, D: 2, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 4
+  env: {B: 16, L: 8, D: 4, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [4], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [4], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 6
+  env: {B: 16, L: 8, D: 6, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 6], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 6], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [6], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [6], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 8
+  env: {B: 16, L: 8, D: 8, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [8], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [8], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 16
+  env: {B: 16, L: 8, D: 16, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 32
+  env: {B: 16, L: 8, D: 32, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [32], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [32], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 64
+  env: {B: 16, L: 8, D: 64, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 96
+  env: {B: 16, L: 8, D: 96, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [96], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [96], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 128
+  env: {B: 16, L: 8, D: 128, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 192
+  env: {B: 16, L: 8, D: 192, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 384
+  env: {B: 16, L: 8, D: 384, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
+  env: {B: 16, L: 8, D: 512, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 640
+  env: {B: 16, L: 8, D: 640, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 640], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 640], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [640], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [640], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 768
+  env: {B: 16, L: 8, D: 768, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [768], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [768], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1024
+  env: {B: 16, L: 8, D: 1024, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1280
+  env: {B: 16, L: 8, D: 1280, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 1280], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 1280], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1280], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1280], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1536
+  env: {B: 16, L: 8, D: 1536, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 1536], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 1536], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1536], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1536], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 2048
+  env: {B: 16, L: 8, D: 2048, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 2560
+  env: {B: 16, L: 8, D: 2560, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 2560], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 2560], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2560], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2560], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 3072
+  env: {B: 16, L: 8, D: 3072, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 3584
+  env: {B: 16, L: 8, D: 3584, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 3584], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 3584], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [3584], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [3584], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 4096
+  env: {B: 16, L: 8, D: 4096, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [4096], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 5120
+  env: {B: 16, L: 8, D: 5120, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 5120], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 5120], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [5120], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [5120], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 6144
+  env: {B: 16, L: 8, D: 6144, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [6144], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [6144], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 8192
+  env: {B: 16, L: 8, D: 8192, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [8192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [8192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 24576
-hidden_shapes:
+  env: {B: 16, L: 8, D: 24576, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 24576], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [16, 24576], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [24576], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [24576], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 8
-    D: 512
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 48, L: 8, D: 512, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [48, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 8
-    D: 8192
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 2, L: 8, D: 8192, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [2, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [8192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [8192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 128
-    L: 8
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 128, L: 8, D: 128, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [128, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 3
-    L: 8
-    D: 3072
-    Dv: 8
-    N: 8
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 8
+  env: {B: 3, L: 8, D: 3072, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [3, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 2
+  env: {B: 1, L: 8, D: 2, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1024
+  env: {B: 1, L: 8, D: 1024, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
+  env: {B: 1, L: 8, D: 32768, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 32768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1, 32768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [32768], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [32768], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1024
-    D: 2
-inputs:
-  # Match the frozen upstream host wrapper
-  # fused_dual_residual_rmsnorm(x, residual, weight1, weight2, eps):
-  # x and residual are 2D [B, D] and MUST share dtype (wrapper asserts
-  # x.shape == residual.shape and x.dtype == residual.dtype); weight1 and
-  # weight2 are per-hidden-dim [D]; eps is the variance epsilon scalar.
-  x:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  residual:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  weight1:
-    dims:
-    - D
-    dtype: bfloat16
-    dist: randn
-  weight2:
-    dims:
-    - D
-    dtype: bfloat16
-    dist: randn
-  eps:
-    scalar: 1.0e-05
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[4, 64] bfloat16 axes=B,D dist=randn'
-      residual: '[4, 64] bfloat16 axes=B,D dist=randn'
-      weight1: '[64] bfloat16 axes=D dist=randn'
-      weight2: '[64] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[16, 256] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 256] bfloat16 axes=B,D dist=randn'
-      weight1: '[256] bfloat16 axes=D dist=randn'
-      weight2: '[256] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[32, 1024] bfloat16 axes=B,D dist=randn'
-      residual: '[32, 1024] bfloat16 axes=B,D dist=randn'
-      weight1: '[1024] bfloat16 axes=D dist=randn'
-      weight2: '[1024] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[8, 4096] bfloat16 axes=B,D dist=randn'
-      residual: '[8, 4096] bfloat16 axes=B,D dist=randn'
-      weight1: '[4096] bfloat16 axes=D dist=randn'
-      weight2: '[4096] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[2, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[2, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[1, 16384] bfloat16 axes=B,D dist=randn'
-      residual: '[1, 16384] bfloat16 axes=B,D dist=randn'
-      weight1: '[16384] bfloat16 axes=D dist=randn'
-      weight2: '[16384] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[192, 12288] bfloat16 axes=B,D dist=randn'
-      residual: '[192, 12288] bfloat16 axes=B,D dist=randn'
-      weight1: '[12288] bfloat16 axes=D dist=randn'
-      weight2: '[12288] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[256, 16384] bfloat16 axes=B,D dist=randn'
-      residual: '[256, 16384] bfloat16 axes=B,D dist=randn'
-      weight1: '[16384] bfloat16 axes=D dist=randn'
-      weight2: '[16384] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[16, 12288] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 12288] bfloat16 axes=B,D dist=randn'
-      weight1: '[12288] bfloat16 axes=D dist=randn'
-      weight2: '[12288] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[16, 16384] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 16384] bfloat16 axes=B,D dist=randn'
-      weight1: '[16384] bfloat16 axes=D dist=randn'
-      weight2: '[16384] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[192, 1024] bfloat16 axes=B,D dist=randn'
-      residual: '[192, 1024] bfloat16 axes=B,D dist=randn'
-      weight1: '[1024] bfloat16 axes=D dist=randn'
-      weight2: '[1024] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[1, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[1, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[3, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[3, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[4, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[4, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[8, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[8, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[16, 2] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 2] bfloat16 axes=B,D dist=randn'
-      weight1: '[2] bfloat16 axes=D dist=randn'
-      weight2: '[2] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[16, 4] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 4] bfloat16 axes=B,D dist=randn'
-      weight1: '[4] bfloat16 axes=D dist=randn'
-      weight2: '[4] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[16, 6] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 6] bfloat16 axes=B,D dist=randn'
-      weight1: '[6] bfloat16 axes=D dist=randn'
-      weight2: '[6] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[16, 8] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 8] bfloat16 axes=B,D dist=randn'
-      weight1: '[8] bfloat16 axes=D dist=randn'
-      weight2: '[8] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[16, 16] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 16] bfloat16 axes=B,D dist=randn'
-      weight1: '[16] bfloat16 axes=D dist=randn'
-      weight2: '[16] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[16, 32] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 32] bfloat16 axes=B,D dist=randn'
-      weight1: '[32] bfloat16 axes=D dist=randn'
-      weight2: '[32] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P22:
-    provenance: synthetic
-    tensors:
-      x: '[16, 64] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 64] bfloat16 axes=B,D dist=randn'
-      weight1: '[64] bfloat16 axes=D dist=randn'
-      weight2: '[64] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[16, 96] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 96] bfloat16 axes=B,D dist=randn'
-      weight1: '[96] bfloat16 axes=D dist=randn'
-      weight2: '[96] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[16, 128] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 128] bfloat16 axes=B,D dist=randn'
-      weight1: '[128] bfloat16 axes=D dist=randn'
-      weight2: '[128] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[16, 192] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 192] bfloat16 axes=B,D dist=randn'
-      weight1: '[192] bfloat16 axes=D dist=randn'
-      weight2: '[192] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[16, 384] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 384] bfloat16 axes=B,D dist=randn'
-      weight1: '[384] bfloat16 axes=D dist=randn'
-      weight2: '[384] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[16, 512] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 512] bfloat16 axes=B,D dist=randn'
-      weight1: '[512] bfloat16 axes=D dist=randn'
-      weight2: '[512] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[16, 640] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 640] bfloat16 axes=B,D dist=randn'
-      weight1: '[640] bfloat16 axes=D dist=randn'
-      weight2: '[640] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[16, 768] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 768] bfloat16 axes=B,D dist=randn'
-      weight1: '[768] bfloat16 axes=D dist=randn'
-      weight2: '[768] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 1024] bfloat16 axes=B,D dist=randn'
-      weight1: '[1024] bfloat16 axes=D dist=randn'
-      weight2: '[1024] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[16, 1280] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 1280] bfloat16 axes=B,D dist=randn'
-      weight1: '[1280] bfloat16 axes=D dist=randn'
-      weight2: '[1280] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[16, 1536] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 1536] bfloat16 axes=B,D dist=randn'
-      weight1: '[1536] bfloat16 axes=D dist=randn'
-      weight2: '[1536] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[16, 2048] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 2048] bfloat16 axes=B,D dist=randn'
-      weight1: '[2048] bfloat16 axes=D dist=randn'
-      weight2: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[16, 2560] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 2560] bfloat16 axes=B,D dist=randn'
-      weight1: '[2560] bfloat16 axes=D dist=randn'
-      weight2: '[2560] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[16, 3072] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 3072] bfloat16 axes=B,D dist=randn'
-      weight1: '[3072] bfloat16 axes=D dist=randn'
-      weight2: '[3072] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[16, 3584] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 3584] bfloat16 axes=B,D dist=randn'
-      weight1: '[3584] bfloat16 axes=D dist=randn'
-      weight2: '[3584] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[16, 4096] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 4096] bfloat16 axes=B,D dist=randn'
-      weight1: '[4096] bfloat16 axes=D dist=randn'
-      weight2: '[4096] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[16, 5120] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 5120] bfloat16 axes=B,D dist=randn'
-      weight1: '[5120] bfloat16 axes=D dist=randn'
-      weight2: '[5120] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[16, 6144] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 6144] bfloat16 axes=B,D dist=randn'
-      weight1: '[6144] bfloat16 axes=D dist=randn'
-      weight2: '[6144] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[16, 8192] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 8192] bfloat16 axes=B,D dist=randn'
-      weight1: '[8192] bfloat16 axes=D dist=randn'
-      weight2: '[8192] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[16, 24576] bfloat16 axes=B,D dist=randn'
-      residual: '[16, 24576] bfloat16 axes=B,D dist=randn'
-      weight1: '[24576] bfloat16 axes=D dist=randn'
-      weight2: '[24576] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[48, 512] bfloat16 axes=B,D dist=randn'
-      residual: '[48, 512] bfloat16 axes=B,D dist=randn'
-      weight1: '[512] bfloat16 axes=D dist=randn'
-      weight2: '[512] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 8192] bfloat16 axes=B,D dist=randn'
-      residual: '[2, 8192] bfloat16 axes=B,D dist=randn'
-      weight1: '[8192] bfloat16 axes=D dist=randn'
-      weight2: '[8192] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[128, 128] bfloat16 axes=B,D dist=randn'
-      residual: '[128, 128] bfloat16 axes=B,D dist=randn'
-      weight1: '[128] bfloat16 axes=D dist=randn'
-      weight2: '[128] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[3, 3072] bfloat16 axes=B,D dist=randn'
-      residual: '[3, 3072] bfloat16 axes=B,D dist=randn'
-      weight1: '[3072] bfloat16 axes=D dist=randn'
-      weight2: '[3072] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H5:
-    provenance: edge
-    tensors:
-      x: '[1, 2] bfloat16 axes=B,D dist=randn'
-      residual: '[1, 2] bfloat16 axes=B,D dist=randn'
-      weight1: '[2] bfloat16 axes=D dist=randn'
-      weight2: '[2] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 1024] bfloat16 axes=B,D dist=randn'
-      residual: '[1, 1024] bfloat16 axes=B,D dist=randn'
-      weight1: '[1024] bfloat16 axes=D dist=randn'
-      weight2: '[1024] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H7:
-    provenance: edge
-    tensors:
-      x: '[1, 32768] bfloat16 axes=B,D dist=randn'
-      residual: '[1, 32768] bfloat16 axes=B,D dist=randn'
-      weight1: '[32768] bfloat16 axes=D dist=randn'
-      weight2: '[32768] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
-  H8:
-    provenance: edge
-    tensors:
-      x: '[1024, 2] bfloat16 axes=B,D dist=randn'
-      residual: '[1024, 2] bfloat16 axes=B,D dist=randn'
-      weight1: '[2] bfloat16 axes=D dist=randn'
-      weight2: '[2] bfloat16 axes=D dist=randn'
-    params:
-      eps: 1.0e-05
+  env: {B: 1024, L: 8, D: 2, Dv: 8, N: 8, T: 8, H: 8, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1024, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: residual, kind: tensor, shape: [1024, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: weight1, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: weight2, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: eps, kind: scalar, value: 1.0e-05}

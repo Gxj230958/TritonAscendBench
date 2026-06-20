@@ -1,823 +1,432 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-  SOFTCAP: 0
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
-    SOFTCAP: 0
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2, SOFTCAP: 0}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 64], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 0, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-    SOFTCAP: 30
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 256], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
-    SOFTCAP: 0
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 0}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 1024], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 0, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
-    SOFTCAP: 30
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 2048], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
-    SOFTCAP: 0
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4, SOFTCAP: 0}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 0, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 384
-    SOFTCAP: 60
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 60}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 60, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    SOFTCAP: 45
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    SOFTCAP: 60
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 60}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 60, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 6144
-    SOFTCAP: 30
+  env: {B: 96, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 6144], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 512
-    SOFTCAP: 45
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 512
-    SOFTCAP: 45
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 512
-    SOFTCAP: 45
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 512
-    SOFTCAP: 45
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
-    SOFTCAP: 45
+  env: {B: 8, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
-    SOFTCAP: 45
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 16
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 16], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 32
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 32], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 64
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 64], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 96
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 96], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 128
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 128], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 192
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 192], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 256
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 256], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 384
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 2
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 2, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 3
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 3, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 4
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 4, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 8
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 8, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 16
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 16, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 30
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 32
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 32, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 45
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 45}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 45, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 60
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 60}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 60, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    SOFTCAP: 64
-hidden_shapes:
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 64}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 64, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
-    SOFTCAP: 30
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-    SOFTCAP: 0
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2, SOFTCAP: 0}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 16], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 0, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-    SOFTCAP: 30
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 4096], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
-    SOFTCAP: 0
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4, SOFTCAP: 0}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 128], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 0, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
-    SOFTCAP: 30
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 30}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 384], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 30, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 512
-    SOFTCAP: 192
-inputs:
-  x:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  router_weight:
-    dims:
-    - '8'
-    - D
-    dtype: float32
-    dist: randn
-  topk:
-    scalar: 2
-  # R4-2: softcap magnitude varies per shape row via the SOFTCAP knob
-  # (0 = softcap disabled, >0 = enabled) so the oracle's
-  # `c * tanh(logits / c)` branch is exercised on both sides.
-  moe_softcapping:
-    scalar_knob: SOFTCAP
-  correction_bias:
-    dims:
-    - '8'
-    dtype: float32
-    dist: rand
-  BLOCK_SIZE_M:
-    scalar: 64
-  BLOCK_SIZE_N:
-    scalar: 64
-  BLOCK_SIZE_K:
-    scalar: 32
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[8, 64] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 64] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 0
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[32, 256] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 256] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[128, 1024] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 1024] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 0
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[256, 2048] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 2048] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[8, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 0
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[1, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 60
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[96, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[96, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 60
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[96, 6144] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 6144] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[1, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[2, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[3, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[4, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[8, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[16, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[32, 16] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 16] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[32, 32] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 32] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[32, 64] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 64] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[32, 96] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 96] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[32, 128] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 128] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[32, 192] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 192] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[32, 256] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 256] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[32, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 2
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 3
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 4
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 8
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 16
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 32
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 45
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 60
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 64
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[96, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 16] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 16] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 0
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[4, 4096] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 4096] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[512, 128] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 128] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 0
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 384] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 384] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 30
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
-  H8:
-    provenance: edge
-    tensors:
-      x: '[1, 512] bfloat16 axes=B,D dist=randn'
-      router_weight: '[8, 512] float32 axes=8,D dist=randn'
-      correction_bias: '[8] float32 axes=8 dist=rand'
-    params:
-      topk: 2
-      moe_softcapping: 192
-      BLOCK_SIZE_M: 64
-      BLOCK_SIZE_N: 64
-      BLOCK_SIZE_K: 32
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, SOFTCAP: 192}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: router_weight, kind: tensor, shape: [8, 512], dtype: float32, axes: ['8', D], dist: randn}
+  - {name: topk, kind: scalar, value: 2}
+  - {name: moe_softcapping, kind: scalar_knob, value: 192, expr: SOFTCAP}
+  - {name: correction_bias, kind: tensor, shape: [8], dtype: float32, axes: ['8'], dist: rand}
+  - {name: BLOCK_SIZE_M, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_N, kind: scalar, value: 64}
+  - {name: BLOCK_SIZE_K, kind: scalar, value: 32}

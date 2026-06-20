@@ -1,607 +1,255 @@
-# Operator-family knob grid: values reflect
-# the elementwise family's real axes.
-size_knobs:
-  B: 512
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 64, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [64, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P3
-  name: medium
-  knobs:
-    B: 512
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 512, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [512, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P4
-  name: large
-  knobs:
-    B: 2048
-    L: 256
-    D: 4096
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 2048, L: 256, D: 4096, Dv: 8, N: 2048, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [2048, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P5
-  name: wide
-  knobs:
-    B: 16
-    L: 64
-    D: 8192
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 8192, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [16, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 1024
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [1, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 1024
+  env: {B: 2, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [2, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 1024
+  env: {B: 3, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [3, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1024
+  env: {B: 4, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [4, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
+  env: {B: 8, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [8, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1024
+  env: {B: 16, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [16, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 1024
+  env: {B: 32, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [32, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 1024
+  env: {B: 64, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [64, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1024
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [96, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    D: 1024
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [128, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
-    D: 1024
+  env: {B: 192, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [192, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 256
-    D: 1024
+  env: {B: 256, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [256, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 2
+  env: {B: 384, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 4
+  env: {B: 384, L: 128, D: 4, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 6
+  env: {B: 384, L: 128, D: 6, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 6], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 8
+  env: {B: 384, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 16
+  env: {B: 384, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 32
+  env: {B: 384, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 64
+  env: {B: 384, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 96
+  env: {B: 384, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 128
+  env: {B: 384, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 192
+  env: {B: 384, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 256
+  env: {B: 384, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 512
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 640
+  env: {B: 384, L: 128, D: 640, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 640], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 768
+  env: {B: 384, L: 128, D: 768, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1024
+  env: {B: 384, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1280
+  env: {B: 384, L: 128, D: 1280, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 1280], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1536
+  env: {B: 384, L: 128, D: 1536, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 1536], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 2048
-hidden_shapes:
+  env: {B: 384, L: 128, D: 2048, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 384
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 384, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [384, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 16384
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 16384, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [2, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 4096
-    L: 32
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 4096, L: 32, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [4096, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [4096], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 2
+  env: {B: 1, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [1, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [1, 32768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'routing_ids:E'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 16384
-    D: 2
-inputs:
-  act:
-    scalar: silu
-  gateup_output:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  topk_ids:
-    dims:
-    - B
-    dtype: int64
-    dist: routing_ids:E
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      gateup_output: '[8, 64] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[8] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P2:
-    provenance: baseline
-    tensors:
-      gateup_output: '[64, 256] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[64] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P3:
-    provenance: baseline
-    tensors:
-      gateup_output: '[512, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[512] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P4:
-    provenance: baseline
-    tensors:
-      gateup_output: '[2048, 4096] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[2048] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P5:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[16, 8192] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[16] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P6:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[1, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P7:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[2, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P8:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[3, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[3] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P9:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[4, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[4] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P10:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[8, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[8] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P11:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[16, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[16] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P12:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[32, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[32] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P13:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[64, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[64] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P14:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[96, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[96] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P15:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[128, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[128] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P16:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[192, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[192] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P17:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[256, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[256] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P18:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 2] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P19:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 4] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P20:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 6] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P21:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 8] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P22:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 16] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P23:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 32] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P24:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 64] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P25:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 96] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P26:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 128] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P27:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 192] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P28:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 256] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P29:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 512] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P30:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 640] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P31:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 768] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P32:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 1024] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P33:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 1280] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P34:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 1536] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  P35:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 2048] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H1:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[384, 384] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H2:
-    provenance: edge
-    tensors:
-      gateup_output: '[2, 16] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H3:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[2, 16384] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[2] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H4:
-    provenance: synthetic
-    tensors:
-      gateup_output: '[4096, 64] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[4096] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H5:
-    provenance: edge
-    tensors:
-      gateup_output: '[1, 2] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H6:
-    provenance: edge
-    tensors:
-      gateup_output: '[1, 32768] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[1] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
-  H7:
-    provenance: edge
-    tensors:
-      gateup_output: '[16384, 2] bfloat16 axes=B,D dist=randn'
-      topk_ids: '[16384] int64 axes=B dist=routing_ids(E=E)'
-    params:
-      act: silu
+  env: {B: 16384, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: act, kind: scalar, value: silu}
+  - {name: gateup_output, kind: tensor, shape: [16384, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: topk_ids, kind: tensor, shape: [16384], dtype: int64, axes: [B], dist: 'routing_ids:E'}

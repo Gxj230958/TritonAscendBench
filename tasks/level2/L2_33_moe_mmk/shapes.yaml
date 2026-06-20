@@ -1,676 +1,273 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: a, kind: tensor, shape: [4, 16, 64], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [4, 64, 64], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [8, 64, 256], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [8, 256, 256], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [32, 256, 1024], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [32, 1024, 1024], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [64, 512, 2048], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [64, 2048, 2048], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [128, 64, 512], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [128, 512, 512], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [128], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    D: 384
-    E: 1
-    N: 8192
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 8192, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 8192, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 32
-    N: 384
-    T: 768
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 768, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [32, 768, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [32, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 32
-    N: 384
-    T: 1024
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 1024, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [32, 1024, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [32, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 1, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 1], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 1], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 2
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 2, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 2], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 2], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 3
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 3, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 3], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 3], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 4
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 4, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 4], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 4], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 8
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 8, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 8], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 8], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 16
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 16, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 16], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 16], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 32
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 32, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 32], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 32], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 64
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 64, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 64], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 64], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 96
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 96, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 96], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 96], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 128, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 128], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 128], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 192
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 192, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 192], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 192], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 256
-    E: 12
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 256, Dv: 8, N: 384, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 256], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 256], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 2
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 96, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 3
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 96, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [3, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [3, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 4
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 96, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [4, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [4, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 8
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 96, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [8, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [8, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 1
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 1, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 1, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 2
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 2, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 2, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 3
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 3, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 3, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 4
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 4, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 4, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 8
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 8, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 8, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 16
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 16, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 16, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 32
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 32, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 32, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 64
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 64, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 64, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 96
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 96, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 128
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 128, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 128, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 192
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 192, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 192, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 256
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 256, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 256, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 384
-    T: 1
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 1, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 1, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    N: 384
-    T: 2
-hidden_shapes:
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 2, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 2, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [12, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [12, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: a, kind: tensor, shape: [2, 8, 16], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [2, 8, 16], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [8, 512, 4096], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [8, 4096, 4096], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: a, kind: tensor, shape: [256, 16, 128], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [256, 128, 128], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 1
-    E: 1
-    N: 1
-    T: 1
+  env: {B: 128, L: 128, D: 1, Dv: 8, N: 1, T: 1, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 1, 1], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 1, 1], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 384
-    E: 1
-    N: 384
-    T: 96
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 384, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 384, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 384
-    E: 1
-    N: 32768
-    T: 96
-inputs:
-  a:
-    dims:
-    - E
-    - T
-    - D
-    dtype: bf16
-    dist: randn
-  b:
-    dims:
-    - E
-    - N
-    - D
-    dtype: bf16
-    dist: randn
-  expert_num_tokens:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:T
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      a: '[4, 16, 64] bf16 axes=E,T,D dist=randn'
-      b: '[4, 64, 64] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-  P2:
-    provenance: baseline
-    tensors:
-      a: '[8, 64, 256] bf16 axes=E,T,D dist=randn'
-      b: '[8, 256, 256] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-  P3:
-    provenance: baseline
-    tensors:
-      a: '[32, 256, 1024] bf16 axes=E,T,D dist=randn'
-      b: '[32, 1024, 1024] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-  P4:
-    provenance: baseline
-    tensors:
-      a: '[64, 512, 2048] bf16 axes=E,T,D dist=randn'
-      b: '[64, 2048, 2048] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
-  P5:
-    provenance: synthetic
-    tensors:
-      a: '[128, 64, 512] bf16 axes=E,T,D dist=randn'
-      b: '[128, 512, 512] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[128] int64 axes=E dist=randint(lo=0, hi=T)'
-  P6:
-    provenance: synthetic
-    tensors:
-      a: '[1, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[1, 8192, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-  P7:
-    provenance: synthetic
-    tensors:
-      a: '[32, 768, 384] bf16 axes=E,T,D dist=randn'
-      b: '[32, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-  P8:
-    provenance: synthetic
-    tensors:
-      a: '[32, 1024, 384] bf16 axes=E,T,D dist=randn'
-      b: '[32, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-  P9:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 1] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 1] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P10:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 2] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 2] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P11:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 3] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 3] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P12:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 4] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 4] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P13:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 8] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 8] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P14:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 16] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 16] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P15:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 32] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 32] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P16:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 64] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 64] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P17:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 96] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 96] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P18:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 128] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 128] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P19:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 192] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 192] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P20:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 256] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 256] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P21:
-    provenance: synthetic
-    tensors:
-      a: '[2, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[2, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-  P22:
-    provenance: synthetic
-    tensors:
-      a: '[3, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[3, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
-  P23:
-    provenance: synthetic
-    tensors:
-      a: '[4, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[4, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-  P24:
-    provenance: synthetic
-    tensors:
-      a: '[8, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[8, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-  P25:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 1, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P26:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 2, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P27:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 3, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P28:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 4, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P29:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 8, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P30:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 16, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P31:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 32, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P32:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 64, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P33:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 96, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P34:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 128, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P35:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 192, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P36:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 256, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P37:
-    provenance: synthetic
-    tensors:
-      a: '[12, 1, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  P38:
-    provenance: synthetic
-    tensors:
-      a: '[12, 2, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  H1:
-    provenance: synthetic
-    tensors:
-      a: '[12, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[12, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-  H2:
-    provenance: edge
-    tensors:
-      a: '[2, 8, 16] bf16 axes=E,T,D dist=randn'
-      b: '[2, 8, 16] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-  H3:
-    provenance: synthetic
-    tensors:
-      a: '[8, 512, 4096] bf16 axes=E,T,D dist=randn'
-      b: '[8, 4096, 4096] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-  H4:
-    provenance: synthetic
-    tensors:
-      a: '[256, 16, 128] bf16 axes=E,T,D dist=randn'
-      b: '[256, 128, 128] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[256] int64 axes=E dist=randint(lo=0, hi=T)'
-  H5:
-    provenance: edge
-    tensors:
-      a: '[1, 1, 1] bf16 axes=E,T,D dist=randn'
-      b: '[1, 1, 1] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-  H6:
-    provenance: edge
-    tensors:
-      a: '[1, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[1, 384, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-  H7:
-    provenance: edge
-    tensors:
-      a: '[1, 96, 384] bf16 axes=E,T,D dist=randn'
-      b: '[1, 32768, 384] bf16 axes=E,N,D dist=randn'
-      expert_num_tokens: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 32768, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: a, kind: tensor, shape: [1, 96, 384], dtype: bf16, axes: [E, T, D], dist: randn}
+  - {name: b, kind: tensor, shape: [1, 32768, 384], dtype: bf16, axes: [E, N, D], dist: randn}
+  - {name: expert_num_tokens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}

@@ -1,977 +1,549 @@
-# Operator-family knob grid: values reflect
-# the ssm family's real axes.
-size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
-    H: 4
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 32, N: 16, T: 16, H: 4, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [2, 4], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [2, 4], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 4], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [2, 4, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 4, L: 64, D: 64, Dv: 64, N: 32, T: 64, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [4, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 16, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 256, Dv: 256, N: 128, T: 256, H: 32, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [16, 32], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [16, 32], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [16, 32, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 32, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 32, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [16, 32], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [16, 32, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 2, L: 64, D: 128, Dv: 128, N: 64, T: 32, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [2, 8, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 96
-    H: 8
+  env: {B: 1, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [1, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [1, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 96
-    H: 8
+  env: {B: 2, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [2, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [2, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 96
-    H: 8
+  env: {B: 3, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [3, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [3, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [3, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [3, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [3, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [3, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1
-    H: 8
+  env: {B: 8, L: 128, D: 1, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2
-    H: 8
+  env: {B: 8, L: 128, D: 2, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 2, 2], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 3
-    H: 8
+  env: {B: 8, L: 128, D: 3, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 3, 3], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 4
-    H: 8
+  env: {B: 8, L: 128, D: 4, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 4, 4], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 8
-    H: 8
+  env: {B: 8, L: 128, D: 8, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 8, 8], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 16
-    H: 8
+  env: {B: 8, L: 128, D: 16, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 16, 16], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 32
-    H: 8
+  env: {B: 8, L: 128, D: 32, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 8
+  env: {B: 8, L: 128, D: 64, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 1
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 1, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 1], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 1], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 1, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 1, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 1, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 1], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 1, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 2
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 2, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 2], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 2], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 2, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 2, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 2, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 2], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 2, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 3
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 3, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 3], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 3], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [3], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 3, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 3, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 3, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 3], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 3, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 4
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 4, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 4], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 4], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 4, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 4, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 4, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 4], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 4, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 8
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 16
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 16, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 16, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 16], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 16, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 32
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 32, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 32], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 32], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 32], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 32, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 48, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 48], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 48], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [48], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 48, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 48, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 48, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 48], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 48, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 64
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 64, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 64], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 64], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [64], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 64, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 64, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 64, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 64], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 64, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 96
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 96, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 96], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 96], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [96], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 96, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 96, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 96], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 96, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 128
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 128, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 128], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 128], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [128], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 128, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 128], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 128, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 192
-    H: 8
+  env: {B: 8, L: 128, D: 192, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 192, 192], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 256
-    H: 8
+  env: {B: 8, L: 128, D: 256, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    H: 8
+  env: {B: 8, L: 128, D: 384, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 384, 384], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
-    H: 8
+  env: {B: 8, L: 128, D: 512, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [8, 8, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [8, 8, 512, 512], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 96
-    H: 8
+  env: {B: 16, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [16, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [16, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 96
-    H: 8
-hidden_shapes:
+  env: {B: 32, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [32, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [32, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
+  env: {B: 3, L: 96, D: 96, Dv: 96, N: 48, T: 96, H: 6, E: 3, C: 12, G: 4}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [3, 6], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [3, 6], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [6], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [3, 6, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 6, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [3, 6, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [3, 6], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [3, 6, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [2, 2], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [2, 2], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 2], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [2, 2, 16, 16], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 256, Dv: 256, N: 128, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [2, 8, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 32, D: 64, Dv: 64, N: 32, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [32, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [32, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    H: 1
+  env: {B: 1, L: 128, D: 1, Dv: 128, N: 64, T: 128, H: 1, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [1, 1, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1024
-    H: 8
+  env: {B: 1, L: 128, D: 1024, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [1, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [1, 8, 1024, 1024], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 128
-    D: 1
-    H: 8
-inputs:
-  A_log:
-    dims:
-    - B
-    - H
-    dtype: float32
-    dist: randn
-  a:
-    dims:
-    - B
-    - H
-    dtype: float32
-    dist: randn
-  dt_bias:
-    dims:
-    - H
-    dtype: float32
-    dist: rand
-  q:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  k:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  v:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  beta:
-    dims:
-    - B
-    - H
-    dtype: float32
-    dist: rand
-  state:
-    dims:
-    - B
-    - H
-    - D
-    - D
-    dtype: float32
-    dist: randn
-  softplus_beta:
-    scalar: 1.0
-  softplus_threshold:
-    scalar: 20.0
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      A_log: '[2, 4] float32 axes=B,H dist=randn'
-      a: '[2, 4] float32 axes=B,H dist=randn'
-      dt_bias: '[4] float32 axes=H dist=rand'
-      q: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      k: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      v: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      beta: '[2, 4] float32 axes=B,H dist=rand'
-      state: '[2, 4, 32, 32] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P2:
-    provenance: baseline
-    tensors:
-      A_log: '[4, 8] float32 axes=B,H dist=randn'
-      a: '[4, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      v: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      beta: '[4, 8] float32 axes=B,H dist=rand'
-      state: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P3:
-    provenance: baseline
-    tensors:
-      A_log: '[8, 16] float32 axes=B,H dist=randn'
-      a: '[8, 16] float32 axes=B,H dist=randn'
-      dt_bias: '[16] float32 axes=H dist=rand'
-      q: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 16] float32 axes=B,H dist=rand'
-      state: '[8, 16, 128, 128] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P4:
-    provenance: baseline
-    tensors:
-      A_log: '[16, 32] float32 axes=B,H dist=randn'
-      a: '[16, 32] float32 axes=B,H dist=randn'
-      dt_bias: '[32] float32 axes=H dist=rand'
-      q: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
-      k: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
-      v: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
-      beta: '[16, 32] float32 axes=B,H dist=rand'
-      state: '[16, 32, 256, 256] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P5:
-    provenance: synthetic
-    tensors:
-      A_log: '[2, 8] float32 axes=B,H dist=randn'
-      a: '[2, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      k: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      v: '[2, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      beta: '[2, 8] float32 axes=B,H dist=rand'
-      state: '[2, 8, 128, 128] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P6:
-    provenance: synthetic
-    tensors:
-      A_log: '[1, 8] float32 axes=B,H dist=randn'
-      a: '[1, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[1, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[1, 8] float32 axes=B,H dist=rand'
-      state: '[1, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P7:
-    provenance: synthetic
-    tensors:
-      A_log: '[2, 8] float32 axes=B,H dist=randn'
-      a: '[2, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[2, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[2, 8] float32 axes=B,H dist=rand'
-      state: '[2, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P8:
-    provenance: synthetic
-    tensors:
-      A_log: '[3, 8] float32 axes=B,H dist=randn'
-      a: '[3, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[3, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[3, 8] float32 axes=B,H dist=rand'
-      state: '[3, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P9:
-    provenance: synthetic
-    tensors:
-      A_log: '[4, 8] float32 axes=B,H dist=randn'
-      a: '[4, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[4, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[4, 8] float32 axes=B,H dist=rand'
-      state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P10:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P11:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 2] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 2, 2] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P12:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 3] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 3, 3] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P13:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 4] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 4, 4] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P14:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 8] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 8, 8] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P15:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 16] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 16, 16] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P16:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 32] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 32, 32] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P17:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P18:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 1] float32 axes=B,H dist=randn'
-      a: '[8, 1] float32 axes=B,H dist=randn'
-      dt_bias: '[1] float32 axes=H dist=rand'
-      q: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 1, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 1] float32 axes=B,H dist=rand'
-      state: '[8, 1, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P19:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 2] float32 axes=B,H dist=randn'
-      a: '[8, 2] float32 axes=B,H dist=randn'
-      dt_bias: '[2] float32 axes=H dist=rand'
-      q: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 2, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 2] float32 axes=B,H dist=rand'
-      state: '[8, 2, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P20:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 3] float32 axes=B,H dist=randn'
-      a: '[8, 3] float32 axes=B,H dist=randn'
-      dt_bias: '[3] float32 axes=H dist=rand'
-      q: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 3, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 3] float32 axes=B,H dist=rand'
-      state: '[8, 3, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P21:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 4] float32 axes=B,H dist=randn'
-      a: '[8, 4] float32 axes=B,H dist=randn'
-      dt_bias: '[4] float32 axes=H dist=rand'
-      q: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 4, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 4] float32 axes=B,H dist=rand'
-      state: '[8, 4, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P22:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P23:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 16] float32 axes=B,H dist=randn'
-      a: '[8, 16] float32 axes=B,H dist=randn'
-      dt_bias: '[16] float32 axes=H dist=rand'
-      q: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 16] float32 axes=B,H dist=rand'
-      state: '[8, 16, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P24:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 32] float32 axes=B,H dist=randn'
-      a: '[8, 32] float32 axes=B,H dist=randn'
-      dt_bias: '[32] float32 axes=H dist=rand'
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 32] float32 axes=B,H dist=rand'
-      state: '[8, 32, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P25:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 48] float32 axes=B,H dist=randn'
-      a: '[8, 48] float32 axes=B,H dist=randn'
-      dt_bias: '[48] float32 axes=H dist=rand'
-      q: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 48, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 48] float32 axes=B,H dist=rand'
-      state: '[8, 48, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P26:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 64] float32 axes=B,H dist=randn'
-      a: '[8, 64] float32 axes=B,H dist=randn'
-      dt_bias: '[64] float32 axes=H dist=rand'
-      q: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 64, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 64] float32 axes=B,H dist=rand'
-      state: '[8, 64, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P27:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 96] float32 axes=B,H dist=randn'
-      a: '[8, 96] float32 axes=B,H dist=randn'
-      dt_bias: '[96] float32 axes=H dist=rand'
-      q: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 96, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 96] float32 axes=B,H dist=rand'
-      state: '[8, 96, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P28:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 128] float32 axes=B,H dist=randn'
-      a: '[8, 128] float32 axes=B,H dist=randn'
-      dt_bias: '[128] float32 axes=H dist=rand'
-      q: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 128, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 128] float32 axes=B,H dist=rand'
-      state: '[8, 128, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P29:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 128, 128] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P30:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 192] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 192, 192] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P31:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P32:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 384] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 384, 384] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P33:
-    provenance: synthetic
-    tensors:
-      A_log: '[8, 8] float32 axes=B,H dist=randn'
-      a: '[8, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
-      k: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
-      v: '[8, 8, 512] bfloat16 axes=B,H,D dist=randn'
-      beta: '[8, 8] float32 axes=B,H dist=rand'
-      state: '[8, 8, 512, 512] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P34:
-    provenance: synthetic
-    tensors:
-      A_log: '[16, 8] float32 axes=B,H dist=randn'
-      a: '[16, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[16, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[16, 8] float32 axes=B,H dist=rand'
-      state: '[16, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  P35:
-    provenance: synthetic
-    tensors:
-      A_log: '[32, 8] float32 axes=B,H dist=randn'
-      a: '[32, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[32, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[32, 8] float32 axes=B,H dist=rand'
-      state: '[32, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H1:
-    provenance: synthetic
-    tensors:
-      A_log: '[3, 6] float32 axes=B,H dist=randn'
-      a: '[3, 6] float32 axes=B,H dist=randn'
-      dt_bias: '[6] float32 axes=H dist=rand'
-      q: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
-      k: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
-      v: '[3, 6, 96] bfloat16 axes=B,H,D dist=randn'
-      beta: '[3, 6] float32 axes=B,H dist=rand'
-      state: '[3, 6, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H2:
-    provenance: edge
-    tensors:
-      A_log: '[2, 2] float32 axes=B,H dist=randn'
-      a: '[2, 2] float32 axes=B,H dist=randn'
-      dt_bias: '[2] float32 axes=H dist=rand'
-      q: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
-      k: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
-      v: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
-      beta: '[2, 2] float32 axes=B,H dist=rand'
-      state: '[2, 2, 16, 16] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H3:
-    provenance: synthetic
-    tensors:
-      A_log: '[2, 8] float32 axes=B,H dist=randn'
-      a: '[2, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      k: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      v: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      beta: '[2, 8] float32 axes=B,H dist=rand'
-      state: '[2, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H4:
-    provenance: synthetic
-    tensors:
-      A_log: '[32, 8] float32 axes=B,H dist=randn'
-      a: '[32, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      v: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      beta: '[32, 8] float32 axes=B,H dist=rand'
-      state: '[32, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H5:
-    provenance: edge
-    tensors:
-      A_log: '[1, 1] float32 axes=B,H dist=randn'
-      a: '[1, 1] float32 axes=B,H dist=randn'
-      dt_bias: '[1] float32 axes=H dist=rand'
-      q: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
-      k: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
-      v: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
-      beta: '[1, 1] float32 axes=B,H dist=rand'
-      state: '[1, 1, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H6:
-    provenance: edge
-    tensors:
-      A_log: '[1, 8] float32 axes=B,H dist=randn'
-      a: '[1, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      k: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      v: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      beta: '[1, 8] float32 axes=B,H dist=rand'
-      state: '[1, 8, 1024, 1024] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
-  H7:
-    provenance: edge
-    tensors:
-      A_log: '[128, 8] float32 axes=B,H dist=randn'
-      a: '[128, 8] float32 axes=B,H dist=randn'
-      dt_bias: '[8] float32 axes=H dist=rand'
-      q: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      k: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      v: '[128, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      beta: '[128, 8] float32 axes=B,H dist=rand'
-      state: '[128, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      softplus_beta: 1.0
-      softplus_threshold: 20.0
+  env: {B: 128, L: 128, D: 1, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: A_log, kind: tensor, shape: [128, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: a, kind: tensor, shape: [128, 8], dtype: float32, axes: [B, H], dist: randn}
+  - {name: dt_bias, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: q, kind: tensor, shape: [128, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: beta, kind: tensor, shape: [128, 8], dtype: float32, axes: [B, H], dist: rand}
+  - {name: state, kind: tensor, shape: [128, 8, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: softplus_beta, kind: scalar, value: 1.0}
+  - {name: softplus_threshold, kind: scalar, value: 20.0}

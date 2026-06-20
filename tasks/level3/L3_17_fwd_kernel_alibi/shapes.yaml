@@ -1,871 +1,390 @@
-# Operator-family knob grid: values reflect
-# the other family's real axes.
-size_knobs:
-  B: 16
-  L: 256
-  D: 192
-  Dv: 192
-  N: 512
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 32
-    D: 64
-    Dv: 64  # realistic small head_dim (pow2)
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 32, D: 64, Dv: 64, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [4, 64, 64], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P2
-  name: small
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128  # most common real head_dim (Llama/Mistral, pow2)
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P3
-  name: medium
-  knobs:
-    B: 16
-    L: 256
-    D: 192
-    Dv: 192  # non-pow2 head_dim -> exercises dim_mask padding path
-    N: 512
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 192, Dv: 192, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 256, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 256, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 256, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.07216878364870323, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [16, 512, 192], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P4
-  name: large
-  knobs:
-    B: 32
-    L: 512
-    D: 256
-    Dv: 256  # realistic MAX head_dim (Gemma-7B/PaLM/GPT-J, pow2)
-    N: 1024
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 32, L: 512, D: 256, Dv: 256, N: 1024, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 512, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 512, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 512, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [32, 1024, 256], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P5
-  name: wide
-  knobs:
-    B: 4
-    L: 128
-    D: 96
-    Dv: 96  # non-pow2 head_dim -> exercises dim_mask padding path
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 128, D: 96, Dv: 96, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [4, 512, 96], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 8
-    D: 128
-    H: 1
-    L: 192
-    N: 2048
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 2048, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 2048, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 192
-    N: 1536
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 1536, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 1536, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 192
-    N: 2048
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 2048, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 2048, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 1536
-    N: 256
+  env: {B: 8, L: 1536, D: 128, Dv: 192, N: 256, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1536, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 1536, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 1536, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 2048
-    N: 256
+  env: {B: 8, L: 2048, D: 128, Dv: 192, N: 256, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 2048, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 2048, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 2048, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 48
-    L: 192
-    N: 256
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 256, T: 256, H: 48, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [48, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [48, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [48, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [48], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 128
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 1, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [1, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 128
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 2, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 128
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 3, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [3, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 128
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 4, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [4, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 16
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 16, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 16], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 32
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 32, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 32], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 32], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 32], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 32], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 64, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 64], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 8
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 96, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 96], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 96], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 1
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 2
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 3
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 3, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [3, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [3], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 4
-    L: 256
-    N: 384
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 384, T: 256, H: 4, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 1
-    N: 384
+  env: {B: 8, L: 1, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 1, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 1, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 2
-    N: 384
+  env: {B: 8, L: 2, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 2, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 2, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 2, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 3
-    N: 384
+  env: {B: 8, L: 3, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 3, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 3, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 3, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 4
-    N: 384
+  env: {B: 8, L: 4, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 4, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 4, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 4, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 8
-    N: 384
+  env: {B: 8, L: 8, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 8, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 8, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 8, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 16
-    N: 384
+  env: {B: 8, L: 16, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 16, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 16, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 32
-    N: 384
+  env: {B: 8, L: 32, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 32, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 32, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 64
-    N: 384
+  env: {B: 8, L: 64, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 64, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 64, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 64, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 96
-    N: 384
+  env: {B: 8, L: 96, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 96, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 128
-    N: 384
+  env: {B: 8, L: 128, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 192
-    N: 384
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 384, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 384, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 256
-    N: 1
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 1, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 1, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 8
-    L: 256
-    N: 2
-hidden_shapes:
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 2, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 2, 128], dtype: float16, axes: [B, N, D], dist: randn}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 6
-    L: 192
-    D: 192
-    Dv: 192  # non-pow2 head_dim -> exercises dim_mask padding path
-    N: 384
-    T: 96
-    H: 6
-    E: 6
-    C: 24
-    G: 4
+  env: {B: 6, L: 192, D: 192, Dv: 192, N: 384, T: 96, H: 6, E: 6, C: 24, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [6, 192, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [6, 192, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [6, 192, 192], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [6], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.07216878364870323, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [6, 384, 192], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 8
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 8, D: 16, Dv: 16, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 8, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 8, 16], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2, 8, 16], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 1024
-    D: 256
-    Dv: 256  # realistic MAX head_dim (was 4096 scaffold artifact -> OOM)
-    N: 512
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 1024, D: 256, Dv: 256, N: 512, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1024, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 1024, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 1024, 256], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2, 512, 256], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 64
-    L: 32
-    D: 64
-    Dv: 64
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 64, L: 32, D: 64, Dv: 64, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 32, 64], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [64, 128, 64], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 8
-    D: 128
-    H: 1
-    L: 192
-    N: 256
+  env: {B: 8, L: 192, D: 128, Dv: 192, N: 256, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 192, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 8
-    D: 128
-    H: 1
-    L: 256
-    N: 8192
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 8192, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [1], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 8192, 128], dtype: float16, axes: [B, N, D], dist: randn}
 - id: H9
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 8
-    D: 128
-    H: 192
-    L: 256
-    N: 1
-inputs:
-  q:
-    dims:
-    - H
-    - L
-    - D
-    dtype: float16
-    dist: randn
-  k:
-    dims:
-    - H
-    - L
-    - D
-    dtype: float16
-    dist: randn
-  v:
-    dims:
-    - H
-    - L
-    - D
-    dtype: float16
-    dist: randn
-  alibi_slopes:
-    dims:
-    - H
-    dtype: float32
-    dist: rand
-  scale:
-    derive: 1/sqrt(D)
-  o:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[4, 32, 64] float16 axes=H,L,D dist=randn'
-      k: '[4, 32, 64] float16 axes=H,L,D dist=randn'
-      v: '[4, 32, 64] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[4] float32 axes=H dist=rand'
-      o: '[4, 64, 64] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.125
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[16, 256, 192] float16 axes=H,L,D dist=randn'
-      k: '[16, 256, 192] float16 axes=H,L,D dist=randn'
-      v: '[16, 256, 192] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[16] float32 axes=H dist=rand'
-      o: '[16, 512, 192] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.07216878364870323
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[32, 512, 256] float16 axes=H,L,D dist=randn'
-      k: '[32, 512, 256] float16 axes=H,L,D dist=randn'
-      v: '[32, 512, 256] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[32] float32 axes=H dist=rand'
-      o: '[32, 1024, 256] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.0625
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[8, 128, 96] float16 axes=H,L,D dist=randn'
-      k: '[8, 128, 96] float16 axes=H,L,D dist=randn'
-      v: '[8, 128, 96] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[4, 512, 96] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.10206207261596577
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[1] float32 axes=H dist=rand'
-      o: '[8, 2048, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 1536, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 2048, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 1536, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 2048, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[48, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[48, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[48, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[48] float32 axes=H dist=rand'
-      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[1, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[2, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[3, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[4, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 16] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 16] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 16] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 16] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.25
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 32] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 32] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 32] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 32] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 64] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 64] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 64] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 64] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.125
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 96] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 96] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 96] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 96] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.10206207261596577
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[1] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[2, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[2, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[2, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[2] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[3, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[3, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[3, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[3] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[4, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[4, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[4, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[4] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 1, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 1, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[8, 2, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 2, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 2, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[8, 3, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 3, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 3, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[8, 4, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 4, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 4, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[8, 8, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 8, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 8, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[8, 16, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 16, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 16, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 32, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 32, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[8, 64, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 64, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 64, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 96, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 96, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 128, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 384, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P40:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 1, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P41:
-    provenance: synthetic
-    tensors:
-      q: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[8, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[8, 2, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[6, 192, 192] float16 axes=H,L,D dist=randn'
-      k: '[6, 192, 192] float16 axes=H,L,D dist=randn'
-      v: '[6, 192, 192] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[6] float32 axes=H dist=rand'
-      o: '[6, 384, 192] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.07216878364870323
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 8, 16] float16 axes=H,L,D dist=randn'
-      k: '[2, 8, 16] float16 axes=H,L,D dist=randn'
-      v: '[2, 8, 16] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[2] float32 axes=H dist=rand'
-      o: '[2, 8, 16] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.25
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
-      k: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
-      v: '[8, 1024, 256] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[2, 512, 256] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.0625
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 64] float16 axes=H,L,D dist=randn'
-      k: '[8, 32, 64] float16 axes=H,L,D dist=randn'
-      v: '[8, 32, 64] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[8] float32 axes=H dist=rand'
-      o: '[64, 128, 64] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.125
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      k: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      v: '[1, 192, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[1] float32 axes=H dist=rand'
-      o: '[8, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  H8:
-    provenance: edge
-    tensors:
-      q: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[1, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[1] float32 axes=H dist=rand'
-      o: '[8, 8192, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  H9:
-    provenance: edge
-    tensors:
-      q: '[192, 256, 128] float16 axes=H,L,D dist=randn'
-      k: '[192, 256, 128] float16 axes=H,L,D dist=randn'
-      v: '[192, 256, 128] float16 axes=H,L,D dist=randn'
-      alibi_slopes: '[192] float32 axes=H dist=rand'
-      o: '[8, 1, 128] float16 axes=B,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
+  env: {B: 8, L: 256, D: 128, Dv: 192, N: 1, T: 256, H: 192, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [192, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: k, kind: tensor, shape: [192, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: v, kind: tensor, shape: [192, 256, 128], dtype: float16, axes: [H, L, D], dist: randn}
+  - {name: alibi_slopes, kind: tensor, shape: [192], dtype: float32, axes: [H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 1, 128], dtype: float16, axes: [B, N, D], dist: randn}

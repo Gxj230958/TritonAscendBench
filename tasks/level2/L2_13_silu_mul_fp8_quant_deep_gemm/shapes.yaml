@@ -1,713 +1,311 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 128
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 128, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: y, kind: tensor, shape: [4, 16, 256], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: y, kind: tensor, shape: [8, 64, 512], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [32, 256, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [64, 512, 4096], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: y, kind: tensor, shape: [128, 64, 1024], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [128], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    D: 8192
-    E: 1
-    T: 96
+  env: {B: 128, L: 128, D: 8192, Dv: 8, N: 1024, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1, 96, 16384], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 256], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 256
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 256, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 512], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 384, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 768], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 512
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 512, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 1024], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 640
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 640, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 1280], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 768
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 768, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 1536], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 1
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 2
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [2, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 3
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [3, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 4
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [4, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 8
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [8, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 1
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 1, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 1, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 2
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 2, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 2, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 3
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 3, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 3, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 4
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 4, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 4, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 8, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 8, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 16
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 16, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 16, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 32
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 32, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 32, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 96
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 96, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 96, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 128
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 128, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 128, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 192
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 192, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 192, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 256
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 256, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 384
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 384, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 384, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 512
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 512, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 512, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 12
-    T: 640
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 640, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 640, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 16
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [16, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 32
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [32, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 64
-    T: 64
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [64, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 1024
-    E: 96
-    T: 64
-hidden_shapes:
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 64, H: 16, E: 96, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [96, 64, 2048], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [96], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: y, kind: tensor, shape: [12, 96, 768], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 128, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: y, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [8, 512, 8192], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 256
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 512, L: 32, D: 256, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: y, kind: tensor, shape: [256, 16, 512], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 128
-    E: 1
-    T: 1
+  env: {B: 128, L: 128, D: 128, Dv: 8, N: 1024, T: 1, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1, 1, 256], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 512
-    E: 1
-    T: 96
+  env: {B: 128, L: 128, D: 512, Dv: 8, N: 1024, T: 96, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1, 96, 1024], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 128
-    E: 1024
-    T: 64
+  env: {B: 128, L: 128, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 1024, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1024, 64, 256], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1024], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    D: 32768
-    E: 1
-    T: 64
-inputs:
-  y:
-    dims:
-    - E
-    - T
-    - 2*D
-    dtype: bfloat16
-    dist: randn
-  tokens_per_expert:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:T
-  group_size:
-    scalar: 128
-  fp8_max:
-    scalar: 448.0
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      y: '[4, 16, 256] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P2:
-    provenance: baseline
-    tensors:
-      y: '[8, 64, 512] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P3:
-    provenance: baseline
-    tensors:
-      y: '[32, 256, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P4:
-    provenance: baseline
-    tensors:
-      y: '[64, 512, 4096] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P5:
-    provenance: synthetic
-    tensors:
-      y: '[128, 64, 1024] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[128] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P6:
-    provenance: synthetic
-    tensors:
-      y: '[1, 96, 16384] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P7:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 256] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P8:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 512] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P9:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 768] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P10:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 1024] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P11:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 1280] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P12:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 1536] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P13:
-    provenance: synthetic
-    tensors:
-      y: '[1, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P14:
-    provenance: synthetic
-    tensors:
-      y: '[2, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P15:
-    provenance: synthetic
-    tensors:
-      y: '[3, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[3] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P16:
-    provenance: synthetic
-    tensors:
-      y: '[4, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[4] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P17:
-    provenance: synthetic
-    tensors:
-      y: '[8, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P18:
-    provenance: synthetic
-    tensors:
-      y: '[12, 1, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P19:
-    provenance: synthetic
-    tensors:
-      y: '[12, 2, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P20:
-    provenance: synthetic
-    tensors:
-      y: '[12, 3, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P21:
-    provenance: synthetic
-    tensors:
-      y: '[12, 4, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P22:
-    provenance: synthetic
-    tensors:
-      y: '[12, 8, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P23:
-    provenance: synthetic
-    tensors:
-      y: '[12, 16, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P24:
-    provenance: synthetic
-    tensors:
-      y: '[12, 32, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P25:
-    provenance: synthetic
-    tensors:
-      y: '[12, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P26:
-    provenance: synthetic
-    tensors:
-      y: '[12, 96, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P27:
-    provenance: synthetic
-    tensors:
-      y: '[12, 128, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P28:
-    provenance: synthetic
-    tensors:
-      y: '[12, 192, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P29:
-    provenance: synthetic
-    tensors:
-      y: '[12, 256, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P30:
-    provenance: synthetic
-    tensors:
-      y: '[12, 384, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P31:
-    provenance: synthetic
-    tensors:
-      y: '[12, 512, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P32:
-    provenance: synthetic
-    tensors:
-      y: '[12, 640, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P33:
-    provenance: synthetic
-    tensors:
-      y: '[16, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[16] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P34:
-    provenance: synthetic
-    tensors:
-      y: '[32, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[32] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P35:
-    provenance: synthetic
-    tensors:
-      y: '[64, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[64] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P36:
-    provenance: synthetic
-    tensors:
-      y: '[96, 64, 2048] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[96] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H1:
-    provenance: synthetic
-    tensors:
-      y: '[12, 96, 768] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[12] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H2:
-    provenance: edge
-    tensors:
-      y: '[2, 8, 256] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[2] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H3:
-    provenance: synthetic
-    tensors:
-      y: '[8, 512, 8192] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[8] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H4:
-    provenance: synthetic
-    tensors:
-      y: '[256, 16, 512] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[256] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H5:
-    provenance: edge
-    tensors:
-      y: '[1, 1, 256] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H6:
-    provenance: edge
-    tensors:
-      y: '[1, 96, 1024] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H7:
-    provenance: edge
-    tensors:
-      y: '[1024, 64, 256] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1024] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H8:
-    provenance: edge
-    tensors:
-      y: '[1, 64, 65536] bfloat16 axes=E,T,2*D dist=randn'
-      tokens_per_expert: '[1] int64 axes=E dist=randint(lo=0, hi=T)'
-    params:
-      group_size: 128
-      fp8_max: 448.0
+  env: {B: 128, L: 128, D: 32768, Dv: 8, N: 1024, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: y, kind: tensor, shape: [1, 64, 65536], dtype: bfloat16, axes: [E, T, 2*D], dist: randn}
+  - {name: tokens_per_expert, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:T'}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}

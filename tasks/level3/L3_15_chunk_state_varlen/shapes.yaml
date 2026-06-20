@@ -1,766 +1,339 @@
-# Operator-family knob grid: values reflect
-# the ssm family's real axes.
-size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
-    H: 4
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 32, N: 16, T: 16, H: 4, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: B, kind: tensor, shape: [32, 4, 16], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [32, 4, 32], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [32, 4], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [32, 4], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 4, L: 64, D: 64, Dv: 64, N: 32, T: 64, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [256, 8, 32], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [256, 8, 64], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [256, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [256, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1024, 16, 64], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1024, 16, 128], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [1024, 16], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1024, 16], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 256, Dv: 256, N: 128, T: 256, H: 32, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [4096, 32, 128], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [4096, 32, 256], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [4096, 32], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [4096, 32], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [17], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 2, L: 64, D: 128, Dv: 128, N: 64, T: 32, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [128, 8, 64], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [128, 8, 128], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [128, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [128, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    Dv: 96
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 1, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [96, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [96, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [96, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [96, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    Dv: 96
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 2, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [192, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [192, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [192, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [192, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    Dv: 96
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 3, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [288, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [288, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [288, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [288, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    Dv: 96
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 4, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [384, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [384, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [384, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [384, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 1
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 1, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 1], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 2
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 2, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 2], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 3
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 3, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 3], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 4
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 4, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 4], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 8
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 8, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 8], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 16
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 16, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 16], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 32
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 32, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 32], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 64
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 64, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 64], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 1
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 1, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 1, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 1, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 1], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 1], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 2
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 2, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 2, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 2, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 2], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 2], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 3
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 3, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 3, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 3, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 3], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 3], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 4
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 48, T: 128, H: 4, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 4, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 4, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 4], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 4], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 1
-    N: 48
+  env: {B: 8, L: 1, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [8, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [8, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 2
-    N: 48
+  env: {B: 8, L: 2, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [16, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [16, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [16, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [16, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 3
-    N: 48
+  env: {B: 8, L: 3, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [24, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [24, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [24, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [24, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 4
-    N: 48
+  env: {B: 8, L: 4, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [32, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [32, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [32, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [32, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 8
-    N: 48
+  env: {B: 8, L: 8, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [64, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [64, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [64, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [64, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 16
-    N: 48
+  env: {B: 8, L: 16, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [128, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [128, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [128, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [128, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 32
-    N: 48
+  env: {B: 8, L: 32, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [256, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [256, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [256, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [256, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 64
-    N: 48
+  env: {B: 8, L: 64, D: 128, Dv: 96, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [512, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [512, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [512, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [512, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 1
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 1, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 1], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 2
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 2, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 2], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 3
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 3, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 3], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 4
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 4, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 4], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 8
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 8, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 8], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dv: 96
-    H: 8
-    L: 96
-    N: 16
-hidden_shapes:
+  env: {B: 8, L: 96, D: 128, Dv: 96, N: 16, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [768, 8, 16], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [768, 8, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [768, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
+  env: {B: 3, L: 96, D: 96, Dv: 96, N: 48, T: 96, H: 6, E: 3, C: 12, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [288, 6, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [288, 6, 96], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [288, 6], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [288, 6], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: B, kind: tensor, shape: [32, 2, 8], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [32, 2, 16], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [32, 2], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [32, 2], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 256, Dv: 256, N: 128, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1024, 8, 128], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1024, 8, 256], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [1024, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1024, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 32, D: 64, Dv: 64, N: 32, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [1024, 8, 32], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1024, 8, 64], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [1024, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1024, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [33], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    Dv: 1
-    H: 1
-    L: 1
-    N: 1
+  env: {B: 1, L: 1, D: 128, Dv: 1, N: 1, T: 128, H: 1, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 1, 1], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 1, 1], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 1], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 1], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    Dv: 1024
-    H: 8
-    L: 96
-    N: 48
+  env: {B: 1, L: 96, D: 128, Dv: 1024, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [96, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [96, 8, 1024], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [96, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [96, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 128
-    Dv: 1
-    H: 8
-    L: 96
-    N: 48
-inputs:
-  B:
-    dims:
-    - B*L
-    - H
-    - N
-    dtype: bf16
-    dist: randn
-  x:
-    dims:
-    - B*L
-    - H
-    - Dv
-    dtype: bf16
-    dist: randn
-  dt:
-    dims:
-    - B*L
-    - H
-    dtype: float32
-    dist: rand
-  dA_cumsum:
-    dims:
-    - B*L
-    - H
-    dtype: float32
-    dist: rand
-  cu_seqlens:
-    dims:
-    - B+1
-    dtype: int64
-    dist: offsets:to=B*L
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      B: '[32, 4, 16] bf16 axes=B*L,H,N dist=randn'
-      x: '[32, 4, 32] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[32, 4] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[32, 4] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-  P2:
-    provenance: baseline
-    tensors:
-      B: '[256, 8, 32] bf16 axes=B*L,H,N dist=randn'
-      x: '[256, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[256, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[256, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
-  P3:
-    provenance: baseline
-    tensors:
-      B: '[1024, 16, 64] bf16 axes=B*L,H,N dist=randn'
-      x: '[1024, 16, 128] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[1024, 16] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[1024, 16] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P4:
-    provenance: baseline
-    tensors:
-      B: '[4096, 32, 128] bf16 axes=B*L,H,N dist=randn'
-      x: '[4096, 32, 256] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[4096, 32] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[4096, 32] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[17] int64 axes=B+1 dist=offsets(to=B*L)'
-  P5:
-    provenance: synthetic
-    tensors:
-      B: '[128, 8, 64] bf16 axes=B*L,H,N dist=randn'
-      x: '[128, 8, 128] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[128, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[128, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-  P6:
-    provenance: synthetic
-    tensors:
-      B: '[96, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[96, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[96, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[96, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
-  P7:
-    provenance: synthetic
-    tensors:
-      B: '[192, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[192, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[192, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[192, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-  P8:
-    provenance: synthetic
-    tensors:
-      B: '[288, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[288, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[288, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[288, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
-  P9:
-    provenance: synthetic
-    tensors:
-      B: '[384, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[384, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[384, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[384, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
-  P10:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 1] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P11:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 2] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P12:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 3] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P13:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 4] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P14:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 8] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P15:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 16] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P16:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 32] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P17:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P18:
-    provenance: synthetic
-    tensors:
-      B: '[768, 1, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 1, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 1] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 1] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P19:
-    provenance: synthetic
-    tensors:
-      B: '[768, 2, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 2, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 2] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 2] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P20:
-    provenance: synthetic
-    tensors:
-      B: '[768, 3, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 3, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 3] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 3] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P21:
-    provenance: synthetic
-    tensors:
-      B: '[768, 4, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 4, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 4] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 4] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P22:
-    provenance: synthetic
-    tensors:
-      B: '[8, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[8, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[8, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[8, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P23:
-    provenance: synthetic
-    tensors:
-      B: '[16, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[16, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[16, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[16, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P24:
-    provenance: synthetic
-    tensors:
-      B: '[24, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[24, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[24, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[24, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P25:
-    provenance: synthetic
-    tensors:
-      B: '[32, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[32, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[32, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[32, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P26:
-    provenance: synthetic
-    tensors:
-      B: '[64, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[64, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[64, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[64, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P27:
-    provenance: synthetic
-    tensors:
-      B: '[128, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[128, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[128, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[128, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P28:
-    provenance: synthetic
-    tensors:
-      B: '[256, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[256, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[256, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[256, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P29:
-    provenance: synthetic
-    tensors:
-      B: '[512, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[512, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[512, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[512, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P30:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 1] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P31:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 2] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P32:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 3] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P33:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 4] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P34:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 8] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  P35:
-    provenance: synthetic
-    tensors:
-      B: '[768, 8, 16] bf16 axes=B*L,H,N dist=randn'
-      x: '[768, 8, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[768, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[768, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-  H1:
-    provenance: synthetic
-    tensors:
-      B: '[288, 6, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[288, 6, 96] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[288, 6] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[288, 6] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
-  H2:
-    provenance: edge
-    tensors:
-      B: '[32, 2, 8] bf16 axes=B*L,H,N dist=randn'
-      x: '[32, 2, 16] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[32, 2] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[32, 2] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-  H3:
-    provenance: synthetic
-    tensors:
-      B: '[1024, 8, 128] bf16 axes=B*L,H,N dist=randn'
-      x: '[1024, 8, 256] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[1024, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[1024, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-  H4:
-    provenance: synthetic
-    tensors:
-      B: '[1024, 8, 32] bf16 axes=B*L,H,N dist=randn'
-      x: '[1024, 8, 64] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[1024, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[1024, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[33] int64 axes=B+1 dist=offsets(to=B*L)'
-  H5:
-    provenance: edge
-    tensors:
-      B: '[1, 1, 1] bf16 axes=B*L,H,N dist=randn'
-      x: '[1, 1, 1] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[1, 1] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[1, 1] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
-  H6:
-    provenance: edge
-    tensors:
-      B: '[96, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[96, 8, 1024] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[96, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[96, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
-  H7:
-    provenance: edge
-    tensors:
-      B: '[12288, 8, 48] bf16 axes=B*L,H,N dist=randn'
-      x: '[12288, 8, 1] bf16 axes=B*L,H,Dv dist=randn'
-      dt: '[12288, 8] float32 axes=B*L,H dist=rand'
-      dA_cumsum: '[12288, 8] float32 axes=B*L,H dist=rand'
-      cu_seqlens: '[129] int64 axes=B+1 dist=offsets(to=B*L)'
+  env: {B: 128, L: 96, D: 128, Dv: 1, N: 48, T: 128, H: 8, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12288, 8, 48], dtype: bf16, axes: [B*L, H, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12288, 8, 1], dtype: bf16, axes: [B*L, H, Dv], dist: randn}
+  - {name: dt, kind: tensor, shape: [12288, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12288, 8], dtype: float32, axes: [B*L, H], dist: rand}
+  - {name: cu_seqlens, kind: tensor, shape: [129], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}

@@ -1,537 +1,253 @@
-# Frozen upstream contract (SGLang ``dequantize_k_cache_paged``): the
-# entrypoint consumes ONE packed fp8 K-cache row tensor
-# ``quant_k_cache[C, 656]`` (dtype float8_e4m3fn) plus a flattened paged
-# index ``page_table_1_flattened[B]`` (int64). The kernel reshapes
-# quant_k_cache to ``[-1, 656]`` (C physical cache rows), then for each of
-# the B output tokens gathers the physical row
-# ``token_id_paged = page_table_1_flattened[token_id]`` and dequantises it.
-# The 656 byte-lanes of each gathered row are unpacked internally by slice +
-# byte reinterpret (nope_q fp8 [.,512], nope_s fp32-view [.,4], rope bf16-view
-# [.,64]); ``dim_quant == 656`` and ``group_size == 128`` are structural
-# invariants asserted by the kernel. The only free knobs are C (the physical
-# cache-row count) and B (the gathered token count). group_size is the
-# entrypoint default (128), not a shape input.
-#
-# Index invariant: page_table_1_flattened indexes into the C physical rows,
-# so values are randint in [0, C). B may differ from C (prefix sharing lets
-# multiple output tokens map to the same physical row) and is exercised both
-# >= C and < C across the shape rows below.
-size_knobs:
-  B: 8
-  C: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    C: 4
+  env: {B: 4, C: 4}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [4, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P2
-  name: small
-  knobs:
-    B: 8
-    C: 8
+  env: {B: 8, C: 8}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [8, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P3
-  name: medium
-  knobs:
-    B: 32
-    C: 16
+  env: {B: 32, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P4
-  name: large
-  knobs:
-    B: 64
-    C: 32
+  env: {B: 64, C: 32}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [32, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    C: 64
+  env: {B: 8, C: 64}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [64, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 384
-    C: 96
+  env: {B: 384, C: 96}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [96, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 512
-    C: 1
+  env: {B: 512, C: 1}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [1, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 512
-    C: 128
+  env: {B: 512, C: 128}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [128, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 96
+  env: {B: 16, C: 96}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [96, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 128
+  env: {B: 16, C: 128}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [128, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    C: 8
+  env: {B: 384, C: 8}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [8, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    C: 16
+  env: {B: 1, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    C: 16
+  env: {B: 2, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    C: 16
+  env: {B: 3, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 16
+  env: {B: 4, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 16
+  env: {B: 8, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 2
+  env: {B: 16, C: 2}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [2, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 3
+  env: {B: 16, C: 3}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [3, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 8
+  env: {B: 16, C: 8}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [8, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 16
+  env: {B: 16, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 32
+  env: {B: 16, C: 32}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [32, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 64
+  env: {B: 16, C: 64}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [64, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 192
+  env: {B: 16, C: 192}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [192, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 256
+  env: {B: 16, C: 256}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [256, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 384
+  env: {B: 16, C: 384}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [384, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    C: 512
+  env: {B: 16, C: 512}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [512, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    C: 16
+  env: {B: 64, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    C: 16
+  env: {B: 96, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    C: 16
+  env: {B: 128, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
-    C: 16
+  env: {B: 192, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [192], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 256
-    C: 16
+  env: {B: 256, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    C: 16
+  env: {B: 384, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 512
-    C: 16
+  env: {B: 512, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 640
-    C: 16
+  env: {B: 640, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [640], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 768
-    C: 16
+  env: {B: 768, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [768], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1024
-    C: 16
+  env: {B: 1024, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1024], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1280
-    C: 16
+  env: {B: 1280, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1280], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1536
-    C: 16
+  env: {B: 1536, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1536], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2048
-    C: 16
+  env: {B: 2048, C: 16}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [16, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P40
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 2
+  env: {B: 1, C: 2}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [2, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: P41
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 256
-hidden_shapes:
+  env: {B: 1, C: 256}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [256, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:C'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 13
-    C: 6
+  env: {B: 13, C: 6}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [6, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [13], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H2
-  name: h_small
-  knobs:
-    B: 3
-    C: 3
+  env: {B: 3, C: 3}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [3, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 256
-    C: 64
+  env: {B: 256, C: 64}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [64, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H4
-  name: h_share
-  knobs:
-    B: 16
-    C: 4
+  env: {B: 16, C: 4}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [4, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 1
+  env: {B: 1, C: 1}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [1, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 16
-    C: 1
+  env: {B: 16, C: 1}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [1, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 512
+  env: {B: 1, C: 512}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [512, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    C: 1
+  env: {B: 2048, C: 1}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [1, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'randint:0:C'}
 - id: H9
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    C: 512
-inputs:
-  quant_k_cache:
-    dims:
-    - C
-    - 656
-    dtype: float8_e4m3fn
-    dist: randn
-  page_table_1_flattened:
-    dims:
-    - B
-    dtype: int64
-    dist: randint:0:C
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      quant_k_cache: '[4, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[4] int64 axes=B dist=randint(lo=0, hi=C)'
-  P2:
-    provenance: baseline
-    tensors:
-      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
-  P3:
-    provenance: baseline
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[32] int64 axes=B dist=randint(lo=0, hi=C)'
-  P4:
-    provenance: baseline
-    tensors:
-      quant_k_cache: '[32, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[64] int64 axes=B dist=randint(lo=0, hi=C)'
-  P5:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
-  P6:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[96, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
-  P7:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
-  P8:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[128, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
-  P9:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[96, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P10:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[128, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P11:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
-  P12:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
-  P13:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[2] int64 axes=B dist=randint(lo=0, hi=C)'
-  P14:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[3] int64 axes=B dist=randint(lo=0, hi=C)'
-  P15:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[4] int64 axes=B dist=randint(lo=0, hi=C)'
-  P16:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[8] int64 axes=B dist=randint(lo=0, hi=C)'
-  P17:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[2, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P18:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[3, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P19:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[8, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P20:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P21:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[32, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P22:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P23:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[192, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P24:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[256, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P25:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[384, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P26:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  P27:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[64] int64 axes=B dist=randint(lo=0, hi=C)'
-  P28:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[96] int64 axes=B dist=randint(lo=0, hi=C)'
-  P29:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[128] int64 axes=B dist=randint(lo=0, hi=C)'
-  P30:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[192] int64 axes=B dist=randint(lo=0, hi=C)'
-  P31:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[256] int64 axes=B dist=randint(lo=0, hi=C)'
-  P32:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[384] int64 axes=B dist=randint(lo=0, hi=C)'
-  P33:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[512] int64 axes=B dist=randint(lo=0, hi=C)'
-  P34:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[640] int64 axes=B dist=randint(lo=0, hi=C)'
-  P35:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[768] int64 axes=B dist=randint(lo=0, hi=C)'
-  P36:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1024] int64 axes=B dist=randint(lo=0, hi=C)'
-  P37:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1280] int64 axes=B dist=randint(lo=0, hi=C)'
-  P38:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1536] int64 axes=B dist=randint(lo=0, hi=C)'
-  P39:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[16, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'
-  P40:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[2, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
-  P41:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[256, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
-  H1:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[6, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[13] int64 axes=B dist=randint(lo=0, hi=C)'
-  H2:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[3, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[3] int64 axes=B dist=randint(lo=0, hi=C)'
-  H3:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[64, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[256] int64 axes=B dist=randint(lo=0, hi=C)'
-  H4:
-    provenance: synthetic
-    tensors:
-      quant_k_cache: '[4, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  H5:
-    provenance: edge
-    tensors:
-      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
-  H6:
-    provenance: edge
-    tensors:
-      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[16] int64 axes=B dist=randint(lo=0, hi=C)'
-  H7:
-    provenance: edge
-    tensors:
-      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[1] int64 axes=B dist=randint(lo=0, hi=C)'
-  H8:
-    provenance: edge
-    tensors:
-      quant_k_cache: '[1, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'
-  H9:
-    provenance: edge
-    tensors:
-      quant_k_cache: '[512, 656] float8_e4m3fn axes=C,656 dist=randn'
-      page_table_1_flattened: '[2048] int64 axes=B dist=randint(lo=0, hi=C)'
+  env: {B: 2048, C: 512}
+  inputs:
+  - {name: quant_k_cache, kind: tensor, shape: [512, 656], dtype: float8_e4m3fn, axes: [C, '656'], dist: randn}
+  - {name: page_table_1_flattened, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'randint:0:C'}

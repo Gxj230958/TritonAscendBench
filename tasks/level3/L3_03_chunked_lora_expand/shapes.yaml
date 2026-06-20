@@ -1,412 +1,183 @@
-# Operator-family knob grid: values reflect
-# the gemm family's real axes.
-size_knobs:
-  B: 256
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 8
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 16
-    L: 16
-    D: 32
-    Dv: 8
-    N: 64
-    T: 8
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 16, L: 16, D: 32, Dv: 8, N: 64, T: 8, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 8], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [4, 64, 2], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [5], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [5], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 64, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    L: 64
-    D: 128
-    Dv: 8
-    N: 256
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 64, L: 64, D: 128, Dv: 8, N: 256, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 256, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 256, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P3
-  name: medium
-  knobs:
-    B: 256
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 8
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 256, L: 128, D: 512, Dv: 8, N: 1024, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 128], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [16, 1024, 8], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [17], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [17], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 1024, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P4
-  name: large
-  knobs:
-    B: 512
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 8
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 512, L: 256, D: 1024, Dv: 8, N: 2048, T: 8, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 256], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [32, 2048, 8], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [33], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [32], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [33], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 2048, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 512, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 512, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    E: 8
-    G: 4
-    N: 8192
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 8192, T: 8, H: 16, E: 8, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 8192, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 8192, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    G: 4
-    N: 6144
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 6144, T: 8, H: 16, E: 8, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 6144, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 6144, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    G: 4
-    N: 8192
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 8192, T: 8, H: 16, E: 8, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 8192, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 8192, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    G: 12
-    N: 384
-hidden_shapes:
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 8, C: 32, G: 12}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 96], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 384, 12], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 384, expr: N}
+  - {name: base_output, kind: optional, value: null}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 192
-    Dv: 8
-    N: 384
-    T: 8
-    H: 6
-    E: 6
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 192, Dv: 8, N: 384, T: 8, H: 6, E: 6, C: 24, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 24], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [6, 384, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [7], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [6], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [6], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [6], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [7], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 384, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 4], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [2, 8, 2], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [3], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [3], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 8, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 8
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 8, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 64], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 4096, 8], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 4096, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 1024
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 1024, L: 32, D: 128, Dv: 8, N: 128, T: 8, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1024, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 128, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 128, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    G: 1
-    N: 1
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1, T: 8, H: 16, E: 1, C: 32, G: 1}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 1], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [2], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [2], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 1, expr: N}
+  - {name: base_output, kind: optional, value: null}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 8
-    G: 4
-    N: 384
-inputs:
-  x:
-    dims:
-    - B
-    - "E*G"
-    dtype: bfloat16
-    dist: randn
-  weights:
-    dims:
-    - E
-    - N
-    - G
-    dtype: bfloat16
-    dist: randn
-  seg_indptr:
-    dims:
-    - E+1
-    dtype: int64
-    dist: offsets:to=B
-  weight_indices:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:E
-  lora_ranks:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:1:G
-  scalings:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-  slice_offsets:
-    dims: ["E+1"]
-    dtype: int32
-    dist: "offsets:to=N"
-  max_slice_size:
-    scalar_knob: N
-  base_output: null
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[16, 8] bfloat16 axes=B,E*G dist=randn'
-      weights: '[4, 64, 2] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[5] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[4] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[4] float32 axes=E dist=rand'
-      slice_offsets: '[5] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 64
-      base_output: null
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[64, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 256, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 256
-      base_output: null
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[256, 128] bfloat16 axes=B,E*G dist=randn'
-      weights: '[16, 1024, 8] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[17] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[16] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[16] float32 axes=E dist=rand'
-      slice_offsets: '[17] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 1024
-      base_output: null
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[512, 256] bfloat16 axes=B,E*G dist=randn'
-      weights: '[32, 2048, 8] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[33] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[32] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[32] float32 axes=E dist=rand'
-      slice_offsets: '[33] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 2048
-      base_output: null
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[8, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 512, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 512
-      base_output: null
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[1, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 8192, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 8192
-      base_output: null
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[64, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 6144, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 6144
-      base_output: null
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[64, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 8192, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 8192
-      base_output: null
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[64, 96] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 384, 12] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 384
-      base_output: null
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[96, 24] bfloat16 axes=B,E*G dist=randn'
-      weights: '[6, 384, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[7] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[6] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[6] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[6] float32 axes=E dist=rand'
-      slice_offsets: '[7] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 384
-      base_output: null
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 4] bfloat16 axes=B,E*G dist=randn'
-      weights: '[2, 8, 2] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[3] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[2] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[2] float32 axes=E dist=rand'
-      slice_offsets: '[3] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 8
-      base_output: null
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[4, 64] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 4096, 8] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 4096
-      base_output: null
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[1024, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 128, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 128
-      base_output: null
-  H5:
-    provenance: edge
-    tensors:
-      x: '[1, 1] bfloat16 axes=B,E*G dist=randn'
-      weights: '[1, 1, 1] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[2] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[1] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[1] float32 axes=E dist=rand'
-      slice_offsets: '[2] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 1
-      base_output: null
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 32] bfloat16 axes=B,E*G dist=randn'
-      weights: '[8, 384, 4] bfloat16 axes=E,N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-      slice_offsets: '[9] int32 axes=E+1 dist=offsets(to=N)'
-    params:
-      max_slice_size: 384
-      base_output: null
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 8, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 32], dtype: bfloat16, axes: [B, E*G], dist: randn}
+  - {name: weights, kind: tensor, shape: [8, 384, 4], dtype: bfloat16, axes: [E, N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: slice_offsets, kind: tensor, shape: [9], dtype: int32, axes: [E+1], dist: 'offsets:to=N'}
+  - {name: max_slice_size, kind: scalar_knob, value: 384, expr: N}
+  - {name: base_output, kind: optional, value: null}

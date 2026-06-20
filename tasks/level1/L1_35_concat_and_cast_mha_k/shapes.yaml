@@ -1,636 +1,261 @@
-# Operator: DeepSeek-V3 MLA K assembly (concat_and_cast_mha_k).
-# Real upstream contract (sglang/srt/layers/attention/utils.py +
-# sarvam_moe.py / forward_mha.py call sites):
-#   k_nope : [B, H, Dn]  per-head nope part   (B = n_tokens, H = num_local_heads)
-#   k_rope : [B, 1, Dr]  shared rope part, broadcast across the H heads
-#   k      : [B, H, Dn + Dr] = empty(out_dtype); written by the kernel
-# The frozen @triton.jit kernel uses tl.arange(0, H/Dn/Dr) with no masking,
-# so H, Dn and Dr must all be powers of two; Dn + Dr need not be.
-size_knobs:
-  B: 512
-  H: 16
-  Dn: 128
-  Dr: 64
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    H: 2
-    Dn: 32
-    Dr: 16
+  env: {B: 8, H: 2, Dn: 32, Dr: 16}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [8, 2, 32], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [8, 1, 16], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    H: 4
-    Dn: 64
-    Dr: 32
+  env: {B: 64, H: 4, Dn: 64, Dr: 32}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [64, 4, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [64, 1, 32], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P3
-  name: medium
-  knobs:
-    B: 512
-    H: 16
-    Dn: 128
-    Dr: 64
+  env: {B: 512, H: 16, Dn: 128, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [512, 16, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [512, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P4
-  name: large
-  knobs:
-    B: 2048
-    H: 32
-    Dn: 128
-    Dr: 64
+  env: {B: 2048, H: 32, Dn: 128, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2048, 32, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2048, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P5
-  name: wide_heads
-  knobs:
-    B: 16
-    H: 64
-    Dn: 256
-    Dr: 64
+  env: {B: 16, H: 64, Dn: 256, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [16, 64, 256], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [16, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    Dn: 128
-    Dr: 256
-    H: 8
+  env: {B: 1, H: 8, Dn: 128, Dr: 256}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 8, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 1, 256], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 128
-    Dr: 64
-    H: 128
+  env: {B: 128, H: 128, Dn: 128, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 128, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 128
-    Dr: 256
-    H: 8
+  env: {B: 128, H: 8, Dn: 128, Dr: 256}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 8, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 256], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 1, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 2, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 3, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [3, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [3, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 4, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [4, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [4, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 8, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [8, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [8, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 16, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [16, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [16, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 32, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [32, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [32, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 64, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [64, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [64, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 96, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [96, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [96, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 1
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 1, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 1], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 2
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 2, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 2], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 4
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 4, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 4], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 8
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 8, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 8], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 16
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 16, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 16], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 32
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 32, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 32], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 1
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 1}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 1], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 2
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 2}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 2], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 4
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 4}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 4], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 8
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 8}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 8], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 16
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 16}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 16], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 32
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 32}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 32], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 1
+  env: {B: 128, H: 1, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 2
+  env: {B: 128, H: 2, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 2, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 4
+  env: {B: 128, H: 4, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 4, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 8
+  env: {B: 128, H: 8, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 8, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 16
+  env: {B: 128, H: 16, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    Dn: 64
-    Dr: 64
-    H: 32
-hidden_shapes:
+  env: {B: 128, H: 32, Dn: 64, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 32, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
+hidden:
 - id: H1
-  name: h_deep_dim
-  knobs:
-    B: 384
-    H: 8
-    Dn: 512
-    Dr: 128
+  env: {B: 384, H: 8, Dn: 512, Dr: 128}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [384, 8, 512], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [384, 1, 128], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    H: 2
-    Dn: 16
-    Dr: 16
+  env: {B: 2, H: 2, Dn: 16, Dr: 16}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2, 1, 16], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H3
-  name: h_many_tokens
-  knobs:
-    B: 4096
-    H: 8
-    Dn: 64
-    Dr: 32
+  env: {B: 4096, H: 8, Dn: 64, Dr: 32}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [4096, 8, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [4096, 1, 32], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H4
-  name: h_single_head
-  knobs:
-    B: 128
-    H: 1
-    Dn: 128
-    Dr: 64
+  env: {B: 128, H: 1, Dn: 128, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 1, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    Dn: 1
-    Dr: 1
-    H: 1
+  env: {B: 1, H: 1, Dn: 1, Dr: 1}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    Dn: 128
-    Dr: 64
-    H: 8
+  env: {B: 1, H: 8, Dn: 128, Dr: 64}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 8, 128], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 1, 64], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    Dn: 64
-    Dr: 1024
-    H: 16
+  env: {B: 1, H: 16, Dn: 64, Dr: 1024}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 1, 1024], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 16384
-    Dn: 64
-    Dr: 1
-    H: 16
-inputs:
-  k_nope:
-    dims:
-    - B
-    - H
-    - Dn
-    dtype: bfloat16
-    dist: randn
-  k_rope:
-    dims:
-    - B
-    - 1
-    - Dr
-    dtype: bfloat16
-    dist: randn
-  out_dtype:
-    scalar: bf16
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      k_nope: '[8, 2, 32] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[8, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P2:
-    provenance: baseline
-    tensors:
-      k_nope: '[64, 4, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[64, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P3:
-    provenance: baseline
-    tensors:
-      k_nope: '[512, 16, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[512, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P4:
-    provenance: baseline
-    tensors:
-      k_nope: '[2048, 32, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[2048, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P5:
-    provenance: synthetic
-    tensors:
-      k_nope: '[16, 64, 256] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[16, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P6:
-    provenance: synthetic
-    tensors:
-      k_nope: '[1, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[1, 1, 256] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P8:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 128, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P10:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 256] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P11:
-    provenance: synthetic
-    tensors:
-      k_nope: '[1, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[1, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P12:
-    provenance: synthetic
-    tensors:
-      k_nope: '[2, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[2, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P13:
-    provenance: synthetic
-    tensors:
-      k_nope: '[3, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[3, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P14:
-    provenance: synthetic
-    tensors:
-      k_nope: '[4, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[4, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P15:
-    provenance: synthetic
-    tensors:
-      k_nope: '[8, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[8, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P16:
-    provenance: synthetic
-    tensors:
-      k_nope: '[16, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[16, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P17:
-    provenance: synthetic
-    tensors:
-      k_nope: '[32, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[32, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P18:
-    provenance: synthetic
-    tensors:
-      k_nope: '[64, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[64, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P19:
-    provenance: synthetic
-    tensors:
-      k_nope: '[96, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[96, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P20:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 1] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P21:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 2] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P23:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 4] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P24:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 8] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P25:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 16] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P26:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 32] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P27:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P28:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 2] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P30:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 4] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P31:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 8] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P32:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P33:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P34:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 1, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P35:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 2, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P37:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 4, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P38:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 8, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P39:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  P40:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 32, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H1:
-    provenance: synthetic
-    tensors:
-      k_nope: '[384, 8, 512] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[384, 1, 128] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H2:
-    provenance: edge
-    tensors:
-      k_nope: '[2, 2, 16] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[2, 1, 16] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H3:
-    provenance: synthetic
-    tensors:
-      k_nope: '[4096, 8, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[4096, 1, 32] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H4:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 1, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[128, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H5:
-    provenance: edge
-    tensors:
-      k_nope: '[1, 1, 1] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[1, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H6:
-    provenance: edge
-    tensors:
-      k_nope: '[1, 8, 128] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[1, 1, 64] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H7:
-    provenance: edge
-    tensors:
-      k_nope: '[1, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[1, 1, 1024] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
-  H8:
-    provenance: edge
-    tensors:
-      k_nope: '[16384, 16, 64] bfloat16 axes=B,H,Dn dist=randn'
-      k_rope: '[16384, 1, 1] bfloat16 axes=B,1,Dr dist=randn'
-    params:
-      out_dtype: bf16
+  env: {B: 16384, H: 16, Dn: 64, Dr: 1}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [16384, 16, 64], dtype: bfloat16, axes: [B, H, Dn], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [16384, 1, 1], dtype: bfloat16, axes: [B, '1', Dr], dist: randn}
+  - {name: out_dtype, kind: scalar, value: bf16}

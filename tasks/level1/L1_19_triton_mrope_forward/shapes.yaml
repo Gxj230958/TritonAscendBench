@@ -1,1067 +1,520 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 64], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 4, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 4, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 16, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 16, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 1024], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    H: 128
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 128, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 2048], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 48
-    H: 96
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 96, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [48, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 48, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 48, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 64
-    H: 128
+  env: {B: 64, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 128, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 2048], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 64, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 64, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 96
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 96, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1536], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 128
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 128, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    H: 12
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [48, 192], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [48, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 48, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 48, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    H: 16
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 16
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    H: 16
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 16
+  env: {B: 4, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 4, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 4, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 1
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 2
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 3
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 3, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 48], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 4
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 4, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 32
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 32, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 64, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1024], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 192, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 3072], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 256
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 256, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 4096], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 384
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 384, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 6144], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 512
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 512, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 8192], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 8, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    H: 16
+  env: {B: 16, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 16, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 16, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    H: 16
+  env: {B: 32, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 32, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 32, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    H: 16
+  env: {B: 64, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 64, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 64, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    H: 16
+  env: {B: 96, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [96, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [96, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 96, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 96, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    H: 16
+  env: {B: 128, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 128, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 128, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
-    H: 16
+  env: {B: 192, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [192, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [192, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 192, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 192, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 256
-    H: 16
+  env: {B: 256, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [256, 256], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [256, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 256, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 256, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P34
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 2
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 32], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P35
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 64
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 64, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 1024], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P36
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 512
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 512, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 8192], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P37
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 2
-    H: 1
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P38
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 2
-    H: 96
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 96, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 1536], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P39
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 3
-    H: 2
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 32], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P40
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 3
-    H: 64
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 64, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 1024], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: P41
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 3
-    H: 128
-hidden_shapes:
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 128, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 2048], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 192], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 3, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 32], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 128], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 2, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 128], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 32, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 32, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 1
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 12
-inputs:
-  q:
-    dims:
-    - B
-    - H*16
-    dtype: bfloat16
-    dist: randn
-  k:
-    dims:
-    - B
-    - '16'
-    dtype: bfloat16
-    dist: randn
-  cos:
-    dims:
-    - '3'
-    - B
-    - '8'
-    dtype: float32
-    dist: randn
-  sin:
-    dims:
-    - '3'
-    - B
-    - '8'
-    dtype: float32
-    dist: randn
-  mrope_section:
-    scalar_seq:
-    - 3
-    - 3
-    - 2
-  head_size:
-    scalar: 16
-  rotary_dim:
-    scalar: 16
-  mrope_interleaved:
-    scalar: false
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 64] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[4, 128] bfloat16 axes=B,H*16 dist=randn'
-      k: '[4, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[8, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[16, 512] bfloat16 axes=B,H*16 dist=randn'
-      k: '[16, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 1024] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[1, 2048] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[48, 1536] bfloat16 axes=B,H*16 dist=randn'
-      k: '[48, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[64, 2048] bfloat16 axes=B,H*16 dist=randn'
-      k: '[64, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1536] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[8, 2048] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[48, 192] bfloat16 axes=B,H*16 dist=randn'
-      k: '[48, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 48, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[1, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[2, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[3, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[4, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[4, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 4, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[8, 16] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[8, 48] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[8, 64] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[8, 128] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[8, 512] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1024] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[8, 3072] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[8, 4096] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[8, 6144] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[8, 8192] bfloat16 axes=B,H*16 dist=randn'
-      k: '[8, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 8, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[16, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[16, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 16, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[32, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[32, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[64, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[64, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 64, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[96, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[96, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 96, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 96, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[128, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[128, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 128, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 128, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[192, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[192, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 192, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 192, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[256, 256] bfloat16 axes=B,H*16 dist=randn'
-      k: '[256, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 256, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 256, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[1, 32] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[1, 1024] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[1, 8192] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[2, 16] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[2, 1536] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[3, 32] bfloat16 axes=B,H*16 dist=randn'
-      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P40:
-    provenance: synthetic
-    tensors:
-      q: '[3, 1024] bfloat16 axes=B,H*16 dist=randn'
-      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  P41:
-    provenance: synthetic
-    tensors:
-      q: '[3, 2048] bfloat16 axes=B,H*16 dist=randn'
-      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[3, 192] bfloat16 axes=B,H*16 dist=randn'
-      k: '[3, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 3, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 32] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[2, 128] bfloat16 axes=B,H*16 dist=randn'
-      k: '[2, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 2, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[32, 128] bfloat16 axes=B,H*16 dist=randn'
-      k: '[32, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 32, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H5:
-    provenance: edge
-    tensors:
-      q: '[1, 16] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 192] bfloat16 axes=B,H*16 dist=randn'
-      k: '[1, 16] bfloat16 axes=B,16 dist=randn'
-      cos: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-      sin: '[3, 1, 8] float32 axes=3,B,8 dist=randn'
-    params:
-      mrope_section:
-      - 3
-      - 3
-      - 2
-      head_size: 16
-      rotary_dim: 16
-      mrope_interleaved: false
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 192], dtype: bfloat16, axes: [B, H*16], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 16], dtype: bfloat16, axes: [B, '16'], dist: randn}
+  - {name: cos, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: sin, kind: tensor, shape: [3, 1, 8], dtype: float32, axes: ['3', B, '8'], dist: randn}
+  - {name: mrope_section, kind: scalar_seq, value: [3, 3, 2]}
+  - {name: head_size, kind: scalar, value: 16}
+  - {name: rotary_dim, kind: scalar, value: 16}
+  - {name: mrope_interleaved, kind: scalar, value: false}

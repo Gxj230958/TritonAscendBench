@@ -1,966 +1,493 @@
-# Knob grid for the dense gated-delta recurrent UPDATE forward. q/k/v are
-# [B, T, H, D]; g/beta are [B, T, H]; initial_state is the per-sequence
-# state pool slot [B, HV, V, K] = [B, H, D, D] in the kernel's V-major
-# state layout (D = Dv = K = V, HV = H, square).
-#
-# Input recipe follows the upstream gated_delta_rule usage so the
-# recurrence is numerically stable at full scale: k is L2-normalised over
-# the head dim (`l2norm_rows`) -- the delta rule is only stable with
-# unit-norm keys -- and g is `logsigmoid(rand)` so exp(g) in (0, 1) is a
-# genuine forget-gate decay. With this recipe the kernel and oracle agree
-# to ~1e-6 even at T = 512, D = 256; a `randn` key + `rand` (positive) gate
-# would make exp(g) > 1 grow the state without bound and overflow fp32.
-# The kernel and oracle share identical inputs, so the comparison stays
-# honest; the recipe only keeps magnitudes finite. T >= 2 keeps the
-# multi-step recurrence (and the initial-state carry / final-state
-# write-back) load-bearing.
-size_knobs:
-  B: 8
-  T: 128
-  H: 16
-  D: 128
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    T: 16
-    H: 4
-    D: 32
+  env: {B: 2, T: 16, H: 4, D: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 16, 4, 32], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16, 4, 32], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 16, 4, 32], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 16, 4], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 16, 4], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 4, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.35355339059327373, expr: 2/sqrt(D)}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    T: 64
-    H: 8
-    D: 64
+  env: {B: 4, T: 64, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 64, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 64, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 64, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 64, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 64, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    T: 128
-    H: 16
-    D: 128
+  env: {B: 8, T: 128, H: 16, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128, 16, 128], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 16, 128], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 128, 16, 128], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 128, 16], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 128, 16], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 16, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 2/sqrt(D)}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    T: 256
-    H: 32
-    D: 256
+  env: {B: 16, T: 256, H: 32, D: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 256, 32, 256], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 256, 32, 256], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [16, 256, 32, 256], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [16, 256, 32], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [16, 256, 32], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [16, 32, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.125, expr: 2/sqrt(D)}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    T: 32
-    H: 8
-    D: 128
+  env: {B: 2, T: 32, H: 8, D: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 32, 8, 128], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 32, 8, 128], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 32, 8, 128], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 32, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 32, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 8, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 2/sqrt(D)}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 512
-    H: 8
-    T: 96
+  env: {B: 1, T: 96, H: 8, D: 512}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 96, 8, 512], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 96, 8, 512], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [1, 96, 8, 512], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [1, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [1, 8, 512, 512], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 2/sqrt(D)}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 8
-    T: 768
+  env: {B: 8, T: 768, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 768, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 768, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 768, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 768, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 768, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 8
-    T: 1024
+  env: {B: 8, T: 1024, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 1024, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 1024, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 1024, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 1024, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 1024, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 48
-    T: 96
+  env: {B: 8, T: 96, H: 48, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 48, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 48, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 96, 48, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 96, 48], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 96, 48], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 48, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
-    H: 64
-    T: 96
+  env: {B: 8, T: 96, H: 64, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 64, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 64, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 96, 64, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 96, 64], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 96, 64], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 64, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    H: 8
-    T: 96
+  env: {B: 8, T: 96, H: 8, D: 384}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 8, 384], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 8, 384], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [8, 96, 8, 384], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [8, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [8, 8, 384, 384], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 2/sqrt(D)}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 96
-    H: 8
-    T: 96
+  env: {B: 1, T: 96, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [1, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [1, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [1, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 96
-    H: 8
-    T: 96
+  env: {B: 2, T: 96, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 96
-    H: 8
-    T: 96
+  env: {B: 3, T: 96, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [3, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [3, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [3, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [3, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 2.0, expr: 2/sqrt(D)}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 2
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 2], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 2], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 2], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 2, 2], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 1.414213562373095, expr: 2/sqrt(D)}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 3
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 3}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 3], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 3], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 3], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 3, 3], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 1.1547005383792517, expr: 2/sqrt(D)}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 4
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 4], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 4], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 4], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 4, 4], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 1.0, expr: 2/sqrt(D)}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 8
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 8], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 8], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 8], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 8, 8], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.7071067811865475, expr: 2/sqrt(D)}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 16
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 16], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 16], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 16], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 16, 16], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.5, expr: 2/sqrt(D)}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 32
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 32], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 32], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 32], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.35355339059327373, expr: 2/sqrt(D)}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 64
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 1
-    T: 96
+  env: {B: 4, T: 96, H: 1, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 1, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 1, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 1, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 1], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 1], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 1, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 2
-    T: 96
+  env: {B: 4, T: 96, H: 2, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 2, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 2, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 2, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 2], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 2], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 2, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 3
-    T: 96
+  env: {B: 4, T: 96, H: 3, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 3, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 3, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 3, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 3], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 3], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 3, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 4
-    T: 96
+  env: {B: 4, T: 96, H: 4, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 4, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 4, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 4, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 4], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 4], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 4, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 1
+  env: {B: 4, T: 1, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 1, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 1, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 1, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 1, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 1, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 2
+  env: {B: 4, T: 2, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 2, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 2, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 2, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 2, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 2, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 3
+  env: {B: 4, T: 3, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 3, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 3, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 3, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 3, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 3, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 4
+  env: {B: 4, T: 4, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 4, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 4, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 4, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 4, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 4, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 8
+  env: {B: 4, T: 8, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 8, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 8, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 8, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 8, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 8, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 16
+  env: {B: 4, T: 16, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 16, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 16, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 16, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 16, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 16, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 32
+  env: {B: 4, T: 32, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 32, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 32, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 32, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 32, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 32, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 64
+  env: {B: 4, T: 64, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 64, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 64, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 64, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 64, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 64, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 96
+  env: {B: 4, T: 96, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 128
+  env: {B: 4, T: 128, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 192
+  env: {B: 4, T: 192, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 192, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 192, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 192, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 192, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 256
+  env: {B: 4, T: 256, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 256, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 256, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 256, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 256, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 256, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 384
+  env: {B: 4, T: 384, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 384, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 384, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 384, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 384, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 384, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 512
+  env: {B: 4, T: 512, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 512, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 512, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 512, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 512, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 512, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    T: 640
-hidden_shapes:
+  env: {B: 4, T: 640, H: 8, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 640, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 640, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [4, 640, 8, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 640, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [4, 640, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [4, 8, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    T: 96
-    H: 6
-    D: 96
+  env: {B: 3, T: 96, H: 6, D: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [3, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [3, 96, 6], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [3, 96, 6], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [3, 6, 96, 96], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.20412414523193154, expr: 2/sqrt(D)}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    T: 8
-    H: 2
-    D: 16
+  env: {B: 2, T: 8, H: 2, D: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 8, 2, 16], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 2, 16], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 8, 2, 16], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 8, 2], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 8, 2], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 2, 16, 16], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.5, expr: 2/sqrt(D)}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    T: 512
-    H: 8
-    D: 256
+  env: {B: 2, T: 512, H: 8, D: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 512, 8, 256], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 512, 8, 256], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 512, 8, 256], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 512, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 512, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 8, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.125, expr: 2/sqrt(D)}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    T: 16
-    H: 8
-    D: 64
+  env: {B: 32, T: 16, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 16, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 16, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [32, 16, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [32, 16, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [32, 16, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [32, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: H5
-  name: h_vtiled
-  # D = 48 so the kernel's value tiling (BV = min(pow2(V), 8) = 8) splits
-  # into NV = cdiv(48, 8) = 6 tiles, exercising every i_v program and the
-  # o_v < V mask -- a kernel that only wrote the first value tile would
-  # pass the pow2-D shapes but fail here.
-  knobs:
-    B: 2
-    T: 16
-    H: 4
-    D: 48
+  env: {B: 2, T: 16, H: 4, D: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 16, 4, 48], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 16, 4, 48], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [2, 16, 4, 48], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 16, 4], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [2, 16, 4], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [2, 4, 48, 48], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.2886751345948129, expr: 2/sqrt(D)}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    H: 1
-    T: 1
+  env: {B: 1, T: 1, H: 1, D: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 1, 1, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 1, 1, 1], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [1, 1, 1, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 1, 1], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [1, 1, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 2.0, expr: 2/sqrt(D)}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 64
-    H: 8
-    T: 96
+  env: {B: 1, T: 96, H: 8, D: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [1, 96, 8, 64], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [1, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [1, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 0.25, expr: 2/sqrt(D)}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 128
-    D: 1
-    H: 8
-    T: 96
-inputs:
-  q:
-    dims:
-    - B
-    - T
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  k:
-    dims:
-    - B
-    - T
-    - H
-    - D
-    dtype: bfloat16
-    dist: l2norm_rows
-  v:
-    dims:
-    - B
-    - T
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  g:
-    dims:
-    - B
-    - T
-    - H
-    dtype: float32
-    dist: logsigmoid
-  beta:
-    dims:
-    - B
-    - T
-    - H
-    dtype: bfloat16
-    dist: rand
-  initial_state:
-    dims:
-    - B
-    - H
-    - D
-    - D
-    dtype: float32
-    dist: randn
-  scale:
-    # Deliberately NOT the kernel's built-in default (k.shape[-1] ** -0.5,
-    # i.e. 1/sqrt(D)): the launcher passes this scalar through to the
-    # wrapper, so a derived value distinct from the default makes the
-    # supplied `scale` independently load-bearing -- a kernel that ignored
-    # the argument and recomputed 1/sqrt(D) would mismatch. 2/sqrt(D) is a
-    # valid positive QK scale.
-    derive: 2/sqrt(D)
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 16, 4, 32] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 16, 4, 32] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 16, 4, 32] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 16, 4] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 16, 4] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 4, 32, 32] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.35355339059327373
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[4, 64, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 64, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 64, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 64, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 64, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[8, 128, 16, 128] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 128, 16, 128] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 128, 16, 128] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 128, 16] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 128, 16] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 16, 128, 128] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[16, 256, 32, 256] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[16, 256, 32, 256] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[16, 256, 32, 256] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[16, 256, 32] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[16, 256, 32] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[16, 32, 256, 256] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.125
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 32, 8, 128] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 32, 8, 128] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 32, 8, 128] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 32, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 32, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 8, 128, 128] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[1, 96, 8, 512] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[1, 96, 8, 512] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[1, 96, 8, 512] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[1, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[1, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[1, 8, 512, 512] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[8, 768, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 768, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 768, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 768, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 768, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[8, 1024, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 1024, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 1024, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 1024, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 1024, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 48, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 96, 48, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 96, 48, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 96, 48] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 96, 48] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 48, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 64, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 96, 64, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 96, 64, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 96, 64] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 96, 64] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 64, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 8, 384] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[8, 96, 8, 384] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[8, 96, 8, 384] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[8, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[8, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[8, 8, 384, 384] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.10206207261596577
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[1, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[1, 96, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[1, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[1, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[1, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[1, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[2, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 96, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[3, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[3, 96, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[3, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[3, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[3, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[3, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 1] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 1] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 1] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 2.0
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 2] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 2] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 2] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 2, 2] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 1.414213562373095
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 3] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 3] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 3] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 3, 3] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 1.1547005383792517
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 4] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 4] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 4] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 4, 4] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 1.0
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 8] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 8] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 8] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 8, 8] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.7071067811865475
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 16] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 16] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 16] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 16, 16] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.5
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 32] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 32] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 32] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 32, 32] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.35355339059327373
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 1, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 1, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 1, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 1] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 1] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 1, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 2, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 2, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 2, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 2] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 2] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 2, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 3, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 3, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 3, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 3] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 3] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 3, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 4, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 4, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 4, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 4] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 4] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 4, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[4, 1, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 1, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 1, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 1, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 1, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[4, 2, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 2, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 2, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 2, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 2, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[4, 3, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 3, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 3, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 3, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 3, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[4, 4, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 4, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 4, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 4, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 4, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[4, 8, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 8, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 8, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 8, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 8, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[4, 16, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 16, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 16, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 16, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 16, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[4, 32, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 32, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 32, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 32, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 32, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[4, 64, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 64, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 64, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 64, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 64, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 96, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 96, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 128, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 128, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 128, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 128, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[4, 192, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 192, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 192, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 192, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[4, 256, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 256, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 256, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 256, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 256, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[4, 384, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 384, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 384, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 384, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 384, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P40:
-    provenance: synthetic
-    tensors:
-      q: '[4, 512, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 512, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 512, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 512, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 512, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  P41:
-    provenance: synthetic
-    tensors:
-      q: '[4, 640, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[4, 640, 8, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[4, 640, 8, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[4, 640, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[4, 640, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[4, 8, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[3, 96, 6, 96] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[3, 96, 6, 96] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[3, 96, 6, 96] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[3, 96, 6] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[3, 96, 6] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[3, 6, 96, 96] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.20412414523193154
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 8, 2, 16] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 8, 2, 16] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 8, 2, 16] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 8, 2] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 8, 2] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 2, 16, 16] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.5
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[2, 512, 8, 256] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 512, 8, 256] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 512, 8, 256] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 512, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 512, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.125
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[32, 16, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[32, 16, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[32, 16, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[32, 16, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[32, 16, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[32, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  H5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 16, 4, 48] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[2, 16, 4, 48] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[2, 16, 4, 48] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[2, 16, 4] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[2, 16, 4] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[2, 4, 48, 48] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.2886751345948129
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 1, 1, 1] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[1, 1, 1, 1] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[1, 1, 1, 1] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[1, 1, 1] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[1, 1, 1] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[1, 1, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 2.0
-  H7:
-    provenance: edge
-    tensors:
-      q: '[1, 96, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[1, 96, 8, 64] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[1, 96, 8, 64] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[1, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[1, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[1, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 0.25
-  H8:
-    provenance: edge
-    tensors:
-      q: '[128, 96, 8, 1] bfloat16 axes=B,T,H,D dist=randn'
-      k: '[128, 96, 8, 1] bfloat16 axes=B,T,H,D dist=l2norm_rows'
-      v: '[128, 96, 8, 1] bfloat16 axes=B,T,H,D dist=randn'
-      g: '[128, 96, 8] float32 axes=B,T,H dist=logsigmoid'
-      beta: '[128, 96, 8] bfloat16 axes=B,T,H dist=rand'
-      initial_state: '[128, 8, 1, 1] float32 axes=B,H,D,D dist=randn'
-    params:
-      scale: 2.0
+  env: {B: 128, T: 96, H: 8, D: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: l2norm_rows}
+  - {name: v, kind: tensor, shape: [128, 96, 8, 1], dtype: bfloat16, axes: [B, T, H, D], dist: randn}
+  - {name: g, kind: tensor, shape: [128, 96, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: beta, kind: tensor, shape: [128, 96, 8], dtype: bfloat16, axes: [B, T, H], dist: rand}
+  - {name: initial_state, kind: tensor, shape: [128, 8, 1, 1], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: scale, kind: derive, value: 2.0, expr: 2/sqrt(D)}

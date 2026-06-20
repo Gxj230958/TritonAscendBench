@@ -1,833 +1,411 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-  CAUSAL: 0
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
-    CAUSAL: 0
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2, CAUSAL: 0}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 4, 32], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 2, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 2, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 0, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [128, 4, 32], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 64, expr: L}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-    CAUSAL: 1
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1024, 8, 64], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1024, 4, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1024, 4, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [1024, 8, 64], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 256, expr: L}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
-    CAUSAL: 0
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8, CAUSAL: 0}
+  inputs:
+  - {name: q, kind: tensor, shape: [4096, 16, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4096, 8, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4096, 8, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 0, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [4096, 16, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 512, expr: L}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
-    CAUSAL: 1
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [16384, 32, 256], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16384, 16, 256], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16384, 16, 256], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [17], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [16384, 32, 256], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 1024, expr: L}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
-    CAUSAL: 0
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4, CAUSAL: 0}
+  inputs:
+  - {name: q, kind: tensor, shape: [256, 64, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [256, 32, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [256, 32, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 0, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [256, 64, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 128, expr: L}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 320
+  env: {B: 1, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [320, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [320, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [320, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [320, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 320
+  env: {B: 2, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [640, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [640, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [640, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [640, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 320
+  env: {B: 3, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [960, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [960, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [960, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [960, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 320
+  env: {B: 4, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1280, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1280, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1280, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [1280, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 16
-    H: 12
-    L: 320
+  env: {B: 8, L: 320, D: 16, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 12, 16], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 6, 16], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 6, 16], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 12, 16], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 32
-    H: 12
-    L: 320
+  env: {B: 8, L: 320, D: 32, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 12, 32], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 6, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 6, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 12, 32], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 64
-    H: 12
-    L: 320
+  env: {B: 8, L: 320, D: 64, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 12, 64], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 6, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 6, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 12, 64], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 96
-    H: 12
-    L: 320
+  env: {B: 8, L: 320, D: 96, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 12, 96], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 6, 96], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 6, 96], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 12, 96], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 2
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 2, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 2, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 1, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 1, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 2, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 3
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 3, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 3, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 1, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 1, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 3, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 4
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 4, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 4, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 2, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 2, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 4, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 8
-    L: 320
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 8, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 8, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 4, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 4, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 8, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 1
+  env: {B: 8, L: 1, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [8, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 1, expr: L}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 2
+  env: {B: 8, L: 2, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [16, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 2, expr: L}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 3
+  env: {B: 8, L: 3, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [24, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [24, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [24, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [24, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 3, expr: L}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 4
+  env: {B: 8, L: 4, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [32, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 4, expr: L}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 8
+  env: {B: 8, L: 8, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [64, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 8, expr: L}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 16
+  env: {B: 8, L: 16, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [128, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [128, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [128, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [128, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 16, expr: L}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 32
+  env: {B: 8, L: 32, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [256, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [256, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [256, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [256, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 32, expr: L}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 64
+  env: {B: 8, L: 64, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [512, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [512, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [512, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [512, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 64, expr: L}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 96
+  env: {B: 8, L: 96, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [768, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [768, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [768, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [768, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 96, expr: L}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 128
+  env: {B: 8, L: 128, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1024, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1024, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1024, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [1024, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 128, expr: L}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 192
+  env: {B: 8, L: 192, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [1536, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [1536, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [1536, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [1536, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 192, expr: L}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 256
+  env: {B: 8, L: 256, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2048, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2048, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2048, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2048, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 256, expr: L}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    CAUSAL: 1
-    D: 128
-    H: 12
-    L: 320
-hidden_shapes:
+  env: {B: 8, L: 320, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [2560, 12, 128], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2560, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2560, 6, 128], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2560, 12, 128], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
-    CAUSAL: 1
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [960, 12, 64], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [960, 6, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [960, 6, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [960, 12, 64], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 320, expr: L}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
-    CAUSAL: 0
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2, CAUSAL: 0}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 2, 32], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 1, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 1, 32], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 0, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [32, 2, 32], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 16, expr: L}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
-    CAUSAL: 1
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8, CAUSAL: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [4096, 8, 256], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [4096, 4, 256], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4096, 4, 256], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 1, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [4096, 8, 256], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 2048, expr: L}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-    CAUSAL: 0
-inputs:
-  q:
-    dims:
-    - B*L
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  k:
-    dims:
-    - B*L
-    # Fewer KV heads than Q (H//2) so kv_group_num = H/(H//2) = 2: exercises the
-    # GQA head-grouping (kernel cur_head//kv_group_num, oracle repeat_interleave).
-    # Pinning K/V to H q-heads made kv_group_num==1, leaving GQA untested.
-    - H//2
-    - D
-    dtype: bfloat16
-    dist: randn
-  v:
-    dims:
-    - B*L
-    - H//2
-    - D
-    dtype: bfloat16
-    dist: randn
-  b_start_loc:
-    dims:
-    - B+1
-    dtype: int64
-    dist: offsets:to=B*L
-  b_seq_len:
-    dims:
-    - B
-    dtype: int64
-    dist: full:L
-  is_causal:
-    scalar_knob: CAUSAL
-  sm_scale:
-    derive: 1/sqrt(D)
-  o:
-    dims:
-    - B*L
-    - H
-    - D
-    dtype: float16
-  max_input_len:
-    scalar_knob: L
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[128, 4, 32] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[128, 2, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[128, 2, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[2] int64 axes=B dist=full(value=L)'
-      o: '[128, 4, 32] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 0
-      sm_scale: 0.17677669529663687
-      max_input_len: 64
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[1024, 8, 64] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[1024, 4, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[1024, 4, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[4] int64 axes=B dist=full(value=L)'
-      o: '[1024, 8, 64] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.125
-      max_input_len: 256
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[4096, 16, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[4096, 8, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[4096, 8, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[4096, 16, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 0
-      sm_scale: 0.08838834764831843
-      max_input_len: 512
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[16384, 32, 256] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[16384, 16, 256] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[16384, 16, 256] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[17] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[16] int64 axes=B dist=full(value=L)'
-      o: '[16384, 32, 256] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.0625
-      max_input_len: 1024
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[256, 64, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[256, 32, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[256, 32, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[2] int64 axes=B dist=full(value=L)'
-      o: '[256, 64, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 0
-      sm_scale: 0.08838834764831843
-      max_input_len: 128
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[320, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[320, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[320, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[2] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[1] int64 axes=B dist=full(value=L)'
-      o: '[320, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[640, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[640, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[640, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[2] int64 axes=B dist=full(value=L)'
-      o: '[640, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[960, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[960, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[960, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[3] int64 axes=B dist=full(value=L)'
-      o: '[960, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[1280, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[1280, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[1280, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[5] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[4] int64 axes=B dist=full(value=L)'
-      o: '[1280, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 12, 16] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 6, 16] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 6, 16] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 12, 16] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.25
-      max_input_len: 320
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 12, 32] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 6, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 6, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 12, 32] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.17677669529663687
-      max_input_len: 320
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 12, 64] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 6, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 6, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 12, 64] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.125
-      max_input_len: 320
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 12, 96] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 6, 96] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 6, 96] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 12, 96] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.10206207261596577
-      max_input_len: 320
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 2, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 1, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 1, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 2, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 3, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 1, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 1, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 3, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 4, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 2, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 2, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 4, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 8, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 4, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 4, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 8, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[8, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[8, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[8, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[8, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 1
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[16, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[16, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[16, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[16, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 2
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[24, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[24, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[24, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[24, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 3
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[32, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[32, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[32, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[32, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 4
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[64, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[64, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[64, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[64, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 8
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[128, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[128, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[128, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[128, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 16
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[256, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[256, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[256, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[256, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 32
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[512, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[512, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[512, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[512, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 64
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[768, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[768, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[768, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[768, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 96
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[1024, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[1024, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[1024, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[1024, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 128
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[1536, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[1536, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[1536, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[1536, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 192
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[2048, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2048, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2048, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2048, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 256
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[2560, 12, 128] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2560, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2560, 6, 128] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[9] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[8] int64 axes=B dist=full(value=L)'
-      o: '[2560, 12, 128] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.08838834764831843
-      max_input_len: 320
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[960, 12, 64] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[960, 6, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[960, 6, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[4] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[3] int64 axes=B dist=full(value=L)'
-      o: '[960, 12, 64] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.125
-      max_input_len: 320
-  H2:
-    provenance: edge
-    tensors:
-      q: '[32, 2, 32] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[32, 1, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[32, 1, 32] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[2] int64 axes=B dist=full(value=L)'
-      o: '[32, 2, 32] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 0
-      sm_scale: 0.17677669529663687
-      max_input_len: 16
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[4096, 8, 256] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[4096, 4, 256] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[4096, 4, 256] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[3] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[2] int64 axes=B dist=full(value=L)'
-      o: '[4096, 8, 256] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 1
-      sm_scale: 0.0625
-      max_input_len: 2048
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[2048, 8, 64] bfloat16 axes=B*L,H,D dist=randn'
-      k: '[2048, 4, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      v: '[2048, 4, 64] bfloat16 axes=B*L,H//2,D dist=randn'
-      b_start_loc: '[33] int64 axes=B+1 dist=offsets(to=B*L)'
-      b_seq_len: '[32] int64 axes=B dist=full(value=L)'
-      o: '[2048, 8, 64] float16 axes=B*L,H,D dist=randn'
-    params:
-      is_causal: 0
-      sm_scale: 0.125
-      max_input_len: 64
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4, CAUSAL: 0}
+  inputs:
+  - {name: q, kind: tensor, shape: [2048, 8, 64], dtype: bfloat16, axes: [B*L, H, D], dist: randn}
+  - {name: k, kind: tensor, shape: [2048, 4, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2048, 4, 64], dtype: bfloat16, axes: [B*L, H//2, D], dist: randn}
+  - {name: b_start_loc, kind: tensor, shape: [33], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L'}
+  - {name: b_seq_len, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'full:L'}
+  - {name: is_causal, kind: scalar_knob, value: 0, expr: CAUSAL}
+  - {name: sm_scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: o, kind: tensor, shape: [2048, 8, 64], dtype: float16, axes: [B*L, H, D], dist: randn}
+  - {name: max_input_len, kind: scalar_knob, value: 64, expr: L}

@@ -1,784 +1,346 @@
-# Operator-family knob grid: values reflect
-# the ssm family's real axes.
-size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
-    H: 4
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 32, N: 16, T: 16, H: 4, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: B, kind: tensor, shape: [4, 16, 16], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 16, 32], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 16], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [4, 16], dtype: float32, axes: [C, L], dist: rand}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 4, L: 64, D: 64, Dv: 64, N: 32, T: 64, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [8, 64, 32], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 64, 64], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 64], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [8, 64], dtype: float32, axes: [C, L], dist: rand}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [16, 128, 64], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [16, 128, 128], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [16, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [16, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 256, Dv: 256, N: 128, T: 256, H: 32, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [32, 256, 128], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [32, 256, 256], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [32, 256], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [32, 256], dtype: float32, axes: [C, L], dist: rand}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
-    H: 8
-    E: 4
-    C: 8
-    G: 4
+  env: {B: 2, L: 64, D: 128, Dv: 128, N: 64, T: 32, H: 8, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [8, 64, 64], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 64, 128], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 64], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [8, 64], dtype: float32, axes: [C, L], dist: rand}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    C: 1
-    D: 512
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 512, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 1, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 96, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 96, 512], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 96
-    N: 192
+  env: {B: 8, L: 96, D: 96, Dv: 128, N: 192, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 96, 192], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 96, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 96
-    N: 256
+  env: {B: 8, L: 96, D: 96, Dv: 128, N: 256, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 96, 256], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 96, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 768
-    N: 48
+  env: {B: 8, L: 768, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 768, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 768, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 768], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 768], dtype: float32, axes: [C, L], dist: rand}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 1024
-    N: 48
+  env: {B: 8, L: 1024, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 1024, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 1024, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 1024], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 1024], dtype: float32, axes: [C, L], dist: rand}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 384
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 384, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 96, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 96, 384], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 1
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 1, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 2
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 2, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [2, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [2, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 3
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 3, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [3, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [3, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [3, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [3, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 4
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 4, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [4, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [4, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [4, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [4, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 8
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 8, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [8, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [8, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 1
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 1, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 1], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 2
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 2, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 2], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 3
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 3, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 3], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 4
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 4, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 4], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 8
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 8, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 8], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 16
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 16, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 16], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 32
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 32, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 32], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 64
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 64, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 64], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 1
-    N: 48
+  env: {B: 8, L: 1, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 1, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 1, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 1], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 1], dtype: float32, axes: [C, L], dist: rand}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 2
-    N: 48
+  env: {B: 8, L: 2, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 2, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 2, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 2], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 2], dtype: float32, axes: [C, L], dist: rand}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 3
-    N: 48
+  env: {B: 8, L: 3, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 3, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 3, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 3], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 3], dtype: float32, axes: [C, L], dist: rand}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 4
-    N: 48
+  env: {B: 8, L: 4, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 4, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 4, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 4], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 4], dtype: float32, axes: [C, L], dist: rand}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 8
-    N: 48
+  env: {B: 8, L: 8, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 8, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 8, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 8], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 8], dtype: float32, axes: [C, L], dist: rand}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 16
-    N: 48
+  env: {B: 8, L: 16, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 16, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 16, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 16], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 16], dtype: float32, axes: [C, L], dist: rand}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 32
-    N: 48
+  env: {B: 8, L: 32, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 32, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 32, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 32], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 32], dtype: float32, axes: [C, L], dist: rand}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 64
-    N: 48
+  env: {B: 8, L: 64, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 64, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 64, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 64], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 64], dtype: float32, axes: [C, L], dist: rand}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 1
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 1, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 1], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 2
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 2, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 2], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 3
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 3, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 3], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 4
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 4, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 4], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 8
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 8, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 8], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 16
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 16, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 16], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 32
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 32, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 32], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    C: 12
-    D: 96
-    L: 128
-    N: 64
-hidden_shapes:
+  env: {B: 8, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 12, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 128, 64], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 128, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 128], dtype: float32, axes: [C, L], dist: rand}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
+  env: {B: 3, L: 96, D: 96, Dv: 96, N: 48, T: 96, H: 6, E: 3, C: 12, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [12, 96, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [12, 96, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [12, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: B, kind: tensor, shape: [2, 16, 8], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [2, 16, 16], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [2, 16], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [2, 16], dtype: float32, axes: [C, L], dist: rand}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 256, Dv: 256, N: 128, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [64, 512, 128], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [64, 512, 256], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [64, 512], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [64, 512], dtype: float32, axes: [C, L], dist: rand}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 32, D: 64, Dv: 64, N: 32, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: B, kind: tensor, shape: [8, 32, 32], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [8, 32, 64], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [8, 32], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [8, 32], dtype: float32, axes: [C, L], dist: rand}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    C: 1
-    D: 1
-    L: 1
-    N: 1
+  env: {B: 8, L: 1, D: 1, Dv: 128, N: 1, T: 128, H: 16, E: 8, C: 1, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 1], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 1], dtype: float32, axes: [C, L], dist: rand}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    C: 1
-    D: 96
-    L: 96
-    N: 48
+  env: {B: 8, L: 96, D: 96, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 1, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 96, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 96, 96], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 96], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 96], dtype: float32, axes: [C, L], dist: rand}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    C: 1
-    D: 2048
-    L: 128
-    N: 48
+  env: {B: 8, L: 128, D: 2048, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 1, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [1, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [1, 128, 2048], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [1, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [1, 128], dtype: float32, axes: [C, L], dist: rand}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    C: 256
-    D: 1
-    L: 128
-    N: 48
-inputs:
-  B:
-    dims:
-    - C
-    - L
-    - N
-    dtype: bfloat16
-    dist: randn
-  x:
-    dims:
-    - C
-    - L
-    - D
-    dtype: bfloat16
-    dist: randn
-  dt:
-    dims:
-    - C
-    - L
-    dtype: float32
-    dist: rand
-  dA_cumsum:
-    dims:
-    - C
-    - L
-    dtype: float32
-    dist: rand
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      B: '[4, 16, 16] bfloat16 axes=C,L,N dist=randn'
-      x: '[4, 16, 32] bfloat16 axes=C,L,D dist=randn'
-      dt: '[4, 16] float32 axes=C,L dist=rand'
-      dA_cumsum: '[4, 16] float32 axes=C,L dist=rand'
-  P2:
-    provenance: baseline
-    tensors:
-      B: '[8, 64, 32] bfloat16 axes=C,L,N dist=randn'
-      x: '[8, 64, 64] bfloat16 axes=C,L,D dist=randn'
-      dt: '[8, 64] float32 axes=C,L dist=rand'
-      dA_cumsum: '[8, 64] float32 axes=C,L dist=rand'
-  P3:
-    provenance: baseline
-    tensors:
-      B: '[16, 128, 64] bfloat16 axes=C,L,N dist=randn'
-      x: '[16, 128, 128] bfloat16 axes=C,L,D dist=randn'
-      dt: '[16, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[16, 128] float32 axes=C,L dist=rand'
-  P4:
-    provenance: baseline
-    tensors:
-      B: '[32, 256, 128] bfloat16 axes=C,L,N dist=randn'
-      x: '[32, 256, 256] bfloat16 axes=C,L,D dist=randn'
-      dt: '[32, 256] float32 axes=C,L dist=rand'
-      dA_cumsum: '[32, 256] float32 axes=C,L dist=rand'
-  P5:
-    provenance: synthetic
-    tensors:
-      B: '[8, 64, 64] bfloat16 axes=C,L,N dist=randn'
-      x: '[8, 64, 128] bfloat16 axes=C,L,D dist=randn'
-      dt: '[8, 64] float32 axes=C,L dist=rand'
-      dA_cumsum: '[8, 64] float32 axes=C,L dist=rand'
-  P6:
-    provenance: synthetic
-    tensors:
-      B: '[1, 96, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[1, 96, 512] bfloat16 axes=C,L,D dist=randn'
-      dt: '[1, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[1, 96] float32 axes=C,L dist=rand'
-  P7:
-    provenance: synthetic
-    tensors:
-      B: '[12, 96, 192] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 96, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 96] float32 axes=C,L dist=rand'
-  P8:
-    provenance: synthetic
-    tensors:
-      B: '[12, 96, 256] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 96, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 96] float32 axes=C,L dist=rand'
-  P9:
-    provenance: synthetic
-    tensors:
-      B: '[12, 768, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 768, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 768] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 768] float32 axes=C,L dist=rand'
-  P10:
-    provenance: synthetic
-    tensors:
-      B: '[12, 1024, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 1024, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 1024] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 1024] float32 axes=C,L dist=rand'
-  P11:
-    provenance: synthetic
-    tensors:
-      B: '[12, 96, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 96, 384] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 96] float32 axes=C,L dist=rand'
-  P12:
-    provenance: synthetic
-    tensors:
-      B: '[1, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[1, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[1, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[1, 128] float32 axes=C,L dist=rand'
-  P13:
-    provenance: synthetic
-    tensors:
-      B: '[2, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[2, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[2, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[2, 128] float32 axes=C,L dist=rand'
-  P14:
-    provenance: synthetic
-    tensors:
-      B: '[3, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[3, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[3, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[3, 128] float32 axes=C,L dist=rand'
-  P15:
-    provenance: synthetic
-    tensors:
-      B: '[4, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[4, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[4, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[4, 128] float32 axes=C,L dist=rand'
-  P16:
-    provenance: synthetic
-    tensors:
-      B: '[8, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[8, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[8, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[8, 128] float32 axes=C,L dist=rand'
-  P17:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 1] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P18:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 2] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P19:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 3] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P20:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 4] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P21:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 8] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P22:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 16] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P23:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 32] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P24:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 64] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P25:
-    provenance: synthetic
-    tensors:
-      B: '[12, 1, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 1, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 1] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 1] float32 axes=C,L dist=rand'
-  P26:
-    provenance: synthetic
-    tensors:
-      B: '[12, 2, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 2, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 2] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 2] float32 axes=C,L dist=rand'
-  P27:
-    provenance: synthetic
-    tensors:
-      B: '[12, 3, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 3, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 3] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 3] float32 axes=C,L dist=rand'
-  P28:
-    provenance: synthetic
-    tensors:
-      B: '[12, 4, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 4, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 4] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 4] float32 axes=C,L dist=rand'
-  P29:
-    provenance: synthetic
-    tensors:
-      B: '[12, 8, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 8, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 8] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 8] float32 axes=C,L dist=rand'
-  P30:
-    provenance: synthetic
-    tensors:
-      B: '[12, 16, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 16, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 16] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 16] float32 axes=C,L dist=rand'
-  P31:
-    provenance: synthetic
-    tensors:
-      B: '[12, 32, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 32, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 32] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 32] float32 axes=C,L dist=rand'
-  P32:
-    provenance: synthetic
-    tensors:
-      B: '[12, 64, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 64, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 64] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 64] float32 axes=C,L dist=rand'
-  P33:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 1] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P34:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 2] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P35:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 3] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P36:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 4] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P37:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 8] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P38:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 16] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P39:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 32] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P40:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  P41:
-    provenance: synthetic
-    tensors:
-      B: '[12, 128, 64] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 128, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 128] float32 axes=C,L dist=rand'
-  H1:
-    provenance: synthetic
-    tensors:
-      B: '[12, 96, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[12, 96, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[12, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[12, 96] float32 axes=C,L dist=rand'
-  H2:
-    provenance: edge
-    tensors:
-      B: '[2, 16, 8] bfloat16 axes=C,L,N dist=randn'
-      x: '[2, 16, 16] bfloat16 axes=C,L,D dist=randn'
-      dt: '[2, 16] float32 axes=C,L dist=rand'
-      dA_cumsum: '[2, 16] float32 axes=C,L dist=rand'
-  H3:
-    provenance: synthetic
-    tensors:
-      B: '[64, 512, 128] bfloat16 axes=C,L,N dist=randn'
-      x: '[64, 512, 256] bfloat16 axes=C,L,D dist=randn'
-      dt: '[64, 512] float32 axes=C,L dist=rand'
-      dA_cumsum: '[64, 512] float32 axes=C,L dist=rand'
-  H4:
-    provenance: synthetic
-    tensors:
-      B: '[8, 32, 32] bfloat16 axes=C,L,N dist=randn'
-      x: '[8, 32, 64] bfloat16 axes=C,L,D dist=randn'
-      dt: '[8, 32] float32 axes=C,L dist=rand'
-      dA_cumsum: '[8, 32] float32 axes=C,L dist=rand'
-  H5:
-    provenance: edge
-    tensors:
-      B: '[1, 1, 1] bfloat16 axes=C,L,N dist=randn'
-      x: '[1, 1, 1] bfloat16 axes=C,L,D dist=randn'
-      dt: '[1, 1] float32 axes=C,L dist=rand'
-      dA_cumsum: '[1, 1] float32 axes=C,L dist=rand'
-  H6:
-    provenance: edge
-    tensors:
-      B: '[1, 96, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[1, 96, 96] bfloat16 axes=C,L,D dist=randn'
-      dt: '[1, 96] float32 axes=C,L dist=rand'
-      dA_cumsum: '[1, 96] float32 axes=C,L dist=rand'
-  H7:
-    provenance: edge
-    tensors:
-      B: '[1, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[1, 128, 2048] bfloat16 axes=C,L,D dist=randn'
-      dt: '[1, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[1, 128] float32 axes=C,L dist=rand'
-  H8:
-    provenance: edge
-    tensors:
-      B: '[256, 128, 48] bfloat16 axes=C,L,N dist=randn'
-      x: '[256, 128, 1] bfloat16 axes=C,L,D dist=randn'
-      dt: '[256, 128] float32 axes=C,L dist=rand'
-      dA_cumsum: '[256, 128] float32 axes=C,L dist=rand'
+  env: {B: 8, L: 128, D: 1, Dv: 128, N: 48, T: 128, H: 16, E: 8, C: 256, G: 8}
+  inputs:
+  - {name: B, kind: tensor, shape: [256, 128, 48], dtype: bfloat16, axes: [C, L, N], dist: randn}
+  - {name: x, kind: tensor, shape: [256, 128, 1], dtype: bfloat16, axes: [C, L, D], dist: randn}
+  - {name: dt, kind: tensor, shape: [256, 128], dtype: float32, axes: [C, L], dist: rand}
+  - {name: dA_cumsum, kind: tensor, shape: [256, 128], dtype: float32, axes: [C, L], dist: rand}

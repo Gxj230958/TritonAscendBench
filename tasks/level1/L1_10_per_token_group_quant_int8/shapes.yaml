@@ -1,688 +1,297 @@
-# Operator-family knob grid: values reflect
-# the quantization family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 128
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 128, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 2048, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 8192
+  env: {B: 1, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 384
-    D: 6144
+  env: {B: 384, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 512
-    D: 8192
+  env: {B: 512, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 6144
+  env: {B: 48, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8192
+  env: {B: 48, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 512
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 1024
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 1024
+  env: {B: 2, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 1024
+  env: {B: 3, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1024
+  env: {B: 4, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
+  env: {B: 8, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1024
+  env: {B: 16, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 1024
+  env: {B: 32, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8
+  env: {B: 48, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 16
+  env: {B: 48, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 24
+  env: {B: 48, L: 128, D: 24, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 24], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 32
+  env: {B: 48, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 64
+  env: {B: 48, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 96
+  env: {B: 48, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
+  env: {B: 48, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 192
+  env: {B: 48, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 256
+  env: {B: 48, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 640
+  env: {B: 48, L: 128, D: 640, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 640], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 768
+  env: {B: 48, L: 128, D: 768, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1280
+  env: {B: 48, L: 128, D: 1280, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 1280], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1536
+  env: {B: 48, L: 128, D: 1536, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2048
+  env: {B: 48, L: 128, D: 2048, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2560
+  env: {B: 48, L: 128, D: 2560, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 2560], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 3072
+  env: {B: 48, L: 128, D: 3072, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 3072], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 3584
+  env: {B: 48, L: 128, D: 3584, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 3584], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 4096
+  env: {B: 48, L: 128, D: 4096, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 5120
+  env: {B: 48, L: 128, D: 5120, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 5120], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 12288
+  env: {B: 48, L: 128, D: 12288, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 12288], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 16384
-hidden_shapes:
+  env: {B: 48, L: 128, D: 16384, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 16384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 128, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 8
+  env: {B: 1, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 512
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 32768], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    D: 8
-inputs:
-  x:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  group_size:
-    scalar: 8
-  eps:
-    scalar: 1.0e-10
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[4, 128] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[16, 256] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[64, 512] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[128, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[8, 2048] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[1, 8192] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[384, 6144] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[512, 8192] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[48, 6144] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[48, 8192] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[384, 512] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[1, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[2, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[3, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[4, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[8, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[16, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[32, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[48, 8] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[48, 16] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[48, 24] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P22:
-    provenance: synthetic
-    tensors:
-      x: '[48, 32] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[48, 64] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[48, 96] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[48, 128] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[48, 192] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[48, 256] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[48, 512] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[48, 640] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[48, 768] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[48, 1024] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[48, 1280] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[48, 1536] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[48, 2048] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[48, 2560] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[48, 3072] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[48, 3584] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[48, 4096] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[48, 5120] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[48, 12288] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[48, 16384] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[48, 384] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 128] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[2, 4096] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[256, 128] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H5:
-    provenance: edge
-    tensors:
-      x: '[1, 8] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 512] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H7:
-    provenance: edge
-    tensors:
-      x: '[1, 32768] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
-  H8:
-    provenance: edge
-    tensors:
-      x: '[2048, 8] bfloat16 axes=B,D dist=randn'
-    params:
-      group_size: 8
-      eps: 1.0e-10
+  env: {B: 2048, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2048, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: group_size, kind: scalar, value: 8}
+  - {name: eps, kind: scalar, value: 1.0e-10}

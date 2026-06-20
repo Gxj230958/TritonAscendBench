@@ -1,893 +1,444 @@
-# Operator-family knob grid: values reflect
-# the gemm family's real axes.
-size_knobs:
-  B: 256
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 8
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 16
-    L: 16
-    D: 32
-    Dv: 8
-    N: 64
-    T: 8
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 16, L: 16, D: 32, Dv: 8, N: 64, T: 8, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 64], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [64, 4], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [2, 32], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [2, 4], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    L: 64
-    D: 128
-    Dv: 8
-    N: 256
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 64, L: 64, D: 128, Dv: 8, N: 256, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 256], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [256, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [8, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [8, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P3
-  name: medium
-  knobs:
-    B: 256
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 8
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 256, L: 128, D: 512, Dv: 8, N: 1024, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [256, 1024], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [1024, 16], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [32, 128], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [32, 16], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P4
-  name: large
-  knobs:
-    B: 512
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 8
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 512, L: 256, D: 1024, Dv: 8, N: 2048, T: 8, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [512, 2048], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [2048, 32], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [64, 256], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [64, 32], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 8
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 8, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    E: 64
-    N: 384
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [384, 64], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [12, 512], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [12, 64], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1536
-    E: 48
-    N: 6144
+  env: {B: 1536, L: 128, D: 512, Dv: 8, N: 6144, T: 8, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1536, 6144], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [6144, 48], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [192, 384], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [192, 48], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 2048
-    E: 64
-    N: 8192
+  env: {B: 2048, L: 128, D: 512, Dv: 8, N: 8192, T: 8, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2048, 8192], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [8192, 64], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [256, 512], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [256, 64], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    N: 6144
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 6144, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 6144], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [6144, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [192, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [192, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    N: 8192
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 8192, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 8192], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [8192, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [256, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [256, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 48
-    N: 384
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [384, 48], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [12, 384], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [12, 48], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    E: 8
-    N: 512
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    E: 8
-    N: 512
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    E: 8
-    N: 512
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [3, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    E: 8
-    N: 512
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    E: 8
-    N: 512
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    E: 8
-    N: 512
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [32, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 8
-    N: 512
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 1
-    N: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 1], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 8], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 1], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 2
-    N: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 2], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 16], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 2], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 3
-    N: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 3], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 24], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 3], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 4
-    N: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 4], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 32], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 4], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 32
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 32, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 32], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [32, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [1, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [1, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 64
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 64, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 64], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [64, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [2, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [2, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 96
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 96, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 96], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [96, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [3, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [3, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 128
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 128, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 128], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [128, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [4, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [4, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 192
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 192, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 192], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [192, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [6, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [6, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 256
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 256, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 256], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [256, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [8, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [8, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 384
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [384, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [12, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [12, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 640
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 640, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 640], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [640, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [20, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [20, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 768
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 768, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 768], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [768, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [24, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [24, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 1024
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 1024], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [1024, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [32, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [32, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 1280
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1280, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 1280], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [1280, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [40, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [40, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 1536
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1536, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [1536, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [48, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [48, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 2048
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 2048, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 2048], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [2048, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [64, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [64, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 2560
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 2560, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 2560], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [2560, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [80, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [80, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 3072
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 3072, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 3072], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [3072, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [96, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [96, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 3584
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 3584, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 3584], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [3584, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [112, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [112, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 4096
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 4096, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 4096], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [4096, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [128, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [128, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 5120
-hidden_shapes:
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 5120, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 5120], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [5120, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [160, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [160, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 192
-    Dv: 8
-    N: 384
-    T: 8
-    H: 6
-    E: 6
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 192, Dv: 8, N: 384, T: 8, H: 6, E: 6, C: 24, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [384, 6], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [12, 48], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [12, 6], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 32], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [32, 2], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [1, 16], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [1, 2], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 8
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 8, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 4096], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [4096, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [128, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [128, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 1024
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 8
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 1024, L: 32, D: 128, Dv: 8, N: 128, T: 8, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [1024, 128], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [128, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [4, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [4, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    N: 32
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 32, T: 8, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 32], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [32, 1], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [1, 8], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [1, 1], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 8
-    N: 384
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 384, T: 8, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [384, 8], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [12, 64], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [12, 8], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 256
-    N: 512
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 256, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 256], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 2048], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 256], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 8192
-    E: 1
-    N: 512
-inputs:
-  input:
-    dims:
-    - B
-    - N
-    dtype: float32
-    dist: randn
-  qweight:
-    dims:
-    - N
-    - E
-    dtype: int32
-    dist: randint:0:2147483648
-  scales:
-    dims:
-    - N//32
-    - E*8
-    dtype: float32
-    dist: rand
-  qzeros:
-    dims:
-    - N//32
-    - E
-    dtype: int32
-    dist: randint:0:2147483648
-  group_size:
-    scalar: 32
-  split_k_iters:
-    scalar: 8
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      input: '[16, 64] float32 axes=B,N dist=randn'
-      qweight: '[64, 4] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[2, 32] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[2, 4] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P2:
-    provenance: baseline
-    tensors:
-      input: '[64, 256] float32 axes=B,N dist=randn'
-      qweight: '[256, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[8, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[8, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P3:
-    provenance: baseline
-    tensors:
-      input: '[256, 1024] float32 axes=B,N dist=randn'
-      qweight: '[1024, 16] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[32, 128] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[32, 16] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P4:
-    provenance: baseline
-    tensors:
-      input: '[512, 2048] float32 axes=B,N dist=randn'
-      qweight: '[2048, 32] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[64, 256] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[64, 32] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P5:
-    provenance: synthetic
-    tensors:
-      input: '[8, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P6:
-    provenance: synthetic
-    tensors:
-      input: '[1, 384] float32 axes=B,N dist=randn'
-      qweight: '[384, 64] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[12, 512] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[12, 64] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P7:
-    provenance: synthetic
-    tensors:
-      input: '[1536, 6144] float32 axes=B,N dist=randn'
-      qweight: '[6144, 48] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[192, 384] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[192, 48] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P8:
-    provenance: synthetic
-    tensors:
-      input: '[2048, 8192] float32 axes=B,N dist=randn'
-      qweight: '[8192, 64] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[256, 512] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[256, 64] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P9:
-    provenance: synthetic
-    tensors:
-      input: '[64, 6144] float32 axes=B,N dist=randn'
-      qweight: '[6144, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[192, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[192, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P10:
-    provenance: synthetic
-    tensors:
-      input: '[64, 8192] float32 axes=B,N dist=randn'
-      qweight: '[8192, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[256, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[256, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P11:
-    provenance: synthetic
-    tensors:
-      input: '[64, 384] float32 axes=B,N dist=randn'
-      qweight: '[384, 48] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[12, 384] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[12, 48] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P12:
-    provenance: synthetic
-    tensors:
-      input: '[1, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P13:
-    provenance: synthetic
-    tensors:
-      input: '[2, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P14:
-    provenance: synthetic
-    tensors:
-      input: '[3, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P15:
-    provenance: synthetic
-    tensors:
-      input: '[4, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P16:
-    provenance: synthetic
-    tensors:
-      input: '[16, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P17:
-    provenance: synthetic
-    tensors:
-      input: '[32, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P18:
-    provenance: synthetic
-    tensors:
-      input: '[64, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P19:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 8] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P20:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 2] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 16] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 2] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P21:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 3] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 24] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 3] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P22:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 4] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 32] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 4] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P23:
-    provenance: synthetic
-    tensors:
-      input: '[96, 32] float32 axes=B,N dist=randn'
-      qweight: '[32, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[1, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[1, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P24:
-    provenance: synthetic
-    tensors:
-      input: '[96, 64] float32 axes=B,N dist=randn'
-      qweight: '[64, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[2, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[2, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P25:
-    provenance: synthetic
-    tensors:
-      input: '[96, 96] float32 axes=B,N dist=randn'
-      qweight: '[96, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[3, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[3, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P26:
-    provenance: synthetic
-    tensors:
-      input: '[96, 128] float32 axes=B,N dist=randn'
-      qweight: '[128, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[4, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[4, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P27:
-    provenance: synthetic
-    tensors:
-      input: '[96, 192] float32 axes=B,N dist=randn'
-      qweight: '[192, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[6, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[6, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P28:
-    provenance: synthetic
-    tensors:
-      input: '[96, 256] float32 axes=B,N dist=randn'
-      qweight: '[256, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[8, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[8, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P29:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] float32 axes=B,N dist=randn'
-      qweight: '[384, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[12, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[12, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P30:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P31:
-    provenance: synthetic
-    tensors:
-      input: '[96, 640] float32 axes=B,N dist=randn'
-      qweight: '[640, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[20, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[20, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P32:
-    provenance: synthetic
-    tensors:
-      input: '[96, 768] float32 axes=B,N dist=randn'
-      qweight: '[768, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[24, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[24, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P33:
-    provenance: synthetic
-    tensors:
-      input: '[96, 1024] float32 axes=B,N dist=randn'
-      qweight: '[1024, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[32, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[32, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P34:
-    provenance: synthetic
-    tensors:
-      input: '[96, 1280] float32 axes=B,N dist=randn'
-      qweight: '[1280, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[40, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[40, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P35:
-    provenance: synthetic
-    tensors:
-      input: '[96, 1536] float32 axes=B,N dist=randn'
-      qweight: '[1536, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[48, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[48, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P36:
-    provenance: synthetic
-    tensors:
-      input: '[96, 2048] float32 axes=B,N dist=randn'
-      qweight: '[2048, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[64, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[64, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P37:
-    provenance: synthetic
-    tensors:
-      input: '[96, 2560] float32 axes=B,N dist=randn'
-      qweight: '[2560, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[80, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[80, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P38:
-    provenance: synthetic
-    tensors:
-      input: '[96, 3072] float32 axes=B,N dist=randn'
-      qweight: '[3072, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[96, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[96, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P39:
-    provenance: synthetic
-    tensors:
-      input: '[96, 3584] float32 axes=B,N dist=randn'
-      qweight: '[3584, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[112, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[112, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P40:
-    provenance: synthetic
-    tensors:
-      input: '[96, 4096] float32 axes=B,N dist=randn'
-      qweight: '[4096, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[128, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[128, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  P41:
-    provenance: synthetic
-    tensors:
-      input: '[96, 5120] float32 axes=B,N dist=randn'
-      qweight: '[5120, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[160, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[160, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H1:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] float32 axes=B,N dist=randn'
-      qweight: '[384, 6] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[12, 48] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[12, 6] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H2:
-    provenance: edge
-    tensors:
-      input: '[2, 32] float32 axes=B,N dist=randn'
-      qweight: '[32, 2] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[1, 16] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[1, 2] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H3:
-    provenance: synthetic
-    tensors:
-      input: '[4, 4096] float32 axes=B,N dist=randn'
-      qweight: '[4096, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[128, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[128, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H4:
-    provenance: synthetic
-    tensors:
-      input: '[1024, 128] float32 axes=B,N dist=randn'
-      qweight: '[128, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[4, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[4, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H5:
-    provenance: edge
-    tensors:
-      input: '[1, 32] float32 axes=B,N dist=randn'
-      qweight: '[32, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[1, 8] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[1, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H6:
-    provenance: edge
-    tensors:
-      input: '[1, 384] float32 axes=B,N dist=randn'
-      qweight: '[384, 8] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[12, 64] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[12, 8] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H7:
-    provenance: edge
-    tensors:
-      input: '[1, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 256] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 2048] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 256] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
-  H8:
-    provenance: edge
-    tensors:
-      input: '[8192, 512] float32 axes=B,N dist=randn'
-      qweight: '[512, 1] int32 axes=N,E dist=randint(lo=0, hi=2147483648)'
-      scales: '[16, 8] float32 axes=N//32,E*8 dist=rand'
-      qzeros: '[16, 1] int32 axes=N//32,E dist=randint(lo=0, hi=2147483648)'
-    params:
-      group_size: 32
-      split_k_iters: 8
+  env: {B: 8192, L: 128, D: 512, Dv: 8, N: 512, T: 8, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [8192, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: qweight, kind: tensor, shape: [512, 1], dtype: int32, axes: [N, E], dist: 'randint:0:2147483648'}
+  - {name: scales, kind: tensor, shape: [16, 8], dtype: float32, axes: [N//32, E*8], dist: rand}
+  - {name: qzeros, kind: tensor, shape: [16, 1], dtype: int32, axes: [N//32, E], dist: 'randint:0:2147483648'}
+  - {name: group_size, kind: scalar, value: 32}
+  - {name: split_k_iters, kind: scalar, value: 8}

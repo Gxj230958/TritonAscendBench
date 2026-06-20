@@ -1,890 +1,444 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 4, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [32, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [64], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [64], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 8, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [128, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [256], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [256], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [256, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [512], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [512], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 64, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 128, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 384
-    E: 512
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 512, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 768
-    D: 6144
-    E: 384
+  env: {B: 768, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [768, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [1536], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [1536], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 384, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1024
-    D: 8192
-    E: 512
+  env: {B: 1024, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1024, 8192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2048], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2048], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 512, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    E: 384
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 384, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    E: 512
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 512, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 6144
-    E: 32
+  env: {B: 96, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 6144], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 512
-    E: 32
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 512
-    E: 32
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [4], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [4], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 512
-    E: 32
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [3, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [6], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [6], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 512
-    E: 32
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [8], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [8], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
-    E: 32
+  env: {B: 8, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [16], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
-    E: 32
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [32], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [32], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    E: 32
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [64], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [64], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 512
-    E: 32
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [128], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [128], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1
-    E: 32
+  env: {B: 96, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 2
-    E: 32
+  env: {B: 96, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 3
-    E: 32
+  env: {B: 96, L: 128, D: 3, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 3], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 4
-    E: 32
+  env: {B: 96, L: 128, D: 4, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 8
-    E: 32
+  env: {B: 96, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 16
-    E: 32
+  env: {B: 96, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 32
-    E: 32
+  env: {B: 96, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 64
-    E: 32
+  env: {B: 96, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 96
-    E: 32
+  env: {B: 96, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 128
-    E: 32
+  env: {B: 96, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 192
-    E: 32
+  env: {B: 96, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 256
-    E: 32
+  env: {B: 96, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    E: 32
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 1
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 1, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 2
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 2, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 3
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 3, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 4
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 4, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 8
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 8, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 16
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 16, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 32
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 64
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 64, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
-    E: 96
-hidden_shapes:
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 96, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 96, expr: E}
+  - {name: topk, kind: scalar, value: 2}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 12, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [4], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [4], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 2, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [8], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [8], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 8, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [512, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [1024], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [1024], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 256, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    E: 1
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 1, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
-    E: 32
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 32, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 512
-    E: 2048
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 2048, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [2], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 2048, expr: E}
+  - {name: topk, kind: scalar, value: 2}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 4096
-    D: 512
-    E: 1
-inputs:
-  input:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  src2dst:
-    dims:
-    - B*2
-    dtype: int64
-    dist: randperm
-  topk_ids:
-    dims:
-    - B*2
-    dtype: int64
-    dist: randint:0:E+1
-  a1_scales:
-    dims:
-    - 1
-    dtype: float32
-    dist: rand
-  num_local_experts:
-    scalar_knob: E
-  topk:
-    scalar: 2
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      input: '[8, 64] bfloat16 axes=B,D dist=randn'
-      src2dst: '[16] int64 axes=B*2 dist=randperm'
-      topk_ids: '[16] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 4
-      topk: 2
-  P2:
-    provenance: baseline
-    tensors:
-      input: '[32, 256] bfloat16 axes=B,D dist=randn'
-      src2dst: '[64] int64 axes=B*2 dist=randperm'
-      topk_ids: '[64] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 8
-      topk: 2
-  P3:
-    provenance: baseline
-    tensors:
-      input: '[128, 1024] bfloat16 axes=B,D dist=randn'
-      src2dst: '[256] int64 axes=B*2 dist=randperm'
-      topk_ids: '[256] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P4:
-    provenance: baseline
-    tensors:
-      input: '[256, 2048] bfloat16 axes=B,D dist=randn'
-      src2dst: '[512] int64 axes=B*2 dist=randperm'
-      topk_ids: '[512] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 64
-      topk: 2
-  P5:
-    provenance: synthetic
-    tensors:
-      input: '[8, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[16] int64 axes=B*2 dist=randperm'
-      topk_ids: '[16] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 128
-      topk: 2
-  P6:
-    provenance: synthetic
-    tensors:
-      input: '[1, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 512
-      topk: 2
-  P7:
-    provenance: synthetic
-    tensors:
-      input: '[768, 6144] bfloat16 axes=B,D dist=randn'
-      src2dst: '[1536] int64 axes=B*2 dist=randperm'
-      topk_ids: '[1536] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 384
-      topk: 2
-  P8:
-    provenance: synthetic
-    tensors:
-      input: '[1024, 8192] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2048] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2048] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 512
-      topk: 2
-  P9:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 384
-      topk: 2
-  P10:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 512
-      topk: 2
-  P11:
-    provenance: synthetic
-    tensors:
-      input: '[96, 6144] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P12:
-    provenance: synthetic
-    tensors:
-      input: '[1, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P13:
-    provenance: synthetic
-    tensors:
-      input: '[2, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[4] int64 axes=B*2 dist=randperm'
-      topk_ids: '[4] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P14:
-    provenance: synthetic
-    tensors:
-      input: '[3, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[6] int64 axes=B*2 dist=randperm'
-      topk_ids: '[6] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P15:
-    provenance: synthetic
-    tensors:
-      input: '[4, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[8] int64 axes=B*2 dist=randperm'
-      topk_ids: '[8] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P16:
-    provenance: synthetic
-    tensors:
-      input: '[8, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[16] int64 axes=B*2 dist=randperm'
-      topk_ids: '[16] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P17:
-    provenance: synthetic
-    tensors:
-      input: '[16, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[32] int64 axes=B*2 dist=randperm'
-      topk_ids: '[32] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P18:
-    provenance: synthetic
-    tensors:
-      input: '[32, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[64] int64 axes=B*2 dist=randperm'
-      topk_ids: '[64] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P19:
-    provenance: synthetic
-    tensors:
-      input: '[64, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[128] int64 axes=B*2 dist=randperm'
-      topk_ids: '[128] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P20:
-    provenance: synthetic
-    tensors:
-      input: '[96, 1] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P21:
-    provenance: synthetic
-    tensors:
-      input: '[96, 2] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P22:
-    provenance: synthetic
-    tensors:
-      input: '[96, 3] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P23:
-    provenance: synthetic
-    tensors:
-      input: '[96, 4] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P24:
-    provenance: synthetic
-    tensors:
-      input: '[96, 8] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P25:
-    provenance: synthetic
-    tensors:
-      input: '[96, 16] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P26:
-    provenance: synthetic
-    tensors:
-      input: '[96, 32] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P27:
-    provenance: synthetic
-    tensors:
-      input: '[96, 64] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P28:
-    provenance: synthetic
-    tensors:
-      input: '[96, 96] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P29:
-    provenance: synthetic
-    tensors:
-      input: '[96, 128] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P30:
-    provenance: synthetic
-    tensors:
-      input: '[96, 192] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P31:
-    provenance: synthetic
-    tensors:
-      input: '[96, 256] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P32:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P33:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 1
-      topk: 2
-  P34:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 2
-      topk: 2
-  P35:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 3
-      topk: 2
-  P36:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 4
-      topk: 2
-  P37:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 8
-      topk: 2
-  P38:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 16
-      topk: 2
-  P39:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  P40:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 64
-      topk: 2
-  P41:
-    provenance: synthetic
-    tensors:
-      input: '[96, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 96
-      topk: 2
-  H1:
-    provenance: synthetic
-    tensors:
-      input: '[96, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 12
-      topk: 2
-  H2:
-    provenance: edge
-    tensors:
-      input: '[2, 16] bfloat16 axes=B,D dist=randn'
-      src2dst: '[4] int64 axes=B*2 dist=randperm'
-      topk_ids: '[4] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 2
-      topk: 2
-  H3:
-    provenance: synthetic
-    tensors:
-      input: '[4, 4096] bfloat16 axes=B,D dist=randn'
-      src2dst: '[8] int64 axes=B*2 dist=randperm'
-      topk_ids: '[8] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 8
-      topk: 2
-  H4:
-    provenance: synthetic
-    tensors:
-      input: '[512, 128] bfloat16 axes=B,D dist=randn'
-      src2dst: '[1024] int64 axes=B*2 dist=randperm'
-      topk_ids: '[1024] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 256
-      topk: 2
-  H5:
-    provenance: edge
-    tensors:
-      input: '[1, 1] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 1
-      topk: 2
-  H6:
-    provenance: edge
-    tensors:
-      input: '[1, 384] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 32
-      topk: 2
-  H7:
-    provenance: edge
-    tensors:
-      input: '[1, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[2] int64 axes=B*2 dist=randperm'
-      topk_ids: '[2] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 2048
-      topk: 2
-  H8:
-    provenance: edge
-    tensors:
-      input: '[4096, 512] bfloat16 axes=B,D dist=randn'
-      src2dst: '[8192] int64 axes=B*2 dist=randperm'
-      topk_ids: '[8192] int64 axes=B*2 dist=randint(lo=0, hi=E+1)'
-      a1_scales: '[1] float32 axes=1 dist=rand'
-    params:
-      num_local_experts: 1
-      topk: 2
+  env: {B: 4096, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4096, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: src2dst, kind: tensor, shape: [8192], dtype: int64, axes: [B*2], dist: randperm}
+  - {name: topk_ids, kind: tensor, shape: [8192], dtype: int64, axes: [B*2], dist: 'randint:0:E+1'}
+  - {name: a1_scales, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+  - {name: num_local_experts, kind: scalar_knob, value: 1, expr: E}
+  - {name: topk, kind: scalar, value: 2}

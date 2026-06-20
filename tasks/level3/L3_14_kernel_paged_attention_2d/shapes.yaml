@@ -1,800 +1,353 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: query, kind: tensor, shape: [2, 4, 32], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 16, 4, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 16, 4, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [2, 64], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [2, 4, 64, 32], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: query, kind: tensor, shape: [4, 8, 64], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 32, 8, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 32, 8, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [4, 128], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [4, 8, 128, 64], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 16, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 256], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 16, 256, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [16, 32, 256], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [64, 128, 32, 256], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [64, 128, 32, 256], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [16, 512], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [16, 32, 512, 256], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: query, kind: tensor, shape: [2, 64, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 32, 64, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 32, 64, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [2, 256], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [2, 64, 256, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    C: 24
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [1, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [1, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [1, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    C: 24
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [2, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [2, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [2, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    C: 24
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [3, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [3, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [3, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 24
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 4, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [4, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [4, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [4, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 1
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 1, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [1, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [1, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 2
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 2, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [2, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [2, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 3
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 3, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [3, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [3, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 4
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 4, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [4, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [4, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 8
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 8, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 16
-    D: 128
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 16, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 16
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 16, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 16], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 16], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 16], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 16], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 32
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 32, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 32], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 32], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 64
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 64, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 64], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 64], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 96
-    H: 12
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 96, Dv: 8, N: 192, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 96], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 96], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 96], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 192, 96], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 1
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 1, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 1, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 1, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 1, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 1, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 2
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 2, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 2, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 2, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 2, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 2, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 3
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 3, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 3, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 3, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 3, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 3, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 4
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 4, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 4, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 4, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 4, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 4, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 8
-    N: 192
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 8, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 8, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 8, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 8, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 8, 192, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 1
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 1], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 1, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 2
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 2, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 2], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 2, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 3
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 3, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 3], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 3, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 4
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 4], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 4, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 8
-    T: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 8, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 8], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 8, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    N: 16
-    T: 64
-hidden_shapes:
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 16, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [8, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [8, 16], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [8, 12, 16, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: query, kind: tensor, shape: [3, 12, 64], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [3, 192], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [3, 12, 192, 64], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: H2
-  name: h_singleton
-  # T is the paged-cache block_size (PHYSICAL_BLOCK_SIZE). The kernel tiles
-  # the per-tile P@V matmul over BLOCK_SIZE = min(T, 64) for pow2 T, and
-  # Triton's tl.dot requires the contraction dim K >= 16. Real vLLM paged
-  # KV block_size is always a pow2 >= 16; T=8 is outside the op's valid
-  # regime and made tl.dot(p, V) fail to compile (K=8<16). T=16 is the
-  # smallest realistic block_size and keeps this the smallest hidden shape.
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 16
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 16, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: query, kind: tensor, shape: [2, 2, 32], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [4, 16, 2, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [4, 16, 2, 32], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [2, 32], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [2, 2, 32, 32], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: query, kind: tensor, shape: [32, 8, 64], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 16, 8, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 16, 8, 64], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [32, 128], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [32, 8, 128, 64], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 24
-    D: 128
-    H: 12
-    N: 2048
-    T: 64
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 2048, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [1, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [1, 12, 2048, 128], dtype: float16, axes: [B, H, N, D], dist: randn}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 128
-    C: 24
-    D: 128
-    H: 12
-    N: 1
-    T: 64
-inputs:
-  query:
-    dims:
-    - B
-    - H
-    - D
-    dtype: float32
-    dist: randn
-  key_cache:
-    dims:
-    - C
-    - T
-    - H
-    - D
-    dtype: float32
-    dist: randn
-  value_cache:
-    dims:
-    - C
-    - T
-    - H
-    - D
-    dtype: float32
-    dist: randn
-  block_table:
-    dims:
-    - B
-    - N
-    dtype: int64
-    dist: randint:0:C
-  seq_lens:
-    dims:
-    - B
-    dtype: int64
-    dist: randint:1:T
-  scale:
-    derive: 1/sqrt(D)
-  key:
-    dims:
-    - B
-    - H
-    - N
-    - D
-    dtype: float16
-    dist: randn
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      query: '[2, 4, 32] float32 axes=B,H,D dist=randn'
-      key_cache: '[8, 16, 4, 32] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 16, 4, 32] float32 axes=C,T,H,D dist=randn'
-      block_table: '[2, 64] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[2, 4, 64, 32] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  P2:
-    provenance: baseline
-    tensors:
-      query: '[4, 8, 64] float32 axes=B,H,D dist=randn'
-      key_cache: '[16, 32, 8, 64] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 32, 8, 64] float32 axes=C,T,H,D dist=randn'
-      block_table: '[4, 128] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[4] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[4, 8, 128, 64] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.125
-  P3:
-    provenance: baseline
-    tensors:
-      query: '[8, 16, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 256] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 16, 256, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P4:
-    provenance: baseline
-    tensors:
-      query: '[16, 32, 256] float32 axes=B,H,D dist=randn'
-      key_cache: '[64, 128, 32, 256] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[64, 128, 32, 256] float32 axes=C,T,H,D dist=randn'
-      block_table: '[16, 512] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[16] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[16, 32, 512, 256] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.0625
-  P5:
-    provenance: synthetic
-    tensors:
-      query: '[2, 64, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[16, 32, 64, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 32, 64, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[2, 256] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[2, 64, 256, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P6:
-    provenance: synthetic
-    tensors:
-      query: '[1, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[1, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[1] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[1, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P7:
-    provenance: synthetic
-    tensors:
-      query: '[2, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[2, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[2, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P8:
-    provenance: synthetic
-    tensors:
-      query: '[3, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[3, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[3] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[3, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P9:
-    provenance: synthetic
-    tensors:
-      query: '[4, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[4, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[4] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[4, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P10:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[1, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[1, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P11:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[2, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[2, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P12:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[3, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[3, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P13:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[4, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[4, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P14:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[8, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P15:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[16, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P21:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 16] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 16] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 16] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 16] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.25
-  P22:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 32] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 32] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 32] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 32] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  P23:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 64] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 64] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 64] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 64] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.125
-  P24:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 96] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 96] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 96] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 192, 96] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.10206207261596577
-  P25:
-    provenance: synthetic
-    tensors:
-      query: '[8, 1, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 1, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 1, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 1, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P26:
-    provenance: synthetic
-    tensors:
-      query: '[8, 2, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 2, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 2, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 2, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P27:
-    provenance: synthetic
-    tensors:
-      query: '[8, 3, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 3, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 3, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 3, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P28:
-    provenance: synthetic
-    tensors:
-      query: '[8, 4, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 4, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 4, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 4, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P29:
-    provenance: synthetic
-    tensors:
-      query: '[8, 8, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 8, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 8, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 8, 192, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P30:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 1] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 1, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P31:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 2] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 2, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P32:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 3] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 3, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P33:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 4] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 4, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P34:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 8] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 8, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  P35:
-    provenance: synthetic
-    tensors:
-      query: '[8, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[8, 16] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[8] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[8, 12, 16, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  H1:
-    provenance: synthetic
-    tensors:
-      query: '[3, 12, 64] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 64] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 64] float32 axes=C,T,H,D dist=randn'
-      block_table: '[3, 192] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[3] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[3, 12, 192, 64] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.125
-  H2:
-    provenance: edge
-    tensors:
-      query: '[2, 2, 32] float32 axes=B,H,D dist=randn'
-      key_cache: '[4, 16, 2, 32] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[4, 16, 2, 32] float32 axes=C,T,H,D dist=randn'
-      block_table: '[2, 32] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[2] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[2, 2, 32, 32] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.17677669529663687
-  H4:
-    provenance: synthetic
-    tensors:
-      query: '[32, 8, 64] float32 axes=B,H,D dist=randn'
-      key_cache: '[8, 16, 8, 64] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 16, 8, 64] float32 axes=C,T,H,D dist=randn'
-      block_table: '[32, 128] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[32] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[32, 8, 128, 64] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.125
-  H6:
-    provenance: edge
-    tensors:
-      query: '[1, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[1, 2048] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[1] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[1, 12, 2048, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
-  H7:
-    provenance: edge
-    tensors:
-      query: '[128, 12, 128] float32 axes=B,H,D dist=randn'
-      key_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 64, 12, 128] float32 axes=C,T,H,D dist=randn'
-      block_table: '[128, 1] int64 axes=B,N dist=randint(lo=0, hi=C)'
-      seq_lens: '[128] int64 axes=B dist=randint(lo=1, hi=T)'
-      key: '[128, 12, 1, 128] float16 axes=B,H,N,D dist=randn'
-    params:
-      scale: 0.08838834764831843
+  env: {B: 128, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: query, kind: tensor, shape: [128, 12, 128], dtype: float32, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 64, 12, 128], dtype: float32, axes: [C, T, H, D], dist: randn}
+  - {name: block_table, kind: tensor, shape: [128, 1], dtype: int64, axes: [B, N], dist: 'randint:0:C'}
+  - {name: seq_lens, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'randint:1:T'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: key, kind: tensor, shape: [128, 12, 1, 128], dtype: float16, axes: [B, H, N, D], dist: randn}

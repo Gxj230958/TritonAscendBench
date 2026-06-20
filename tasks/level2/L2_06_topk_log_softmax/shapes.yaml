@@ -1,719 +1,291 @@
-# Operator-family knob grid: values reflect
-# the sampling family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 4096
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 64, Dv: 8, N: 128, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 128], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [4, 64], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 512], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [16, 256], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 4096
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [64, 4096], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [64, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 32768
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 32768, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [128, 32768], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [128, 1024], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 2048
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 2048, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 2048], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [8, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 8192
-    N: 1536
+  env: {B: 1, L: 128, D: 8192, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [1, 8192], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 6144
-    N: 1536
+  env: {B: 48, L: 128, D: 6144, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 6144], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8192
-    N: 1536
+  env: {B: 48, L: 128, D: 8192, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 8192], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 384
-    N: 1536
+  env: {B: 384, L: 128, D: 384, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [384, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [384, 384], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 512
-    D: 384
-    N: 1536
+  env: {B: 512, L: 128, D: 384, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [512, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [512, 384], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 512
-    N: 1536
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [1, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 512
-    N: 1536
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [2, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 512
-    N: 1536
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [3, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [3, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 512
-    N: 1536
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [4, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
-    N: 1536
+  env: {B: 8, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [8, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
-    N: 1536
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [16, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
-    N: 1536
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [32, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [32, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1
-    N: 1536
+  env: {B: 48, L: 128, D: 1, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 1], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2
-    N: 1536
+  env: {B: 48, L: 128, D: 2, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 2], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 3
-    N: 1536
+  env: {B: 48, L: 128, D: 3, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 3], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 4
-    N: 1536
+  env: {B: 48, L: 128, D: 4, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 4], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8
-    N: 1536
+  env: {B: 48, L: 128, D: 8, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 8], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 16
-    N: 1536
+  env: {B: 48, L: 128, D: 16, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 16], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 32
-    N: 1536
+  env: {B: 48, L: 128, D: 32, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 32], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 64
-    N: 1536
+  env: {B: 48, L: 128, D: 64, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 64], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 96
-    N: 1536
+  env: {B: 48, L: 128, D: 96, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 96], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
-    N: 1536
+  env: {B: 48, L: 128, D: 128, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 128], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 192
-    N: 1536
+  env: {B: 48, L: 128, D: 192, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 192], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 256
-    N: 1536
+  env: {B: 48, L: 128, D: 256, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 256], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 2
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 2, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 2], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 4
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 4, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 4], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 6
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 6, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 6], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 8
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 8, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 8], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 16
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 16, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 16], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 32
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 32, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 32], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 64
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 64, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 64], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 96
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 96, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 96], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 128
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 128, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 128], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 192
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 192, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 192], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 256
-hidden_shapes:
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 256, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 256], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 512], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 1536
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 1536, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [48, 384], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 64
-    Dv: 8
-    N: 16
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 64, Dv: 8, N: 16, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 16], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [2, 64], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 65536
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 65536, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 65536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [2, 4096], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 256
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 256, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [256, 256], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [256, 128], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    N: 2
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 2, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 2], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [1, 1], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
-    N: 1536
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [1, 384], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
-    N: 1536
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [1, 32768], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    D: 1
-    N: 1536
-inputs:
-  logits:
-    dims:
-    - B
-    - N
-    dtype: bf16
-    dist: randn
-  token_ids:
-    dims:
-    - B
-    - D
-    dtype: int64
-    dist: randint:0:N
-  num_logprobs:
-    scalar: 5
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      logits: '[4, 128] bf16 axes=B,N dist=randn'
-      token_ids: '[4, 64] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P2:
-    provenance: baseline
-    tensors:
-      logits: '[16, 512] bf16 axes=B,N dist=randn'
-      token_ids: '[16, 256] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P3:
-    provenance: baseline
-    tensors:
-      logits: '[64, 4096] bf16 axes=B,N dist=randn'
-      token_ids: '[64, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P4:
-    provenance: baseline
-    tensors:
-      logits: '[128, 32768] bf16 axes=B,N dist=randn'
-      token_ids: '[128, 1024] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P5:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 2048] bf16 axes=B,N dist=randn'
-      token_ids: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P6:
-    provenance: synthetic
-    tensors:
-      logits: '[1, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[1, 8192] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P7:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 6144] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P8:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 8192] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P9:
-    provenance: synthetic
-    tensors:
-      logits: '[384, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[384, 384] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P10:
-    provenance: synthetic
-    tensors:
-      logits: '[512, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[512, 384] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P11:
-    provenance: synthetic
-    tensors:
-      logits: '[1, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[1, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P12:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[2, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P13:
-    provenance: synthetic
-    tensors:
-      logits: '[3, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[3, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P14:
-    provenance: synthetic
-    tensors:
-      logits: '[4, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[4, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P15:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P16:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[16, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P17:
-    provenance: synthetic
-    tensors:
-      logits: '[32, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[32, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P18:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 1] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P19:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 2] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P20:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 3] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P21:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 4] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P22:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 8] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P23:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 16] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P24:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 32] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P25:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 64] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P26:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 96] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P27:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 128] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P28:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 192] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P29:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 256] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P30:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 2] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P31:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 4] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P32:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 6] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P33:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 8] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P34:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 16] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P35:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 32] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P36:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 64] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P37:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 96] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P38:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 128] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P39:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 192] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  P40:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 256] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 512] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H1:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[48, 384] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H2:
-    provenance: edge
-    tensors:
-      logits: '[2, 16] bf16 axes=B,N dist=randn'
-      token_ids: '[2, 64] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H3:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 65536] bf16 axes=B,N dist=randn'
-      token_ids: '[2, 4096] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H4:
-    provenance: synthetic
-    tensors:
-      logits: '[256, 256] bf16 axes=B,N dist=randn'
-      token_ids: '[256, 128] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H5:
-    provenance: edge
-    tensors:
-      logits: '[1, 2] bf16 axes=B,N dist=randn'
-      token_ids: '[1, 1] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H6:
-    provenance: edge
-    tensors:
-      logits: '[1, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[1, 384] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H7:
-    provenance: edge
-    tensors:
-      logits: '[1, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[1, 32768] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
-  H8:
-    provenance: edge
-    tensors:
-      logits: '[2048, 1536] bf16 axes=B,N dist=randn'
-      token_ids: '[2048, 1] int64 axes=B,D dist=randint(lo=0, hi=N)'
-    params:
-      num_logprobs: 5
+  env: {B: 2048, L: 128, D: 1, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2048, 1536], dtype: bf16, axes: [B, N], dist: randn}
+  - {name: token_ids, kind: tensor, shape: [2048, 1], dtype: int64, axes: [B, D], dist: 'randint:0:N'}
+  - {name: num_logprobs, kind: scalar, value: 5}

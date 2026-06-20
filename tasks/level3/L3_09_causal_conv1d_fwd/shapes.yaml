@@ -1,666 +1,283 @@
-# Operator-family knob grid: values reflect
-# the convolution family's real axes.
-# KW is the depthwise causal-conv KERNEL_WIDTH. The frozen
-# `_causal_conv1d_fwd_kernel` only implements widths 2/3/4 in its main
-# compute loop; 4 is the canonical Mamba causal_conv1d width and exercises
-# all four weight taps plus the full 3-token causal history. It is a fixed
-# kernel constant, not a swept size axis, so it is pinned to 4 everywhere.
-size_knobs:
-  B: 8
-  L: 512
-  D: 512
-  KW: 4
-  Dv: 8
-  N: 512
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 32
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 32, D: 64, KW: 4, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 32], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [64, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 128
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 128, D: 256, KW: 4, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 128], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 512
-    Dv: 8
-    N: 512
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 512, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [512, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [512], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 2048
-    D: 1024
-    Dv: 8
-    N: 512
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 2048, D: 1024, KW: 4, Dv: 8, N: 512, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1024, 2048], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [1024, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [1024], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 256, D: 2048, KW: 4, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [2048, 256], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [2048, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2048], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 6144
+  env: {B: 8, L: 6144, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 6144], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 8192
+  env: {B: 8, L: 8192, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 8192], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    D: 3072
-    KW: 4
-    L: 384
+  env: {B: 8, L: 384, D: 3072, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3072, 384], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [3072, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3072], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 2
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 2, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [2, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [2], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 3
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 3, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [3, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [3], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 4
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 4, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [4, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [4], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 8
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 8, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [8, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [8], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 16
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 16, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [16, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 32
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 32, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [32, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [32], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 64
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 64, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [64, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [64], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 96
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 96, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [96], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 128
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 128, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [128, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 192
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 192, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [192, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [192], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 256
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 256, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 2
-    L: 512
+  env: {B: 8, L: 512, D: 384, KW: 2, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 2], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 3
-    L: 512
+  env: {B: 8, L: 512, D: 384, KW: 3, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 1
+  env: {B: 8, L: 1, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 1], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 2
+  env: {B: 8, L: 2, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 2], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 3
+  env: {B: 8, L: 3, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 3], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 4
+  env: {B: 8, L: 4, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 8
+  env: {B: 8, L: 8, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 8], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 16
+  env: {B: 8, L: 16, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 16], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 32
+  env: {B: 8, L: 32, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 32], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 64
+  env: {B: 8, L: 64, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 64], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 96
+  env: {B: 8, L: 96, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 96], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 128
+  env: {B: 8, L: 128, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 128], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 192
+  env: {B: 8, L: 192, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 192], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 256
+  env: {B: 8, L: 256, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 256], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 512
+  env: {B: 8, L: 512, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 640
+  env: {B: 8, L: 640, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 640], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    D: 384
-    KW: 4
-    L: 768
-hidden_shapes:
+  env: {B: 8, L: 768, D: 384, KW: 4, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 768], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 384
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 384, D: 384, KW: 4, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 384], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [384, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [384], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 8
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 8, D: 16, KW: 4, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 8], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [16, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [16], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 4096
-    D: 256
-    Dv: 8
-    N: 512
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 4096, D: 256, KW: 4, Dv: 8, N: 512, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 4096], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [256, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [256], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-inputs:
-  x:
-    dims:
-    - D
-    - L
-    dtype: bfloat16
-    dist: randn
-  weight:
-    dims:
-    - D
-    - KW
-    dtype: bfloat16
-    dist: randn
-  bias:
-    dims:
-    - D
-    dtype: bfloat16
-    dist: randn
-  activation:
-    scalar: silu
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[64, 32] bfloat16 axes=D,L dist=randn'
-      weight: '[64, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[64] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[256, 128] bfloat16 axes=D,L dist=randn'
-      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[512, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[512, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[512] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[1024, 2048] bfloat16 axes=D,L dist=randn'
-      weight: '[1024, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[1024] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[2048, 256] bfloat16 axes=D,L dist=randn'
-      weight: '[2048, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[2048] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[384, 6144] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[384, 8192] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[3072, 384] bfloat16 axes=D,L dist=randn'
-      weight: '[3072, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[3072] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[2, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[2, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[2] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[3, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[3, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[3] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[4, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[4, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[4] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[8, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[8, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[8] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[16, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[16, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[16] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[32, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[32, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[32] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[64, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[64, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[64] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[96, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[96, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[96] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[128, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[128, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[128] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P22:
-    provenance: synthetic
-    tensors:
-      x: '[192, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[192, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[192] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[256, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[384, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 2] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[384, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 3] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[384, 1] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[384, 2] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[384, 3] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[384, 4] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[384, 8] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[384, 16] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[384, 32] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[384, 64] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[384, 96] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[384, 128] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[384, 192] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[384, 256] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[384, 512] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[384, 640] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[384, 768] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[384, 384] bfloat16 axes=D,L dist=randn'
-      weight: '[384, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[384] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  H2:
-    provenance: edge
-    tensors:
-      x: '[16, 8] bfloat16 axes=D,L dist=randn'
-      weight: '[16, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[16] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[256, 4096] bfloat16 axes=D,L dist=randn'
-      weight: '[256, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[256] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[128, 32] bfloat16 axes=D,L dist=randn'
-      weight: '[128, 4] bfloat16 axes=D,KW dist=randn'
-      bias: '[128] bfloat16 axes=D dist=randn'
-    params:
-      activation: silu
+  env: {B: 32, L: 32, D: 128, KW: 4, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 32], dtype: bfloat16, axes: [D, L], dist: randn}
+  - {name: weight, kind: tensor, shape: [128, 4], dtype: bfloat16, axes: [D, KW], dist: randn}
+  - {name: bias, kind: tensor, shape: [128], dtype: bfloat16, axes: [D], dist: randn}
+  - {name: activation, kind: scalar, value: silu}

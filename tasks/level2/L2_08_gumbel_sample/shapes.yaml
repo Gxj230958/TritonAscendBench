@@ -1,717 +1,381 @@
-# Operator input contract for vLLM _gumbel_sample_kernel (gumbel-max sampler).
-# Size knobs:
-#   T = num_tokens (kernel grid dim 0; one program column per token)
-#   V = vocab_size (inner reduction axis, tiled into BLOCK_SIZE=1024 blocks)
-#   R = max_num_reqs (request axis; temperature[R], seed[R] are per-request)
-# Each token t routes to request expanded_idx_mapping[t] in [0, R); its
-# temperature + seed come from that request. pos[t] is the per-token sampling
-# position feeding the Philox gumbel-noise seed.
-size_knobs:
-  T: 128
-  V: 4096
-  R: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    T: 4
-    V: 2048
-    R: 3
+  env: {T: 4, V: 2048, R: 3}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 2048], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [3], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [3], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [4], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P2
-  name: small
-  knobs:
-    T: 32
-    V: 4096
-    R: 8
+  env: {T: 32, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [32, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [32], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P3
-  name: medium_multiblock
-  knobs:
-    T: 64
-    V: 5000
-    R: 8
+  env: {T: 64, V: 5000, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [64, 5000], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [64], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [64], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P4
-  name: large
-  knobs:
-    T: 256
-    V: 8192
-    R: 16
+  env: {T: 256, V: 8192, R: 16}
+  inputs:
+  - {name: logits, kind: tensor, shape: [256, 8192], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [256], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [16], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [16], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [256], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P5
-  name: wide_vocab
-  knobs:
-    T: 8
-    V: 12000
-    R: 4
+  env: {T: 8, V: 12000, R: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 12000], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [4], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [4], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [8], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 1
-    T: 16
-    V: 4096
+  env: {T: 16, V: 4096, R: 1}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [1], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [1], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 2
-    T: 16
-    V: 4096
+  env: {T: 16, V: 4096, R: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [2], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [2], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 3
-    T: 16
-    V: 4096
+  env: {T: 16, V: 4096, R: 3}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [3], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [3], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 4
-    T: 16
-    V: 4096
+  env: {T: 16, V: 4096, R: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [4], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [4], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 1
-    V: 4096
+  env: {T: 1, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 2
-    V: 4096
+  env: {T: 2, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [2], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 3
-    V: 4096
+  env: {T: 3, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [3, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [3], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [3], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 4
-    V: 4096
+  env: {T: 4, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [4], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 8
-    V: 4096
+  env: {T: 8, V: 4096, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [8], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 1
+  env: {T: 16, V: 1, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 2
+  env: {T: 16, V: 2, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 2], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 3
+  env: {T: 16, V: 3, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 3], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 4
+  env: {T: 16, V: 4, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 4], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 8
+  env: {T: 16, V: 8, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 8], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 16
+  env: {T: 16, V: 16, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 16], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 32
+  env: {T: 16, V: 32, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 32], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 64
+  env: {T: 16, V: 64, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 64], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 96
+  env: {T: 16, V: 96, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 96], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 128
+  env: {T: 16, V: 128, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 128], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 192
+  env: {T: 16, V: 192, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 192], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 256
+  env: {T: 16, V: 256, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 256], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 384
+  env: {T: 16, V: 384, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 384], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 512
+  env: {T: 16, V: 512, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 512], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 640
+  env: {T: 16, V: 640, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 640], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 768
+  env: {T: 16, V: 768, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 768], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 1024
+  env: {T: 16, V: 1024, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1024], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 1280
+  env: {T: 16, V: 1280, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1280], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 1536
+  env: {T: 16, V: 1536, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1536], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 2048
+  env: {T: 16, V: 2048, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 2048], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    R: 8
-    T: 16
-    V: 2560
-hidden_shapes:
+  env: {T: 16, V: 2560, R: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 2560], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [8], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [8], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
+hidden:
 - id: H1
-  name: h_single_block_edge
-  knobs:
-    T: 16
-    V: 1024
-    R: 4
+  env: {T: 16, V: 1024, R: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1024], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [4], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [4], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [16], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H2
-  name: h_singleton
-  knobs:
-    T: 2
-    V: 1500
-    R: 2
+  env: {T: 2, V: 1500, R: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 1500], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [2], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [2], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [2], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H3
-  name: h_block_boundary
-  knobs:
-    T: 6
-    V: 3072
-    R: 3
+  env: {T: 6, V: 3072, R: 3}
+  inputs:
+  - {name: logits, kind: tensor, shape: [6, 3072], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [6], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [3], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [3], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [6], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H4
-  name: h_many_reqs
-  knobs:
-    T: 96
-    V: 6000
-    R: 32
+  env: {T: 96, V: 6000, R: 32}
+  inputs:
+  - {name: logits, kind: tensor, shape: [96, 6000], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [32], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [32], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [96], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    R: 1
-    T: 1
-    V: 1
+  env: {T: 1, V: 1, R: 1}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [1], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [1], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    R: 1
-    T: 1024
-    V: 4096
+  env: {T: 1024, V: 4096, R: 1}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1024, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1024], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [1], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [1], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [1024], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    R: 128
-    T: 1
-    V: 4096
-inputs:
-  logits:
-    dims:
-    - T
-    - V
-    dtype: float32
-    dist: randn
-  expanded_idx_mapping:
-    dims:
-    - T
-    dtype: int64
-    dist: gumbel_routing:R
-  temperature:
-    dims:
-    - R
-    dtype: float32
-    dist: gumbel_temps
-  seed:
-    dims:
-    - R
-    dtype: int64
-    dist: randint:0:2147483647
-  pos:
-    dims:
-    - T
-    dtype: int64
-    dist: randint:0:1024
-  apply_temperature:
-    scalar: true
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      logits: '[4, 2048] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[4] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[3] float32 axes=R dist=gumbel_temps'
-      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[4] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P2:
-    provenance: baseline
-    tensors:
-      logits: '[32, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[32] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[32] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P3:
-    provenance: synthetic
-    tensors:
-      logits: '[64, 5000] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[64] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[64] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P4:
-    provenance: baseline
-    tensors:
-      logits: '[256, 8192] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[256] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[16] float32 axes=R dist=gumbel_temps'
-      seed: '[16] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[256] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P5:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 12000] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[8] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[4] float32 axes=R dist=gumbel_temps'
-      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[8] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P6:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[1] float32 axes=R dist=gumbel_temps'
-      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P7:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[2] float32 axes=R dist=gumbel_temps'
-      seed: '[2] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P8:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[3] float32 axes=R dist=gumbel_temps'
-      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P9:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[4] float32 axes=R dist=gumbel_temps'
-      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P10:
-    provenance: synthetic
-    tensors:
-      logits: '[1, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P11:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[2] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[2] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P12:
-    provenance: synthetic
-    tensors:
-      logits: '[3, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[3] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[3] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P13:
-    provenance: synthetic
-    tensors:
-      logits: '[4, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[4] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[4] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P14:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[8] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[8] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P15:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P16:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 2] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P17:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 3] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P18:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 4] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P19:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 8] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P20:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 16] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P21:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 32] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P22:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 64] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P23:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 96] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P24:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 128] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P25:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 192] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P26:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 256] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P27:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 384] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P28:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 512] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P29:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 640] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P30:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 768] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P31:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1024] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P32:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1280] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P33:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1536] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P34:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 2048] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  P35:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 2560] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[8] float32 axes=R dist=gumbel_temps'
-      seed: '[8] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H1:
-    provenance: edge
-    tensors:
-      logits: '[16, 1024] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[4] float32 axes=R dist=gumbel_temps'
-      seed: '[4] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[16] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H2:
-    provenance: edge
-    tensors:
-      logits: '[2, 1500] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[2] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[2] float32 axes=R dist=gumbel_temps'
-      seed: '[2] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[2] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H3:
-    provenance: synthetic
-    tensors:
-      logits: '[6, 3072] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[6] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[3] float32 axes=R dist=gumbel_temps'
-      seed: '[3] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[6] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H4:
-    provenance: synthetic
-    tensors:
-      logits: '[96, 6000] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[96] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[32] float32 axes=R dist=gumbel_temps'
-      seed: '[32] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[96] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H5:
-    provenance: edge
-    tensors:
-      logits: '[1, 1] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[1] float32 axes=R dist=gumbel_temps'
-      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H6:
-    provenance: edge
-    tensors:
-      logits: '[1024, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[1024] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[1] float32 axes=R dist=gumbel_temps'
-      seed: '[1] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[1024] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
-  H7:
-    provenance: edge
-    tensors:
-      logits: '[1, 4096] float32 axes=T,V dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=T dist=gumbel_routing(R=R)'
-      temperature: '[128] float32 axes=R dist=gumbel_temps'
-      seed: '[128] int64 axes=R dist=randint(lo=0, hi=2147483647)'
-      pos: '[1] int64 axes=T dist=randint(lo=0, hi=1024)'
-    params:
-      apply_temperature: true
+  env: {T: 1, V: 4096, R: 128}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 4096], dtype: float32, axes: [T, V], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'gumbel_routing:R'}
+  - {name: temperature, kind: tensor, shape: [128], dtype: float32, axes: [R], dist: gumbel_temps}
+  - {name: seed, kind: tensor, shape: [128], dtype: int64, axes: [R], dist: 'randint:0:2147483647'}
+  - {name: pos, kind: tensor, shape: [1], dtype: int64, axes: [T], dist: 'randint:0:1024'}
+  - {name: apply_temperature, kind: scalar, value: true}

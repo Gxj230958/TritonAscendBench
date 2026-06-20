@@ -1,805 +1,379 @@
-# Operator-family knob grid for the KDA inter-sub scaled-dot KKT kernel
-# chunk_kda_scaled_dot_kkt_fwd_kernel_intra_sub_inter.
-#
-# The frozen kernel consumes a dense [B, T, H, K] layout (non-varlen path)
-# and writes A / Aqk of shape [B, T, H, BT] where BT = FLA_CHUNK_SIZE = 64.
-# It fills ONLY the strictly off-diagonal sub-chunk blocks (sub-chunk width
-# BC = min(16, BT) = 16, NC = BT/BC = 4), so a shape must give at least two
-# occupied row sub-chunks (T > BC = 16) for the kernel to write anything.
-# T is kept a multiple of BC = 16 so sub-chunk boundaries are clean; H1 uses
-# T not a multiple of BT = 64 to exercise the partial-time-chunk boundary.
-size_knobs:
-  B: 4
-  T: 128
-  H: 8
-  K: 128
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    T: 64
-    H: 4
-    K: 32
+  env: {B: 2, T: 64, H: 4, K: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 64, 4, 32], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 64, 4, 32], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 64, 4, 32], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 64, 4], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(K)}
 - id: P2
-  name: small
-  knobs:
-    B: 2
-    T: 128
-    H: 8
-    K: 64
+  env: {B: 2, T: 128, H: 8, K: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 128, 8, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 128, 8, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 128, 8, 64], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(K)}
 - id: P3
-  name: medium
-  knobs:
-    B: 4
-    T: 128
-    H: 8
-    K: 128
+  env: {B: 4, T: 128, H: 8, K: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 128], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 128], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 128], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(K)}
 - id: P4
-  name: large
-  knobs:
-    B: 2
-    T: 256
-    H: 8
-    K: 256
+  env: {B: 2, T: 256, H: 8, K: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 256, 8, 256], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 256, 8, 256], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 256, 8, 256], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 256, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(K)}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    T: 64
-    H: 16
-    K: 128
+  env: {B: 2, T: 64, H: 16, K: 128}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 64, 16, 128], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 64, 16, 128], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 64, 16, 128], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 64, 16], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(K)}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 6
-    K: 96
-    T: 384
+  env: {B: 2, T: 384, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 384, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 384, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 384, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 384, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 6
-    K: 96
-    T: 512
+  env: {B: 2, T: 512, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 512, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 512, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 512, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 512, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 24
-    K: 96
-    T: 96
+  env: {B: 2, T: 96, H: 24, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 96, 24, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 96, 24, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 96, 24, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 96, 24], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 32
-    K: 96
-    T: 96
+  env: {B: 2, T: 96, H: 32, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 96, 32, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 96, 32, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 96, 32, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 96, 32], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 6
-    H: 6
-    K: 96
-    T: 96
+  env: {B: 6, T: 96, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [6, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [6, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [6, 96, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [6, 96, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    H: 6
-    K: 96
-    T: 96
+  env: {B: 8, T: 96, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [8, 96, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [8, 96, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    H: 8
-    K: 96
-    T: 128
+  env: {B: 1, T: 128, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [1, 128, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [1, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 8
-    K: 96
-    T: 128
+  env: {B: 2, T: 128, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 128, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    H: 8
-    K: 96
-    T: 128
+  env: {B: 3, T: 128, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [3, 128, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [3, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 1
-    K: 96
-    T: 128
+  env: {B: 4, T: 128, H: 1, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 1, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 1, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 1, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 1], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 2
-    K: 96
-    T: 128
+  env: {B: 4, T: 128, H: 2, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 2, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 2, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 2, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 2], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 3
-    K: 96
-    T: 128
+  env: {B: 4, T: 128, H: 3, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 3, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 3, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 3, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 3], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 4
-    K: 96
-    T: 128
+  env: {B: 4, T: 128, H: 4, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 4, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 4, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 4, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 4], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 1
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 1], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 1], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 1], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 1.0, expr: 1/sqrt(K)}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 2
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 2], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 2], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 2], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.7071067811865475, expr: 1/sqrt(K)}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 3
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 3}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 3], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 3], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 3], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.5773502691896258, expr: 1/sqrt(K)}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 4
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 4], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 4], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 4], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.5, expr: 1/sqrt(K)}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 8
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 8], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 8], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 8], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.35355339059327373, expr: 1/sqrt(K)}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 16
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 16], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 16], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 16], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(K)}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 32
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 32], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 32], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 32], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(K)}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 64
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 64], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(K)}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 32
+  env: {B: 4, T: 32, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 32, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 32, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 32, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 32, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 64
+  env: {B: 4, T: 64, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 64, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 64, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 64, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 64, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 96
+  env: {B: 4, T: 96, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 96, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 96, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 96, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 128
+  env: {B: 4, T: 128, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 192
+  env: {B: 4, T: 192, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 192, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 192, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 256
+  env: {B: 4, T: 256, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 256, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 256, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 256, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 256, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 384
+  env: {B: 4, T: 384, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 384, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 384, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 384, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 384, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 512
+  env: {B: 4, T: 512, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 512, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 512, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 512, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 512, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 640
+  env: {B: 4, T: 640, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 640, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 640, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 640, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 640, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 768
+  env: {B: 4, T: 768, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 768, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 768, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 768, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 768, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 1024
+  env: {B: 4, T: 1024, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 1024, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 1024, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 1024, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 1024, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 1280
+  env: {B: 4, T: 1280, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 1280, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 1280, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 1280, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 1280, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 1536
+  env: {B: 4, T: 1536, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 1536, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 1536, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 1536, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 1536, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 96
-    T: 2048
+  env: {B: 4, T: 2048, H: 8, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 2048, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 2048, 8, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 2048, 8, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 2048, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 128
-hidden_shapes:
+  env: {B: 4, T: 128, H: 8, K: 192}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 128, 8, 192], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 128, 8, 192], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 128, 8, 192], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.07216878364870323, expr: 1/sqrt(K)}
+hidden:
 - id: H1
-  name: h_partial_chunk
-  knobs:
-    B: 2
-    T: 96
-    H: 6
-    K: 96
+  env: {B: 2, T: 96, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 96, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 96, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: H2
-  name: h_minimal_offdiag
-  knobs:
-    B: 2
-    T: 32
-    H: 2
-    K: 16
+  env: {B: 2, T: 32, H: 2, K: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 32, 2, 16], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 32, 2, 16], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [2, 32, 2, 16], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [2, 32, 2], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(K)}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 1
-    T: 256
-    H: 8
-    K: 256
+  env: {B: 1, T: 256, H: 8, K: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 256, 8, 256], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 256, 8, 256], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [1, 256, 8, 256], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [1, 256, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(K)}
 - id: H4
-  name: h_wide_head
-  knobs:
-    B: 4
-    T: 64
-    H: 16
-    K: 64
+  env: {B: 4, T: 64, H: 16, K: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 64, 16, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 64, 16, 64], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [4, 64, 16, 64], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [4, 64, 16], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(K)}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 6
-    K: 96
-    T: 96
+  env: {B: 1, T: 96, H: 6, K: 96}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 96, 6, 96], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [1, 96, 6, 96], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [1, 96, 6], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(K)}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 64
-    H: 8
-    K: 1
-    T: 128
-inputs:
-  q:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: bfloat16
-    dist: randn
-  k:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: bfloat16
-    dist: randn
-  gk:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: float32
-    dist: rand
-  beta:
-    dims:
-    - B
-    - T
-    - H
-    dtype: float32
-    dist: rand
-  scale:
-    derive: 1/sqrt(K)
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 64, 4, 32] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 64, 4, 32] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 64, 4, 32] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 64, 4] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.17677669529663687
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[2, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 128, 8, 64] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.125
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[4, 128, 8, 128] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 128] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 128] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.08838834764831843
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[2, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 256, 8, 256] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 256, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.0625
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 64, 16, 128] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 64, 16, 128] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 64, 16, 128] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 64, 16] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.08838834764831843
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[2, 384, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 384, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 384, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 384, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[2, 512, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 512, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 512, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 512, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[2, 96, 24, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 96, 24, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 96, 24, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 96, 24] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[2, 96, 32, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 96, 32, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 96, 32, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 96, 32] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[6, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[6, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[6, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[6, 96, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[8, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[8, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[8, 96, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[1, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[1, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[1, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[1, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[2, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[3, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[3, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[3, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[3, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 1, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 1, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 1, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 1] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 2, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 2, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 2, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 2] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 3, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 3, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 3, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 3] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 4, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 4, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 4, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 4] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 1] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 1.0
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 2] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 2] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 2] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.7071067811865475
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 3] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 3] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 3] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.5773502691896258
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 4] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 4] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 4] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.5
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 8] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 8] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 8] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.35355339059327373
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 16] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 16] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 16] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.25
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 32] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 32] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 32] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.17677669529663687
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 64] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 64] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.125
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[4, 32, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 32, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 32, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 32, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[4, 64, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 64, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 64, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 64, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[4, 96, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 96, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 96, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 96, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P31:
-    provenance: synthetic
-    tensors:
-      q: '[4, 192, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 192, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 192, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 192, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P32:
-    provenance: synthetic
-    tensors:
-      q: '[4, 256, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 256, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 256, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 256, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P33:
-    provenance: synthetic
-    tensors:
-      q: '[4, 384, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 384, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 384, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 384, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[4, 512, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 512, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 512, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 512, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[4, 640, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 640, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 640, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 640, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[4, 768, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 768, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 768, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 768, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[4, 1024, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 1024, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 1024, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 1024, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[4, 1280, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 1280, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 1280, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 1280, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[4, 1536, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 1536, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 1536, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 1536, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P40:
-    provenance: synthetic
-    tensors:
-      q: '[4, 2048, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 2048, 8, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 2048, 8, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 2048, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  P41:
-    provenance: synthetic
-    tensors:
-      q: '[4, 128, 8, 192] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 128, 8, 192] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 128, 8, 192] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.07216878364870323
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[2, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 96, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 32, 2, 16] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[2, 32, 2, 16] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[2, 32, 2, 16] float32 axes=B,T,H,K dist=rand'
-      beta: '[2, 32, 2] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.25
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[1, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[1, 256, 8, 256] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[1, 256, 8, 256] float32 axes=B,T,H,K dist=rand'
-      beta: '[1, 256, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.0625
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[4, 64, 16, 64] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[4, 64, 16, 64] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[4, 64, 16, 64] float32 axes=B,T,H,K dist=rand'
-      beta: '[4, 64, 16] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.125
-  H5:
-    provenance: edge
-    tensors:
-      q: '[1, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[1, 96, 6, 96] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[1, 96, 6, 96] float32 axes=B,T,H,K dist=rand'
-      beta: '[1, 96, 6] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 0.10206207261596577
-  H6:
-    provenance: edge
-    tensors:
-      q: '[64, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
-      k: '[64, 128, 8, 1] bfloat16 axes=B,T,H,K dist=randn'
-      gk: '[64, 128, 8, 1] float32 axes=B,T,H,K dist=rand'
-      beta: '[64, 128, 8] float32 axes=B,T,H dist=rand'
-    params:
-      scale: 1.0
+  env: {B: 64, T: 128, H: 8, K: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 128, 8, 1], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 128, 8, 1], dtype: bfloat16, axes: [B, T, H, K], dist: randn}
+  - {name: gk, kind: tensor, shape: [64, 128, 8, 1], dtype: float32, axes: [B, T, H, K], dist: rand}
+  - {name: beta, kind: tensor, shape: [64, 128, 8], dtype: float32, axes: [B, T, H], dist: rand}
+  - {name: scale, kind: derive, value: 1.0, expr: 1/sqrt(K)}

@@ -1,690 +1,297 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [8, 64], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [32, 256], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [128, 1024], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [256, 2048], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [8, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 8192
+  env: {B: 1, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1, 8192], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 768
-    D: 6144
+  env: {B: 768, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [768, 6144], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1024
-    D: 8192
+  env: {B: 1024, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1024, 8192], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 6144
+  env: {B: 96, L: 128, D: 6144, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 6144], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 8192
+  env: {B: 96, L: 128, D: 8192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 8192], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 768
-    D: 384
+  env: {B: 768, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [768, 384], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 512
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 512
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [2, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 512
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [3, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 512
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [4, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [16, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [32, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 512
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [64, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1
+  env: {B: 96, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 1], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 2
+  env: {B: 96, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 2], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 3
+  env: {B: 96, L: 128, D: 3, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 3], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 4
+  env: {B: 96, L: 128, D: 4, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 4], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 8
+  env: {B: 96, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 8], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 16
+  env: {B: 96, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 16], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 32
+  env: {B: 96, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 32], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 64
+  env: {B: 96, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 64], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 96
+  env: {B: 96, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 96], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 128
+  env: {B: 96, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 128], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 192
+  env: {B: 96, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 192], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 256
+  env: {B: 96, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 256], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 512
+  env: {B: 96, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 512], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 640
+  env: {B: 96, L: 128, D: 640, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 640], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 768
+  env: {B: 96, L: 128, D: 768, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 768], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1024
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 1024], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1280
+  env: {B: 96, L: 128, D: 1280, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 1280], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1536
+  env: {B: 96, L: 128, D: 1536, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 1536], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 2048
+  env: {B: 96, L: 128, D: 2048, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 2048], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 2560
+  env: {B: 96, L: 128, D: 2560, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 2560], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 3072
+  env: {B: 96, L: 128, D: 3072, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 3072], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 3584
+  env: {B: 96, L: 128, D: 3584, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 3584], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 4096
-hidden_shapes:
+  env: {B: 96, L: 128, D: 4096, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 4096], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [96, 384], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [2, 16], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [4, 4096], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [512, 128], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1, 1], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1, 384], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [1, 32768], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 4096
-    D: 1
-inputs:
-  topk_ids:
-    dims:
-    - B
-    - D
-    dtype: int64
-    # Span the full expert range [0,num_experts=4) so every expert receives
-    # tokens and the per-expert offset/cumsum + empty-expert paths are exercised.
-    dist: randint:0:4
-  num_experts:
-    scalar: 4
-  block_size:
-    scalar: 4
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      topk_ids: '[8, 64] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P2:
-    provenance: baseline
-    tensors:
-      topk_ids: '[32, 256] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P3:
-    provenance: baseline
-    tensors:
-      topk_ids: '[128, 1024] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P4:
-    provenance: baseline
-    tensors:
-      topk_ids: '[256, 2048] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P5:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P6:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[1, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P7:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[768, 6144] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P8:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[1024, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P9:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 6144] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P10:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 8192] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P11:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[768, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P12:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[1, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P13:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[2, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P14:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[3, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P15:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[4, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P16:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[16, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P17:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[32, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P18:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[64, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P19:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P20:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 2] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P21:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 3] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P22:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 4] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P23:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 8] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P24:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 16] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P25:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 32] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P26:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 64] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P27:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 96] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P28:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 128] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P29:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 192] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P30:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 256] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P31:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 512] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P32:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 640] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P33:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 768] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P34:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 1024] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P35:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 1280] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P36:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 1536] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P37:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 2048] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P38:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 2560] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P39:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 3072] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P40:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 3584] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  P41:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 4096] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H1:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[96, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H2:
-    provenance: edge
-    tensors:
-      topk_ids: '[2, 16] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H3:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[4, 4096] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H4:
-    provenance: synthetic
-    tensors:
-      topk_ids: '[512, 128] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H5:
-    provenance: edge
-    tensors:
-      topk_ids: '[1, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H6:
-    provenance: edge
-    tensors:
-      topk_ids: '[1, 384] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H7:
-    provenance: edge
-    tensors:
-      topk_ids: '[1, 32768] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
-  H8:
-    provenance: edge
-    tensors:
-      topk_ids: '[4096, 1] int64 axes=B,D dist=randint(lo=0, hi=4)'
-    params:
-      num_experts: 4
-      block_size: 4
+  env: {B: 4096, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: topk_ids, kind: tensor, shape: [4096, 1], dtype: int64, axes: [B, D], dist: 'randint:0:4'}
+  - {name: num_experts, kind: scalar, value: 4}
+  - {name: block_size, kind: scalar, value: 4}

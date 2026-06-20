@@ -1,703 +1,303 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [4, 64], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 128], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [16, 256], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 256], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 1
-    N: 1024
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 1024], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 48
-    N: 768
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 768, T: 64, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [48, 768], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [48], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    E: 64
-    N: 1024
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [64, 1024], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 768
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 768, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 768], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 1024
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 1024], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    E: 48
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 48, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [48, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [48], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 2
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [2, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 3
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [3, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 4
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [4, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 1
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 1], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 2
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 2, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 2], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 3
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 3, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 3], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 4
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 4], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 8, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 8], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 16
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 16, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 16], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 32
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 32, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 32], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 64, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 64], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 96
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 96, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 96], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 128
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 128, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 128], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 256
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 256], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 384
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 384, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 512
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 512, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 640
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 640, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 640], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 1280
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1280, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 1280], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 1536
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1536, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 2048
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 2048, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 2048], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 2560
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 2560, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 2560], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 3072
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 3072, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 3072], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 3584
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 3584, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 3584], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 12
-    N: 4096
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4096, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 4096], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 16
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [16, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 32
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 64
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 64, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [64, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 96
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 96, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [96, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [96], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    E: 128
-    N: 192
-hidden_shapes:
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 128, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [128, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [128], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [2, 32], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [16, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 128], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    N: 1
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 1], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 1
-    N: 4096
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4096, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 4096], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 256
-    N: 1
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 256, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [256, 1], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}
 - id: H9
-  name: edge_CPU-valid; pending 
-  knobs:
-    E: 256
-    N: 4096
-inputs:
-  block_table:
-    dims:
-    - E
-    - N
-    dtype: int64
-    dist: randint:0:N
-  seq_lens:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:1:N
-  page_size:
-    scalar: 4
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      block_table: '[4, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P2:
-    provenance: baseline
-    tensors:
-      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P3:
-    provenance: baseline
-    tensors:
-      block_table: '[16, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P4:
-    provenance: baseline
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[32] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P5:
-    provenance: synthetic
-    tensors:
-      block_table: '[8, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P6:
-    provenance: synthetic
-    tensors:
-      block_table: '[1, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P7:
-    provenance: synthetic
-    tensors:
-      block_table: '[48, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P8:
-    provenance: synthetic
-    tensors:
-      block_table: '[64, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[64] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P9:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P10:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P11:
-    provenance: synthetic
-    tensors:
-      block_table: '[48, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[48] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P12:
-    provenance: synthetic
-    tensors:
-      block_table: '[2, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P13:
-    provenance: synthetic
-    tensors:
-      block_table: '[3, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[3] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P14:
-    provenance: synthetic
-    tensors:
-      block_table: '[4, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[4] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P15:
-    provenance: synthetic
-    tensors:
-      block_table: '[8, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P16:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P17:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 2] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P18:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 3] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P19:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 4] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P20:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 8] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P21:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 16] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P22:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P23:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P24:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 96] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P25:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P26:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P27:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P28:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P29:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 640] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P30:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 1280] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P31:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P32:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 2048] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P33:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 2560] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P34:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 3072] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P35:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 3584] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P36:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P37:
-    provenance: synthetic
-    tensors:
-      block_table: '[16, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P38:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[32] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P39:
-    provenance: synthetic
-    tensors:
-      block_table: '[64, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[64] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P40:
-    provenance: synthetic
-    tensors:
-      block_table: '[96, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[96] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  P41:
-    provenance: synthetic
-    tensors:
-      block_table: '[128, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[128] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H1:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[12] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H2:
-    provenance: edge
-    tensors:
-      block_table: '[2, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[2] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H3:
-    provenance: synthetic
-    tensors:
-      block_table: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[16] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H4:
-    provenance: synthetic
-    tensors:
-      block_table: '[8, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[8] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H5:
-    provenance: edge
-    tensors:
-      block_table: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H6:
-    provenance: edge
-    tensors:
-      block_table: '[1, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H7:
-    provenance: edge
-    tensors:
-      block_table: '[1, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[1] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H8:
-    provenance: edge
-    tensors:
-      block_table: '[256, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[256] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
-  H9:
-    provenance: edge
-    tensors:
-      block_table: '[256, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      seq_lens: '[256] int64 axes=E dist=randint(lo=1, hi=N)'
-    params:
-      page_size: 4
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4096, T: 64, H: 16, E: 256, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [256, 4096], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: seq_lens, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:1:N'}
+  - {name: page_size, kind: scalar, value: 4}

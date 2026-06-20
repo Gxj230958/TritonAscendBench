@@ -1,1006 +1,579 @@
-# Operator-family knob grid: values reflect
-# the sampling family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 4096
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 64, Dv: 8, N: 128, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 128], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [4, 128], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [4, 128], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [8, 512], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [8, 512], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 4096
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [64, 4096], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 4096], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 4096], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 32768
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 32768, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [128, 32768], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [128], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [32, 32768], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [32, 32768], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [32], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [32], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [32], dtype: float32, axes: [E], dist: rand}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 2048
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 2048, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 2048], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [8, 2048], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [8, 2048], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    E: 512
-    N: 1536
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [512, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [512, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 384
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [384, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [384, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [384], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [384], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [384], dtype: float32, axes: [E], dist: rand}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 512
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [512, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [512, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [512], dtype: float32, axes: [E], dist: rand}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    E: 12
-    N: 1536
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [384, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [384], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [384], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [12, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [12, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 512
-    E: 12
-    N: 1536
+  env: {B: 512, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [512, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [12, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [12, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    E: 16
-    N: 1536
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    E: 16
-    N: 1536
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    E: 16
-    N: 1536
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [3, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [3], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    E: 16
-    N: 1536
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 16
-    N: 1536
+  env: {B: 8, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    E: 16
-    N: 1536
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    E: 16
-    N: 1536
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [32, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 1
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [1, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [1, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 2
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [2, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [2, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 3
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [3, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [3, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [3], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [3], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [3], dtype: float32, axes: [E], dist: rand}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 4
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [4, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [4, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 8
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [8, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [8, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 1
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 2
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 2, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 2], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 2], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 2], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 3
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 3, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 3], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 3], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 3], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 4
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 4, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 4], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 4], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 4], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 8
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 8, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 8], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 8], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 8], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 16
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 16, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 16], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 16], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 16], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 32
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 32, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 32], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 32], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 64
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 64, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 64], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 64], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 64], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 96
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 96, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 96], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 96], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 96], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 128
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 128, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 128], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 128], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 128], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 192
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 192, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 192], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 192], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 192], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 256
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 256, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 256], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 256], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 256], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 384
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 384], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 384], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 384], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 512
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 512], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 512], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 512], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 640
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 640, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 640], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 640], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 640], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 768
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 768, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 768], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 768], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 768], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 1024
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1024], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1024], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1024], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 16
-    N: 1280
-hidden_shapes:
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1280, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1280], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [16, 1280], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [16, 1280], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 1536
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 1536, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [48], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [12, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [12, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 64
-    Dv: 8
-    N: 16
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 64, Dv: 8, N: 16, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 16], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [2, 16], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [2, 16], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 65536
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 65536, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 65536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [8, 65536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [8, 65536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 256
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 256, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [256, 256], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [256], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [256, 256], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [256, 256], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [256], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [256], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [256], dtype: float32, axes: [E], dist: rand}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    N: 1
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [1, 1], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [1, 1], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 12
-    N: 1536
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [12, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [12, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 2048
-    N: 1536
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 2048, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [1], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [2048, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [2048, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [2048], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [2048], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [2048], dtype: float32, axes: [E], dist: rand}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    E: 1
-    N: 1536
-inputs:
-  logits:
-    dims:
-    - B
-    - N
-    dtype: float32
-    dist: randn
-  expanded_idx_mapping:
-    dims:
-    - B
-    dtype: int64
-    # Per-token request id, CONSTANT within each length-W draft window
-    # (req = (t // W) % E). The window-structured routing the kernel's draft
-    # scan presumes: each speculative-decode window belongs to one request.
-    # Paired with expanded_local_pos on the same W = 4.
-    dist: window_req:4:E
-  expanded_local_pos:
-    dims:
-    - B
-    dtype: int64
-    # Local position within each length-W draft window (pos = t % W). Drives
-    # the kernel's draft-token scan (start = t - pos; reads token_ids[start+1
-    # .. t]). pos <= t by construction keeps the unclamped scan in-bounds.
-    dist: window_pos:4
-  token_ids:
-    dims:
-    - B
-    dtype: int32
-    # Flat per-token-row sampled token id (the kernel indexes token_ids as a
-    # 1-D vector in the draft scan). Vocab range [0, N).
-    dist: randint:0:N
-  output_token_counts:
-    dims:
-    - E
-    - N
-    dtype: float32
-    # Generated-token histogram counts: non-negative integers (the kernel
-    # reads output_bin_counts as int32). Stored as integer-valued float32
-    # (exactly representable) so the oracle's float `freq * counts` term and
-    # the launcher's int32 cast agree bit-for-bit.
-    dist: randint:0:4
-  prompt_bin_mask:
-    dims:
-    - E
-    - N
-    dtype: int64
-    dist: randint:0:2
-  repetition_penalty:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-  frequency_penalty:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-  presence_penalty:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      logits: '[4, 128] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[4] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[4] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[4] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[4, 128] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[4, 128] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[4] float32 axes=E dist=rand'
-      frequency_penalty: '[4] float32 axes=E dist=rand'
-      presence_penalty: '[4] float32 axes=E dist=rand'
-  P2:
-    provenance: baseline
-    tensors:
-      logits: '[16, 512] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[16] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[16] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[8, 512] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[8, 512] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[8] float32 axes=E dist=rand'
-      frequency_penalty: '[8] float32 axes=E dist=rand'
-      presence_penalty: '[8] float32 axes=E dist=rand'
-  P3:
-    provenance: baseline
-    tensors:
-      logits: '[64, 4096] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[64] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[64] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[64] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 4096] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 4096] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P4:
-    provenance: baseline
-    tensors:
-      logits: '[128, 32768] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[128] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[128] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[128] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[32, 32768] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[32, 32768] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[32] float32 axes=E dist=rand'
-      frequency_penalty: '[32] float32 axes=E dist=rand'
-      presence_penalty: '[32] float32 axes=E dist=rand'
-  P5:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 2048] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[8] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[8] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[8] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[8, 2048] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[8, 2048] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[8] float32 axes=E dist=rand'
-      frequency_penalty: '[8] float32 axes=E dist=rand'
-      presence_penalty: '[8] float32 axes=E dist=rand'
-  P6:
-    provenance: synthetic
-    tensors:
-      logits: '[1, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[512, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[512, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[512] float32 axes=E dist=rand'
-      frequency_penalty: '[512] float32 axes=E dist=rand'
-      presence_penalty: '[512] float32 axes=E dist=rand'
-  P7:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[384, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[384, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[384] float32 axes=E dist=rand'
-      frequency_penalty: '[384] float32 axes=E dist=rand'
-      presence_penalty: '[384] float32 axes=E dist=rand'
-  P8:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[512, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[512, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[512] float32 axes=E dist=rand'
-      frequency_penalty: '[512] float32 axes=E dist=rand'
-      presence_penalty: '[512] float32 axes=E dist=rand'
-  P9:
-    provenance: synthetic
-    tensors:
-      logits: '[384, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[384] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[384] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[384] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[12] float32 axes=E dist=rand'
-      frequency_penalty: '[12] float32 axes=E dist=rand'
-      presence_penalty: '[12] float32 axes=E dist=rand'
-  P10:
-    provenance: synthetic
-    tensors:
-      logits: '[512, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[512] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[512] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[512] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[12] float32 axes=E dist=rand'
-      frequency_penalty: '[12] float32 axes=E dist=rand'
-      presence_penalty: '[12] float32 axes=E dist=rand'
-  P11:
-    provenance: synthetic
-    tensors:
-      logits: '[1, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P12:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P13:
-    provenance: synthetic
-    tensors:
-      logits: '[3, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[3] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[3] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[3] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P14:
-    provenance: synthetic
-    tensors:
-      logits: '[4, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[4] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[4] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[4] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P15:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[8] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[8] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[8] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P16:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[16] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[16] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[16] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P17:
-    provenance: synthetic
-    tensors:
-      logits: '[32, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[32] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[32] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[32] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P18:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[1, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[1, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[1] float32 axes=E dist=rand'
-      frequency_penalty: '[1] float32 axes=E dist=rand'
-      presence_penalty: '[1] float32 axes=E dist=rand'
-  P19:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[2, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[2, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[2] float32 axes=E dist=rand'
-      frequency_penalty: '[2] float32 axes=E dist=rand'
-      presence_penalty: '[2] float32 axes=E dist=rand'
-  P20:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[3, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[3, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[3] float32 axes=E dist=rand'
-      frequency_penalty: '[3] float32 axes=E dist=rand'
-      presence_penalty: '[3] float32 axes=E dist=rand'
-  P21:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[4, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[4, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[4] float32 axes=E dist=rand'
-      frequency_penalty: '[4] float32 axes=E dist=rand'
-      presence_penalty: '[4] float32 axes=E dist=rand'
-  P22:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[8, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[8, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[8] float32 axes=E dist=rand'
-      frequency_penalty: '[8] float32 axes=E dist=rand'
-      presence_penalty: '[8] float32 axes=E dist=rand'
-  P23:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P24:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 2] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 2] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 2] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P25:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 3] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 3] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 3] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P26:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 4] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 4] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 4] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P27:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 8] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 8] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 8] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P28:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 16] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 16] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 16] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P29:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 32] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 32] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 32] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P30:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 64] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 64] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 64] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P31:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 96] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 96] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 96] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P32:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 128] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 128] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 128] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P33:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 192] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 192] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 192] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P34:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 256] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 256] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 256] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P35:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 384] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 384] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 384] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P36:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 512] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 512] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P37:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 640] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 640] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 640] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P38:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 768] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 768] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 768] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P39:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1024] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1024] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1024] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  P40:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1280] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[16, 1280] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[16, 1280] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[16] float32 axes=E dist=rand'
-      frequency_penalty: '[16] float32 axes=E dist=rand'
-      presence_penalty: '[16] float32 axes=E dist=rand'
-  H1:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[48] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[48] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[48] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[12] float32 axes=E dist=rand'
-      frequency_penalty: '[12] float32 axes=E dist=rand'
-      presence_penalty: '[12] float32 axes=E dist=rand'
-  H2:
-    provenance: edge
-    tensors:
-      logits: '[2, 16] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[2, 16] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[2, 16] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[2] float32 axes=E dist=rand'
-      frequency_penalty: '[2] float32 axes=E dist=rand'
-      presence_penalty: '[2] float32 axes=E dist=rand'
-  H3:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 65536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[2] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[2] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[2] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[8, 65536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[8, 65536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[8] float32 axes=E dist=rand'
-      frequency_penalty: '[8] float32 axes=E dist=rand'
-      presence_penalty: '[8] float32 axes=E dist=rand'
-  H4:
-    provenance: synthetic
-    tensors:
-      logits: '[256, 256] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[256] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[256] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[256] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[256, 256] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[256, 256] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[256] float32 axes=E dist=rand'
-      frequency_penalty: '[256] float32 axes=E dist=rand'
-      presence_penalty: '[256] float32 axes=E dist=rand'
-  H5:
-    provenance: edge
-    tensors:
-      logits: '[1, 1] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[1, 1] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[1] float32 axes=E dist=rand'
-      frequency_penalty: '[1] float32 axes=E dist=rand'
-      presence_penalty: '[1] float32 axes=E dist=rand'
-  H6:
-    provenance: edge
-    tensors:
-      logits: '[1, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[12, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[12, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[12] float32 axes=E dist=rand'
-      frequency_penalty: '[12] float32 axes=E dist=rand'
-      presence_penalty: '[12] float32 axes=E dist=rand'
-  H7:
-    provenance: edge
-    tensors:
-      logits: '[1, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[1] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[1] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[1] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[2048, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[2048, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[2048] float32 axes=E dist=rand'
-      frequency_penalty: '[2048] float32 axes=E dist=rand'
-      presence_penalty: '[2048] float32 axes=E dist=rand'
-  H8:
-    provenance: edge
-    tensors:
-      logits: '[2048, 1536] float32 axes=B,N dist=randn'
-      expanded_idx_mapping: '[2048] int64 axes=B dist=window_req(W=4, E=E)'
-      expanded_local_pos: '[2048] int64 axes=B dist=window_pos(W=4)'
-      token_ids: '[2048] int32 axes=B dist=randint(lo=0, hi=N)'
-      output_token_counts: '[1, 1536] float32 axes=E,N dist=randint(lo=0, hi=4)'
-      prompt_bin_mask: '[1, 1536] int64 axes=E,N dist=randint(lo=0, hi=2)'
-      repetition_penalty: '[1] float32 axes=E dist=rand'
-      frequency_penalty: '[1] float32 axes=E dist=rand'
-      presence_penalty: '[1] float32 axes=E dist=rand'
+  env: {B: 2048, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2048, 1536], dtype: float32, axes: [B, N], dist: randn}
+  - {name: expanded_idx_mapping, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'window_req:4:E'}
+  - {name: expanded_local_pos, kind: tensor, shape: [2048], dtype: int64, axes: [B], dist: 'window_pos:4'}
+  - {name: token_ids, kind: tensor, shape: [2048], dtype: int32, axes: [B], dist: 'randint:0:N'}
+  - {name: output_token_counts, kind: tensor, shape: [1, 1536], dtype: float32, axes: [E, N], dist: 'randint:0:4'}
+  - {name: prompt_bin_mask, kind: tensor, shape: [1, 1536], dtype: int64, axes: [E, N], dist: 'randint:0:2'}
+  - {name: repetition_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: frequency_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
+  - {name: presence_penalty, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}

@@ -1,933 +1,387 @@
-# Operator-family knob grid: values reflect
-# the quantization family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 128
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 128, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 128], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [64, 128], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [4, 4], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [8, 4], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: A, kind: tensor, shape: [16, 256], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [256, 256], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [32, 8], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [64, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [1024, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [64, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [128, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 2048, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [128, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [2048, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [128, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [256, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 2048
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 2048, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 2048], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 2048], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [8, 64], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 64], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 512
-    N: 8192
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 8192, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8192, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [1, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1024, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 6144
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 6144, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [6144, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [768, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 8192
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 8192, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8192, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1024, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 6144
-    N: 384
+  env: {B: 48, L: 128, D: 6144, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 6144], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 6144], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 192], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 192], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8192
-    N: 384
+  env: {B: 48, L: 128, D: 8192, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 8192], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 8192], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 256], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 256], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 512
-    N: 384
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [384, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [384, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 1024
-    N: 512
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [1, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 1024
-    N: 512
+  env: {B: 2, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [2, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 1024
-    N: 512
+  env: {B: 3, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [3, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [3, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1024
-    N: 512
+  env: {B: 4, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [4, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
-    N: 512
+  env: {B: 8, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [8, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1024
-    N: 512
+  env: {B: 16, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [16, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [16, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 1024
-    N: 512
+  env: {B: 32, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [32, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [32, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8
-    N: 512
+  env: {B: 48, L: 128, D: 8, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 8], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 8], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 1], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 1], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 16
-    N: 512
+  env: {B: 48, L: 128, D: 16, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 16], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 16], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 1], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 1], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 24
-    N: 512
+  env: {B: 48, L: 128, D: 24, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 24], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 24], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 1], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 1], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 32
-    N: 512
+  env: {B: 48, L: 128, D: 32, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 32], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 32], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 1], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 1], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 64
-    N: 512
+  env: {B: 48, L: 128, D: 64, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 64], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 64], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 2], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 2], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 96
-    N: 512
+  env: {B: 48, L: 128, D: 96, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 96], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 96], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 3], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 3], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
-    N: 512
+  env: {B: 48, L: 128, D: 128, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 128], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 128], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 4], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 4], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 192
-    N: 512
+  env: {B: 48, L: 128, D: 192, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 192], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 192], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 6], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 6], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 256
-    N: 512
+  env: {B: 48, L: 128, D: 256, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 256], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 256], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 8], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 8], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 384
-    N: 512
+  env: {B: 48, L: 128, D: 384, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 384], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 384], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 12], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 12], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
-    N: 512
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 640
-    N: 512
+  env: {B: 48, L: 128, D: 640, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 640], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 640], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 20], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 20], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 768
-    N: 512
+  env: {B: 48, L: 128, D: 768, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 768], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [512, 768], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 24], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [64, 24], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 8
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 8, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 16
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 16, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [16, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [2, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 24
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 24, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [24, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [3, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 32
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 32, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [32, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [4, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 64
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 64, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [64, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [8, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 96
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 96, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [96, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [12, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 128
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 128, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [128, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [16, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 192
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 192, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [192, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [24, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 256
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 256, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [256, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [32, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
-    N: 384
-hidden_shapes:
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: A, kind: tensor, shape: [48, 384], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 384], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [48, 12], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 12], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 128
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 128, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 128], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8, 128], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [2, 4], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1, 4], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 4096], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [4096, 4096], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [2, 128], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [512, 128], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-# Inputs match the graded host wrapper
-# kernel.py::w8a8_triton_block_scaled_mm. The jit reads N, K = B.shape and
-# contracts over K (B is [N, K], the GEMM is A @ B.T), with Bs laid out
-# [ceil(N/block_n), ceil(K/block_k)]. block_size = [block_n, block_k] = [8, 32]:
-# block_n=8 is the N-block scale tile, block_k=32 is the K-block scale tile and
-# also BLOCK_SIZE_K. block_k must be >= 32 because the int8 tl.dot launch
-# requires a K-tile of at least 32 (see scripts/lint_shapes_against_kernel.py;
-# the passed sibling L2_10 uses the same [8, 32]).
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: A, kind: tensor, shape: [256, 128], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [128, 128], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [256, 4], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [16, 4], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 8
-    N: 8
+  env: {B: 1, L: 128, D: 8, Dv: 8, N: 8, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 8], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8, 8], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1, 1], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 512
-    N: 384
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 384, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 512], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [384, 512], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [1, 16], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [48, 16], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1536
-    D: 1024
-    N: 8
-inputs:
-  A:
-    dims:
-    - B
-    - D
-    dtype: int8
-    dist: randint:0:8
-  B:
-    dims:
-    - N
-    - D
-    dtype: int8
-    dist: randint:0:8
-  As:
-    dims:
-    - B
-    - (D+31)//32
-    dtype: float32
-    dist: rand
-  Bs:
-    dims:
-    - N//8
-    - (D+31)//32
-    dtype: float32
-    dist: rand
-  block_size:
-    scalar_seq:
-    - 8
-    - 32
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      A: '[4, 128] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[64, 128] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[4, 4] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[8, 4] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P2:
-    provenance: baseline
-    tensors:
-      A: '[16, 256] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[256, 256] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[16, 8] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[32, 8] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P3:
-    provenance: baseline
-    tensors:
-      A: '[64, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[1024, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[64, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[128, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P4:
-    provenance: baseline
-    tensors:
-      A: '[128, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[2048, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[128, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[256, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P5:
-    provenance: synthetic
-    tensors:
-      A: '[8, 2048] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 2048] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[8, 64] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 64] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P6:
-    provenance: synthetic
-    tensors:
-      A: '[1, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8192, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[1, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1024, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P7:
-    provenance: synthetic
-    tensors:
-      A: '[48, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[6144, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[768, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P8:
-    provenance: synthetic
-    tensors:
-      A: '[48, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8192, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1024, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P9:
-    provenance: synthetic
-    tensors:
-      A: '[48, 6144] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 6144] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 192] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 192] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P10:
-    provenance: synthetic
-    tensors:
-      A: '[48, 8192] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 8192] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 256] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 256] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P11:
-    provenance: synthetic
-    tensors:
-      A: '[384, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[384, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P12:
-    provenance: synthetic
-    tensors:
-      A: '[1, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[1, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P13:
-    provenance: synthetic
-    tensors:
-      A: '[2, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[2, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P14:
-    provenance: synthetic
-    tensors:
-      A: '[3, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[3, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P15:
-    provenance: synthetic
-    tensors:
-      A: '[4, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[4, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P16:
-    provenance: synthetic
-    tensors:
-      A: '[8, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[8, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P17:
-    provenance: synthetic
-    tensors:
-      A: '[16, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[16, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P18:
-    provenance: synthetic
-    tensors:
-      A: '[32, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[32, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P19:
-    provenance: synthetic
-    tensors:
-      A: '[48, 8] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 8] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 1] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 1] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P20:
-    provenance: synthetic
-    tensors:
-      A: '[48, 16] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 16] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 1] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 1] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P21:
-    provenance: synthetic
-    tensors:
-      A: '[48, 24] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 24] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 1] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 1] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P22:
-    provenance: synthetic
-    tensors:
-      A: '[48, 32] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 32] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 1] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 1] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P23:
-    provenance: synthetic
-    tensors:
-      A: '[48, 64] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 64] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 2] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 2] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P24:
-    provenance: synthetic
-    tensors:
-      A: '[48, 96] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 96] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 3] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 3] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P25:
-    provenance: synthetic
-    tensors:
-      A: '[48, 128] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 128] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 4] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 4] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P26:
-    provenance: synthetic
-    tensors:
-      A: '[48, 192] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 192] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 6] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 6] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P27:
-    provenance: synthetic
-    tensors:
-      A: '[48, 256] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 256] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 8] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 8] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P28:
-    provenance: synthetic
-    tensors:
-      A: '[48, 384] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 384] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 12] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 12] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P29:
-    provenance: synthetic
-    tensors:
-      A: '[48, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P30:
-    provenance: synthetic
-    tensors:
-      A: '[48, 640] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 640] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 20] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 20] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P31:
-    provenance: synthetic
-    tensors:
-      A: '[48, 768] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[512, 768] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 24] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[64, 24] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P32:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P33:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[16, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[2, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P34:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[24, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[3, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P35:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[32, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[4, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P36:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[64, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[8, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P37:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[96, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[12, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P38:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[128, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[16, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P39:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[192, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[24, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P40:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[256, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[32, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  P41:
-    provenance: synthetic
-    tensors:
-      A: '[48, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H1:
-    provenance: synthetic
-    tensors:
-      A: '[48, 384] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 384] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[48, 12] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 12] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H2:
-    provenance: edge
-    tensors:
-      A: '[2, 128] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8, 128] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[2, 4] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1, 4] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H3:
-    provenance: synthetic
-    tensors:
-      A: '[2, 4096] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[4096, 4096] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[2, 128] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[512, 128] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H4:
-    provenance: synthetic
-    tensors:
-      A: '[256, 128] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[128, 128] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[256, 4] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[16, 4] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H5:
-    provenance: edge
-    tensors:
-      A: '[1, 8] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8, 8] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[1, 1] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1, 1] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H6:
-    provenance: edge
-    tensors:
-      A: '[1, 512] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[384, 512] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[1, 16] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[48, 16] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
-  H7:
-    provenance: edge
-    tensors:
-      A: '[1536, 1024] int8 axes=B,D dist=randint(lo=0, hi=8)'
-      B: '[8, 1024] int8 axes=N,D dist=randint(lo=0, hi=8)'
-      As: '[1536, 32] float32 axes=B,(D+31)//32 dist=rand'
-      Bs: '[1, 32] float32 axes=N//8,(D+31)//32 dist=rand'
-    params:
-      block_size:
-      - 8
-      - 32
+  env: {B: 1536, L: 128, D: 1024, Dv: 8, N: 8, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: A, kind: tensor, shape: [1536, 1024], dtype: int8, axes: [B, D], dist: 'randint:0:8'}
+  - {name: B, kind: tensor, shape: [8, 1024], dtype: int8, axes: [N, D], dist: 'randint:0:8'}
+  - {name: As, kind: tensor, shape: [1536, 32], dtype: float32, axes: [B, (D+31)//32], dist: rand}
+  - {name: Bs, kind: tensor, shape: [1, 32], dtype: float32, axes: [N//8, (D+31)//32], dist: rand}
+  - {name: block_size, kind: scalar_seq, value: [8, 32]}

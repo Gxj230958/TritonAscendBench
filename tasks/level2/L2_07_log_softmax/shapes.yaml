@@ -1,637 +1,248 @@
-# Operator-family knob grid: values reflect
-# the sampling family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 4096
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 64, Dv: 8, N: 128, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 64], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 256], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 4096
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [64, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 32768
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 32768, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [128, 1024], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 2048
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 2048, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [8, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 8192
+  env: {B: 1, L: 128, D: 8192, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 8192], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 384
-    D: 6144
+  env: {B: 384, L: 128, D: 6144, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [384, 6144], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 512
-    D: 8192
+  env: {B: 512, L: 128, D: 8192, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [512, 8192], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 6144
+  env: {B: 48, L: 128, D: 6144, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 6144], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8192
+  env: {B: 48, L: 128, D: 8192, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 8192], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 384
+  env: {B: 384, L: 128, D: 384, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [384, 384], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 512
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 512
+  env: {B: 2, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 512
+  env: {B: 3, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [3, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 512
+  env: {B: 4, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [4, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 512
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [16, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 512
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [32, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2
+  env: {B: 48, L: 128, D: 2, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 2], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 4
+  env: {B: 48, L: 128, D: 4, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 4], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 6
+  env: {B: 48, L: 128, D: 6, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 6], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 8
+  env: {B: 48, L: 128, D: 8, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 8], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 16
+  env: {B: 48, L: 128, D: 16, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 16], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 32
+  env: {B: 48, L: 128, D: 32, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 32], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 64
+  env: {B: 48, L: 128, D: 64, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 64], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 96
+  env: {B: 48, L: 128, D: 96, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 96], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
+  env: {B: 48, L: 128, D: 128, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 128], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 192
+  env: {B: 48, L: 128, D: 192, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 192], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 256
+  env: {B: 48, L: 128, D: 256, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 256], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 512
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 512], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 640
+  env: {B: 48, L: 128, D: 640, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 640], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 768
+  env: {B: 48, L: 128, D: 768, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 768], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1024
+  env: {B: 48, L: 128, D: 1024, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 1024], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1280
+  env: {B: 48, L: 128, D: 1280, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 1280], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 1536
+  env: {B: 48, L: 128, D: 1536, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 1536], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2048
+  env: {B: 48, L: 128, D: 2048, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 2048], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 2560
+  env: {B: 48, L: 128, D: 2560, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 2560], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 3072
+  env: {B: 48, L: 128, D: 3072, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 3072], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 3584
+  env: {B: 48, L: 128, D: 3584, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 3584], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 4096
+  env: {B: 48, L: 128, D: 4096, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 4096], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 5120
+  env: {B: 48, L: 128, D: 5120, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 5120], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 12288
-hidden_shapes:
+  env: {B: 48, L: 128, D: 12288, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 12288], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 1536
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 1536, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [48, 384], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 64
-    Dv: 8
-    N: 16
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 64, Dv: 8, N: 16, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 64], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 65536
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 65536, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2, 4096], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 256
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 256, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: input, kind: tensor, shape: [256, 128], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 2
+  env: {B: 1, L: 128, D: 2, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 2], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 384], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [1, 32768], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    D: 2
-inputs:
-  input:
-    dims:
-    - B
-    - D
-    dtype: float32
-    dist: randn
-  dim:
-    scalar: -1
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      input: '[4, 64] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P2:
-    provenance: baseline
-    tensors:
-      input: '[16, 256] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P3:
-    provenance: baseline
-    tensors:
-      input: '[64, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P4:
-    provenance: baseline
-    tensors:
-      input: '[128, 1024] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P5:
-    provenance: synthetic
-    tensors:
-      input: '[8, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P6:
-    provenance: synthetic
-    tensors:
-      input: '[1, 8192] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P7:
-    provenance: synthetic
-    tensors:
-      input: '[384, 6144] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P8:
-    provenance: synthetic
-    tensors:
-      input: '[512, 8192] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P9:
-    provenance: synthetic
-    tensors:
-      input: '[48, 6144] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P10:
-    provenance: synthetic
-    tensors:
-      input: '[48, 8192] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P11:
-    provenance: synthetic
-    tensors:
-      input: '[384, 384] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P12:
-    provenance: synthetic
-    tensors:
-      input: '[1, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P13:
-    provenance: synthetic
-    tensors:
-      input: '[2, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P14:
-    provenance: synthetic
-    tensors:
-      input: '[3, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P15:
-    provenance: synthetic
-    tensors:
-      input: '[4, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P16:
-    provenance: synthetic
-    tensors:
-      input: '[16, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P17:
-    provenance: synthetic
-    tensors:
-      input: '[32, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P18:
-    provenance: synthetic
-    tensors:
-      input: '[48, 2] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P19:
-    provenance: synthetic
-    tensors:
-      input: '[48, 4] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P20:
-    provenance: synthetic
-    tensors:
-      input: '[48, 6] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P21:
-    provenance: synthetic
-    tensors:
-      input: '[48, 8] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P22:
-    provenance: synthetic
-    tensors:
-      input: '[48, 16] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P23:
-    provenance: synthetic
-    tensors:
-      input: '[48, 32] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P24:
-    provenance: synthetic
-    tensors:
-      input: '[48, 64] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P25:
-    provenance: synthetic
-    tensors:
-      input: '[48, 96] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P26:
-    provenance: synthetic
-    tensors:
-      input: '[48, 128] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P27:
-    provenance: synthetic
-    tensors:
-      input: '[48, 192] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P28:
-    provenance: synthetic
-    tensors:
-      input: '[48, 256] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P29:
-    provenance: synthetic
-    tensors:
-      input: '[48, 512] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P30:
-    provenance: synthetic
-    tensors:
-      input: '[48, 640] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P31:
-    provenance: synthetic
-    tensors:
-      input: '[48, 768] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P32:
-    provenance: synthetic
-    tensors:
-      input: '[48, 1024] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P33:
-    provenance: synthetic
-    tensors:
-      input: '[48, 1280] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P34:
-    provenance: synthetic
-    tensors:
-      input: '[48, 1536] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P35:
-    provenance: synthetic
-    tensors:
-      input: '[48, 2048] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P36:
-    provenance: synthetic
-    tensors:
-      input: '[48, 2560] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P37:
-    provenance: synthetic
-    tensors:
-      input: '[48, 3072] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P38:
-    provenance: synthetic
-    tensors:
-      input: '[48, 3584] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P39:
-    provenance: synthetic
-    tensors:
-      input: '[48, 4096] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P40:
-    provenance: synthetic
-    tensors:
-      input: '[48, 5120] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  P41:
-    provenance: synthetic
-    tensors:
-      input: '[48, 12288] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H1:
-    provenance: synthetic
-    tensors:
-      input: '[48, 384] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H2:
-    provenance: edge
-    tensors:
-      input: '[2, 64] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H3:
-    provenance: synthetic
-    tensors:
-      input: '[2, 4096] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H4:
-    provenance: synthetic
-    tensors:
-      input: '[256, 128] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H5:
-    provenance: edge
-    tensors:
-      input: '[1, 2] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H6:
-    provenance: edge
-    tensors:
-      input: '[1, 384] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H7:
-    provenance: edge
-    tensors:
-      input: '[1, 32768] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
-  H8:
-    provenance: edge
-    tensors:
-      input: '[2048, 2] float32 axes=B,D dist=randn'
-    params:
-      dim: -1
+  env: {B: 2048, L: 128, D: 2, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: input, kind: tensor, shape: [2048, 2], dtype: float32, axes: [B, D], dist: randn}
+  - {name: dim, kind: scalar, value: -1}

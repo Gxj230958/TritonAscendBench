@@ -1,770 +1,355 @@
-# Operator-family knob grid for chunk_gated_delta_rule_fwd_h.
-# Layout follows the frozen upstream wrapper exactly:
-#   k: [B, T, Hg, K]   w: [B, T, H, K]   u: [B, T, H, V]
-#   g: [B, T, H]       gk: [B, T, H, K]
-#   output h: [B, NT, H, V, K], BT = FLA_CHUNK_SIZE = 64.
-# Hg == H here (the fla common case where Q/K share head counts), so the
-# kernel's head-grouping i_h // (H // Hg) is the identity. K, V <= 256 to
-# respect the kernel assertion `K <= 256` and the blockdim64 K-tiling
-# (K in {64,128,192,256}).
-# gk drives the kernel's USE_GK branch (per-K-channel state decay by
-# exp(gk[:, chunk_last])). Because that decay multiplies the carried state
-# S whose chunk-0 value is zero (no initial_state) and h snapshots S at each
-# chunk START, the decay only reaches a GRADED output from the chunk-2
-# snapshot onward -- so every shape must span NT >= 3, i.e. T >= 129
-# (= 2*BT + 1). Do NOT lower any T below 129 or the USE_GK branch stops
-# affecting the output and becomes effectively untested.
-size_knobs:
-  B: 8
-  T: 192
-  H: 16
-  K: 128
-  V: 128
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    T: 144
-    H: 4
-    K: 64
-    V: 64
+  env: {B: 2, T: 144, H: 4, K: 64, V: 64}
+  inputs:
+  - {name: k, kind: tensor, shape: [2, 144, 4, 64], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [2, 144, 4, 64], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [2, 144, 4, 64], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 144, 4], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [2, 144, 4, 64], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    T: 160
-    H: 8
-    K: 64
-    V: 64
+  env: {B: 4, T: 160, H: 8, K: 64, V: 64}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 160, 8, 64], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 160, 8, 64], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 160, 8, 64], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 160, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 160, 8, 64], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    T: 192
-    H: 16
-    K: 128
-    V: 128
+  env: {B: 8, T: 192, H: 16, K: 128, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [8, 192, 16, 128], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [8, 192, 16, 128], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [8, 192, 16, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [8, 192, 16], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [8, 192, 16, 128], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P4
-  name: large
-  knobs:
-    B: 4
-    T: 256
-    H: 8
-    K: 256
-    V: 256
+  env: {B: 4, T: 256, H: 8, K: 256, V: 256}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 256, 8, 256], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 256, 8, 256], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 256, 8, 256], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 256, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 256, 8, 256], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    T: 192
-    H: 8
-    K: 128
-    V: 64
+  env: {B: 2, T: 192, H: 8, K: 128, V: 64}
+  inputs:
+  - {name: k, kind: tensor, shape: [2, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [2, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [2, 192, 8, 64], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [2, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 384
-    V: 128
+  env: {B: 4, T: 384, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 384, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 384, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 384, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 384, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 384, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 512
-    V: 128
+  env: {B: 4, T: 512, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 512, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 512, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 512, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 512, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 512, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 24
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 24, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 24, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 24, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 24, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 24], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 24, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 32
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 32, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 32, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 32, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 32, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 32], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 32, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 12
-    H: 8
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 12, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [12, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [12, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [12, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [12, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [12, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 16
-    H: 8
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 16, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [16, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [16, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [16, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [16, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [16, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    H: 8
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 2, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [2, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [2, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [2, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [2, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [2, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    H: 8
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 3, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [3, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [3, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [3, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [3, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [3, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 1
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 1, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 1, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 1, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 1, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 1], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 1, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 2
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 2, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 2, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 2, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 2, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 2], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 2, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 3
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 3, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 3, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 3, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 3, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 3], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 3, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 4
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 4, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 4, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 4, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 4, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 4], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 4, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 64
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 8, K: 64, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 64], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 64], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 64], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 128
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 8, K: 128, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 129
-    V: 128
+  env: {B: 4, T: 129, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 129, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 129, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 129, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 129, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 129, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 1
+  env: {B: 4, T: 192, H: 8, K: 192, V: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 1], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 2
+  env: {B: 4, T: 192, H: 8, K: 192, V: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 2], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 3
+  env: {B: 4, T: 192, H: 8, K: 192, V: 3}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 3], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 4
+  env: {B: 4, T: 192, H: 8, K: 192, V: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 4], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 8
+  env: {B: 4, T: 192, H: 8, K: 192, V: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 8], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 16
+  env: {B: 4, T: 192, H: 8, K: 192, V: 16}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 16], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 32
+  env: {B: 4, T: 192, H: 8, K: 192, V: 32}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 32], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 64
+  env: {B: 4, T: 192, H: 8, K: 192, V: 64}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 64], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 96
+  env: {B: 4, T: 192, H: 8, K: 192, V: 96}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 96], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 128
+  env: {B: 4, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 192
+  env: {B: 4, T: 192, H: 8, K: 192, V: 192}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 192
-    V: 256
+  env: {B: 4, T: 192, H: 8, K: 192, V: 256}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 256], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 256
-    V: 128
+  env: {B: 4, T: 256, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 256, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 256, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 256, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 256, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 256, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 387
-    V: 128
+  env: {B: 4, T: 387, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 387, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 387, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 387, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 387, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 387, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 640
-    V: 128
+  env: {B: 4, T: 640, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 640, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 640, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 640, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 640, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 640, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 768
-    V: 128
+  env: {B: 4, T: 768, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 768, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 768, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 768, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 768, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 768, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 1024
-    V: 128
+  env: {B: 4, T: 1024, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 1024, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 1024, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 1024, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 1024, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 1024, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 1280
-    V: 128
+  env: {B: 4, T: 1280, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 1280, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 1280, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 1280, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 1280, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 1280, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 1536
-    V: 128
+  env: {B: 4, T: 1536, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 1536, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 1536, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 1536, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 1536, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 1536, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 192
-    T: 2048
-    V: 128
+  env: {B: 4, T: 2048, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 2048, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 2048, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 2048, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 2048, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 2048, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    H: 8
-    K: 256
-    T: 192
-    V: 128
-hidden_shapes:
+  env: {B: 4, T: 192, H: 8, K: 256, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 192, 8, 256], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [4, 192, 8, 256], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [4, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [4, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [4, 192, 8, 256], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
+hidden:
 - id: H1
-  name: h_multichunk
-  knobs:
-    B: 3
-    T: 160
-    H: 6
-    K: 192
-    V: 128
+  env: {B: 3, T: 160, H: 6, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [3, 160, 6, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [3, 160, 6, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [3, 160, 6, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [3, 160, 6], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [3, 160, 6, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: H2
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 1
-    K: 64
-    T: 129
-    V: 1
+  env: {B: 1, T: 129, H: 1, K: 64, V: 1}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 129, 1, 64], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [1, 129, 1, 64], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [1, 129, 1, 1], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 129, 1], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [1, 129, 1, 64], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}
 - id: H3
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    H: 8
-    K: 192
-    T: 192
-    V: 128
-inputs:
-  k:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: float32
-    dist: l2norm_rows
-  w:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: float32
-    dist: randn
-  u:
-    dims:
-    - B
-    - T
-    - H
-    - V
-    dtype: float32
-    dist: randn
-  g:
-    dims:
-    - B
-    - T
-    - H
-    dtype: float32
-    dist: logsigmoid
-  gk:
-    dims:
-    - B
-    - T
-    - H
-    - K
-    dtype: float32
-    dist: logsigmoid
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      k: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=randn'
-      u: '[2, 144, 4, 64] float32 axes=B,T,H,V dist=randn'
-      g: '[2, 144, 4] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[2, 144, 4, 64] float32 axes=B,T,H,K dist=logsigmoid'
-  P2:
-    provenance: baseline
-    tensors:
-      k: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 160, 8, 64] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 160, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 160, 8, 64] float32 axes=B,T,H,K dist=logsigmoid'
-  P3:
-    provenance: baseline
-    tensors:
-      k: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=randn'
-      u: '[8, 192, 16, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[8, 192, 16] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[8, 192, 16, 128] float32 axes=B,T,H,K dist=logsigmoid'
-  P4:
-    provenance: baseline
-    tensors:
-      k: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 256, 8, 256] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 256, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 256, 8, 256] float32 axes=B,T,H,K dist=logsigmoid'
-  P5:
-    provenance: synthetic
-    tensors:
-      k: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=randn'
-      u: '[2, 192, 8, 64] float32 axes=B,T,H,V dist=randn'
-      g: '[2, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[2, 192, 8, 128] float32 axes=B,T,H,K dist=logsigmoid'
-  P6:
-    provenance: synthetic
-    tensors:
-      k: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 384, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 384, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 384, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P7:
-    provenance: synthetic
-    tensors:
-      k: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 512, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 512, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 512, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P8:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 24, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 24] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 24, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P9:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 32, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 32] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 32, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P10:
-    provenance: synthetic
-    tensors:
-      k: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[12, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[12, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[12, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P11:
-    provenance: synthetic
-    tensors:
-      k: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[16, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[16, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[16, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P12:
-    provenance: synthetic
-    tensors:
-      k: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[2, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[2, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[2, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P13:
-    provenance: synthetic
-    tensors:
-      k: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[3, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[3, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[3, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P14:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 1, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 1] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 1, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P15:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 2, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 2] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 2, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P16:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 3, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 3] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 3, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P17:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 4, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 4] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 4, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P18:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 64] float32 axes=B,T,H,K dist=logsigmoid'
-  P19:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 128] float32 axes=B,T,H,K dist=logsigmoid'
-  P20:
-    provenance: synthetic
-    tensors:
-      k: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 129, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 129, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 129, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P21:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 1] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P22:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 2] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P23:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 3] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P24:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 4] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P25:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 8] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P26:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 16] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P27:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 32] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P28:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 64] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P29:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 96] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P30:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P31:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 192] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P32:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 256] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P33:
-    provenance: synthetic
-    tensors:
-      k: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 256, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 256, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 256, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P34:
-    provenance: synthetic
-    tensors:
-      k: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 387, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 387, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 387, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P35:
-    provenance: synthetic
-    tensors:
-      k: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 640, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 640, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 640, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P36:
-    provenance: synthetic
-    tensors:
-      k: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 768, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 768, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 768, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P37:
-    provenance: synthetic
-    tensors:
-      k: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 1024, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 1024, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 1024, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P38:
-    provenance: synthetic
-    tensors:
-      k: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 1280, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 1280, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 1280, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P39:
-    provenance: synthetic
-    tensors:
-      k: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 1536, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 1536, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 1536, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P40:
-    provenance: synthetic
-    tensors:
-      k: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 2048, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 2048, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 2048, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  P41:
-    provenance: synthetic
-    tensors:
-      k: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=randn'
-      u: '[4, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[4, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[4, 192, 8, 256] float32 axes=B,T,H,K dist=logsigmoid'
-  H1:
-    provenance: synthetic
-    tensors:
-      k: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[3, 160, 6, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[3, 160, 6] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[3, 160, 6, 192] float32 axes=B,T,H,K dist=logsigmoid'
-  H2:
-    provenance: edge
-    tensors:
-      k: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=randn'
-      u: '[1, 129, 1, 1] float32 axes=B,T,H,V dist=randn'
-      g: '[1, 129, 1] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[1, 129, 1, 64] float32 axes=B,T,H,K dist=logsigmoid'
-  H3:
-    provenance: edge
-    tensors:
-      k: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=l2norm_rows'
-      w: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=randn'
-      u: '[1, 192, 8, 128] float32 axes=B,T,H,V dist=randn'
-      g: '[1, 192, 8] float32 axes=B,T,H dist=logsigmoid'
-      gk: '[1, 192, 8, 192] float32 axes=B,T,H,K dist=logsigmoid'
+  env: {B: 1, T: 192, H: 8, K: 192, V: 128}
+  inputs:
+  - {name: k, kind: tensor, shape: [1, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: l2norm_rows}
+  - {name: w, kind: tensor, shape: [1, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: randn}
+  - {name: u, kind: tensor, shape: [1, 192, 8, 128], dtype: float32, axes: [B, T, H, V], dist: randn}
+  - {name: g, kind: tensor, shape: [1, 192, 8], dtype: float32, axes: [B, T, H], dist: logsigmoid}
+  - {name: gk, kind: tensor, shape: [1, 192, 8, 192], dtype: float32, axes: [B, T, H, K], dist: logsigmoid}

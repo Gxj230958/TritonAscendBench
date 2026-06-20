@@ -1,694 +1,297 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 32], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [4, 64], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [4, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [16, 256], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [16, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 512
+  env: {B: 1, L: 512, D: 512, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 512], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 48
-    D: 384
+  env: {B: 48, L: 512, D: 384, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [48, 384], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [48, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 64
-    D: 512
+  env: {B: 64, L: 512, D: 512, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [64, 512], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [64, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
+  env: {B: 8, L: 512, D: 384, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 384], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
+  env: {B: 8, L: 512, D: 512, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 512], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [48, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [48, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 128
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [3, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [3, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 128
+  env: {B: 4, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [4, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [4, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1
+  env: {B: 8, L: 512, D: 1, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 1], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2
+  env: {B: 8, L: 512, D: 2, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 2], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 3
+  env: {B: 8, L: 512, D: 3, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 3], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 4
+  env: {B: 8, L: 512, D: 4, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 4], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 8
+  env: {B: 8, L: 512, D: 8, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 8], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 16
+  env: {B: 8, L: 512, D: 16, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 16], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 32
+  env: {B: 8, L: 512, D: 32, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 32], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 64
+  env: {B: 8, L: 512, D: 64, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 64], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
+  env: {B: 8, L: 512, D: 96, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 96], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 192
+  env: {B: 8, L: 512, D: 192, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 192], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 256
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 256], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 640
+  env: {B: 8, L: 512, D: 640, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 640], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 768
+  env: {B: 8, L: 512, D: 768, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 768], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
+  env: {B: 8, L: 512, D: 1024, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 1024], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1280
+  env: {B: 8, L: 512, D: 1280, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 1280], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1536
+  env: {B: 8, L: 512, D: 1536, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 1536], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 2048
+  env: {B: 8, L: 512, D: 2048, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [8, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 128
+  env: {B: 16, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [16, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [16, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 128
+  env: {B: 32, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [32, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [32, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 128
+  env: {B: 64, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [64, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [64, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 128
+  env: {B: 96, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [96, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [96, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    D: 128
+  env: {B: 128, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [128, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [128, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
-    D: 128
+  env: {B: 192, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [192, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [192, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 256
-    D: 128
+  env: {B: 256, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [256, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [256, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P38
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 2
+  env: {B: 1, L: 512, D: 2, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 2], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P39
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 16
+  env: {B: 1, L: 512, D: 16, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 16], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P40
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 2
-    D: 192
+  env: {B: 2, L: 512, D: 192, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 192], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: P41
-  name: grid_CPU-valid; pending 
-  knobs:
-    B: 2
-    D: 1536
-hidden_shapes:
+  env: {B: 2, L: 512, D: 1536, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 1536], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [3, 64], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [3, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 32], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [2, 256], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [2, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [32, 64], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [32, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
+  env: {B: 1, L: 512, D: 1, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 1], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 128
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 128], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 2048
+  env: {B: 1, L: 512, D: 2048, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [1, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 256
-    D: 2048
-inputs:
-  page_table:
-    dims:
-    - B
-    - D
-    dtype: int64
-    dist: randint:0:2
-  topk_indices:
-    dims:
-    - B
-    - 2048
-    dtype: int64
-    # Range [-1, D): negatives drive the mask=False (store -1) branch;
-    # non-negatives are valid gather indices into page_table's D columns.
-    dist: randint:-1:D
-  page_size:
-    scalar: 1
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      page_table: '[2, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P2:
-    provenance: baseline
-    tensors:
-      page_table: '[4, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[4, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P3:
-    provenance: baseline
-    tensors:
-      page_table: '[8, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P4:
-    provenance: baseline
-    tensors:
-      page_table: '[16, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[16, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P5:
-    provenance: synthetic
-    tensors:
-      page_table: '[2, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P6:
-    provenance: synthetic
-    tensors:
-      page_table: '[1, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P7:
-    provenance: synthetic
-    tensors:
-      page_table: '[48, 384] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[48, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P8:
-    provenance: synthetic
-    tensors:
-      page_table: '[64, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[64, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P9:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 384] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P10:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 512] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P11:
-    provenance: synthetic
-    tensors:
-      page_table: '[48, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[48, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P12:
-    provenance: synthetic
-    tensors:
-      page_table: '[3, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[3, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P13:
-    provenance: synthetic
-    tensors:
-      page_table: '[4, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[4, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P14:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 1] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P15:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 2] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P16:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 3] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P17:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 4] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P18:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 8] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P19:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 16] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P20:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P21:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P22:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 96] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P23:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 192] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P24:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P25:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 640] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P26:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 768] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P27:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 1024] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P28:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 1280] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P29:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 1536] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P30:
-    provenance: synthetic
-    tensors:
-      page_table: '[8, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[8, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P31:
-    provenance: synthetic
-    tensors:
-      page_table: '[16, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[16, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P32:
-    provenance: synthetic
-    tensors:
-      page_table: '[32, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[32, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P33:
-    provenance: synthetic
-    tensors:
-      page_table: '[64, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[64, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P34:
-    provenance: synthetic
-    tensors:
-      page_table: '[96, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[96, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P35:
-    provenance: synthetic
-    tensors:
-      page_table: '[128, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[128, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P36:
-    provenance: synthetic
-    tensors:
-      page_table: '[192, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[192, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P37:
-    provenance: synthetic
-    tensors:
-      page_table: '[256, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[256, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P38:
-    provenance: synthetic
-    tensors:
-      page_table: '[1, 2] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P39:
-    provenance: synthetic
-    tensors:
-      page_table: '[1, 16] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P40:
-    provenance: synthetic
-    tensors:
-      page_table: '[2, 192] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  P41:
-    provenance: synthetic
-    tensors:
-      page_table: '[2, 1536] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H1:
-    provenance: synthetic
-    tensors:
-      page_table: '[3, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[3, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H2:
-    provenance: edge
-    tensors:
-      page_table: '[2, 32] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H3:
-    provenance: synthetic
-    tensors:
-      page_table: '[2, 256] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[2, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H4:
-    provenance: synthetic
-    tensors:
-      page_table: '[32, 64] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[32, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H5:
-    provenance: edge
-    tensors:
-      page_table: '[1, 1] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H6:
-    provenance: edge
-    tensors:
-      page_table: '[1, 128] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H7:
-    provenance: edge
-    tensors:
-      page_table: '[1, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[1, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
-  H8:
-    provenance: edge
-    tensors:
-      page_table: '[256, 2048] int64 axes=B,D dist=randint(lo=0, hi=2)'
-      topk_indices: '[256, 2048] int64 axes=B,2048 dist=randint(lo=-1, hi=D)'
-    params:
-      page_size: 1
+  env: {B: 256, L: 512, D: 2048, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: page_table, kind: tensor, shape: [256, 2048], dtype: int64, axes: [B, D], dist: 'randint:0:2'}
+  - {name: topk_indices, kind: tensor, shape: [256, 2048], dtype: int64, axes: [B, '2048'], dist: 'randint:-1:D'}
+  - {name: page_size, kind: scalar, value: 1}

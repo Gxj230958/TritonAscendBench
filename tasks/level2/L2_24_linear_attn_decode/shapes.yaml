@@ -1,350 +1,138 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 4, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 4, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 4, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [2, 4, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: randperm}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [4, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [4, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: randperm}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 16, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 16, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 16, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [8, 16, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: randperm}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 32, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [16, 32, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 32, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [16, 32, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: randperm}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 64, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 64, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 64, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [2, 64, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [64], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: randperm}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    D: 512
-    H: 12
+  env: {B: 1, L: 512, D: 512, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 12, 1, 512], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 12, 1, 512], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 12, 1, 512], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [1, 12, 512, 512], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [12], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: randperm}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 96
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 96, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 96, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 96, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 96, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [8, 96, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [96], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: randperm}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 128
-    H: 128
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 128, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 128, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [8, 128, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [8, 128, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [128], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: randperm}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    D: 128
-    H: 12
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [48, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [48, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [48, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [48, 12, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [12], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: randperm}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 128
-    H: 12
-hidden_shapes:
+  env: {B: 64, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [64, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [64, 12, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [12], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: randperm}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 12, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [3, 12, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [3, 12, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [3, 12, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [12], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: randperm}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 2, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 2, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 2, 1, 32], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [2, 2, 32, 32], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: randperm}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 8, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [2, 8, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 8, 1, 256], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [2, 8, 256, 256], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: randperm}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [32, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 8, 1, 64], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [32, 8, 64, 64], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: randperm}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 128
-    H: 12
-inputs:
-  q:
-    dims:
-    - B
-    - H
-    - 1
-    - D
-    dtype: float32
-    dist: randn
-  k:
-    dims:
-    - B
-    - H
-    - 1
-    - D
-    dtype: float32
-    dist: randn
-  v:
-    dims:
-    - B
-    - H
-    - 1
-    - D
-    dtype: float32
-    dist: randn
-  kv_caches:
-    dims:
-    - B
-    - H
-    - D
-    - D
-    dtype: float32
-    dist: randn
-  slope_rate:
-    dims:
-    - H
-    dtype: float32
-    dist: rand
-  slot_idx:
-    dims:
-    - B
-    dtype: int64
-    # Permutation of [0,B): scrambled slot routing (a bijection avoids the
-    # in-place cache write-race) so the slot gather is load-bearing, not identity.
-    dist: randperm
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
-      k: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
-      v: '[2, 4, 1, 32] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[2, 4, 32, 32] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[4] float32 axes=H dist=rand'
-      slot_idx: '[2] int64 axes=B dist=randperm'
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      k: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      v: '[4, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[4, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[8] float32 axes=H dist=rand'
-      slot_idx: '[4] int64 axes=B dist=randperm'
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[8, 16, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[8, 16, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[16] float32 axes=H dist=rand'
-      slot_idx: '[8] int64 axes=B dist=randperm'
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
-      k: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
-      v: '[16, 32, 1, 256] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[16, 32, 256, 256] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[32] float32 axes=H dist=rand'
-      slot_idx: '[16] int64 axes=B dist=randperm'
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[2, 64, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[2, 64, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[64] float32 axes=H dist=rand'
-      slot_idx: '[2] int64 axes=B dist=randperm'
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
-      k: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
-      v: '[1, 12, 1, 512] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[1, 12, 512, 512] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[12] float32 axes=H dist=rand'
-      slot_idx: '[1] int64 axes=B dist=randperm'
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[8, 96, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[8, 96, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[96] float32 axes=H dist=rand'
-      slot_idx: '[8] int64 axes=B dist=randperm'
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[8, 128, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[8, 128, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[128] float32 axes=H dist=rand'
-      slot_idx: '[8] int64 axes=B dist=randperm'
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[48, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[48, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[12] float32 axes=H dist=rand'
-      slot_idx: '[48] int64 axes=B dist=randperm'
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[64, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[64, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[12] float32 axes=H dist=rand'
-      slot_idx: '[64] int64 axes=B dist=randperm'
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
-      k: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
-      v: '[3, 12, 1, 64] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[3, 12, 64, 64] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[12] float32 axes=H dist=rand'
-      slot_idx: '[3] int64 axes=B dist=randperm'
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
-      k: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
-      v: '[2, 2, 1, 32] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[2, 2, 32, 32] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[2] float32 axes=H dist=rand'
-      slot_idx: '[2] int64 axes=B dist=randperm'
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
-      k: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
-      v: '[2, 8, 1, 256] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[2, 8, 256, 256] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[8] float32 axes=H dist=rand'
-      slot_idx: '[2] int64 axes=B dist=randperm'
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      k: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      v: '[32, 8, 1, 64] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[32, 8, 64, 64] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[8] float32 axes=H dist=rand'
-      slot_idx: '[32] int64 axes=B dist=randperm'
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      k: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      v: '[1, 12, 1, 128] float32 axes=B,H,1,D dist=randn'
-      kv_caches: '[1, 12, 128, 128] float32 axes=B,H,D,D dist=randn'
-      slope_rate: '[12] float32 axes=H dist=rand'
-      slot_idx: '[1] int64 axes=B dist=randperm'
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 12, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: k, kind: tensor, shape: [1, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: v, kind: tensor, shape: [1, 12, 1, 128], dtype: float32, axes: [B, H, '1', D], dist: randn}
+  - {name: kv_caches, kind: tensor, shape: [1, 12, 128, 128], dtype: float32, axes: [B, H, D, D], dist: randn}
+  - {name: slope_rate, kind: tensor, shape: [12], dtype: float32, axes: [H], dist: rand}
+  - {name: slot_idx, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: randperm}

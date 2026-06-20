@@ -1,901 +1,444 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 6], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [4, 192, 2], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [5], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [8, 384, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [16, 768, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [17], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [16, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [32, 1536, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [33], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [32], dtype: float32, axes: [E], dist: rand}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [8, 768, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1
-    E: 12
-    G: 4
-    N: 1024
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 3072, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 48
-    E: 48
-    G: 12
-    N: 768
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 768, T: 64, H: 16, E: 48, C: 32, G: 12}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 36], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [48, 2304, 12], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [49], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [48], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [48], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [48], dtype: float32, axes: [E], dist: rand}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 64
-    E: 64
-    G: 16
-    N: 1024
+  env: {B: 64, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 64, C: 32, G: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 48], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [64, 3072, 16], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [65], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [64], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [64], dtype: float32, axes: [E], dist: rand}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 4
-    N: 768
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 768, T: 64, H: 16, E: 12, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 2304, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 4
-    N: 1024
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 3072, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 12
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 12}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 36], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 12], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    E: 12
-    G: 8
-    N: 192
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    E: 12
-    G: 8
-    N: 192
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    E: 12
-    G: 8
-    N: 192
+  env: {B: 3, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    E: 12
-    G: 8
-    N: 192
+  env: {B: 4, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [4, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 1
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [1, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [2], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 2
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [2, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [3], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 3
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [3, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [4], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [3], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [3], dtype: float32, axes: [E], dist: rand}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 4
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [4, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [5], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [4], dtype: float32, axes: [E], dist: rand}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 8
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [8, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 1
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 1}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 3], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 1], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 2
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 6], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 2], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 3
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 3}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 9], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 3], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 4
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 1
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 3, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 2
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 2, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 6, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 3
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 3, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 9, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 4
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 4, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 12, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 8, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 24, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 16
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 16, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 48, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 32
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 32, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 96, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 64
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 64, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 192, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 96
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 96, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 288, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 128
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 128, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 384, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 192
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 256
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 768, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 384
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 384, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 1152, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 512
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 512, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 1536, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 640
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 640, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 1920, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 768
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 768, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 2304, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 12
-    G: 8
-    N: 1024
-hidden_shapes:
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 1024, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [8, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 3072, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [3, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 6], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [2, 96, 2], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [3], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [2], dtype: float32, axes: [E], dist: rand}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [2, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [16, 1536, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [17], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [16], dtype: float32, axes: [E], dist: rand}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-# Dense fixture for the fused QKV LoRA-B expand. The authored
-# _pa_launcher.py drives the in-module @triton.jit `_qkv_lora_b_kernel`
-# directly (bypassing the upstream host wrapper, whose LoRABatchInfo import
-# is a T3 BLOCKED closure) and derives the wrapper's batch_info fields from
-# these tensors: seg_lens = diff(seg_indptr), bs = num_segments,
-# max_len = max(seg_lens), output_offset = [0, N, 2N, 3N] from qkv_lora_b's
-# output_dim, permutation = None (SORTED_BY_ADAPTER False). Knob roles:
-#   B -> total tokens s (x rows);  E -> num_segments == num_lora adapters;
-#   G -> max LoRA rank r;  N -> per-slice output dim (output_dim = 3*N).
-# x is (s, n_slices * r) = (B, 3*G); qkv_lora_b is (num_lora, 3*N, r) =
-# (E, 3*N, G). seg_indptr `offsets:to=B` pins the segment cumsum to B so the
-# segments tile [0, B) and every kernel row read stays in-bounds.
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [32, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [8, 384, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [9], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [8], dtype: float32, axes: [E], dist: rand}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    G: 1
-    N: 1
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 1, C: 32, G: 1}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 3], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [1, 3, 1], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [2], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [1], dtype: float32, axes: [E], dist: rand}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 12
-    G: 4
-    N: 192
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 192, T: 64, H: 16, E: 12, C: 32, G: 4}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 12], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 576, 4], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 12
-    G: 8
-    N: 4096
+  env: {B: 1, L: 512, D: 128, Dv: 8, N: 4096, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [1, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 12288, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 256
-    E: 12
-    G: 8
-    N: 1
-inputs:
-  x:
-    dims:
-    - B
-    - 3*G
-    dtype: bfloat16
-    dist: randn
-  qkv_lora_b:
-    dims:
-    - E
-    - 3*N
-    - G
-    dtype: bfloat16
-    dist: randn
-  seg_indptr:
-    dims:
-    - E+1
-    dtype: int64
-    dist: offsets:to=B
-  weight_indices:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:E
-  lora_ranks:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:1:G
-  scalings:
-    dims:
-    - E
-    dtype: float32
-    dist: rand
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[2, 6] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[4, 192, 2] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[5] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[4] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[4] float32 axes=E dist=rand'
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[4, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[8, 384, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[16, 768, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[17] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[16] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[16] float32 axes=E dist=rand'
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[16, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[32, 1536, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[33] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[32] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[32] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[32] float32 axes=E dist=rand'
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[2, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[8, 768, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[1, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 3072, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[48, 36] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[48, 2304, 12] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[49] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[48] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[48] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[48] float32 axes=E dist=rand'
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[64, 48] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[64, 3072, 16] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[65] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[64] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[64] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[64] float32 axes=E dist=rand'
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[8, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 2304, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[8, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 3072, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[8, 36] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 12] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[1, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[2, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[3, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[4, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[1, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[2] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[1] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[1] float32 axes=E dist=rand'
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[2, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[3] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[2] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[2] float32 axes=E dist=rand'
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[3, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[4] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[3] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[3] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[3] float32 axes=E dist=rand'
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[4, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[5] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[4] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[4] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[4] float32 axes=E dist=rand'
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[8, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[8, 3] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 1] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P22:
-    provenance: synthetic
-    tensors:
-      x: '[8, 6] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 2] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[8, 9] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 3] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[8, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 3, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 6, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 9, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 12, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 24, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 48, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 96, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 192, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 288, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 384, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 768, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 1152, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 1536, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 1920, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 2304, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[8, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 3072, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[3, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  H2:
-    provenance: edge
-    tensors:
-      x: '[2, 6] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[2, 96, 2] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[3] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[2] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[2] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[2] float32 axes=E dist=rand'
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[2, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[16, 1536, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[17] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[16] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[16] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[16] float32 axes=E dist=rand'
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[32, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[8, 384, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[9] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[8] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[8] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[8] float32 axes=E dist=rand'
-  H5:
-    provenance: edge
-    tensors:
-      x: '[1, 3] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[1, 3, 1] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[2] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[1] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[1] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[1] float32 axes=E dist=rand'
-  H6:
-    provenance: edge
-    tensors:
-      x: '[1, 12] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 576, 4] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  H7:
-    provenance: edge
-    tensors:
-      x: '[1, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 12288, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
-  H8:
-    provenance: edge
-    tensors:
-      x: '[256, 24] bfloat16 axes=B,3*G dist=randn'
-      qkv_lora_b: '[12, 3, 8] bfloat16 axes=E,3*N,G dist=randn'
-      seg_indptr: '[13] int64 axes=E+1 dist=offsets(to=B)'
-      weight_indices: '[12] int64 axes=E dist=randint(lo=0, hi=E)'
-      lora_ranks: '[12] int64 axes=E dist=randint(lo=1, hi=G)'
-      scalings: '[12] float32 axes=E dist=rand'
+  env: {B: 256, L: 512, D: 128, Dv: 8, N: 1, T: 64, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 24], dtype: bfloat16, axes: [B, 3*G], dist: randn}
+  - {name: qkv_lora_b, kind: tensor, shape: [12, 3, 8], dtype: bfloat16, axes: [E, 3*N, G], dist: randn}
+  - {name: seg_indptr, kind: tensor, shape: [13], dtype: int64, axes: [E+1], dist: 'offsets:to=B'}
+  - {name: weight_indices, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:E'}
+  - {name: lora_ranks, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:1:G'}
+  - {name: scalings, kind: tensor, shape: [12], dtype: float32, axes: [E], dist: rand}

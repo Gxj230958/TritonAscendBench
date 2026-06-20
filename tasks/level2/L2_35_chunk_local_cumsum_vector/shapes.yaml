@@ -1,917 +1,379 @@
-# Operator-family knob grid: values reflect
-# the ssm family's real axes.
-size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
-  REV: 0
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 16
-    H: 4
-    E: 2
-    C: 4
-    G: 2
-    REV: 0
+  env: {B: 2, L: 16, D: 32, Dv: 32, N: 16, T: 16, H: 4, E: 2, C: 4, G: 2, REV: 0}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 33, 4, 32], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 0, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
-    H: 8
-    E: 4
-    C: 8
-    G: 4
-    REV: 1
+  env: {B: 4, L: 64, D: 64, Dv: 64, N: 32, T: 64, H: 8, E: 4, C: 8, G: 4, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 257, 8, 64], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
-    REV: 0
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8, REV: 0}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 1025, 16, 128], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 0, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
-    REV: 1
+  env: {B: 16, L: 256, D: 256, Dv: 256, N: 128, T: 256, H: 32, E: 16, C: 32, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 4097, 32, 256], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [17], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 32
-    H: 8
-    E: 4
-    C: 8
-    G: 4
-    REV: 0
+  env: {B: 2, L: 64, D: 128, Dv: 128, N: 64, T: 32, H: 8, E: 4, C: 8, G: 4, REV: 0}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 129, 8, 128], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 0, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 8
-    L: 768
-    REV: 1
+  env: {B: 8, L: 768, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 6145, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 8
-    L: 1024
-    REV: 1
+  env: {B: 8, L: 1024, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 8193, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 48
-    L: 96
-    REV: 1
+  env: {B: 8, L: 96, D: 96, Dv: 128, N: 64, T: 128, H: 48, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 769, 48, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 96
-    H: 64
-    L: 96
-    REV: 1
+  env: {B: 8, L: 96, D: 96, Dv: 128, N: 64, T: 128, H: 64, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 769, 64, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    H: 8
-    L: 96
-    REV: 1
+  env: {B: 8, L: 96, D: 384, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 769, 8, 384], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 512
-    H: 8
-    L: 96
-    REV: 1
+  env: {B: 8, L: 96, D: 512, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 769, 8, 512], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [9], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 96
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 1, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 129, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 96
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 2, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 257, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 96
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 3, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 385, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 1, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 1], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 2
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 2, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 2], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 3
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 3, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 3], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 4
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 4, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 4], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 8
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 8, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 8], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 16
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 16, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 16], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 32
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 32, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 32], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 64
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 64, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 64], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 1
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 1, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 1, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 2
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 2, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 2, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 3
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 3, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 3, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 4
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 4, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 4, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 16
-    REV: 1
+  env: {B: 4, L: 16, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 65, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 32
-    REV: 1
+  env: {B: 4, L: 32, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 129, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 48
-    REV: 1
+  env: {B: 4, L: 48, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 193, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 64
-    REV: 1
+  env: {B: 4, L: 64, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 257, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 96
-    REV: 1
+  env: {B: 4, L: 96, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 385, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 128
-    REV: 1
+  env: {B: 4, L: 128, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 513, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 192
-    REV: 1
+  env: {B: 4, L: 192, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 769, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 256
-    REV: 1
+  env: {B: 4, L: 256, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 1025, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 384
-    REV: 1
+  env: {B: 4, L: 384, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 1537, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 512
-    REV: 1
+  env: {B: 4, L: 512, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 2049, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 640
-    REV: 1
+  env: {B: 4, L: 640, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 2561, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 768
-    REV: 1
+  env: {B: 4, L: 768, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 3073, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 1024
-    REV: 1
+  env: {B: 4, L: 1024, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 4097, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 1280
-    REV: 1
+  env: {B: 4, L: 1280, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 5121, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 96
-    H: 8
-    L: 1536
-    REV: 1
-hidden_shapes:
+  env: {B: 4, L: 1536, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 6145, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [5], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
-    REV: 1
+  env: {B: 3, L: 96, D: 96, Dv: 96, N: 48, T: 96, H: 6, E: 3, C: 12, G: 4, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 289, 6, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [4], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-    REV: 0
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2, REV: 0}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 33, 2, 16], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 0, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-    REV: 1
+  env: {B: 2, L: 512, D: 256, Dv: 256, N: 128, T: 512, H: 8, E: 8, C: 64, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 1025, 8, 256], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [3], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-    REV: 0
+  env: {B: 32, L: 32, D: 64, Dv: 64, N: 32, T: 16, H: 8, E: 8, C: 8, G: 4, REV: 0}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 1025, 8, 64], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [33], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 0, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    H: 1
-    L: 16
-    REV: 1
+  env: {B: 1, L: 16, D: 1, Dv: 128, N: 64, T: 128, H: 1, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 17, 1, 1], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 96
-    H: 8
-    L: 96
-    REV: 1
-inputs:
-  g:
-    # Drive the IS_VARLEN branch. `cu_seqlens` is not None, so the kernel
-    # takes the variable-length path: chunk boundaries reset at every
-    # `chunk_size` step measured from each segment's start, and the last
-    # chunk of a segment may be partial. The packed layout is the standard
-    # FLA varlen contract -- a single batch (B==1) of `total_T` tokens with
-    # `head_first=False`, so the wrapper unpacks `B, T, H, S = g.shape` and
-    # the kernel addresses token `t`, head `i_h` at offset `(bos+t)*H*S + i_h*S`.
-    # `total_T = B*L + 1`: reusing `B*L` as the token budget (mirrors the
-    # L3_03 varlen fixture) and the `+1` forces ragged segment lengths so
-    # the partial-last-chunk path fires on every shape row, not just full
-    # chunks. `S` is the per-head channel width and reuses the `D` knob.
-    dims:
-    - 1
-    - B*L+1
-    - H
-    - D
-    dtype: float32
-    dist: randn
-  cu_seqlens:
-    # int32 segment indptr `[0, l1, l1+l2, ..., total_T]` of length N+1 with
-    # N==B segments. `offsets:to=B*L+1` distributes the `total_T` tokens over
-    # B non-equal segments so `cu_seqlens[-1] == g.shape[1] == total_T` (a hard
-    # kernel requirement -- trailing rows would otherwise stay uninitialised)
-    # and segment lengths are not all multiples of BT (ragged -> partial
-    # chunks). prepare_chunk_indices(cu_seqlens, chunk_size) maps this to the
-    # (segment, local-chunk) grid the kernel iterates. int64 is the
-    # `offsets` dist's native type; the kernel re-casts to int32 internally
-    # (`tl.load(...).to(tl.int32)`) and prepare_chunk_indices preserves the
-    # dtype (`.to(cu_seqlens)`), so int64 is the faithful indptr type.
-    dims:
-    - B+1
-    dtype: int64
-    dist: offsets:to=B*L+1
-  reverse:
-    scalar_knob: REV
-  chunk_size:
-    # Power-of-two BT that clears Triton's ``tl.dot`` minimum of K >= 16
-    # (the ``tl.dot(m_s, b_s)`` line needs K >= 16). 16 is the smallest
-    # power-of-two that satisfies the constraint; varlen segment lengths
-    # need not be multiples of BT (the partial-chunk tail is handled by the
-    # kernel's boundary_check and the oracle's segment-local cumsum).
-    scalar: 16
-  head_first:
-    scalar: false
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      g: '[1, 33, 4, 32] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 0
-      chunk_size: 16
-      head_first: false
-  P2:
-    provenance: baseline
-    tensors:
-      g: '[1, 257, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P3:
-    provenance: baseline
-    tensors:
-      g: '[1, 1025, 16, 128] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 0
-      chunk_size: 16
-      head_first: false
-  P4:
-    provenance: baseline
-    tensors:
-      g: '[1, 4097, 32, 256] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[17] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P5:
-    provenance: synthetic
-    tensors:
-      g: '[1, 129, 8, 128] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 0
-      chunk_size: 16
-      head_first: false
-  P6:
-    provenance: synthetic
-    tensors:
-      g: '[1, 6145, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P7:
-    provenance: synthetic
-    tensors:
-      g: '[1, 8193, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P8:
-    provenance: synthetic
-    tensors:
-      g: '[1, 769, 48, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P9:
-    provenance: synthetic
-    tensors:
-      g: '[1, 769, 64, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P10:
-    provenance: synthetic
-    tensors:
-      g: '[1, 769, 8, 384] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P11:
-    provenance: synthetic
-    tensors:
-      g: '[1, 769, 8, 512] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[9] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P12:
-    provenance: synthetic
-    tensors:
-      g: '[1, 129, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P13:
-    provenance: synthetic
-    tensors:
-      g: '[1, 257, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P14:
-    provenance: synthetic
-    tensors:
-      g: '[1, 385, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P15:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 1] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P16:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 2] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P17:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 3] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P18:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 4] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P19:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 8] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P20:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 16] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P21:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 32] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P22:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P23:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 1, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P24:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 2, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P25:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 3, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P26:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 4, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P27:
-    provenance: synthetic
-    tensors:
-      g: '[1, 65, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P28:
-    provenance: synthetic
-    tensors:
-      g: '[1, 129, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P29:
-    provenance: synthetic
-    tensors:
-      g: '[1, 193, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P30:
-    provenance: synthetic
-    tensors:
-      g: '[1, 257, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P31:
-    provenance: synthetic
-    tensors:
-      g: '[1, 385, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P32:
-    provenance: synthetic
-    tensors:
-      g: '[1, 513, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P33:
-    provenance: synthetic
-    tensors:
-      g: '[1, 769, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P34:
-    provenance: synthetic
-    tensors:
-      g: '[1, 1025, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P35:
-    provenance: synthetic
-    tensors:
-      g: '[1, 1537, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P36:
-    provenance: synthetic
-    tensors:
-      g: '[1, 2049, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P37:
-    provenance: synthetic
-    tensors:
-      g: '[1, 2561, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P38:
-    provenance: synthetic
-    tensors:
-      g: '[1, 3073, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P39:
-    provenance: synthetic
-    tensors:
-      g: '[1, 4097, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P40:
-    provenance: synthetic
-    tensors:
-      g: '[1, 5121, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  P41:
-    provenance: synthetic
-    tensors:
-      g: '[1, 6145, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[5] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  H1:
-    provenance: synthetic
-    tensors:
-      g: '[1, 289, 6, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[4] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  H2:
-    provenance: edge
-    tensors:
-      g: '[1, 33, 2, 16] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 0
-      chunk_size: 16
-      head_first: false
-  H3:
-    provenance: synthetic
-    tensors:
-      g: '[1, 1025, 8, 256] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[3] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  H4:
-    provenance: synthetic
-    tensors:
-      g: '[1, 1025, 8, 64] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[33] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 0
-      chunk_size: 16
-      head_first: false
-  H5:
-    provenance: edge
-    tensors:
-      g: '[1, 17, 1, 1] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
-  H6:
-    provenance: edge
-    tensors:
-      g: '[1, 97, 8, 96] float32 axes=1,B*L+1,H,D dist=randn'
-      cu_seqlens: '[2] int64 axes=B+1 dist=offsets(to=B*L+1)'
-    params:
-      reverse: 1
-      chunk_size: 16
-      head_first: false
+  env: {B: 1, L: 96, D: 96, Dv: 128, N: 64, T: 128, H: 8, E: 8, C: 16, G: 8, REV: 1}
+  inputs:
+  - {name: g, kind: tensor, shape: [1, 97, 8, 96], dtype: float32, axes: ['1', B*L+1, H, D], dist: randn}
+  - {name: cu_seqlens, kind: tensor, shape: [2], dtype: int64, axes: [B+1], dist: 'offsets:to=B*L+1'}
+  - {name: reverse, kind: scalar_knob, value: 1, expr: REV}
+  - {name: chunk_size, kind: scalar, value: 16}
+  - {name: head_first, kind: scalar, value: false}

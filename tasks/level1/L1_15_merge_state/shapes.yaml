@@ -1,660 +1,297 @@
-# Operator-family knob grid: values reflect
-# the elementwise family's real axes.
-size_knobs:
-  B: 512
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [8, 4, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [8, 4], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [8, 4, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [8, 4], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P2
-  name: small
-  knobs:
-    B: 64
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 64, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [64, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [64, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [64, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [64, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P3
-  name: medium
-  knobs:
-    B: 512
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 512, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [512, 16, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [512, 16], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [512, 16, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [512, 16], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P4
-  name: large
-  knobs:
-    B: 2048
-    L: 256
-    D: 4096
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 2048, L: 256, D: 4096, Dv: 8, N: 2048, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [2048, 32, 4096], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [2048, 32], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [2048, 32, 4096], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [2048, 32], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P5
-  name: wide
-  knobs:
-    B: 16
-    L: 64
-    D: 8192
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 8192, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [16, 8, 8192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [16, 8, 8192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 1024
-    H: 8
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [1, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [1, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 1024
-    H: 8
+  env: {B: 2, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [2, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [2, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 1024
-    H: 8
+  env: {B: 3, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [3, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [3, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [3, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [3, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 1024
-    H: 8
+  env: {B: 4, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [4, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [4, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [4, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 1024
-    H: 8
+  env: {B: 8, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [8, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [8, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [8, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 1024
-    H: 8
+  env: {B: 16, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [16, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [16, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [16, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 1024
-    H: 8
+  env: {B: 32, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [32, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [32, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [32, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 1024
-    H: 8
+  env: {B: 64, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [64, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [64, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [64, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [64, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1024
-    H: 8
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [96, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [96, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [96, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [96, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
-    D: 1024
-    H: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [128, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [128, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [128, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [128, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
-    D: 1024
-    H: 8
+  env: {B: 192, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [192, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [192, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [192, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [192, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 256
-    D: 1024
-    H: 8
+  env: {B: 256, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [256, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [256, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [256, 8, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [256, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1
-    H: 8
+  env: {B: 384, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 2
-    H: 8
+  env: {B: 384, L: 128, D: 2, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 3
-    H: 8
+  env: {B: 384, L: 128, D: 3, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 4
-    H: 8
+  env: {B: 384, L: 128, D: 4, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 8
-    H: 8
+  env: {B: 384, L: 128, D: 8, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 16
-    H: 8
+  env: {B: 384, L: 128, D: 16, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 32
-    H: 8
+  env: {B: 384, L: 128, D: 32, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 64
-    H: 8
+  env: {B: 384, L: 128, D: 64, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 96
-    H: 8
+  env: {B: 384, L: 128, D: 96, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 128
-    H: 8
+  env: {B: 384, L: 128, D: 128, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 192
-    H: 8
+  env: {B: 384, L: 128, D: 192, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 256
-    H: 8
+  env: {B: 384, L: 128, D: 256, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 384
-    H: 8
+  env: {B: 384, L: 128, D: 384, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 512
-    H: 8
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 640
-    H: 8
+  env: {B: 384, L: 128, D: 640, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 640], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 640], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 768
-    H: 8
+  env: {B: 384, L: 128, D: 768, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 8, 768], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 8, 768], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1024
-    H: 1
+  env: {B: 384, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 1, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 1], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 1, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 1], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
-    D: 1024
-    H: 2
-hidden_shapes:
+  env: {B: 384, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 2, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 2], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 2, 1024], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 2], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 384
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 384, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [384, 6, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [384, 6], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [384, 6, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [384, 6], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [2, 2], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [2, 2, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [2, 2], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 16384
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 16384, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [2, 8, 16384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [2, 8, 16384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [2, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 4096
-    L: 32
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 4096, L: 32, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [4096, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [4096, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [4096, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [4096, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    H: 1
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [1, 1, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [1, 1], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 32768
-    H: 8
+  env: {B: 1, L: 128, D: 32768, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [1, 8, 32768], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [1, 8, 32768], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [1, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 16384
-    D: 1
-    H: 8
-inputs:
-  prefix_output:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  prefix_lse:
-    dims:
-    - B
-    - H
-    dtype: float32
-    # randn_inf injects the flash-decoding empty-split sentinel (+inf).
-    # The kernel maps +inf -> -inf (drop side); both-sides-inf -> NaN.
-    # Exercising this branch is the load-bearing discriminator here.
-    dist: randn_inf
-  suffix_output:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  suffix_lse:
-    dims:
-    - B
-    - H
-    dtype: float32
-    # Paired empty-split sentinel: inject +inf only where prefix_lse is finite,
-    # so the two splits are never BOTH empty (both-empty is the undefined NaN
-    # domain, non-physical in flash-decoding). Keeps the one-sided drop branch
-    # exercised on both sides; removes the NaN rows that broke strict torch.equal.
-    dist: randn_inf_excl:prefix_lse
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      prefix_output: '[8, 4, 64] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[8, 4] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[8, 4, 64] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[8, 4] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P2:
-    provenance: baseline
-    tensors:
-      prefix_output: '[64, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[64, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[64, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[64, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P3:
-    provenance: baseline
-    tensors:
-      prefix_output: '[512, 16, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[512, 16] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[512, 16, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[512, 16] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P4:
-    provenance: baseline
-    tensors:
-      prefix_output: '[2048, 32, 4096] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[2048, 32] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[2048, 32, 4096] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[2048, 32] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P5:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[16, 8, 8192] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[16, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[16, 8, 8192] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[16, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P6:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[1, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[1, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[1, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P7:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[2, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[2, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[2, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[2, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P8:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[3, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[3, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[3, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[3, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P9:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[4, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[4, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[4, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[4, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P10:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[8, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[8, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[8, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[8, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P11:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[16, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[16, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[16, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[16, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P12:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[32, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[32, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[32, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[32, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P13:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[64, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[64, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[64, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[64, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P14:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[96, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[96, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[96, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[96, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P15:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[128, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[128, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[128, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[128, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P16:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[192, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[192, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[192, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[192, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P17:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[256, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[256, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[256, 8, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[256, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P18:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P19:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 2] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 2] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P20:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 3] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 3] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P21:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 4] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 4] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P22:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 8] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 8] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P23:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 16] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 16] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P24:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 32] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 32] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P25:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P26:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P27:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 128] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P28:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 192] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 192] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P29:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P30:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 384] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 384] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P31:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 512] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 512] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P32:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 640] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 640] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P33:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 8, 768] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 8, 768] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P34:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 1, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 1] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 1, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 1] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  P35:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 2, 1024] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 2] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 2, 1024] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 2] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H1:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[384, 6, 384] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[384, 6] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[384, 6, 384] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[384, 6] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H2:
-    provenance: edge
-    tensors:
-      prefix_output: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[2, 2] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[2, 2, 16] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[2, 2] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H3:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[2, 8, 16384] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[2, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[2, 8, 16384] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[2, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H4:
-    provenance: synthetic
-    tensors:
-      prefix_output: '[4096, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[4096, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[4096, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[4096, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H5:
-    provenance: edge
-    tensors:
-      prefix_output: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[1, 1] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[1, 1, 1] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[1, 1] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H6:
-    provenance: edge
-    tensors:
-      prefix_output: '[1, 8, 32768] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[1, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[1, 8, 32768] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[1, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
-  H7:
-    provenance: edge
-    tensors:
-      prefix_output: '[16384, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      prefix_lse: '[16384, 8] float32 axes=B,H dist=randn_inf'
-      suffix_output: '[16384, 8, 1] bfloat16 axes=B,H,D dist=randn'
-      suffix_lse: '[16384, 8] float32 axes=B,H dist=randn_inf_excl(ref=prefix_lse)'
+  env: {B: 16384, L: 128, D: 1, Dv: 8, N: 1024, T: 256, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: prefix_output, kind: tensor, shape: [16384, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: prefix_lse, kind: tensor, shape: [16384, 8], dtype: float32, axes: [B, H], dist: randn_inf}
+  - {name: suffix_output, kind: tensor, shape: [16384, 8, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: suffix_lse, kind: tensor, shape: [16384, 8], dtype: float32, axes: [B, H], dist: 'randn_inf_excl:prefix_lse'}

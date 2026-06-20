@@ -1,533 +1,187 @@
-# Aligned to kernel.py:521 wrapper signature `solve_tril(A, ...)` where
-# A.shape == [B, T, H, BT] and BT is fixed at 16 for this task
-# (kernel.py:545 `assert A.shape[-1] in [16, 32, 64]`; the 16x16
-# kernel branch at kernel.py:554 -> solve_tril_16x16_kernel).
-# Each shape varies B / T / H along T-multiples of BT=16.
-
-size_knobs:
-  B: 2
-  T: 16
-  H: 2
-  BT: 16
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: single_chunk
-  knobs:
-    B: 1
-    T: 16
-    H: 1
-    BT: 16
+  env: {B: 1, T: 16, H: 1, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 16, 1, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P2
-  name: two_chunks
-  knobs:
-    B: 2
-    T: 32
-    H: 2
-    BT: 16
+  env: {B: 2, T: 32, H: 2, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 32, 2, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P3
-  name: medium
-  knobs:
-    B: 4
-    T: 64
-    H: 4
-    BT: 16
+  env: {B: 4, T: 64, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 64, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P4
-  name: large
-  knobs:
-    B: 8
-    T: 128
-    H: 8
-    BT: 16
+  env: {B: 8, T: 128, H: 8, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 8, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P5
-  name: deep
-  knobs:
-    B: 2
-    T: 256
-    H: 4
-    BT: 16
+  env: {B: 2, T: 256, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 256, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    BT: 16
-    H: 4
-    T: 768
+  env: {B: 4, T: 768, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 768, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    BT: 16
-    H: 4
-    T: 1024
+  env: {B: 4, T: 1024, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 1024, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    BT: 16
-    H: 12
-    T: 64
+  env: {B: 4, T: 64, H: 12, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 64, 12, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4
-    BT: 16
-    H: 16
-    T: 64
+  env: {B: 4, T: 64, H: 16, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 64, 16, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 24
-    BT: 16
-    H: 4
-    T: 64
+  env: {B: 24, T: 64, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [24, 64, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 32
-    BT: 16
-    H: 4
-    T: 64
+  env: {B: 32, T: 64, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [32, 64, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    BT: 16
-    H: 6
-    T: 128
+  env: {B: 1, T: 128, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 128, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    BT: 16
-    H: 6
-    T: 128
+  env: {B: 2, T: 128, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 128, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    BT: 16
-    H: 6
-    T: 128
+  env: {B: 3, T: 128, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [3, 128, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    BT: 16
-    H: 6
-    T: 128
+  env: {B: 4, T: 128, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 128, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 1
-    T: 128
+  env: {B: 8, T: 128, H: 1, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 1, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 2
-    T: 128
+  env: {B: 8, T: 128, H: 2, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 2, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 3
-    T: 128
+  env: {B: 8, T: 128, H: 3, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 3, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 4
-    T: 128
+  env: {B: 8, T: 128, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 16
+  env: {B: 8, T: 16, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 16, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 32
+  env: {B: 8, T: 32, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 32, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 48
+  env: {B: 8, T: 48, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 48, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 64
+  env: {B: 8, T: 64, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 64, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 96
+  env: {B: 8, T: 96, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 96, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 128
+  env: {B: 8, T: 128, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 192
+  env: {B: 8, T: 192, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 192, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 256
+  env: {B: 8, T: 256, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 256, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 384
+  env: {B: 8, T: 384, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 384, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 512
+  env: {B: 8, T: 512, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 512, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 640
+  env: {B: 8, T: 640, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 640, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 768
+  env: {B: 8, T: 768, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 768, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 1024
+  env: {B: 8, T: 1024, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 1024, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 1280
+  env: {B: 8, T: 1280, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 1280, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 1536
+  env: {B: 8, T: 1536, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 1536, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 2048
+  env: {B: 8, T: 2048, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 2048, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 2560
+  env: {B: 8, T: 2560, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 2560, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 3072
+  env: {B: 8, T: 3072, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 3072, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 3584
+  env: {B: 8, T: 3584, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 3584, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 6
-    T: 4096
+  env: {B: 8, T: 4096, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 4096, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 16
-    T: 128
+  env: {B: 8, T: 128, H: 16, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 16, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    BT: 16
-    H: 24
-    T: 128
-hidden_shapes:
+  env: {B: 8, T: 128, H: 24, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 128, 24, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
+hidden:
 - id: H1
-  name: h_odd_heads
-  knobs:
-    B: 3
-    T: 48
-    H: 3
-    BT: 16
+  env: {B: 3, T: 48, H: 3, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [3, 48, 3, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 1
-    T: 16
-    H: 1
-    BT: 16
+  env: {B: 1, T: 16, H: 1, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 16, 1, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    T: 512
-    H: 6
-    BT: 16
+  env: {B: 2, T: 512, H: 6, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 512, 6, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H4
-  name: h_wide_b
-  knobs:
-    B: 16
-    T: 16
-    H: 4
-    BT: 16
+  env: {B: 16, T: 16, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [16, 16, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    BT: 16
-    H: 4
-    T: 64
-inputs:
-  A:
-    dims:
-    - B
-    - T
-    - H
-    - BT
-    dtype: float32
-    # tril_chunk = dense strict-lower per [BT,BT] chunk (the op's real plane);
-    # plain `tril` masks the [H,BT] axes, leaving blocks nilpotent of degree H+1
-    # so a solver that drops the forward-substitution recurrence passes trivially.
-    dist: tril_chunk
-
-explicit_view:
-  P1:
-    provenance: synthetic
-    tensors:
-      A: '[1, 16, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P2:
-    provenance: synthetic
-    tensors:
-      A: '[2, 32, 2, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P3:
-    provenance: baseline
-    tensors:
-      A: '[4, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P4:
-    provenance: baseline
-    tensors:
-      A: '[8, 128, 8, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P5:
-    provenance: synthetic
-    tensors:
-      A: '[2, 256, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P6:
-    provenance: synthetic
-    tensors:
-      A: '[4, 768, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P7:
-    provenance: synthetic
-    tensors:
-      A: '[4, 1024, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P8:
-    provenance: synthetic
-    tensors:
-      A: '[4, 64, 12, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P9:
-    provenance: synthetic
-    tensors:
-      A: '[4, 64, 16, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P10:
-    provenance: synthetic
-    tensors:
-      A: '[24, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P11:
-    provenance: synthetic
-    tensors:
-      A: '[32, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P12:
-    provenance: synthetic
-    tensors:
-      A: '[1, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P13:
-    provenance: synthetic
-    tensors:
-      A: '[2, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P14:
-    provenance: synthetic
-    tensors:
-      A: '[3, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P15:
-    provenance: synthetic
-    tensors:
-      A: '[4, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P16:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P17:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 2, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P18:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 3, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P19:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P20:
-    provenance: synthetic
-    tensors:
-      A: '[8, 16, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P21:
-    provenance: synthetic
-    tensors:
-      A: '[8, 32, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P22:
-    provenance: synthetic
-    tensors:
-      A: '[8, 48, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P23:
-    provenance: synthetic
-    tensors:
-      A: '[8, 64, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P24:
-    provenance: synthetic
-    tensors:
-      A: '[8, 96, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P25:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P26:
-    provenance: synthetic
-    tensors:
-      A: '[8, 192, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P27:
-    provenance: synthetic
-    tensors:
-      A: '[8, 256, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P28:
-    provenance: synthetic
-    tensors:
-      A: '[8, 384, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P29:
-    provenance: synthetic
-    tensors:
-      A: '[8, 512, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P30:
-    provenance: synthetic
-    tensors:
-      A: '[8, 640, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P31:
-    provenance: synthetic
-    tensors:
-      A: '[8, 768, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P32:
-    provenance: synthetic
-    tensors:
-      A: '[8, 1024, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P33:
-    provenance: synthetic
-    tensors:
-      A: '[8, 1280, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P34:
-    provenance: synthetic
-    tensors:
-      A: '[8, 1536, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P35:
-    provenance: synthetic
-    tensors:
-      A: '[8, 2048, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P36:
-    provenance: synthetic
-    tensors:
-      A: '[8, 2560, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P37:
-    provenance: synthetic
-    tensors:
-      A: '[8, 3072, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P38:
-    provenance: synthetic
-    tensors:
-      A: '[8, 3584, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P39:
-    provenance: synthetic
-    tensors:
-      A: '[8, 4096, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P40:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 16, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  P41:
-    provenance: synthetic
-    tensors:
-      A: '[8, 128, 24, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  H1:
-    provenance: synthetic
-    tensors:
-      A: '[3, 48, 3, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  H2:
-    provenance: edge
-    tensors:
-      A: '[1, 16, 1, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  H3:
-    provenance: synthetic
-    tensors:
-      A: '[2, 512, 6, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  H4:
-    provenance: synthetic
-    tensors:
-      A: '[16, 16, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
-  H5:
-    provenance: edge
-    tensors:
-      A: '[1, 64, 4, 16] float32 axes=B,T,H,BT dist=tril_chunk'
+  env: {B: 1, T: 64, H: 4, BT: 16}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 64, 4, 16], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}

@@ -1,260 +1,75 @@
-# Operator-family knob grid: values reflect
-# the other family's real axes.
-size_knobs:
-  B: 16
-  L: 256
-  D: 512
-  Dv: 512
-  N: 512
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 32
-    D: 64
-    Dv: 64
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 16
-    G: 2
+  env: {B: 4, L: 32, D: 64, Dv: 64, N: 64, T: 16, H: 4, E: 4, C: 16, G: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 32, 2, 64], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 32, 4, 64], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [4, 32, 4], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [4, 32, 4], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [4, 32, 4, 16], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: P2
-  name: small
-  knobs:
-    B: 8
-    L: 128
-    D: 256
-    Dv: 256
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 128, D: 256, Dv: 256, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [8, 128, 4, 256], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [8, 128, 8, 256], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [8, 128, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [8, 128, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8, 128, 8, 16], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: P3
-  name: medium
-  knobs:
-    B: 16
-    L: 256
-    D: 512
-    Dv: 512
-    N: 512
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [16, 256, 8, 512], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [16, 256, 16, 512], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [16, 256, 16], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [16, 256, 16], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16, 256, 16, 32], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: P4
-  name: large
-  knobs:
-    B: 32
-    L: 512
-    D: 1024
-    Dv: 1024
-    N: 1024
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 32, L: 512, D: 1024, Dv: 1024, N: 1024, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [32, 512, 16, 1024], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [32, 512, 32, 1024], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [32, 512, 32], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [32, 512, 32], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [32, 512, 32, 64], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: P5
-  name: wide
-  knobs:
-    B: 4
-    L: 128
-    D: 2048
-    Dv: 2048
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-hidden_shapes:
+  env: {B: 4, L: 128, D: 2048, Dv: 2048, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [4, 128, 4, 2048], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [4, 128, 8, 2048], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [4, 128, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [4, 128, 8, 16], dtype: float32, axes: [B, L, H, C], dist: randn}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 6
-    L: 192
-    D: 384
-    Dv: 384
-    N: 384
-    T: 96
-    H: 6
-    E: 6
-    C: 32
-    G: 4
+  env: {B: 6, L: 192, D: 384, Dv: 384, N: 384, T: 96, H: 6, E: 6, C: 32, G: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [6, 192, 3, 384], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [6, 192, 6, 384], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [6, 192, 6], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [6, 192, 6], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [6, 192, 6, 32], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 16
-    H: 2
-    E: 2
-    C: 16
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 16, H: 2, E: 2, C: 16, G: 2}
+  inputs:
+  - {name: k, kind: tensor, shape: [2, 16, 1, 16], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 16, 2, 16], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 16, 2], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [2, 16, 2], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [2, 16, 2, 16], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 1024
-    D: 4096
-    Dv: 4096
-    N: 512
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 1024, D: 4096, Dv: 4096, N: 512, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: k, kind: tensor, shape: [2, 1024, 4, 4096], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [2, 1024, 8, 4096], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [2, 1024, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [2, 1024, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [2, 1024, 8, 64], dtype: float32, axes: [B, L, H, C], dist: randn}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 64
-    L: 32
-    D: 64
-    Dv: 64
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-# Head-structured layouts matching the frozen kernel's make_block_ptr
-# strides (non-varlen path). L is the sequence length T, C is the chunk
-# size BT (L % C == 0), H is the value-head count, H//2 is the grouped
-# (GQA) key-head count Hg (H % Hg == 0), D is the key dim K, Dv the value
-# dim V. A's last axis is the LOCAL within-chunk column index of size BT,
-# so A is block-diagonal in time.
-#
-# C (= BT) is the kernel's chunk-size TILING constant, not a free data
-# axis: the kernel computes b_u = tl.dot(A[BT,BT], (beta*v)[BT,BV]) and
-# b_w = tl.dot(A[BT,BT], (beta*exp(g)*k)[BT,BK]) with contraction dim BT.
-# Triton's tl.dot requires that contraction dim to be a power of two and
-# >= 16 (the tensor-core MMA tile minimum); upstream flash-linear-attention
-# pins it to FLA_CHUNK_SIZE = 64. A non-pow2 or < 16 chunk size is an
-# INVALID call to this kernel (real-GPU CompilationError "K >= 16"), so
-# every shape uses C in {16, 32, 64}.
-inputs:
-  k:
-    dims:
-    - B
-    - L
-    - H//2
-    - D
-    dtype: float32
-    dist: randn
-  v:
-    dims:
-    - B
-    - L
-    - H
-    - Dv
-    dtype: float32
-    dist: randn
-  beta:
-    dims:
-    - B
-    - L
-    - H
-    dtype: float32
-    dist: rand
-  g_cumsum:
-    dims:
-    - B
-    - L
-    - H
-    dtype: float32
-    dist: rand
-  A:
-    dims:
-    - B
-    - L
-    - H
-    - C
-    dtype: float32
-    dist: randn
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      k: '[4, 32, 2, 64] float32 axes=B,L,H//2,D dist=randn'
-      v: '[4, 32, 4, 64] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[4, 32, 4] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[4, 32, 4] float32 axes=B,L,H dist=rand'
-      A: '[4, 32, 4, 16] float32 axes=B,L,H,C dist=randn'
-  P2:
-    provenance: baseline
-    tensors:
-      k: '[8, 128, 4, 256] float32 axes=B,L,H//2,D dist=randn'
-      v: '[8, 128, 8, 256] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[8, 128, 8] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[8, 128, 8] float32 axes=B,L,H dist=rand'
-      A: '[8, 128, 8, 16] float32 axes=B,L,H,C dist=randn'
-  P3:
-    provenance: baseline
-    tensors:
-      k: '[16, 256, 8, 512] float32 axes=B,L,H//2,D dist=randn'
-      v: '[16, 256, 16, 512] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[16, 256, 16] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[16, 256, 16] float32 axes=B,L,H dist=rand'
-      A: '[16, 256, 16, 32] float32 axes=B,L,H,C dist=randn'
-  P4:
-    provenance: baseline
-    tensors:
-      k: '[32, 512, 16, 1024] float32 axes=B,L,H//2,D dist=randn'
-      v: '[32, 512, 32, 1024] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[32, 512, 32] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[32, 512, 32] float32 axes=B,L,H dist=rand'
-      A: '[32, 512, 32, 64] float32 axes=B,L,H,C dist=randn'
-  P5:
-    provenance: synthetic
-    tensors:
-      k: '[4, 128, 4, 2048] float32 axes=B,L,H//2,D dist=randn'
-      v: '[4, 128, 8, 2048] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[4, 128, 8] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[4, 128, 8] float32 axes=B,L,H dist=rand'
-      A: '[4, 128, 8, 16] float32 axes=B,L,H,C dist=randn'
-  H1:
-    provenance: synthetic
-    tensors:
-      k: '[6, 192, 3, 384] float32 axes=B,L,H//2,D dist=randn'
-      v: '[6, 192, 6, 384] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[6, 192, 6] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[6, 192, 6] float32 axes=B,L,H dist=rand'
-      A: '[6, 192, 6, 32] float32 axes=B,L,H,C dist=randn'
-  H2:
-    provenance: edge
-    tensors:
-      k: '[2, 16, 1, 16] float32 axes=B,L,H//2,D dist=randn'
-      v: '[2, 16, 2, 16] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[2, 16, 2] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[2, 16, 2] float32 axes=B,L,H dist=rand'
-      A: '[2, 16, 2, 16] float32 axes=B,L,H,C dist=randn'
-  H3:
-    provenance: synthetic
-    tensors:
-      k: '[2, 1024, 4, 4096] float32 axes=B,L,H//2,D dist=randn'
-      v: '[2, 1024, 8, 4096] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[2, 1024, 8] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[2, 1024, 8] float32 axes=B,L,H dist=rand'
-      A: '[2, 1024, 8, 64] float32 axes=B,L,H,C dist=randn'
-  H4:
-    provenance: synthetic
-    tensors:
-      k: '[64, 32, 4, 64] float32 axes=B,L,H//2,D dist=randn'
-      v: '[64, 32, 8, 64] float32 axes=B,L,H,Dv dist=randn'
-      beta: '[64, 32, 8] float32 axes=B,L,H dist=rand'
-      g_cumsum: '[64, 32, 8] float32 axes=B,L,H dist=rand'
-      A: '[64, 32, 8, 16] float32 axes=B,L,H,C dist=randn'
+  env: {B: 64, L: 32, D: 64, Dv: 64, N: 128, T: 16, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: k, kind: tensor, shape: [64, 32, 4, 64], dtype: float32, axes: [B, L, H//2, D], dist: randn}
+  - {name: v, kind: tensor, shape: [64, 32, 8, 64], dtype: float32, axes: [B, L, H, Dv], dist: randn}
+  - {name: beta, kind: tensor, shape: [64, 32, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: g_cumsum, kind: tensor, shape: [64, 32, 8], dtype: float32, axes: [B, L, H], dist: rand}
+  - {name: A, kind: tensor, shape: [64, 32, 8, 16], dtype: float32, axes: [B, L, H, C], dist: randn}

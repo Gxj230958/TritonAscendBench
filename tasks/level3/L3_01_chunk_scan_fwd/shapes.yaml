@@ -1,870 +1,363 @@
-# Operator-family knob grid for the Mamba2 SSD chunk-scan forward
-# (vLLM _chunk_scan_fwd). The fixture materialises the PHYSICAL upstream input
-# layout: per-token x/C/z and per-head D, plus a chunk_size scalar. The varlen
-# chunk partition (cu_chunk_seqlens, seq_idx) and the per-chunk tensors
-# (cb, dt, dA_cumsum, states) are DERIVED deterministically inside
-# _pa_launcher.py / oracle_pytorch.py (byte-identical builders) because their
-# chunk-axis length depends on (seqlen, chunk_size).
-#
-# Knobs:
-#   S  = seqlen     (contiguous token stream length)
-#   H  = nheads
-#   G  = ngroups    (must divide H)
-#   P  = headdim
-#   N  = dstate
-#   CS = chunk_size (power of two)
-#
-# S is chosen > CS so the non-uniform partition (see _partition) yields
-# multi-chunk sequences -- this keeps the inter-chunk `states` term
-# load-bearing (prev_states is the real states[c-1], not seq-restart zeros).
-size_knobs:
-  S: 256
-  H: 8
-  G: 4
-  P: 64
-  N: 64
-  CS: 16
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    S: 64
-    H: 2
-    G: 1
-    P: 16
-    N: 16
-    CS: 16
+  env: {S: 64, H: 2, G: 1, P: 16, N: 16, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 2, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [64, 1, 16], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [64, 2, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [2, 16], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: P2
-  name: small
-  knobs:
-    S: 160
-    H: 4
-    G: 2
-    P: 32
-    N: 32
-    CS: 16
+  env: {S: 160, H: 4, G: 2, P: 32, N: 32, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [160, 4, 32], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [160, 2, 32], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [160, 4, 32], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [4, 32], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: P3
-  name: medium
-  knobs:
-    S: 256
-    H: 8
-    G: 4
-    P: 64
-    N: 64
-    CS: 32
+  env: {S: 256, H: 8, G: 4, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 8, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [256, 4, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [256, 8, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P4
-  name: large
-  knobs:
-    S: 512
-    H: 8
-    G: 2
-    P: 128
-    N: 128
-    CS: 64
+  env: {S: 512, H: 8, G: 2, P: 128, N: 128, CS: 64}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 8, 128], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [512, 2, 128], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [512, 8, 128], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 128], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 64, expr: CS}
 - id: P5
-  name: wide
-  knobs:
-    S: 192
-    H: 8
-    G: 8
-    P: 64
-    N: 32
-    CS: 16
+  env: {S: 192, H: 8, G: 8, P: 64, N: 32, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 8, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 8, 32], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 8, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [8, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 48
-    P: 48
-    S: 960
+  env: {S: 960, H: 6, G: 3, P: 48, N: 48, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [960, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [960, 3, 48], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [960, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 48
-    P: 48
-    S: 1280
+  env: {S: 1280, H: 6, G: 3, P: 48, N: 48, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [1280, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [1280, 3, 48], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [1280, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 48
-    P: 192
-    S: 192
+  env: {S: 192, H: 6, G: 3, P: 192, N: 48, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 6, 192], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 3, 48], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 6, 192], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 192], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 48
-    P: 256
-    S: 192
+  env: {S: 192, H: 6, G: 3, P: 256, N: 48, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 6, 256], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 3, 48], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 6, 256], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 256], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 192
-    P: 48
-    S: 192
+  env: {S: 192, H: 6, G: 3, P: 48, N: 192, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 3, 192], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 256
-    P: 48
-    S: 192
+  env: {S: 192, H: 6, G: 3, P: 48, N: 256, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 3, 256], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 16
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 64, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 1
-    H: 6
-    N: 64
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 1, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 1, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 2
-    H: 6
-    N: 64
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 2, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 2, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 3
-    N: 64
-    P: 64
-    S: 224
+  env: {S: 224, H: 3, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [3, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 1
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 1, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 1], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 2
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 2, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 2], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 3
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 3, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 3], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 4
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 4, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 4], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 8
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 8, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 8], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 16
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 16, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 16], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 32
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 32, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 32], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 1
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 1, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 1], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 1], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 1], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 2
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 2, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 2], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 2], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 2], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 3
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 3, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 3], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 3], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 3], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 4
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 4, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 4], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 4], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 4], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 8
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 8, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 8], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 8], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 8], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 16
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 16, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 16], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 32
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 32, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 32], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 32], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 32], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 64
+  env: {S: 64, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [64, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [64, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [64, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 96
+  env: {S: 96, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [96, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [96, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [96, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 128
+  env: {S: 128, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [128, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [128, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 192
+  env: {S: 192, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [192, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [192, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [192, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 224
+  env: {S: 224, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 256
+  env: {S: 256, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [256, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [256, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [256, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 384
+  env: {S: 384, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [384, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [384, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [384, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 512
+  env: {S: 512, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [512, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [512, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [512, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 640
+  env: {S: 640, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [640, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [640, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [640, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 768
+  env: {S: 768, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [768, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [768, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [768, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 1024
+  env: {S: 1024, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [1024, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [1024, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [1024, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    CS: 32
-    G: 3
-    H: 6
-    N: 64
-    P: 64
-    S: 1280
-hidden_shapes:
+  env: {S: 1280, H: 6, G: 3, P: 64, N: 64, CS: 32}
+  inputs:
+  - {name: x, kind: tensor, shape: [1280, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [1280, 3, 64], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [1280, 6, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 32, expr: CS}
+hidden:
 - id: H1
-  name: h_groups
-  knobs:
-    S: 224
-    H: 6
-    G: 3
-    P: 48
-    N: 48
-    CS: 16
+  env: {S: 224, H: 6, G: 3, P: 48, N: 48, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [224, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [224, 3, 48], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [224, 6, 48], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [6, 48], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: H2
-  name: h_singleton
-  knobs:
-    S: 48
-    H: 2
-    G: 1
-    P: 16
-    N: 8
-    CS: 16
+  env: {S: 48, H: 2, G: 1, P: 16, N: 8, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [48, 2, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [48, 1, 8], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [48, 2, 16], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [2, 16], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}
 - id: H3
-  name: h_deep
-  knobs:
-    S: 640
-    H: 4
-    G: 2
-    P: 128
-    N: 128
-    CS: 64
+  env: {S: 640, H: 4, G: 2, P: 128, N: 128, CS: 64}
+  inputs:
+  - {name: x, kind: tensor, shape: [640, 4, 128], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [640, 2, 128], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [640, 4, 128], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [4, 128], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 64, expr: CS}
 - id: H4
-  name: h_wide
-  knobs:
-    S: 128
-    H: 16
-    G: 8
-    P: 64
-    N: 32
-    CS: 16
-inputs:
-  x:
-    dims:
-    - S
-    - H
-    - P
-    dtype: bf16
-    dist: randn
-  C:
-    dims:
-    - S
-    - G
-    - N
-    dtype: bf16
-    dist: randn
-  z:
-    dims:
-    - S
-    - H
-    - P
-    dtype: bf16
-    dist: randn
-  D:
-    dims:
-    - H
-    - P
-    dtype: float32
-    dist: randn
-  chunk_size:
-    scalar_knob: CS
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      x: '[64, 2, 16] bf16 axes=S,H,P dist=randn'
-      C: '[64, 1, 16] bf16 axes=S,G,N dist=randn'
-      z: '[64, 2, 16] bf16 axes=S,H,P dist=randn'
-      D: '[2, 16] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  P2:
-    provenance: baseline
-    tensors:
-      x: '[160, 4, 32] bf16 axes=S,H,P dist=randn'
-      C: '[160, 2, 32] bf16 axes=S,G,N dist=randn'
-      z: '[160, 4, 32] bf16 axes=S,H,P dist=randn'
-      D: '[4, 32] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  P3:
-    provenance: baseline
-    tensors:
-      x: '[256, 8, 64] bf16 axes=S,H,P dist=randn'
-      C: '[256, 4, 64] bf16 axes=S,G,N dist=randn'
-      z: '[256, 8, 64] bf16 axes=S,H,P dist=randn'
-      D: '[8, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P4:
-    provenance: baseline
-    tensors:
-      x: '[512, 8, 128] bf16 axes=S,H,P dist=randn'
-      C: '[512, 2, 128] bf16 axes=S,G,N dist=randn'
-      z: '[512, 8, 128] bf16 axes=S,H,P dist=randn'
-      D: '[8, 128] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 64
-  P5:
-    provenance: synthetic
-    tensors:
-      x: '[192, 8, 64] bf16 axes=S,H,P dist=randn'
-      C: '[192, 8, 32] bf16 axes=S,G,N dist=randn'
-      z: '[192, 8, 64] bf16 axes=S,H,P dist=randn'
-      D: '[8, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  P6:
-    provenance: synthetic
-    tensors:
-      x: '[960, 6, 48] bf16 axes=S,H,P dist=randn'
-      C: '[960, 3, 48] bf16 axes=S,G,N dist=randn'
-      z: '[960, 6, 48] bf16 axes=S,H,P dist=randn'
-      D: '[6, 48] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P7:
-    provenance: synthetic
-    tensors:
-      x: '[1280, 6, 48] bf16 axes=S,H,P dist=randn'
-      C: '[1280, 3, 48] bf16 axes=S,G,N dist=randn'
-      z: '[1280, 6, 48] bf16 axes=S,H,P dist=randn'
-      D: '[6, 48] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P8:
-    provenance: synthetic
-    tensors:
-      x: '[192, 6, 192] bf16 axes=S,H,P dist=randn'
-      C: '[192, 3, 48] bf16 axes=S,G,N dist=randn'
-      z: '[192, 6, 192] bf16 axes=S,H,P dist=randn'
-      D: '[6, 192] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P9:
-    provenance: synthetic
-    tensors:
-      x: '[192, 6, 256] bf16 axes=S,H,P dist=randn'
-      C: '[192, 3, 48] bf16 axes=S,G,N dist=randn'
-      z: '[192, 6, 256] bf16 axes=S,H,P dist=randn'
-      D: '[6, 256] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P10:
-    provenance: synthetic
-    tensors:
-      x: '[192, 6, 48] bf16 axes=S,H,P dist=randn'
-      C: '[192, 3, 192] bf16 axes=S,G,N dist=randn'
-      z: '[192, 6, 48] bf16 axes=S,H,P dist=randn'
-      D: '[6, 48] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P11:
-    provenance: synthetic
-    tensors:
-      x: '[192, 6, 48] bf16 axes=S,H,P dist=randn'
-      C: '[192, 3, 256] bf16 axes=S,G,N dist=randn'
-      z: '[192, 6, 48] bf16 axes=S,H,P dist=randn'
-      D: '[6, 48] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P12:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  P13:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 1, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P14:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 2, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P15:
-    provenance: synthetic
-    tensors:
-      x: '[224, 3, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 3, 64] bf16 axes=S,H,P dist=randn'
-      D: '[3, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P16:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 1] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P17:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 2] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P18:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 3] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P19:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 4] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P20:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 8] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P21:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 16] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P22:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 32] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P23:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 1] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 1] bf16 axes=S,H,P dist=randn'
-      D: '[6, 1] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P24:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 2] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 2] bf16 axes=S,H,P dist=randn'
-      D: '[6, 2] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P25:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 3] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 3] bf16 axes=S,H,P dist=randn'
-      D: '[6, 3] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P26:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 4] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 4] bf16 axes=S,H,P dist=randn'
-      D: '[6, 4] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P27:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 8] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 8] bf16 axes=S,H,P dist=randn'
-      D: '[6, 8] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P28:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 16] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 16] bf16 axes=S,H,P dist=randn'
-      D: '[6, 16] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P29:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 32] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 32] bf16 axes=S,H,P dist=randn'
-      D: '[6, 32] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P30:
-    provenance: synthetic
-    tensors:
-      x: '[64, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[64, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[64, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P31:
-    provenance: synthetic
-    tensors:
-      x: '[96, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[96, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[96, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P32:
-    provenance: synthetic
-    tensors:
-      x: '[128, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[128, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[128, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P33:
-    provenance: synthetic
-    tensors:
-      x: '[192, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[192, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[192, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P34:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P35:
-    provenance: synthetic
-    tensors:
-      x: '[256, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[256, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[256, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P36:
-    provenance: synthetic
-    tensors:
-      x: '[384, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[384, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[384, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P37:
-    provenance: synthetic
-    tensors:
-      x: '[512, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[512, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[512, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P38:
-    provenance: synthetic
-    tensors:
-      x: '[640, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[640, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[640, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P39:
-    provenance: synthetic
-    tensors:
-      x: '[768, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[768, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[768, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P40:
-    provenance: synthetic
-    tensors:
-      x: '[1024, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[1024, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[1024, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  P41:
-    provenance: synthetic
-    tensors:
-      x: '[1280, 6, 64] bf16 axes=S,H,P dist=randn'
-      C: '[1280, 3, 64] bf16 axes=S,G,N dist=randn'
-      z: '[1280, 6, 64] bf16 axes=S,H,P dist=randn'
-      D: '[6, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 32
-  H1:
-    provenance: synthetic
-    tensors:
-      x: '[224, 6, 48] bf16 axes=S,H,P dist=randn'
-      C: '[224, 3, 48] bf16 axes=S,G,N dist=randn'
-      z: '[224, 6, 48] bf16 axes=S,H,P dist=randn'
-      D: '[6, 48] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  H2:
-    provenance: edge
-    tensors:
-      x: '[48, 2, 16] bf16 axes=S,H,P dist=randn'
-      C: '[48, 1, 8] bf16 axes=S,G,N dist=randn'
-      z: '[48, 2, 16] bf16 axes=S,H,P dist=randn'
-      D: '[2, 16] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
-  H3:
-    provenance: synthetic
-    tensors:
-      x: '[640, 4, 128] bf16 axes=S,H,P dist=randn'
-      C: '[640, 2, 128] bf16 axes=S,G,N dist=randn'
-      z: '[640, 4, 128] bf16 axes=S,H,P dist=randn'
-      D: '[4, 128] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 64
-  H4:
-    provenance: synthetic
-    tensors:
-      x: '[128, 16, 64] bf16 axes=S,H,P dist=randn'
-      C: '[128, 8, 32] bf16 axes=S,G,N dist=randn'
-      z: '[128, 16, 64] bf16 axes=S,H,P dist=randn'
-      D: '[16, 64] float32 axes=H,P dist=randn'
-    params:
-      chunk_size: 16
+  env: {S: 128, H: 16, G: 8, P: 64, N: 32, CS: 16}
+  inputs:
+  - {name: x, kind: tensor, shape: [128, 16, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: C, kind: tensor, shape: [128, 8, 32], dtype: bf16, axes: [S, G, N], dist: randn}
+  - {name: z, kind: tensor, shape: [128, 16, 64], dtype: bf16, axes: [S, H, P], dist: randn}
+  - {name: D, kind: tensor, shape: [16, 64], dtype: float32, axes: [H, P], dist: randn}
+  - {name: chunk_size, kind: scalar_knob, value: 16, expr: CS}

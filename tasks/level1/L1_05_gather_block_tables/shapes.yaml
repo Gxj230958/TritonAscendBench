@@ -1,631 +1,248 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [4, 64], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 256], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 1024], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [64, 2048], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [256], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [128, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 768
-    E: 384
-    N: 6144
+  env: {B: 768, L: 128, D: 1024, Dv: 8, N: 6144, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [384, 6144], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [768], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1024
-    E: 1
-    N: 384
+  env: {B: 1024, L: 128, D: 1024, Dv: 8, N: 384, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [1024], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 1024
-    E: 512
-    N: 8192
+  env: {B: 1024, L: 128, D: 1024, Dv: 8, N: 8192, T: 256, H: 16, E: 512, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [512, 8192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [1024], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 6144
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 6144, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 6144], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 8192
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 8192, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 8192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 384
-    N: 384
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 384, T: 256, H: 16, E: 384, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [384, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    E: 32
-    N: 512
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    E: 32
-    N: 512
+  env: {B: 2, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    E: 32
-    N: 512
+  env: {B: 3, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    E: 32
-    N: 512
+  env: {B: 4, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    E: 32
-    N: 512
+  env: {B: 8, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    E: 32
-    N: 512
+  env: {B: 16, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    E: 32
-    N: 512
+  env: {B: 32, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    E: 32
-    N: 512
+  env: {B: 64, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 1
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 2
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [2, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 3
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [3, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 4
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [4, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 8
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 16
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [16, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 1
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 1, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 1], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 2
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 2, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 2], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 3
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 3, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 3], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 4
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 4, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 4], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 8
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 8, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 8], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 16
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 16, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 16], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 32
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 32, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 32], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 64
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 64, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 64], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 96
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 96, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 96], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 128
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 128, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 128], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 192
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 192, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 192], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 256
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 256, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 256], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 384
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 384, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 512
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 640
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 640, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 640], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    E: 32
-    N: 768
-hidden_shapes:
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 768, T: 256, H: 16, E: 32, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [32, 768], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [12, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [2, 8], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [8, 4096], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [256, 128], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    N: 1
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 1, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 1], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 96
-    E: 1
-    N: 384
+  env: {B: 96, L: 128, D: 1024, Dv: 8, N: 384, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 384], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 2048
-    N: 512
+  env: {B: 1, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 2048, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [2048, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:E'}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 4096
-    E: 1
-    N: 512
-inputs:
-  block_table:
-    dims:
-    - E
-    - N
-    dtype: int64
-    dist: randint:0:N
-  idx_mapping:
-    dims:
-    - B
-    dtype: int64
-    dist: randint:0:E
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      block_table: '[4, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
-  P2:
-    provenance: baseline
-    tensors:
-      block_table: '[8, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[32] int64 axes=B dist=randint(lo=0, hi=E)'
-  P3:
-    provenance: baseline
-    tensors:
-      block_table: '[32, 1024] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[128] int64 axes=B dist=randint(lo=0, hi=E)'
-  P4:
-    provenance: baseline
-    tensors:
-      block_table: '[64, 2048] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[256] int64 axes=B dist=randint(lo=0, hi=E)'
-  P5:
-    provenance: synthetic
-    tensors:
-      block_table: '[128, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
-  P6:
-    provenance: synthetic
-    tensors:
-      block_table: '[384, 6144] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[768] int64 axes=B dist=randint(lo=0, hi=E)'
-  P7:
-    provenance: synthetic
-    tensors:
-      block_table: '[1, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[1024] int64 axes=B dist=randint(lo=0, hi=E)'
-  P8:
-    provenance: synthetic
-    tensors:
-      block_table: '[512, 8192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[1024] int64 axes=B dist=randint(lo=0, hi=E)'
-  P9:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 6144] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P10:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 8192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P11:
-    provenance: synthetic
-    tensors:
-      block_table: '[384, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P12:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
-  P13:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
-  P14:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[3] int64 axes=B dist=randint(lo=0, hi=E)'
-  P15:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
-  P16:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=randint(lo=0, hi=E)'
-  P17:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=randint(lo=0, hi=E)'
-  P18:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[32] int64 axes=B dist=randint(lo=0, hi=E)'
-  P19:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[64] int64 axes=B dist=randint(lo=0, hi=E)'
-  P20:
-    provenance: synthetic
-    tensors:
-      block_table: '[1, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P21:
-    provenance: synthetic
-    tensors:
-      block_table: '[2, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P22:
-    provenance: synthetic
-    tensors:
-      block_table: '[3, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P23:
-    provenance: synthetic
-    tensors:
-      block_table: '[4, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P24:
-    provenance: synthetic
-    tensors:
-      block_table: '[8, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P25:
-    provenance: synthetic
-    tensors:
-      block_table: '[16, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P26:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P27:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 2] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P28:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 3] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P29:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 4] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P30:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 8] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P31:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 16] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P32:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 32] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P33:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 64] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P34:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 96] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P35:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P36:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 192] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P37:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 256] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P38:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P39:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P40:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 640] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  P41:
-    provenance: synthetic
-    tensors:
-      block_table: '[32, 768] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  H1:
-    provenance: synthetic
-    tensors:
-      block_table: '[12, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  H2:
-    provenance: edge
-    tensors:
-      block_table: '[2, 8] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=randint(lo=0, hi=E)'
-  H3:
-    provenance: synthetic
-    tensors:
-      block_table: '[8, 4096] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4] int64 axes=B dist=randint(lo=0, hi=E)'
-  H4:
-    provenance: synthetic
-    tensors:
-      block_table: '[256, 128] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[512] int64 axes=B dist=randint(lo=0, hi=E)'
-  H5:
-    provenance: edge
-    tensors:
-      block_table: '[1, 1] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
-  H6:
-    provenance: edge
-    tensors:
-      block_table: '[1, 384] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=randint(lo=0, hi=E)'
-  H7:
-    provenance: edge
-    tensors:
-      block_table: '[2048, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[1] int64 axes=B dist=randint(lo=0, hi=E)'
-  H8:
-    provenance: edge
-    tensors:
-      block_table: '[1, 512] int64 axes=E,N dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4096] int64 axes=B dist=randint(lo=0, hi=E)'
+  env: {B: 4096, L: 128, D: 1024, Dv: 8, N: 512, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: block_table, kind: tensor, shape: [1, 512], dtype: int64, axes: [E, N], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4096], dtype: int64, axes: [B], dist: 'randint:0:E'}

@@ -1,614 +1,261 @@
-# Operator-family knob grid: values reflect
-# the sampling family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 4096
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 64, Dv: 8, N: 128, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [4, 128], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [4, 5], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [8, 17], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 4096
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [64, 4096], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [16, 129], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 32768
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 32768, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [128, 32768], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [32], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [32, 1025], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 2048
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 2048, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [8, 2048], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [8, 65], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 384
-    E: 12
-    N: 1536
+  env: {B: 384, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [384, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 512
-    E: 12
-    N: 1536
+  env: {B: 512, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [512, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    E: 12
-    N: 1536
+  env: {B: 16, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [16, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    E: 12
-    N: 1536
+  env: {B: 32, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [32, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 1
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [1, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 2
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 2, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [2, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 3
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 3, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [3], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [3, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 4
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 4, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [4, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 8
-    N: 1536
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 8, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [8, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 2
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 2, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 2], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 4
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 4, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 4], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 6
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 6, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 6], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 8
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 8, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 8], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 16
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 16, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 16], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 32
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 32, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 32], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 2], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 64
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 64, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 64], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 3], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 96
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 96, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 96], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 4], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 128
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 128, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 128], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 5], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 192
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 192, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 192], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 7], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 256
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 256, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 256], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 9], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 384
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 384, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 384], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 13], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 512
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 512, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 512], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 17], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 640
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 640, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 640], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 21], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 768
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 768, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 768], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 25], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 1024
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1024, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1024], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 33], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 1280
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 1280, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1280], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 41], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 2048
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 2048, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 2048], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 65], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 2560
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 2560, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 2560], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 81], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 3072
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 3072, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 3072], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 97], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 3584
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 3584, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 3584], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 113], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 4096
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 4096], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 129], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 48
-    E: 12
-    N: 5120
-hidden_shapes:
+  env: {B: 48, L: 128, D: 512, Dv: 8, N: 5120, T: 256, H: 16, E: 12, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 5120], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 161], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 1536
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 1536, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [48, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [12, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 64
-    Dv: 8
-    N: 16
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 64, Dv: 8, N: 16, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [2, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 65536
-    T: 512
-    H: 8
-    E: 2
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 65536, T: 512, H: 8, E: 2, C: 64, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2, 65536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [2, 2049], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 256
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 256, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: logits, kind: tensor, shape: [256, 256], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [256, 9], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    E: 1
-    N: 2
+  env: {B: 1, L: 128, D: 512, Dv: 8, N: 2, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [1, 2], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [1, 1], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    E: 1
-    N: 1536
-inputs:
-  logits:
-    dims:
-    - B
-    - N
-    dtype: bfloat16
-    dist: randn
-  logits_indices:
-    dims:
-    - E
-    dtype: int32
-    dist: randperm
-  bitmask:
-    dims:
-    - E
-    - N//32+1
-    dtype: int32
-    dist: randint:0:1024
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      logits: '[4, 128] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[4] int32 axes=E dist=randperm'
-      bitmask: '[4, 5] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P2:
-    provenance: baseline
-    tensors:
-      logits: '[16, 512] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[8] int32 axes=E dist=randperm'
-      bitmask: '[8, 17] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P3:
-    provenance: baseline
-    tensors:
-      logits: '[64, 4096] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[16] int32 axes=E dist=randperm'
-      bitmask: '[16, 129] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P4:
-    provenance: baseline
-    tensors:
-      logits: '[128, 32768] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[32] int32 axes=E dist=randperm'
-      bitmask: '[32, 1025] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P5:
-    provenance: synthetic
-    tensors:
-      logits: '[8, 2048] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[8] int32 axes=E dist=randperm'
-      bitmask: '[8, 65] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P6:
-    provenance: synthetic
-    tensors:
-      logits: '[384, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P7:
-    provenance: synthetic
-    tensors:
-      logits: '[512, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P8:
-    provenance: synthetic
-    tensors:
-      logits: '[16, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P9:
-    provenance: synthetic
-    tensors:
-      logits: '[32, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P10:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[1] int32 axes=E dist=randperm'
-      bitmask: '[1, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P11:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[2] int32 axes=E dist=randperm'
-      bitmask: '[2, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P12:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[3] int32 axes=E dist=randperm'
-      bitmask: '[3, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P13:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[4] int32 axes=E dist=randperm'
-      bitmask: '[4, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P14:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[8] int32 axes=E dist=randperm'
-      bitmask: '[8, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P15:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 2] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P16:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 4] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P17:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 6] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P18:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 8] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P19:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 16] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P20:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 32] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 2] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P21:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 64] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 3] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P22:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 96] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 4] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P23:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 128] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 5] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P24:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 192] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 7] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P25:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 256] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 9] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P26:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 384] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 13] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P27:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 512] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 17] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P28:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 640] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 21] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P29:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 768] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 25] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P30:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1024] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 33] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P31:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1280] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 41] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P32:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 2048] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 65] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P33:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 2560] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 81] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P34:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 3072] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 97] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P35:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 3584] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 113] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P36:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 4096] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 129] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  P37:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 5120] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 161] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H1:
-    provenance: synthetic
-    tensors:
-      logits: '[48, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[12] int32 axes=E dist=randperm'
-      bitmask: '[12, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H2:
-    provenance: edge
-    tensors:
-      logits: '[2, 16] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[2] int32 axes=E dist=randperm'
-      bitmask: '[2, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H3:
-    provenance: synthetic
-    tensors:
-      logits: '[2, 65536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[2] int32 axes=E dist=randperm'
-      bitmask: '[2, 2049] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H4:
-    provenance: synthetic
-    tensors:
-      logits: '[256, 256] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[256] int32 axes=E dist=randperm'
-      bitmask: '[256, 9] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H5:
-    provenance: edge
-    tensors:
-      logits: '[1, 2] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[1] int32 axes=E dist=randperm'
-      bitmask: '[1, 1] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
-  H6:
-    provenance: edge
-    tensors:
-      logits: '[2048, 1536] bfloat16 axes=B,N dist=randn'
-      logits_indices: '[1] int32 axes=E dist=randperm'
-      bitmask: '[1, 49] int32 axes=E,N//32+1 dist=randint(lo=0, hi=1024)'
+  env: {B: 2048, L: 128, D: 512, Dv: 8, N: 1536, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: logits, kind: tensor, shape: [2048, 1536], dtype: bfloat16, axes: [B, N], dist: randn}
+  - {name: logits_indices, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: randperm}
+  - {name: bitmask, kind: tensor, shape: [1, 49], dtype: int32, axes: [E, N//32+1], dist: 'randint:0:1024'}

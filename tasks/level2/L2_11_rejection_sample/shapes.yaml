@@ -1,345 +1,143 @@
-# Operator-family knob grid: values reflect
-# the sampling family's real axes.
-size_knobs:
-  B: 64
-  L: 128
-  D: 512
-  Dv: 8
-  N: 4096
-  T: 256
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 16
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 16, D: 64, Dv: 8, N: 128, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [8], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [4], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [8, 128], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [8, 128], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [8], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [8], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [4], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [4, 128, 64], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    L: 64
-    D: 256
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 16, L: 64, D: 256, Dv: 8, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [16, 512], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [16, 512], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [16], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [16, 512, 256], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    L: 128
-    D: 512
-    Dv: 8
-    N: 4096
-    T: 256
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 64, L: 128, D: 512, Dv: 8, N: 4096, T: 256, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [32], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [16], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [32, 4096], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [32, 4096], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [32], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [32], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [16], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [64, 4096, 512], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: P4
-  name: large
-  knobs:
-    B: 128
-    L: 256
-    D: 1024
-    Dv: 8
-    N: 32768
-    T: 512
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 128, L: 256, D: 1024, Dv: 8, N: 32768, T: 512, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [64], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [32], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [64, 32768], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [64, 32768], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [64], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [64], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [32], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [128, 32768, 1024], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 2048
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-hidden_shapes:
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 2048, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [16, 2048], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [16, 2048], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [16], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [8, 2048, 512], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 48
-    L: 96
-    D: 384
-    Dv: 8
-    N: 1536
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 48, L: 96, D: 384, Dv: 8, N: 1536, T: 96, H: 6, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [24], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [12], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [24, 1536], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [24, 1536], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [24], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [24], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [12], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [48, 1536, 384], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 64
-    Dv: 8
-    N: 16
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 16, D: 64, Dv: 8, N: 16, T: 8, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [4], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [2], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [4, 16], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [4, 16], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [4], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [4], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [2], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [2, 16, 64], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 65536
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 512, D: 4096, Dv: 8, N: 65536, T: 512, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [8], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [16, 65536], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [16, 65536], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [16], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [16], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [8], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [2, 65536, 4096], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 256
-    L: 32
-    D: 128
-    Dv: 8
-    N: 256
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
+  env: {B: 256, L: 32, D: 128, Dv: 8, N: 256, T: 16, H: 8, E: 256, C: 8, G: 4}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [512], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [256], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [512, 256], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [512, 256], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [512], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [512], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [256], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [256, 256, 128], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    E: 1
-    N: 1
-inputs:
-  draft_token_ids:
-    dims:
-    - E*2
-    dtype: int64
-    dist: randint:0:N
-  cu_num_draft_tokens:
-    dims:
-    - E
-    dtype: int32
-    dist: cumcount:to=E*2
-  draft_probs:
-    dims:
-    - E*2
-    - N
-    dtype: float32
-    dist: softmax_rows
-  target_probs:
-    dims:
-    - E*2
-    - N
-    dtype: float32
-    dist: softmax_rows
-  bonus_token_ids:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:N
-  recovered_token_ids:
-    dims:
-    - E*2
-    dtype: int64
-    dist: randint:0:N
-  uniform_probs:
-    dims:
-    - E*2
-    dtype: float32
-    dist: rand
-  is_greedy:
-    dims:
-    - E
-    dtype: int64
-    dist: randint:0:2
-  max_spec_len:
-    scalar: 2
-  x:
-    dims:
-    - B
-    - N
-    - D
-    dtype: float16
-    dist: randn
-  num_draft_tokens:
-    scalar: 4
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      draft_token_ids: '[8] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[4] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[8, 128] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[8, 128] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[4] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[8] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[8] float32 axes=E*2 dist=rand'
-      is_greedy: '[4] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[4, 128, 64] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  P2:
-    provenance: baseline
-    tensors:
-      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[16, 512] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[16, 512] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[16] float32 axes=E*2 dist=rand'
-      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[16, 512, 256] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  P3:
-    provenance: baseline
-    tensors:
-      draft_token_ids: '[32] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[16] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[32, 4096] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[32, 4096] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[16] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[32] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[32] float32 axes=E*2 dist=rand'
-      is_greedy: '[16] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[64, 4096, 512] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  P4:
-    provenance: baseline
-    tensors:
-      draft_token_ids: '[64] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[32] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[64, 32768] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[64, 32768] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[32] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[64] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[64] float32 axes=E*2 dist=rand'
-      is_greedy: '[32] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[128, 32768, 1024] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  P5:
-    provenance: synthetic
-    tensors:
-      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[16, 2048] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[16, 2048] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[16] float32 axes=E*2 dist=rand'
-      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[8, 2048, 512] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  H1:
-    provenance: synthetic
-    tensors:
-      draft_token_ids: '[24] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[12] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[24, 1536] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[24, 1536] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[12] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[24] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[24] float32 axes=E*2 dist=rand'
-      is_greedy: '[12] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[48, 1536, 384] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  H2:
-    provenance: edge
-    tensors:
-      draft_token_ids: '[4] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[2] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[4, 16] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[4, 16] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[2] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[4] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[4] float32 axes=E*2 dist=rand'
-      is_greedy: '[2] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[2, 16, 64] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  H3:
-    provenance: synthetic
-    tensors:
-      draft_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[8] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[16, 65536] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[16, 65536] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[8] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[16] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[16] float32 axes=E*2 dist=rand'
-      is_greedy: '[8] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[2, 65536, 4096] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  H4:
-    provenance: synthetic
-    tensors:
-      draft_token_ids: '[512] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[256] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[512, 256] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[512, 256] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[256] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[512] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[512] float32 axes=E*2 dist=rand'
-      is_greedy: '[256] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[256, 256, 128] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
-  H5:
-    provenance: edge
-    tensors:
-      draft_token_ids: '[2] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      cu_num_draft_tokens: '[1] int32 axes=E dist=cumcount(to=E*2)'
-      draft_probs: '[2, 1] float32 axes=E*2,N dist=softmax_rows'
-      target_probs: '[2, 1] float32 axes=E*2,N dist=softmax_rows'
-      bonus_token_ids: '[1] int64 axes=E dist=randint(lo=0, hi=N)'
-      recovered_token_ids: '[2] int64 axes=E*2 dist=randint(lo=0, hi=N)'
-      uniform_probs: '[2] float32 axes=E*2 dist=rand'
-      is_greedy: '[1] int64 axes=E dist=randint(lo=0, hi=2)'
-      x: '[1, 1, 1] float16 axes=B,N,D dist=randn'
-    params:
-      max_spec_len: 2
-      num_draft_tokens: 4
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 1, T: 256, H: 16, E: 1, C: 32, G: 8}
+  inputs:
+  - {name: draft_token_ids, kind: tensor, shape: [2], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: cu_num_draft_tokens, kind: tensor, shape: [1], dtype: int32, axes: [E], dist: 'cumcount:to=E*2'}
+  - {name: draft_probs, kind: tensor, shape: [2, 1], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: target_probs, kind: tensor, shape: [2, 1], dtype: float32, axes: [E*2, N], dist: softmax_rows}
+  - {name: bonus_token_ids, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:N'}
+  - {name: recovered_token_ids, kind: tensor, shape: [2], dtype: int64, axes: [E*2], dist: 'randint:0:N'}
+  - {name: uniform_probs, kind: tensor, shape: [2], dtype: float32, axes: [E*2], dist: rand}
+  - {name: is_greedy, kind: tensor, shape: [1], dtype: int64, axes: [E], dist: 'randint:0:2'}
+  - {name: max_spec_len, kind: scalar, value: 2}
+  - {name: x, kind: tensor, shape: [1, 1, 1], dtype: float16, axes: [B, N, D], dist: randn}
+  - {name: num_draft_tokens, kind: scalar, value: 4}

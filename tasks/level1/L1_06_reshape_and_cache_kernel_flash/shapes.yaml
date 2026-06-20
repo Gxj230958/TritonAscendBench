@@ -1,1034 +1,509 @@
-# Operator-family knob grid: values reflect
-# the attention family's real axes.
-size_knobs:
-  B: 8
-  L: 512
-  D: 128
-  Dv: 8
-  N: 256
-  T: 64
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 64
-    D: 32
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 2, L: 64, D: 32, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 16, 4, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 16, 4, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 256
-    D: 64
-    Dv: 8
-    N: 128
-    T: 32
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 256, D: 64, Dv: 8, N: 128, T: 32, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: key, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 32, 8, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 32, 8, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 512
-    D: 128
-    Dv: 8
-    N: 256
-    T: 64
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 1024
-    D: 256
-    Dv: 8
-    N: 512
-    T: 128
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 16, L: 1024, D: 256, Dv: 8, N: 512, T: 128, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [16, 32, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [16, 32, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [64, 128, 32, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [64, 128, 32, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 128
-    D: 128
-    Dv: 8
-    N: 256
-    T: 32
-    H: 64
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 2, L: 128, D: 128, Dv: 8, N: 256, T: 32, H: 64, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 64, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 64, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 32, 64, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 32, 64, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 12
-    T: 384
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 384, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 384, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 384, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 128
-    H: 96
-    T: 48
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 48, H: 96, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 96, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 96, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 96, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 96, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 384
-    H: 12
-    T: 48
+  env: {B: 8, L: 512, D: 384, Dv: 8, N: 256, T: 48, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 12, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 12, 384], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 384], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 384], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 24
-    D: 512
-    H: 12
-    T: 48
+  env: {B: 8, L: 512, D: 512, Dv: 8, N: 256, T: 48, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 12, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 12, 512], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 512], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 512], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 192
-    D: 128
-    H: 12
-    T: 48
+  env: {B: 8, L: 512, D: 128, Dv: 8, N: 256, T: 48, H: 12, E: 16, C: 192, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [192, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [192, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 48
-    C: 24
-    D: 128
-    H: 12
-    T: 48
+  env: {B: 48, L: 512, D: 128, Dv: 8, N: 256, T: 48, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [48, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [48, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [48], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    C: 32
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 2, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 32
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 4, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [4, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [4, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 6
-    C: 32
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 6, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [6, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [6, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 1
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 1, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [1, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [1, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 2
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 2, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [2, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [2, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 3
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 3, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [3, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [3, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 4
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 4, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [4, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [4, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 8
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 8, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 16
-    D: 256
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 16, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [16, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [16, 64, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 1
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 1, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 1], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 1], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 1], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 2
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 2, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 2], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 2], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 2], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 3
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 3, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 3], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 3], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 3], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 4
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 4, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 4], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 4], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 4], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 8
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 8, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 8], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 8], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 8], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 16
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 16, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 16], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 16], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 32
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 32, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 64
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 64, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 96
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 96, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 96], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 96], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 192
-    H: 16
-    T: 64
+  env: {B: 8, L: 512, D: 192, Dv: 8, N: 256, T: 64, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 16, 192], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 16, 192], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 1
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 1, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 1, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 1, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 1, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 1, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 2
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 2, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 2, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 2, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 2, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 2, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 3
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 3, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 3, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 3, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 3, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 3, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 4
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 4, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 4, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 4, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 4, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 4, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 8
-    T: 64
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 64, 8, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 64, 8, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 1
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 1, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 1, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 1, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 2
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 2, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 2, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 2, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 3
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 3, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 3, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 3, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 4
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 4, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 4, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 4, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 8
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 8, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 8, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 256
-    H: 16
-    T: 16
-hidden_shapes:
+  env: {B: 8, L: 512, D: 256, Dv: 8, N: 256, T: 16, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [8, 16, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [32, 16, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [32, 16, 16, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 320
-    D: 64
-    Dv: 8
-    N: 192
-    T: 48
-    H: 12
-    E: 12
-    C: 24
-    G: 4
+  env: {B: 3, L: 320, D: 64, Dv: 8, N: 192, T: 48, H: 12, E: 12, C: 24, G: 4}
+  inputs:
+  - {name: key, kind: tensor, shape: [3, 12, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [3, 12, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 8
-    N: 32
-    T: 8
-    H: 2
-    E: 2
-    C: 4
-    G: 2
+  env: {B: 2, L: 16, D: 32, Dv: 8, N: 32, T: 8, H: 2, E: 2, C: 4, G: 2}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 2, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 2, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [4, 8, 2, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [4, 8, 2, 32], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 2048
-    D: 256
-    Dv: 8
-    N: 512
-    T: 256
-    H: 8
-    E: 16
-    C: 128
-    G: 8
+  env: {B: 2, L: 2048, D: 256, Dv: 8, N: 512, T: 256, H: 8, E: 16, C: 128, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 8, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [128, 256, 8, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [128, 256, 8, 256], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 64
-    D: 64
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 32, L: 64, D: 64, Dv: 8, N: 128, T: 16, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: key, kind: tensor, shape: [32, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [32, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [8, 16, 8, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [8, 16, 8, 64], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2
-    C: 24
-    D: 128
-    H: 12
-    T: 48
-inputs:
-  key:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  value:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  key_cache:
-    dims:
-    - C
-    - T
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  value_cache:
-    dims:
-    - C
-    - T
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  slot_mapping:
-    dims:
-    - B
-    dtype: int64
-    # Unique slots spanning the full paged-cache capacity C*T (block_size=T,
-    # C blocks). randint:0:C only ever hit block 0 and could collide, leaving
-    # the kernel's block_idx = slot // T addressing untested and creating an
-    # ill-defined duplicate-scatter race against the oracle.
-    dist: offsets:to=C*T-1
-  kv_cache_dtype:
-    scalar: auto
-  k_scale:
-    dims:
-    - 1
-    dtype: bfloat16
-    dist: rand
-  v_scale:
-    dims:
-    - 1
-    dtype: float32
-    dist: rand
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      key: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[8, 16, 4, 32] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 16, 4, 32] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P2:
-    provenance: baseline
-    tensors:
-      key: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      value: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[16, 32, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 32, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[4] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P3:
-    provenance: baseline
-    tensors:
-      key: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P4:
-    provenance: baseline
-    tensors:
-      key: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[16, 32, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[64, 128, 32, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[64, 128, 32, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[16] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P5:
-    provenance: synthetic
-    tensors:
-      key: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 64, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[16, 32, 64, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 32, 64, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P6:
-    provenance: synthetic
-    tensors:
-      key: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 384, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 384, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P7:
-    provenance: synthetic
-    tensors:
-      key: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 96, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 96, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 96, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P8:
-    provenance: synthetic
-    tensors:
-      key: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 12, 384] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 384] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 384] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P9:
-    provenance: synthetic
-    tensors:
-      key: '[8, 12, 512] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 12, 512] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 512] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 512] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P10:
-    provenance: synthetic
-    tensors:
-      key: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[192, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[192, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P11:
-    provenance: synthetic
-    tensors:
-      key: '[48, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[48, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[48] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P12:
-    provenance: synthetic
-    tensors:
-      key: '[2, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P13:
-    provenance: synthetic
-    tensors:
-      key: '[4, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[4, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[4] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P14:
-    provenance: synthetic
-    tensors:
-      key: '[6, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[6, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[6] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P15:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[1, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[1, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P16:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[2, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[2, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P17:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[3, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[3, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P18:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[4, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[4, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P19:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[8, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P20:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[16, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[16, 64, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P21:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 1] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 1] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 1] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 1] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P22:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 2] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 2] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 2] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 2] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P23:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 3] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 3] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 3] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 3] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P24:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 4] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 4] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 4] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 4] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P25:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 8] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 8] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 8] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 8] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P26:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 16] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 16] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 16] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 16] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P27:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 32] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 32] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 32] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 32] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P28:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 64] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 64] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 64] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 64] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P29:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 96] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 96] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 96] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P30:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 192] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 192] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 16, 192] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 16, 192] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P31:
-    provenance: synthetic
-    tensors:
-      key: '[8, 1, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 1, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 1, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 1, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P32:
-    provenance: synthetic
-    tensors:
-      key: '[8, 2, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 2, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 2, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 2, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P33:
-    provenance: synthetic
-    tensors:
-      key: '[8, 3, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 3, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 3, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 3, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P34:
-    provenance: synthetic
-    tensors:
-      key: '[8, 4, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 4, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 4, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 4, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P35:
-    provenance: synthetic
-    tensors:
-      key: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 64, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 64, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P36:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 1, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 1, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P37:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 2, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 2, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P38:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 3, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 3, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P39:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 4, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 4, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P40:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 8, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 8, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  P41:
-    provenance: synthetic
-    tensors:
-      key: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[8, 16, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[32, 16, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[32, 16, 16, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[8] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  H1:
-    provenance: synthetic
-    tensors:
-      key: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
-      value: '[3, 12, 64] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 64] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 64] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[3] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  H2:
-    provenance: edge
-    tensors:
-      key: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 2, 32] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[4, 8, 2, 32] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[4, 8, 2, 32] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  H3:
-    provenance: synthetic
-    tensors:
-      key: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 8, 256] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[128, 256, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[128, 256, 8, 256] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  H4:
-    provenance: synthetic
-    tensors:
-      key: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      value: '[32, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[8, 16, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[8, 16, 8, 64] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[32] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
-  H5:
-    provenance: edge
-    tensors:
-      key: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      value: '[2, 12, 128] bfloat16 axes=B,H,D dist=randn'
-      key_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      value_cache: '[24, 48, 12, 128] bfloat16 axes=C,T,H,D dist=randn'
-      slot_mapping: '[2] int64 axes=B dist=offsets(to=C*T-1)'
-      k_scale: '[1] bfloat16 axes=1 dist=rand'
-      v_scale: '[1] float32 axes=1 dist=rand'
-    params:
-      kv_cache_dtype: auto
+  env: {B: 2, L: 512, D: 128, Dv: 8, N: 256, T: 48, H: 12, E: 16, C: 24, G: 8}
+  inputs:
+  - {name: key, kind: tensor, shape: [2, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: value, kind: tensor, shape: [2, 12, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: key_cache, kind: tensor, shape: [24, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: value_cache, kind: tensor, shape: [24, 48, 12, 128], dtype: bfloat16, axes: [C, T, H, D], dist: randn}
+  - {name: slot_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'offsets:to=C*T-1'}
+  - {name: kv_cache_dtype, kind: scalar, value: auto}
+  - {name: k_scale, kind: tensor, shape: [1], dtype: bfloat16, axes: ['1'], dist: rand}
+  - {name: v_scale, kind: tensor, shape: [1], dtype: float32, axes: ['1'], dist: rand}

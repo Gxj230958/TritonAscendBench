@@ -1,124 +1,39 @@
-# Aligned to kernel.py:521 wrapper signature `solve_tril(A, ...)` where
-# A.shape == [B, T, H, BT] and BT is fixed at 32 for this task
-# (kernel.py:556 -> merge_16x16_to_32x32_inverse_kernel branch).
-# Each shape varies B / T / H along T-multiples of BT=32.
-
-size_knobs:
-  B: 2
-  T: 32
-  H: 2
-  BT: 32
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: single_chunk
-  knobs:
-    B: 1
-    T: 32
-    H: 1
-    BT: 32
+  env: {B: 1, T: 32, H: 1, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 32, 1, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P2
-  name: two_chunks
-  knobs:
-    B: 2
-    T: 64
-    H: 2
-    BT: 32
+  env: {B: 2, T: 64, H: 2, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 64, 2, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P3
-  name: medium
-  knobs:
-    B: 4
-    T: 128
-    H: 4
-    BT: 32
+  env: {B: 4, T: 128, H: 4, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [4, 128, 4, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P4
-  name: large
-  knobs:
-    B: 8
-    T: 256
-    H: 8
-    BT: 32
+  env: {B: 8, T: 256, H: 8, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [8, 256, 8, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: P5
-  name: deep
-  knobs:
-    B: 2
-    T: 512
-    H: 4
-    BT: 32
-hidden_shapes:
+  env: {B: 2, T: 512, H: 4, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 512, 4, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
+hidden:
 - id: H1
-  name: h_odd_heads
-  knobs:
-    B: 3
-    T: 96
-    H: 3
-    BT: 32
+  env: {B: 3, T: 96, H: 3, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [3, 96, 3, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 1
-    T: 32
-    H: 1
-    BT: 32
+  env: {B: 1, T: 32, H: 1, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [1, 32, 1, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    T: 1024
-    H: 6
-    BT: 32
+  env: {B: 2, T: 1024, H: 6, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [2, 1024, 6, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}
 - id: H4
-  name: h_wide_b
-  knobs:
-    B: 16
-    T: 32
-    H: 4
-    BT: 32
-inputs:
-  A:
-    dims:
-    - B
-    - T
-    - H
-    - BT
-    dtype: float32
-    # tril_chunk = dense strict-lower per [BT,BT] chunk; plain `tril` masks the
-    # [H,BT] axes, leaving single-chunk H=1 shapes non-discriminating.
-    dist: tril_chunk
-
-explicit_view:
-  P1:
-    provenance: synthetic
-    tensors:
-      A: '[1, 32, 1, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  P2:
-    provenance: synthetic
-    tensors:
-      A: '[2, 64, 2, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  P3:
-    provenance: baseline
-    tensors:
-      A: '[4, 128, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  P4:
-    provenance: baseline
-    tensors:
-      A: '[8, 256, 8, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  P5:
-    provenance: synthetic
-    tensors:
-      A: '[2, 512, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  H1:
-    provenance: synthetic
-    tensors:
-      A: '[3, 96, 3, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  H2:
-    provenance: edge
-    tensors:
-      A: '[1, 32, 1, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  H3:
-    provenance: synthetic
-    tensors:
-      A: '[2, 1024, 6, 32] float32 axes=B,T,H,BT dist=tril_chunk'
-  H4:
-    provenance: synthetic
-    tensors:
-      A: '[16, 32, 4, 32] float32 axes=B,T,H,BT dist=tril_chunk'
+  env: {B: 16, T: 32, H: 4, BT: 32}
+  inputs:
+  - {name: A, kind: tensor, shape: [16, 32, 4, 32], dtype: float32, axes: [B, T, H, BT], dist: tril_chunk}

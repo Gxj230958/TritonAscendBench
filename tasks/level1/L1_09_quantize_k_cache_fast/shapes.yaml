@@ -1,398 +1,213 @@
-# Upstream contract (SGLang _quantize_k_cache_fast_kernel, commit 409d350):
-# the kernel hard-asserts dim_nope == 512, dim_rope == 64, group_size == 128,
-# bfloat16 inputs. The only free axis is the token count B (num_tokens =
-# grid dim 0). D mirrors DIM_NOPE (512) so the cost model resolves; the
-# per-input dims pin the fixed nope/rope widths as literals.
-size_knobs:
-  B: 64
-  D: 512
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    D: 512
+  env: {B: 4, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [4, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [4, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P2
-  name: small
-  knobs:
-    B: 16
-    D: 512
+  env: {B: 16, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [16, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [16, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P3
-  name: medium
-  knobs:
-    B: 64
-    D: 512
+  env: {B: 64, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [64, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [64, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    D: 512
+  env: {B: 256, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [256, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [256, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P5
-  name: wide
-  knobs:
-    B: 1024
-    D: 512
+  env: {B: 1024, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1024, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1024, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 3072
+  env: {B: 3072, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [3072, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [3072, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 4096
+  env: {B: 4096, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [4096, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [4096, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
+  env: {B: 2, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
+  env: {B: 3, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [3, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [3, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
+  env: {B: 8, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
+  env: {B: 32, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [32, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [32, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
+  env: {B: 96, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [96, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [96, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 128
+  env: {B: 128, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [128, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [128, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 192
+  env: {B: 192, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [192, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [192, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 384
+  env: {B: 384, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [384, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [384, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 640
+  env: {B: 640, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [640, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [640, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 768
+  env: {B: 768, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [768, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [768, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1280
+  env: {B: 1280, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1280, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1280, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1536
+  env: {B: 1536, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1536, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1536, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2560
+  env: {B: 2560, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2560, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2560, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3584
+  env: {B: 3584, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [3584, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [3584, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 5120
+  env: {B: 5120, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [5120, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [5120, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 6144
+  env: {B: 6144, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [6144, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [6144, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8192
+  env: {B: 8192, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [8192, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [8192, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 12288
+  env: {B: 12288, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [12288, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [12288, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16384
-hidden_shapes:
+  env: {B: 16384, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [16384, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [16384, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
+hidden:
 - id: H1
-  name: h_singleton
-  knobs:
-    B: 1
-    D: 512
+  env: {B: 1, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [1, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [1, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H2
-  name: h_odd
-  knobs:
-    B: 37
-    D: 512
+  env: {B: 37, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [37, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [37, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2048
-    D: 512
+  env: {B: 2048, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [2048, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [2048, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    D: 512
-inputs:
-  k_nope:
-    dims:
-    - B
-    - 512
-    dtype: bfloat16
-    dist: randn
-  k_rope:
-    dims:
-    - B
-    - 64
-    dtype: bfloat16
-    dist: randn
-  group_size:
-    scalar: 128
-  fp8_max:
-    scalar: 448.0
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      k_nope: '[4, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[4, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P2:
-    provenance: baseline
-    tensors:
-      k_nope: '[16, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[16, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P3:
-    provenance: baseline
-    tensors:
-      k_nope: '[64, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[64, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P4:
-    provenance: baseline
-    tensors:
-      k_nope: '[256, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[256, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P5:
-    provenance: synthetic
-    tensors:
-      k_nope: '[1024, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[1024, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P6:
-    provenance: synthetic
-    tensors:
-      k_nope: '[3072, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[3072, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P7:
-    provenance: synthetic
-    tensors:
-      k_nope: '[4096, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[4096, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P8:
-    provenance: synthetic
-    tensors:
-      k_nope: '[2, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[2, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P9:
-    provenance: synthetic
-    tensors:
-      k_nope: '[3, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[3, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P10:
-    provenance: synthetic
-    tensors:
-      k_nope: '[8, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[8, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P11:
-    provenance: synthetic
-    tensors:
-      k_nope: '[32, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[32, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P12:
-    provenance: synthetic
-    tensors:
-      k_nope: '[96, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[96, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P13:
-    provenance: synthetic
-    tensors:
-      k_nope: '[128, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[128, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P14:
-    provenance: synthetic
-    tensors:
-      k_nope: '[192, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[192, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P15:
-    provenance: synthetic
-    tensors:
-      k_nope: '[384, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[384, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P16:
-    provenance: synthetic
-    tensors:
-      k_nope: '[640, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[640, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P17:
-    provenance: synthetic
-    tensors:
-      k_nope: '[768, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[768, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P18:
-    provenance: synthetic
-    tensors:
-      k_nope: '[1280, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[1280, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P19:
-    provenance: synthetic
-    tensors:
-      k_nope: '[1536, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[1536, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P20:
-    provenance: synthetic
-    tensors:
-      k_nope: '[2560, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[2560, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P21:
-    provenance: synthetic
-    tensors:
-      k_nope: '[3584, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[3584, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P22:
-    provenance: synthetic
-    tensors:
-      k_nope: '[5120, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[5120, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P23:
-    provenance: synthetic
-    tensors:
-      k_nope: '[6144, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[6144, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P24:
-    provenance: synthetic
-    tensors:
-      k_nope: '[8192, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[8192, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P25:
-    provenance: synthetic
-    tensors:
-      k_nope: '[12288, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[12288, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  P26:
-    provenance: synthetic
-    tensors:
-      k_nope: '[16384, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[16384, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H1:
-    provenance: edge
-    tensors:
-      k_nope: '[1, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[1, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H2:
-    provenance: synthetic
-    tensors:
-      k_nope: '[37, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[37, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H3:
-    provenance: synthetic
-    tensors:
-      k_nope: '[2048, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[2048, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
-  H4:
-    provenance: synthetic
-    tensors:
-      k_nope: '[512, 512] bfloat16 axes=B,512 dist=randn'
-      k_rope: '[512, 64] bfloat16 axes=B,64 dist=randn'
-    params:
-      group_size: 128
-      fp8_max: 448.0
+  env: {B: 512, D: 512}
+  inputs:
+  - {name: k_nope, kind: tensor, shape: [512, 512], dtype: bfloat16, axes: [B, '512'], dist: randn}
+  - {name: k_rope, kind: tensor, shape: [512, 64], dtype: bfloat16, axes: [B, '64'], dist: randn}
+  - {name: group_size, kind: scalar, value: 128}
+  - {name: fp8_max, kind: scalar, value: 448.0}

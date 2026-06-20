@@ -1,830 +1,531 @@
-# MLA decode stage1 (SGLang rocm_mla_decode_rope `_fwd_grouped_kernel_stage1_rope`).
-# Knobs: B batch, H query heads, S kv tokens per batch (<= BLOCK_N=32 so the
-# kernel's online softmax is a single tile == plain softmax), C kv_lora_rank
-# (nope/latent dim), R qk_rope_head_dim == rotary_dim (full rotary), P max
-# rope position. total_kv = B*S; one contiguous page of S tokens per batch.
-# The real MLA caller passes V as an alias of k_buffer[..., :C], so the launcher
-# and oracle derive that view instead of materialising an independent input.
-size_knobs: {B: 4, H: 16, S: 16, C: 512, R: 64, P: 64}
-public_shapes:
-- {id: P1, name: tiny,   knobs: {B: 2, H: 4,  S: 8,  C: 64,  R: 16, P: 32}}
-- {id: P2, name: small,  knobs: {B: 3, H: 8,  S: 16, C: 128, R: 32, P: 48}}
-- {id: P3, name: medium, knobs: {B: 4, H: 16, S: 24, C: 256, R: 64, P: 64}}
-- {id: P4, name: deepseek, knobs: {B: 4, H: 16, S: 32, C: 512, R: 64, P: 64}}
-- {id: P5, name: wide,   knobs: {B: 2, H: 32, S: 16, C: 512, R: 64, P: 32}}
+schema_version: 2
+public:
+- id: P1
+  env: {B: 2, H: 4, S: 8, C: 64, R: 16, P: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 4, 80], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [16, 1, 80], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [3], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [16], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [32, 16], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 64, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 16, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.11180339887498948, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: P2
+  env: {B: 3, H: 8, S: 16, C: 128, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 8, 160], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [48, 1, 160], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [4], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [48], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 128, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.07905694150420949, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: P3
+  env: {B: 4, H: 16, S: 24, C: 256, R: 64, P: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 16, 320], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [96, 1, 320], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [96], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [64, 64], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 256, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 64, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.05590169943749474, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: P4
+  env: {B: 4, H: 16, S: 32, C: 512, R: 64, P: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 16, 576], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [128, 1, 576], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [128], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [64, 64], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 512, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 64, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.041666666666666664, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: P5
+  env: {B: 2, H: 32, S: 16, C: 512, R: 64, P: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 32, 576], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [32, 1, 576], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [3], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [32], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [32, 64], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 512, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 64, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.041666666666666664, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    C: 192
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 1, H: 12, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [20, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [2], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [20], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    C: 192
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 2, H: 12, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [40, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [3], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [40], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    C: 192
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 3, H: 12, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [60, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [4], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [60], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 16
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 16, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 48], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 48], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 16, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.14433756729740646, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 32
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 32, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 64], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 64], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 32, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.125, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 64
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 64, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 96], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 96], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 64, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 96
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 96, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 128], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 128], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 96, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 128
-    H: 12
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 128, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 160], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 160], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 128, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.07905694150420949, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 1
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 1, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 1, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 2
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 2, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 2, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 3
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 3, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 3, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 4
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 4, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 4, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 8
-    P: 48
-    R: 32
-    S: 20
+  env: {B: 4, H: 8, S: 20, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 8, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 1
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [1, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 2
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [2, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 3
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 3}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [3, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 4
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [4, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 8
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [8, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 16
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [16, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 32
-    R: 32
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 32, P: 32}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [32, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 48
-    R: 16
-    S: 20
+  env: {B: 4, H: 12, S: 20, C: 192, R: 16, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 208], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [80, 1, 208], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [80], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 16], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 16, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.06933752452815364, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 192
-    H: 12
-    P: 48
-    R: 32
-    S: 1
-hidden_shapes:
-- {id: H1, name: h_odd_heads, knobs: {B: 3, H: 12, S: 20, C: 192, R: 64, P: 48}}
-- {id: H2, name: h_singleton, knobs: {B: 2, H: 2,  S: 4,  C: 64,  R: 16, P: 16}}
-- {id: H3, name: h_deep_latent, knobs: {B: 2, H: 8, S: 32, C: 512, R: 64, P: 64}}
-- {id: H4, name: h_many_batch, knobs: {B: 8, H: 16, S: 8,  C: 128, R: 32, P: 16}}
+  env: {B: 4, H: 12, S: 1, C: 192, R: 32, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [4, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [5], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [4], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+hidden:
+- id: H1
+  env: {B: 3, H: 12, S: 20, C: 192, R: 64, P: 48}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 12, 256], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [60, 1, 256], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [4], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [60], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [48, 64], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 64, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0625, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: H2
+  env: {B: 2, H: 2, S: 4, C: 64, R: 16, P: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 2, 80], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [8, 1, 80], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [3], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [8], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [16, 16], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 64, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 16, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.11180339887498948, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: H3
+  env: {B: 2, H: 8, S: 32, C: 512, R: 64, P: 64}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 8, 576], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [64, 1, 576], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [3], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [64], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [64, 64], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 512, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 64, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.041666666666666664, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
+- id: H4
+  env: {B: 8, H: 16, S: 8, C: 128, R: 32, P: 16}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 16, 160], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [64, 1, 160], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [9], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [64], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [16, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 128, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.07905694150420949, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 192
-    H: 12
-    P: 256
-    R: 32
-    S: 20
+  env: {B: 1, H: 12, S: 20, C: 192, R: 32, P: 256}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [20, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [2], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [20], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [256, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 64
-    C: 192
-    H: 12
-    P: 1
-    R: 32
-    S: 20
-inputs:
-  q:
-    dims: [B, H, C+R]
-    dtype: bf16
-    dist: randn
-  k_buffer:
-    dims: [B*S, 1, C+R]
-    dtype: bf16
-    dist: randn
-  kv_indptr:
-    dims: [B+1]
-    dtype: int32
-    dist: offsets:to=B*S
-  kv_indices:
-    dims: [B*S]
-    dtype: int64
-    dist: arange
-  cos_sin_cache:
-    dims: [P, R]
-    dtype: bf16
-    dist: rope_cos_sin
-  positions:
-    dims: [B]
-    dtype: int64
-    dist: randint:0:P
-  kv_lora_rank: {scalar_knob: "C"}
-  rotary_dim: {scalar_knob: "R"}
-  num_kv_splits: {scalar: 1}
-  sm_scale: {derive: "1/sqrt(C+R)"}
-  logit_cap: {scalar: 0.0}
-  use_rope: {scalar: true}
-  is_neox_style: {scalar: true}
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 4, 80] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[16, 1, 80] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[16] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[32, 16] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 64
-      rotary_dim: 16
-      num_kv_splits: 1
-      sm_scale: 0.11180339887498948
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[3, 8, 160] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[48, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[48] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 128
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.07905694150420949
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[4, 16, 320] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[96, 1, 320] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[96] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 256
-      rotary_dim: 64
-      num_kv_splits: 1
-      sm_scale: 0.05590169943749474
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P4:
-    provenance: synthetic
-    tensors:
-      q: '[4, 16, 576] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[128, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[128] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 512
-      rotary_dim: 64
-      num_kv_splits: 1
-      sm_scale: 0.041666666666666664
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 32, 576] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[32, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[32] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[32, 64] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 512
-      rotary_dim: 64
-      num_kv_splits: 1
-      sm_scale: 0.041666666666666664
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[1, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[20, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[2] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[20] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[1] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[2, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[40, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[40] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[3, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[60, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[60] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 48] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 48] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 16
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.14433756729740646
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 64] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 64] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 32
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.125
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 96] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 96] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 64
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.10206207261596577
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 128] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 128] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 96
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.08838834764831843
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 160] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 128
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.07905694150420949
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[4, 1, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[4, 2, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P21:
-    provenance: synthetic
-    tensors:
-      q: '[4, 3, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P22:
-    provenance: synthetic
-    tensors:
-      q: '[4, 4, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P23:
-    provenance: synthetic
-    tensors:
-      q: '[4, 8, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P24:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[1, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P25:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[2, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[3, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[4, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[8, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P29:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[16, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P30:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[32, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 208] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[80, 1, 208] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[80] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 16] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 16
-      num_kv_splits: 1
-      sm_scale: 0.06933752452815364
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[4, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[4, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[5] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[4] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[4] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[3, 12, 256] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[60, 1, 256] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[4] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[60] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[48, 64] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[3] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 64
-      num_kv_splits: 1
-      sm_scale: 0.0625
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 2, 80] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[8, 1, 80] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[8] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[16, 16] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 64
-      rotary_dim: 16
-      num_kv_splits: 1
-      sm_scale: 0.11180339887498948
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[2, 8, 576] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[64, 1, 576] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[3] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[64] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[64, 64] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[2] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 512
-      rotary_dim: 64
-      num_kv_splits: 1
-      sm_scale: 0.041666666666666664
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[8, 16, 160] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[64, 1, 160] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[9] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[64] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[16, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[8] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 128
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.07905694150420949
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H5:
-    provenance: edge
-    tensors:
-      q: '[1, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[20, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[2] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[20] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[256, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[1] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
-  H6:
-    provenance: edge
-    tensors:
-      q: '[64, 12, 224] bf16 axes=B,H,C+R dist=randn'
-      k_buffer: '[1280, 1, 224] bf16 axes=B*S,1,C+R dist=randn'
-      kv_indptr: '[65] int32 axes=B+1 dist=offsets(to=B*S)'
-      kv_indices: '[1280] int64 axes=B*S dist=arange'
-      cos_sin_cache: '[1, 32] bf16 axes=P,R dist=rope_cos_sin'
-      positions: '[64] int64 axes=B dist=randint(lo=0, hi=P)'
-    params:
-      kv_lora_rank: 192
-      rotary_dim: 32
-      num_kv_splits: 1
-      sm_scale: 0.0668153104781061
-      logit_cap: 0.0
-      use_rope: true
-      is_neox_style: true
+  env: {B: 64, H: 12, S: 20, C: 192, R: 32, P: 1}
+  inputs:
+  - {name: q, kind: tensor, shape: [64, 12, 224], dtype: bf16, axes: [B, H, C+R], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [1280, 1, 224], dtype: bf16, axes: [B*S, '1', C+R], dist: randn}
+  - {name: kv_indptr, kind: tensor, shape: [65], dtype: int32, axes: [B+1], dist: 'offsets:to=B*S'}
+  - {name: kv_indices, kind: tensor, shape: [1280], dtype: int64, axes: [B*S], dist: arange}
+  - {name: cos_sin_cache, kind: tensor, shape: [1, 32], dtype: bf16, axes: [P, R], dist: rope_cos_sin}
+  - {name: positions, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: 'randint:0:P'}
+  - {name: kv_lora_rank, kind: scalar_knob, value: 192, expr: C}
+  - {name: rotary_dim, kind: scalar_knob, value: 32, expr: R}
+  - {name: num_kv_splits, kind: scalar, value: 1}
+  - {name: sm_scale, kind: derive, value: 0.0668153104781061, expr: 1/sqrt(C+R)}
+  - {name: logit_cap, kind: scalar, value: 0.0}
+  - {name: use_rope, kind: scalar, value: true}
+  - {name: is_neox_style, kind: scalar, value: true}

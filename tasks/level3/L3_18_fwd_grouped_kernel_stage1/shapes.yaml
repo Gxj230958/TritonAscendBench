@@ -1,827 +1,353 @@
-# Grouped (GQA) decode-attention stage-1 (flash-decoding partials).
-# The authored _pa_launcher.py drives the frozen @triton.jit
-# `_fwd_grouped_kernel_stage1` exactly as the upstream host wrapper
-# `_decode_grouped_att_m_fwd` does (vLLM
-# vllm/v1/attention/ops/triton_decode_attention.py, commit 18f6bf5a214).
-#
-# Knob roles for this operator family (NOT the legacy uniform template):
-#   B  -> decode batch (one query token per request; q dim 0, att_out dim 0)
-#   H  -> query head count H_Q (q dim 1, att_out dim 1, kernel BLOCK_H axis)
-#   E  -> KV head count H_KV (k_buffer/v_buffer dim 1); kv_group_num = H/E
-#         MUST be > 1 to exercise the grouped (GQA) head mapping
-#   D  -> QK head dim Lk (q dim 2 == k_buffer dim 2, score contraction)
-#   Dv -> value head dim Lv (v_buffer dim 2 == att_out context width)
-#   C  -> max cached context length per request (req_to_tokens width;
-#         k_buffer/v_buffer hold B*C cached latent tokens)
-# NUM_KV_SPLITS (att_out dim 2, the flash-decoding split count) is the
-# fixed `num_kv_splits` scalar (4, > 1 so the per-split online-softmax
-# recurrence is exercised); it is NOT a size knob. L/N/T/G are legacy
-# family knobs carried by the grid template but unused by this operator.
-#
-# Discrimination (every input below is load-bearing -- a kernel ignoring
-# any one fails the oracle compare):
-#   req_to_tokens `randperm` is a NON-identity global permutation of the
-#   B*C cached slots; a kernel that gathers b*C+n directly (ignoring the
-#   page table) reads the wrong tokens. b_seqlen `randint:1:C+1` gives a
-#   DIFFERENT context length per request; a kernel that hard-codes the
-#   full C ignores B_Seqlen and gets the split bounds wrong. scale,
-#   q/k_buffer/v_buffer and the GQA head mapping are load-bearing by
-#   construction.
-size_knobs:
-  B: 16
-  L: 256
-  D: 128
-  Dv: 128
-  N: 512
-  T: 256
-  H: 16
-  E: 4
-  C: 40
-  G: 4
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 32
-    D: 32
-    Dv: 32
-    N: 64
-    T: 16
-    H: 4
-    E: 2
-    C: 10
-    G: 3
+  env: {B: 2, L: 32, D: 32, Dv: 32, N: 64, T: 16, H: 4, E: 2, C: 10, G: 3}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 4, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [20, 2, 32], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [20, 2, 32], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [20], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 128
-    D: 64
-    Dv: 64
-    N: 256
-    T: 64
-    H: 8
-    E: 2
-    C: 24
-    G: 4
+  env: {B: 4, L: 128, D: 64, Dv: 64, N: 256, T: 64, H: 8, E: 2, C: 24, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [96, 2, 64], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [96, 2, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [96], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 256
-    D: 128
-    Dv: 128
-    N: 512
-    T: 256
-    H: 16
-    E: 4
-    C: 50
-    G: 5
+  env: {B: 8, L: 256, D: 128, Dv: 128, N: 512, T: 256, H: 16, E: 4, C: 50, G: 5}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 16, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [400, 4, 128], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [400, 4, 128], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [400], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 512
-    D: 128
-    Dv: 96
-    N: 1024
-    T: 512
-    H: 32
-    E: 4
-    C: 70
-    G: 8
+  env: {B: 16, L: 512, D: 128, Dv: 96, N: 1024, T: 512, H: 32, E: 4, C: 70, G: 8}
+  inputs:
+  - {name: q, kind: tensor, shape: [16, 32, 128], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [1120, 4, 128], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [1120, 4, 96], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [1120], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.08838834764831843, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P5
-  name: wide
-  knobs:
-    B: 4
-    L: 128
-    D: 80
-    Dv: 80
-    N: 512
-    T: 64
-    H: 8
-    E: 2
-    C: 33
-    G: 4
+  env: {B: 4, L: 128, D: 80, Dv: 80, N: 512, T: 64, H: 8, E: 2, C: 33, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 8, 80], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [132, 2, 80], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [132, 2, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [132], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.11180339887498948, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 24
-    C: 150
-    D: 192
-    Dv: 192
-    E: 6
-    H: 60
+  env: {B: 24, L: 256, D: 192, Dv: 192, N: 512, T: 256, H: 60, E: 6, C: 150, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [24, 60, 192], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [3600, 6, 192], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [3600, 6, 192], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [3600], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [24], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.07216878364870323, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 32
-    C: 200
-    D: 256
-    Dv: 256
-    E: 8
-    H: 80
+  env: {B: 32, L: 256, D: 256, Dv: 256, N: 512, T: 256, H: 80, E: 8, C: 200, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [32, 80, 256], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [6400, 8, 256], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [6400, 8, 256], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [6400], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.0625, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 6
-    C: 33
-    D: 80
-    Dv: 64
-    E: 3
-    H: 60
+  env: {B: 6, L: 256, D: 80, Dv: 64, N: 512, T: 256, H: 60, E: 3, C: 33, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [6, 60, 80], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [198, 3, 80], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [198, 3, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [198], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.11180339887498948, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 6
-    C: 33
-    D: 80
-    Dv: 64
-    E: 8
-    H: 16
+  env: {B: 6, L: 256, D: 80, Dv: 64, N: 512, T: 256, H: 16, E: 8, C: 33, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [6, 16, 80], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [198, 8, 80], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [198, 8, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [198], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.11180339887498948, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    C: 37
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 1, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [37, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [37, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [37], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    C: 37
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 2, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [74, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [74, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [74], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    C: 37
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 3, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [3, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [111, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [111, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [111], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [3], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    C: 37
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 4, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [4, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [148, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [148, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [148], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 1
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 1, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [8, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [8, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [8], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 2
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 2, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [16, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [16, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [16], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 3
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 3, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [24, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [24, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [24], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 4
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 4, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [32, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [32, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [32], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 8
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 8, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [64, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [64, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [64], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 16
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 16, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [128, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [128, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [128], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 32
-    D: 96
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 32, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [256, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [256, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [256], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 16
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 16, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 16], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 32
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 32, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 32], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 32], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.17677669529663687, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 64
-    Dv: 80
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 64, Dv: 80, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 64], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 16
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 16, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 16], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 32
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 32, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 32], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 64
-    E: 4
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 64, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 80
-    E: 1
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 1, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 1, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 1, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 80
-    E: 2
-    H: 32
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 32, E: 2, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 2, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 2, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    C: 37
-    D: 96
-    Dv: 80
-    E: 4
-    H: 8
-hidden_shapes:
+  env: {B: 8, L: 256, D: 96, Dv: 80, N: 512, T: 256, H: 8, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 8, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [296, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [296, 4, 80], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [296], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 6
-    L: 192
-    D: 96
-    Dv: 96
-    N: 384
-    T: 96
-    H: 6
-    E: 3
-    C: 37
-    G: 5
+  env: {B: 6, L: 192, D: 96, Dv: 96, N: 384, T: 96, H: 6, E: 3, C: 37, G: 5}
+  inputs:
+  - {name: q, kind: tensor, shape: [6, 6, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [222, 3, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [222, 3, 96], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [222], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 8
-    D: 16
-    Dv: 16
-    N: 8
-    T: 8
-    H: 4
-    E: 2
-    C: 6
-    G: 2
+  env: {B: 2, L: 8, D: 16, Dv: 16, N: 8, T: 8, H: 4, E: 2, C: 6, G: 2}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 4, 16], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [12, 2, 16], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [12, 2, 16], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [12], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.25, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 1024
-    D: 64
-    Dv: 64
-    N: 512
-    T: 512
-    H: 8
-    E: 2
-    C: 100
-    G: 6
+  env: {B: 2, L: 1024, D: 64, Dv: 64, N: 512, T: 512, H: 8, E: 2, C: 100, G: 6}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [200, 2, 64], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [200, 2, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [200], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 8
-    L: 32
-    D: 64
-    Dv: 48
-    N: 128
-    T: 16
-    H: 8
-    E: 4
-    C: 20
-    G: 4
+  env: {B: 8, L: 32, D: 64, Dv: 48, N: 128, T: 16, H: 8, E: 4, C: 20, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [8, 8, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [160, 4, 64], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [160, 4, 48], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [160], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: H5
-  name: h_biggroup
-  # kv_group_num = H/E = 20 > BLOCK_H (16): exercises the kernel's
-  # block-based KV-head mapping cur_kv_head = cur_head_id //
-  # cdiv(kv_group_num, BLOCK_H) (kernel.py:312/315), where the divisor
-  # cdiv(20,16)=2 is > 1. With H/E <= 16 (every other shape) that divisor
-  # is 1 and the mapping collapses to h // kv_group_num; this shape locks
-  # in the genuine block-quantised mapping so a candidate correct only for
-  # kv_group_num <= 16 fails. H=40 is a non-multiple of 16.
-  knobs:
-    B: 2
-    L: 32
-    D: 64
-    Dv: 64
-    N: 128
-    T: 16
-    H: 40
-    E: 2
-    C: 24
-    G: 4
+  env: {B: 2, L: 32, D: 64, Dv: 64, N: 128, T: 16, H: 40, E: 2, C: 24, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [2, 40, 64], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [48, 2, 64], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [48, 2, 64], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [48], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.125, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    C: 37
-    D: 96
-    Dv: 1024
-    E: 4
-    H: 32
-inputs:
-  q:
-    dims:
-    - B
-    - H
-    - D
-    dtype: bfloat16
-    dist: randn
-  k_buffer:
-    dims:
-    - B*C
-    - E
-    - D
-    dtype: bfloat16
-    dist: randn
-  v_buffer:
-    dims:
-    - B*C
-    - E
-    - Dv
-    dtype: bfloat16
-    dist: randn
-  req_to_tokens:
-    dims:
-    - B*C
-    dtype: int64
-    dist: randperm
-  b_seqlen:
-    dims:
-    - B
-    dtype: int64
-    dist: randint:1:C+1
-  scale:
-    derive: 1/sqrt(D)
-  num_kv_splits:
-    scalar: 4
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      q: '[2, 4, 32] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[20, 2, 32] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[20, 2, 32] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[20] int64 axes=B*C dist=randperm'
-      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.17677669529663687
-      num_kv_splits: 4
-  P2:
-    provenance: baseline
-    tensors:
-      q: '[4, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[96, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[96, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[96] int64 axes=B*C dist=randperm'
-      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.125
-      num_kv_splits: 4
-  P3:
-    provenance: baseline
-    tensors:
-      q: '[8, 16, 128] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[400, 4, 128] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[400, 4, 128] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[400] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.08838834764831843
-      num_kv_splits: 4
-  P4:
-    provenance: baseline
-    tensors:
-      q: '[16, 32, 128] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[1120, 4, 128] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[1120, 4, 96] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[1120] int64 axes=B*C dist=randperm'
-      b_seqlen: '[16] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.08838834764831843
-      num_kv_splits: 4
-  P5:
-    provenance: synthetic
-    tensors:
-      q: '[4, 8, 80] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[132, 2, 80] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[132, 2, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[132] int64 axes=B*C dist=randperm'
-      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.11180339887498948
-      num_kv_splits: 4
-  P6:
-    provenance: synthetic
-    tensors:
-      q: '[24, 60, 192] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[3600, 6, 192] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[3600, 6, 192] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[3600] int64 axes=B*C dist=randperm'
-      b_seqlen: '[24] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.07216878364870323
-      num_kv_splits: 4
-  P7:
-    provenance: synthetic
-    tensors:
-      q: '[32, 80, 256] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[6400, 8, 256] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[6400, 8, 256] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[6400] int64 axes=B*C dist=randperm'
-      b_seqlen: '[32] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.0625
-      num_kv_splits: 4
-  P8:
-    provenance: synthetic
-    tensors:
-      q: '[6, 60, 80] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[198, 3, 80] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[198, 3, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[198] int64 axes=B*C dist=randperm'
-      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.11180339887498948
-      num_kv_splits: 4
-  P9:
-    provenance: synthetic
-    tensors:
-      q: '[6, 16, 80] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[198, 8, 80] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[198, 8, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[198] int64 axes=B*C dist=randperm'
-      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.11180339887498948
-      num_kv_splits: 4
-  P10:
-    provenance: synthetic
-    tensors:
-      q: '[1, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[37, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[37, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[37] int64 axes=B*C dist=randperm'
-      b_seqlen: '[1] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P11:
-    provenance: synthetic
-    tensors:
-      q: '[2, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[74, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[74, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[74] int64 axes=B*C dist=randperm'
-      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P12:
-    provenance: synthetic
-    tensors:
-      q: '[3, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[111, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[111, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[111] int64 axes=B*C dist=randperm'
-      b_seqlen: '[3] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P13:
-    provenance: synthetic
-    tensors:
-      q: '[4, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[148, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[148, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[148] int64 axes=B*C dist=randperm'
-      b_seqlen: '[4] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P14:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[8, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[8, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[8] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P15:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[16, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[16, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[16] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P16:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[24, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[24, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[24] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P17:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[32, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[32, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[32] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P18:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[64, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[64, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[64] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P19:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[128, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[128, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[128] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P20:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[256, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[256, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[256] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P26:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 16] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 16] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.25
-      num_kv_splits: 4
-  P27:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 32] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 32] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.17677669529663687
-      num_kv_splits: 4
-  P28:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 64] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 64] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.125
-      num_kv_splits: 4
-  P34:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 16] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P35:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 32] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P36:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P37:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 1, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 1, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P38:
-    provenance: synthetic
-    tensors:
-      q: '[8, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 2, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 2, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  P39:
-    provenance: synthetic
-    tensors:
-      q: '[8, 8, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[296, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[296, 4, 80] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[296] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  H1:
-    provenance: synthetic
-    tensors:
-      q: '[6, 6, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[222, 3, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[222, 3, 96] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[222] int64 axes=B*C dist=randperm'
-      b_seqlen: '[6] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
-  H2:
-    provenance: edge
-    tensors:
-      q: '[2, 4, 16] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[12, 2, 16] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[12, 2, 16] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[12] int64 axes=B*C dist=randperm'
-      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.25
-      num_kv_splits: 4
-  H3:
-    provenance: synthetic
-    tensors:
-      q: '[2, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[200, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[200, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[200] int64 axes=B*C dist=randperm'
-      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.125
-      num_kv_splits: 4
-  H4:
-    provenance: synthetic
-    tensors:
-      q: '[8, 8, 64] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[160, 4, 64] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[160, 4, 48] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[160] int64 axes=B*C dist=randperm'
-      b_seqlen: '[8] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.125
-      num_kv_splits: 4
-  H5:
-    provenance: synthetic
-    tensors:
-      q: '[2, 40, 64] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[48, 2, 64] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[48, 2, 64] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[48] int64 axes=B*C dist=randperm'
-      b_seqlen: '[2] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.125
-      num_kv_splits: 4
-  H6:
-    provenance: edge
-    tensors:
-      q: '[1, 32, 96] bfloat16 axes=B,H,D dist=randn'
-      k_buffer: '[37, 4, 96] bfloat16 axes=B*C,E,D dist=randn'
-      v_buffer: '[37, 4, 1024] bfloat16 axes=B*C,E,Dv dist=randn'
-      req_to_tokens: '[37] int64 axes=B*C dist=randperm'
-      b_seqlen: '[1] int64 axes=B dist=randint(lo=1, hi=C+1)'
-    params:
-      scale: 0.10206207261596577
-      num_kv_splits: 4
+  env: {B: 1, L: 256, D: 96, Dv: 1024, N: 512, T: 256, H: 32, E: 4, C: 37, G: 4}
+  inputs:
+  - {name: q, kind: tensor, shape: [1, 32, 96], dtype: bfloat16, axes: [B, H, D], dist: randn}
+  - {name: k_buffer, kind: tensor, shape: [37, 4, 96], dtype: bfloat16, axes: [B*C, E, D], dist: randn}
+  - {name: v_buffer, kind: tensor, shape: [37, 4, 1024], dtype: bfloat16, axes: [B*C, E, Dv], dist: randn}
+  - {name: req_to_tokens, kind: tensor, shape: [37], dtype: int64, axes: [B*C], dist: randperm}
+  - {name: b_seqlen, kind: tensor, shape: [1], dtype: int64, axes: [B], dist: 'randint:1:C+1'}
+  - {name: scale, kind: derive, value: 0.10206207261596577, expr: 1/sqrt(D)}
+  - {name: num_kv_splits, kind: scalar, value: 4}

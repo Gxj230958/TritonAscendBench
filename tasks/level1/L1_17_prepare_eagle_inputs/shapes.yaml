@@ -1,1199 +1,703 @@
-# Operator-family knob grid for the spec_decode EAGLE input-prep kernel.
-# num_reqs = B (the grid extent, one program per request); query_len = T (the
-# constant raw per-request token span, so total tokens = B*T); max_num_reqs =
-# B + G > B (exercises the cudagraph tail padding). All rows keep B >= 2 (a
-# non-identity idx_mapping permutation) and T >= 2 (a non-trivial shift/reject
-# span).
-size_knobs:
-  B: 16
-  L: 256
-  D: 512
-  Dv: 512
-  N: 512
-  T: 8
-  H: 16
-  E: 16
-  C: 32
-  G: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 4
-    L: 32
-    D: 64
-    Dv: 64
-    N: 64
-    T: 6
-    H: 4
-    E: 4
-    C: 8
-    G: 2
+  env: {B: 4, L: 32, D: 64, Dv: 64, N: 64, T: 6, H: 4, E: 4, C: 8, G: 2}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 4, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 6, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 6, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [24], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [24], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P2
-  name: small
-  knobs:
-    B: 8
-    L: 128
-    D: 256
-    Dv: 256
-    N: 256
-    T: 12
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 8, L: 128, D: 256, Dv: 256, N: 256, T: 12, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 8, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 12, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [96], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [96], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P3
-  name: medium
-  knobs:
-    B: 16
-    L: 256
-    D: 512
-    Dv: 512
-    N: 512
-    T: 8
-    H: 16
-    E: 16
-    C: 32
-    G: 8
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 8, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 8, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 24, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [128], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [128], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [24], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [24], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P4
-  name: large
-  knobs:
-    B: 32
-    L: 512
-    D: 1024
-    Dv: 1024
-    N: 1024
-    T: 16
-    H: 32
-    E: 32
-    C: 64
-    G: 8
+  env: {B: 32, L: 512, D: 1024, Dv: 1024, N: 1024, T: 16, H: 32, E: 32, C: 64, G: 8}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 32, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 16, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 40, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [512], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [512], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [40], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [40], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P5
-  name: wide
-  knobs:
-    B: 4
-    L: 128
-    D: 2048
-    Dv: 2048
-    N: 512
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
+  env: {B: 4, L: 128, D: 2048, Dv: 2048, N: 512, T: 64, H: 8, E: 8, C: 16, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 4, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 64, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 8, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [256], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [256], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [8], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P6
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 2
-    G: 16
-    T: 8
+  env: {B: 2, L: 256, D: 512, Dv: 512, N: 512, T: 8, H: 16, E: 16, C: 32, G: 16}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 8, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 18, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [16], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [16], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [18], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [18], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P7
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 96
-    G: 12
-    T: 192
+  env: {B: 96, L: 256, D: 512, Dv: 512, N: 512, T: 192, H: 16, E: 16, C: 32, G: 12}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 96, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 192, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 108, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [18432], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [18432], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [96], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [96], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [96], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [108], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [108], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [96], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P8
-  name: diagonal_CPU-valid; pend
-  knobs:
-    B: 128
-    G: 16
-    T: 256
+  env: {B: 128, L: 256, D: 512, Dv: 512, N: 512, T: 256, H: 16, E: 16, C: 32, G: 16}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 128, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 256, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 144, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [32768], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [32768], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [128], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [128], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [128], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [144], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [144], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [128], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    G: 4
-    T: 192
+  env: {B: 8, L: 256, D: 512, Dv: 512, N: 512, T: 192, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 8, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 192, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 12, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [1536], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [1536], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P10
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    G: 4
-    T: 256
+  env: {B: 8, L: 256, D: 512, Dv: 512, N: 512, T: 256, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 8, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 256, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 12, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [2048], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [2048], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [12], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P11
-  name: scale_CPU-valid; pending
-  knobs:
-    B: 8
-    G: 12
-    T: 8
+  env: {B: 8, L: 256, D: 512, Dv: 512, N: 512, T: 8, H: 16, E: 16, C: 32, G: 12}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 8, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 8, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [64], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [64], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [8], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [8], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    G: 4
-    T: 12
+  env: {B: 2, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 6, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [24], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [24], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    G: 4
-    T: 12
+  env: {B: 4, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 4, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 8, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [48], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [48], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [4], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [8], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [8], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [4], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 6
-    G: 4
-    T: 12
+  env: {B: 6, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 6, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 10, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [72], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [72], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [10], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [10], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 1
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 1}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 17, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [17], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [17], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 2
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 2}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 18, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [18], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [18], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 3
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 3}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 19, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [19], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [19], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 2
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 2, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 2, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [32], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [32], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 4
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 4, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 4, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [64], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [64], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 6
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 6, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 6, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [96], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [96], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 8
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 8, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 8, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [128], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [128], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 16
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 16, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 16, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [256], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [256], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 32
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 32, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 32, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [512], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [512], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 64
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 64, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 64, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [1024], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [1024], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 96
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 96, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 96, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [1536], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [1536], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 128
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 128, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 128, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [2048], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [2048], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 192
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 192, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 192, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [3072], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [3072], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 256
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 256, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 256, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [4096], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [4096], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 384
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 384, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 384, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [6144], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [6144], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 512
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 512, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 512, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [8192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [8192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 640
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 640, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 640, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [10240], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [10240], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 768
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 768, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 768, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [12288], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [12288], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 4
-    T: 1024
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 1024, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 1024, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 20, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [16384], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [16384], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [20], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 8
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 8}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 24, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [24], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [24], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 16
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 16}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 32, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [32], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [32], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P37
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 24
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 24}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 40, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [40], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [40], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P38
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 32
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 32}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 48, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [48], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [48], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P39
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    G: 64
-    T: 12
+  env: {B: 16, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 64}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 16, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 80, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [192], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [192], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [16], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [80], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [80], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [16], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P40
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    G: 4
-    T: 12
+  env: {B: 32, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 32, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 36, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [384], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [384], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [32], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [36], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [36], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [32], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: P41
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    G: 4
-    T: 12
-hidden_shapes:
+  env: {B: 64, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 64, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 68, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [768], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [768], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [68], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [68], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'randint:1:N'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 6
-    L: 192
-    D: 384
-    Dv: 384
-    N: 384
-    T: 7
-    H: 6
-    E: 6
-    C: 24
-    G: 3
+  env: {B: 6, L: 192, D: 384, Dv: 384, N: 384, T: 7, H: 6, E: 6, C: 24, G: 3}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 6, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 7, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 9, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [42], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [42], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [6], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [9], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [9], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [6], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 8
-    D: 16
-    Dv: 16
-    N: 8
-    T: 2
-    H: 2
-    E: 2
-    C: 2
-    G: 2
+  env: {B: 2, L: 8, D: 16, Dv: 16, N: 8, T: 2, H: 2, E: 2, C: 2, G: 2}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 2, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 4, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [4], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [4], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [4], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [4], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 1024
-    D: 4096
-    Dv: 4096
-    N: 512
-    T: 128
-    H: 8
-    E: 8
-    C: 64
-    G: 8
+  env: {B: 2, L: 1024, D: 4096, Dv: 4096, N: 512, T: 128, H: 8, E: 8, C: 64, G: 8}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 128, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 10, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [256], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [256], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [10], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [10], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 64
-    L: 32
-    D: 64
-    Dv: 64
-    N: 128
-    T: 4
-    H: 8
-    E: 8
-    C: 8
-    G: 4
+  env: {B: 64, L: 32, D: 64, Dv: 64, N: 128, T: 4, H: 8, E: 8, C: 8, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 64, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 4, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 68, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [256], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [256], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [64], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [68], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [68], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [64], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2
-    G: 1
-    T: 2
+  env: {B: 2, L: 256, D: 512, Dv: 512, N: 512, T: 2, H: 16, E: 16, C: 32, G: 1}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 2, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 3, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [4], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [4], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [3], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [3], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2
-    G: 4
-    T: 8
+  env: {B: 2, L: 256, D: 512, Dv: 512, N: 512, T: 8, H: 16, E: 16, C: 32, G: 4}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 8, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 6, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [16], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [16], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [6], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2
-    G: 64
-    T: 12
+  env: {B: 2, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 64}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 2, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 66, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [24], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [24], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [2], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [66], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [66], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [2], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H8
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 512
-    G: 1
-    T: 12
+  env: {B: 512, L: 256, D: 512, Dv: 512, N: 512, T: 12, H: 16, E: 16, C: 32, G: 1}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 512, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 12, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 513, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [6144], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [6144], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [513], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [513], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'randint:1:N'}
 - id: H9
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 512
-    G: 64
-    T: 1024
-inputs:
-  # num_reqs = B (kernel grid extent). query_len = T (constant raw per-request
-  # token span). max_num_reqs = B + G (> B, so the cudagraph tail padding is
-  # exercised). These three scalars drive the launcher/oracle span layout.
-  num_reqs:
-    scalar_knob: B
-  query_len:
-    scalar_knob: T
-  max_num_reqs:
-    scalar_knob: B+G
-  # Packed target token ids over total = B*T tokens (int32; values nonzero so a
-  # missed shift store is visible). The kernel shifts these left by one within
-  # each request span.
-  target_input_ids:
-    dims:
-    - B*T
-    dtype: int32
-    dist: randint:1:1024
-  # Packed target positions over total = B*T tokens (int64), copied verbatim
-  # over each truncated span.
-  target_positions:
-    dims:
-    - B*T
-    dtype: int64
-    dist: randint:0:N
-  # req_idx -> req_state_idx remap (non-identity single-cycle permutation of
-  # [0, B)), used to index last_sampled / next_prefill_tokens.
-  idx_mapping:
-    dims:
-    - B
-    dtype: int64
-    dist: cyclic_perm
-  # >0 selects the last_sampled branch, ==0 selects the chunked-prefill
-  # next_prefill_tokens branch. window_pos:2 yields the alternating pattern
-  # [0, 1, 0, 1, ...], so BOTH branches are guaranteed exercised in every shape
-  # (B >= 2) -- a kernel that took the wrong branch is always discriminated.
-  num_sampled:
-    dims:
-    - B
-    dtype: int32
-    dist: window_pos:2
-  # Rejected token count per request, in [0, T) (torch.randint hi is exclusive)
-  # so the truncated query length T - num_rejected stays >= 1.
-  num_rejected:
-    dims:
-    - B
-    dtype: int32
-    dist: randint:0:T
-  # Candidate next tokens, indexed by req_state_idx; length max_num_reqs (int32).
-  last_sampled:
-    dims:
-    - B+G
-    dtype: int32
-    dist: randint:1:1024
-  next_prefill_tokens:
-    dims:
-    - B+G
-    dtype: int32
-    dist: randint:1:1024
-  # Per-request target sequence lengths, copied into eagle_seq_lens[:num_reqs].
-  seq_lens:
-    dims:
-    - B
-    dtype: int32
-    dist: randint:1:N
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 4
-      query_len: 6
-      max_num_reqs: 6
-  P2:
-    provenance: baseline
-    tensors:
-      target_input_ids: '[96] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[96] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 8
-      query_len: 12
-      max_num_reqs: 12
-  P3:
-    provenance: baseline
-    tensors:
-      target_input_ids: '[128] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[128] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 8
-      max_num_reqs: 24
-  P4:
-    provenance: baseline
-    tensors:
-      target_input_ids: '[512] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[512] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[32] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[32] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[32] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[32] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 32
-      query_len: 16
-      max_num_reqs: 40
-  P5:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 4
-      query_len: 64
-      max_num_reqs: 8
-  P6:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[16] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[16] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 8
-      max_num_reqs: 18
-  P7:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[18432] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[18432] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[96] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[96] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[96] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[108] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[108] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[96] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 96
-      query_len: 192
-      max_num_reqs: 108
-  P8:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[32768] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[32768] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[128] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[128] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[128] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[144] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[144] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[128] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 128
-      query_len: 256
-      max_num_reqs: 144
-  P9:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[1536] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[1536] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 8
-      query_len: 192
-      max_num_reqs: 12
-  P10:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[2048] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[2048] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[12] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 8
-      query_len: 256
-      max_num_reqs: 12
-  P11:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[64] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[64] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[8] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[8] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[8] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[8] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 8
-      query_len: 8
-      max_num_reqs: 20
-  P12:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 12
-      max_num_reqs: 6
-  P13:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[48] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[48] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[4] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[4] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[4] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[8] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[4] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 4
-      query_len: 12
-      max_num_reqs: 8
-  P14:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[72] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[72] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[6] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[6] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[6] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[6] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 6
-      query_len: 12
-      max_num_reqs: 10
-  P15:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[17] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[17] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 17
-  P16:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[18] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 18
-  P17:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[19] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[19] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 19
-  P18:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[32] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[32] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 2
-      max_num_reqs: 20
-  P19:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[64] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[64] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 4
-      max_num_reqs: 20
-  P20:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[96] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[96] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 6
-      max_num_reqs: 20
-  P21:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[128] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[128] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 8
-      max_num_reqs: 20
-  P22:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 20
-  P23:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 16
-      max_num_reqs: 20
-  P24:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[512] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[512] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 32
-      max_num_reqs: 20
-  P25:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[1024] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[1024] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 64
-      max_num_reqs: 20
-  P26:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[1536] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[1536] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 96
-      max_num_reqs: 20
-  P27:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[2048] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[2048] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 128
-      max_num_reqs: 20
-  P28:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[3072] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[3072] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 192
-      max_num_reqs: 20
-  P29:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[4096] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[4096] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 256
-      max_num_reqs: 20
-  P30:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[6144] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[6144] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 384
-      max_num_reqs: 20
-  P31:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[8192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[8192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 512
-      max_num_reqs: 20
-  P32:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[10240] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[10240] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 640
-      max_num_reqs: 20
-  P33:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[12288] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[12288] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 768
-      max_num_reqs: 20
-  P34:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[16384] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[16384] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[20] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 1024
-      max_num_reqs: 20
-  P35:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[24] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 24
-  P36:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[32] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[32] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 32
-  P37:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[40] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 40
-  P38:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[48] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[48] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 48
-  P39:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[192] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[192] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[16] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[16] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[16] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[80] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[80] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[16] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 16
-      query_len: 12
-      max_num_reqs: 80
-  P40:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[384] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[384] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[32] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[32] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[32] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[36] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[36] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[32] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 32
-      query_len: 12
-      max_num_reqs: 36
-  P41:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[768] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[768] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[64] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[64] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[64] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[64] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 64
-      query_len: 12
-      max_num_reqs: 68
-  H1:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[42] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[42] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[6] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[6] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[6] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[9] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[9] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[6] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 6
-      query_len: 7
-      max_num_reqs: 9
-  H2:
-    provenance: edge
-    tensors:
-      target_input_ids: '[4] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[4] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[4] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[4] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 2
-      max_num_reqs: 4
-  H3:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[10] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 128
-      max_num_reqs: 10
-  H4:
-    provenance: synthetic
-    tensors:
-      target_input_ids: '[256] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[256] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[64] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[64] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[64] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[68] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[64] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 64
-      query_len: 4
-      max_num_reqs: 68
-  H5:
-    provenance: edge
-    tensors:
-      target_input_ids: '[4] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[4] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[3] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[3] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 2
-      max_num_reqs: 3
-  H6:
-    provenance: edge
-    tensors:
-      target_input_ids: '[16] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[16] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[6] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 8
-      max_num_reqs: 6
-  H7:
-    provenance: edge
-    tensors:
-      target_input_ids: '[24] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[24] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[2] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[2] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[2] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[66] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[66] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[2] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 2
-      query_len: 12
-      max_num_reqs: 66
-  H8:
-    provenance: edge
-    tensors:
-      target_input_ids: '[6144] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[6144] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[512] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[512] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[512] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[513] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[513] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[512] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 512
-      query_len: 12
-      max_num_reqs: 513
-  H9:
-    provenance: edge
-    tensors:
-      target_input_ids: '[524288] int32 axes=B*T dist=randint(lo=1, hi=1024)'
-      target_positions: '[524288] int64 axes=B*T dist=randint(lo=0, hi=N)'
-      idx_mapping: '[512] int64 axes=B dist=cyclic_perm'
-      num_sampled: '[512] int32 axes=B dist=window_pos(W=2)'
-      num_rejected: '[512] int32 axes=B dist=randint(lo=0, hi=T)'
-      last_sampled: '[576] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      next_prefill_tokens: '[576] int32 axes=B+G dist=randint(lo=1, hi=1024)'
-      seq_lens: '[512] int32 axes=B dist=randint(lo=1, hi=N)'
-    params:
-      num_reqs: 512
-      query_len: 1024
-      max_num_reqs: 576
+  env: {B: 512, L: 256, D: 512, Dv: 512, N: 512, T: 1024, H: 16, E: 16, C: 32, G: 64}
+  inputs:
+  - {name: num_reqs, kind: scalar_knob, value: 512, expr: B}
+  - {name: query_len, kind: scalar_knob, value: 1024, expr: T}
+  - {name: max_num_reqs, kind: scalar_knob, value: 576, expr: B+G}
+  - {name: target_input_ids, kind: tensor, shape: [524288], dtype: int32, axes: [B*T], dist: 'randint:1:1024'}
+  - {name: target_positions, kind: tensor, shape: [524288], dtype: int64, axes: [B*T], dist: 'randint:0:N'}
+  - {name: idx_mapping, kind: tensor, shape: [512], dtype: int64, axes: [B], dist: cyclic_perm}
+  - {name: num_sampled, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'window_pos:2'}
+  - {name: num_rejected, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'randint:0:T'}
+  - {name: last_sampled, kind: tensor, shape: [576], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: next_prefill_tokens, kind: tensor, shape: [576], dtype: int32, axes: [B+G], dist: 'randint:1:1024'}
+  - {name: seq_lens, kind: tensor, shape: [512], dtype: int32, axes: [B], dist: 'randint:1:N'}

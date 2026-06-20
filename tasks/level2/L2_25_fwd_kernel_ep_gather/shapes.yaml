@@ -1,706 +1,297 @@
-# Operator-family knob grid: values reflect
-# the moe family's real axes.
-size_knobs:
-  B: 128
-  L: 128
-  D: 1024
-  Dv: 8
-  N: 1024
-  T: 256
-  H: 16
-  E: 32
-  C: 32
-  G: 8
-  K: 8
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 8
-    L: 16
-    D: 64
-    Dv: 8
-    N: 64
-    T: 16
-    H: 4
-    E: 4
-    C: 8
-    G: 2
-    K: 2
+  env: {B: 8, L: 16, D: 64, Dv: 8, N: 64, T: 16, H: 4, E: 4, C: 8, G: 2, K: 2}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [8, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [16, 2], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [16, 2], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [16, 2], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P2
-  name: small
-  knobs:
-    B: 32
-    L: 64
-    D: 256
-    Dv: 8
-    N: 256
-    T: 64
-    H: 8
-    E: 8
-    C: 16
-    G: 4
-    K: 4
+  env: {B: 32, L: 64, D: 256, Dv: 8, N: 256, T: 64, H: 8, E: 8, C: 16, G: 4, K: 4}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [32, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [64, 4], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [64, 4], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [64, 4], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P3
-  name: medium
-  knobs:
-    B: 128
-    L: 128
-    D: 1024
-    Dv: 8
-    N: 1024
-    T: 256
-    H: 16
-    E: 32
-    C: 32
-    G: 8
-    K: 8
+  env: {B: 128, L: 128, D: 1024, Dv: 8, N: 1024, T: 256, H: 16, E: 32, C: 32, G: 8, K: 8}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [128, 1024], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [256, 8], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [256, 8], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [256, 8], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P4
-  name: large
-  knobs:
-    B: 256
-    L: 256
-    D: 2048
-    Dv: 8
-    N: 2048
-    T: 512
-    H: 32
-    E: 64
-    C: 64
-    G: 8
-    K: 8
+  env: {B: 256, L: 256, D: 2048, Dv: 8, N: 2048, T: 512, H: 32, E: 64, C: 64, G: 8, K: 8}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [256, 2048], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [512, 8], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [512, 8], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [512, 8], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P5
-  name: wide
-  knobs:
-    B: 8
-    L: 64
-    D: 512
-    Dv: 8
-    N: 512
-    T: 64
-    H: 8
-    E: 128
-    C: 16
-    G: 4
-    K: 6
+  env: {B: 8, L: 64, D: 512, Dv: 8, N: 512, T: 64, H: 8, E: 128, C: 16, G: 4, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [8, 512], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [64, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [64, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [64, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P6
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 1
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P7
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 2
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 2, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [2, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P8
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 3
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 3, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [3, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P9
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 4
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 4, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [4, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 8
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 8, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [8, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 16
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 16, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [16, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 32
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 32, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [32, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 64
-    D: 384
-    K: 6
-    T: 96
+  env: {B: 64, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [64, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 1
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 1, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 2
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 2, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 2], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 3
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 3, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 3], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 4
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 4, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 8
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 8, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 8], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 16
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 16, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 32
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 32, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 32], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 64
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 64, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 64], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 96
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 96, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 96], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 128
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 128, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 192
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 192, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 192], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 256
-    K: 6
-    T: 96
+  env: {B: 96, L: 128, D: 256, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 256], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 1
-    T: 96
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 1}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 1], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 1], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 1], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 2
-    T: 96
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 2}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 2], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 2], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 2], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 3
-    T: 96
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 3}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 3], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 3], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 3], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 1
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 1, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [1, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [1, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [1, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 2
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 2, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [2, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [2, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [2, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 3
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 3, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [3, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [3, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [3, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 4
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 4, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [4, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [4, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [4, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 8
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 8, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [8, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [8, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [8, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 16
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 16, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [16, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [16, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [16, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    B: 96
-    D: 384
-    K: 6
-    T: 32
-hidden_shapes:
+  env: {B: 96, L: 128, D: 384, Dv: 8, N: 1024, T: 32, H: 16, E: 32, C: 32, G: 8, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [32, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [32, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [32, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 96
-    L: 96
-    D: 384
-    Dv: 8
-    N: 384
-    T: 96
-    H: 6
-    E: 12
-    C: 24
-    G: 4
-    K: 4
+  env: {B: 96, L: 96, D: 384, Dv: 8, N: 384, T: 96, H: 6, E: 12, C: 24, G: 4, K: 4}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [96, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 4], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 4], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 8
-    N: 8
-    T: 8
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-    K: 2
+  env: {B: 2, L: 16, D: 16, Dv: 8, N: 8, T: 8, H: 2, E: 2, C: 2, G: 2, K: 2}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [2, 16], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [8, 2], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [8, 2], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [8, 2], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 4
-    L: 512
-    D: 4096
-    Dv: 8
-    N: 4096
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-    K: 8
+  env: {B: 4, L: 512, D: 4096, Dv: 8, N: 4096, T: 512, H: 8, E: 8, C: 64, G: 8, K: 8}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [4, 4096], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [512, 8], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [512, 8], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [512, 8], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 512
-    L: 32
-    D: 128
-    Dv: 8
-    N: 128
-    T: 16
-    H: 8
-    E: 256
-    C: 8
-    G: 4
-    K: 6
-# Upstream `_fwd_kernel_ep_gather` (vLLM deep_gemm_utils.py, commit 18f6bf5)
-# contract, expert_map=None path. The kernel is an unpermute-and-weighted-
-# reduce, NOT a plain gather:
-#   out[t, :] = sum_k 1[recv_topk_ids[t,k] >= 0]
-#                     * recv_topk_weight[t, k]
-#                     * input_tensor[input_index[t, k], :]
-# B = input_tensor row count (M, the permuted grouped-gemm buffer);
-# T = output token rows; K = topk_num; D = hidden size.
+  env: {B: 512, L: 32, D: 128, Dv: 8, N: 128, T: 16, H: 8, E: 256, C: 8, G: 4, K: 6}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [512, 128], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [16, 6], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [16, 6], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [16, 6], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H5
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 1
-    K: 1
-    T: 1
+  env: {B: 1, L: 128, D: 1, Dv: 8, N: 1024, T: 1, H: 16, E: 32, C: 32, G: 8, K: 1}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [1, 1], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [1, 1], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [1, 1], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [1, 1], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H6
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 1
-    D: 384
-    K: 64
-    T: 96
+  env: {B: 1, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 64}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [1, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 64], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 64], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 64], dtype: int32, axes: [T, K], dist: 'randint:0:B'}
 - id: H7
-  name: edge_CPU-valid; pending 
-  knobs:
-    B: 2048
-    D: 384
-    K: 1
-    T: 96
-inputs:
-  input_tensor:
-    dims:
-    - B
-    - D
-    dtype: bfloat16
-    dist: randn
-  recv_topk_ids:
-    # Signed expert ids; values < 0 (i.e. -1) mark invalid/padded slots that
-    # the kernel skips. randint:-1:E keeps a mix of valid and -1 entries so
-    # the validity mask is exercised. int32 mirrors upstream signed topk_ids.
-    dims:
-    - T
-    - K
-    dtype: int32
-    dist: randint:-1:E
-  recv_topk_weight:
-    dims:
-    - T
-    - K
-    dtype: bfloat16
-    dist: randn
-  input_index:
-    # Source-row indices into input_tensor rows ([0, B)); upstream inv_perm.
-    dims:
-    - T
-    - K
-    dtype: int32
-    dist: randint:0:B
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      input_tensor: '[8, 64] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[16, 2] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[16, 2] bfloat16 axes=T,K dist=randn'
-      input_index: '[16, 2] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P2:
-    provenance: baseline
-    tensors:
-      input_tensor: '[32, 256] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[64, 4] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[64, 4] bfloat16 axes=T,K dist=randn'
-      input_index: '[64, 4] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P3:
-    provenance: baseline
-    tensors:
-      input_tensor: '[128, 1024] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[256, 8] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[256, 8] bfloat16 axes=T,K dist=randn'
-      input_index: '[256, 8] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P4:
-    provenance: baseline
-    tensors:
-      input_tensor: '[256, 2048] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[512, 8] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[512, 8] bfloat16 axes=T,K dist=randn'
-      input_index: '[512, 8] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P5:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[8, 512] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[64, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[64, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[64, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P6:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[1, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P7:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[2, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P8:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[3, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P9:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[4, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P10:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[8, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P11:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[16, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P12:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[32, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P13:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[64, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P14:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 1] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P15:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 2] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P16:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 3] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P17:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 4] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P18:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 8] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P19:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 16] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P20:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 32] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P21:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 64] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P22:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 96] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P23:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 128] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P24:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 192] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P25:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 256] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P26:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 1] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 1] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 1] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P27:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 2] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 2] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 2] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P28:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 3] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 3] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 3] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P29:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[1, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[1, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[1, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P30:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[2, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[2, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[2, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P31:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[3, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[3, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[3, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P32:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[4, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[4, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[4, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P33:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[8, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[8, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[8, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P34:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[16, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[16, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[16, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  P35:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[32, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[32, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[32, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H1:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[96, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 4] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 4] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 4] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H2:
-    provenance: edge
-    tensors:
-      input_tensor: '[2, 16] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[8, 2] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[8, 2] bfloat16 axes=T,K dist=randn'
-      input_index: '[8, 2] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H3:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[4, 4096] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[512, 8] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[512, 8] bfloat16 axes=T,K dist=randn'
-      input_index: '[512, 8] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H4:
-    provenance: synthetic
-    tensors:
-      input_tensor: '[512, 128] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[16, 6] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[16, 6] bfloat16 axes=T,K dist=randn'
-      input_index: '[16, 6] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H5:
-    provenance: edge
-    tensors:
-      input_tensor: '[1, 1] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[1, 1] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[1, 1] bfloat16 axes=T,K dist=randn'
-      input_index: '[1, 1] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H6:
-    provenance: edge
-    tensors:
-      input_tensor: '[1, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 64] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 64] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 64] int32 axes=T,K dist=randint(lo=0, hi=B)'
-  H7:
-    provenance: edge
-    tensors:
-      input_tensor: '[2048, 384] bfloat16 axes=B,D dist=randn'
-      recv_topk_ids: '[96, 1] int32 axes=T,K dist=randint(lo=-1, hi=E)'
-      recv_topk_weight: '[96, 1] bfloat16 axes=T,K dist=randn'
-      input_index: '[96, 1] int32 axes=T,K dist=randint(lo=0, hi=B)'
+  env: {B: 2048, L: 128, D: 384, Dv: 8, N: 1024, T: 96, H: 16, E: 32, C: 32, G: 8, K: 1}
+  inputs:
+  - {name: input_tensor, kind: tensor, shape: [2048, 384], dtype: bfloat16, axes: [B, D], dist: randn}
+  - {name: recv_topk_ids, kind: tensor, shape: [96, 1], dtype: int32, axes: [T, K], dist: 'randint:-1:E'}
+  - {name: recv_topk_weight, kind: tensor, shape: [96, 1], dtype: bfloat16, axes: [T, K], dist: randn}
+  - {name: input_index, kind: tensor, shape: [96, 1], dtype: int32, axes: [T, K], dist: 'randint:0:B'}

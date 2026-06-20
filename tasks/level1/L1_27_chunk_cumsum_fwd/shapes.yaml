@@ -1,701 +1,297 @@
-# Operator-family knob grid: values reflect
-# the ssm family's real axes.
-#
-# Graded contract: dt[T, H] (T = seqlen, H = nheads), A[H], chunk_size = 16.
-# cu_chunk_seqlens is derived (non-uniform, chunk-aligned) by the launcher and
-# the oracle from the SAME (T, chunk_size). Every shape uses T >= 25 with
-# chunk_size = 16 so the genuine non-uniform chunk count differs from a uniform
-# ceil(T / 16) split (segmentation is load-bearing on every graded shape) and
-# nchunks >= 2 (the per-chunk cumsum reset is exercised everywhere).
-size_knobs:
-  B: 8
-  L: 128
-  D: 128
-  Dv: 128
-  N: 64
-  T: 128
-  H: 16
-  E: 8
-  C: 16
-  G: 8
-  DTSP: 0
-public_shapes:
+schema_version: 2
+public:
 - id: P1
-  name: tiny
-  knobs:
-    B: 2
-    L: 16
-    D: 32
-    Dv: 32
-    N: 16
-    T: 28
-    H: 4
-    E: 2
-    C: 4
-    G: 2
-    DTSP: 0
+  env: {B: 2, L: 16, D: 32, Dv: 32, N: 16, T: 28, H: 4, E: 2, C: 4, G: 2, DTSP: 0}
+  inputs:
+  - {name: dt, kind: tensor, shape: [28, 4], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 0, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P2
-  name: small
-  knobs:
-    B: 4
-    L: 64
-    D: 64
-    Dv: 64
-    N: 32
-    T: 64
-    H: 8
-    E: 4
-    C: 8
-    G: 4
-    DTSP: 1
+  env: {B: 4, L: 64, D: 64, Dv: 64, N: 32, T: 64, H: 8, E: 4, C: 8, G: 4, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [64, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P3
-  name: medium
-  knobs:
-    B: 8
-    L: 128
-    D: 128
-    Dv: 128
-    N: 64
-    T: 128
-    H: 16
-    E: 8
-    C: 16
-    G: 8
-    DTSP: 0
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8, DTSP: 0}
+  inputs:
+  - {name: dt, kind: tensor, shape: [128, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 0, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P4
-  name: large
-  knobs:
-    B: 16
-    L: 256
-    D: 256
-    Dv: 256
-    N: 128
-    T: 256
-    H: 32
-    E: 16
-    C: 32
-    G: 8
-    DTSP: 1
+  env: {B: 16, L: 256, D: 256, Dv: 256, N: 128, T: 256, H: 32, E: 16, C: 32, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [256, 32], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P5
-  name: wide
-  knobs:
-    B: 2
-    L: 64
-    D: 128
-    Dv: 128
-    N: 64
-    T: 40
-    H: 8
-    E: 4
-    C: 8
-    G: 4
-    DTSP: 0
+  env: {B: 2, L: 64, D: 128, Dv: 128, N: 64, T: 40, H: 8, E: 4, C: 8, G: 4, DTSP: 0}
+  inputs:
+  - {name: dt, kind: tensor, shape: [40, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 0, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P6
-  name: scale_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 8
-    T: 768
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 768, H: 8, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [768, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P7
-  name: scale_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 8
-    T: 1024
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 1024, H: 8, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [1024, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P8
-  name: scale_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 48
-    T: 64
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 64, H: 48, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [64, 48], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [48], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P9
-  name: scale_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 64
-    T: 64
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 64, H: 64, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [64, 64], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [64], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P10
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 2
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 2, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 2], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P11
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 4
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 4, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 4], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P12
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 8
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 8, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P13
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 32
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 32, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [32, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P14
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 64
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 64, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [64, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P15
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P16
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 128
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 128, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [128, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P17
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 192
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 192, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [192, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P18
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 256
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 256, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [256, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P19
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 384
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 384, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [384, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P20
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 512
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 512, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [512, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P21
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 640
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 640, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [640, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P22
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 768
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 768, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [768, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P23
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 1024
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 1024, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [1024, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P24
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 1280
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 1280, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [1280, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P25
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 1536
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 1536, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [1536, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P26
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 2048
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 2048, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [2048, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P27
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 2560
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 2560, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [2560, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P28
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 3072
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 3072, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [3072, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P29
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 3584
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 3584, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [3584, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P30
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 16
-    T: 4096
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 4096, H: 16, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [4096, 16], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [16], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P31
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 32
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 32, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 32], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [32], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P32
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 64
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 64, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 64], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [64], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P33
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 96
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 96, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 96], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [96], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P34
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 128
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 128, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 128], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [128], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P35
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 192
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 192, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 192], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [192], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P36
-  name: sweep_CPU-valid; pending
-  knobs:
-    DTSP: 1
-    H: 256
-    T: 96
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 96, H: 256, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 256], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [256], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P37
-  name: grid_CPU-valid; pending 
-  knobs:
-    DTSP: 1
-    H: 4
-    T: 192
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 192, H: 4, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [192, 4], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [4], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: P38
-  name: grid_CPU-valid; pending 
-  knobs:
-    DTSP: 1
-    H: 6
-    T: 1536
-hidden_shapes:
+  env: {B: 8, L: 128, D: 128, Dv: 128, N: 64, T: 1536, H: 6, E: 8, C: 16, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [1536, 6], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [6], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
+hidden:
 - id: H1
-  name: h_odd
-  knobs:
-    B: 3
-    L: 96
-    D: 96
-    Dv: 96
-    N: 48
-    T: 96
-    H: 6
-    E: 3
-    C: 12
-    G: 4
-    DTSP: 1
+  env: {B: 3, L: 96, D: 96, Dv: 96, N: 48, T: 96, H: 6, E: 3, C: 12, G: 4, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [96, 6], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [6], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: H2
-  name: h_singleton
-  knobs:
-    B: 2
-    L: 16
-    D: 16
-    Dv: 16
-    N: 8
-    T: 26
-    H: 2
-    E: 2
-    C: 2
-    G: 2
-    DTSP: 0
+  env: {B: 2, L: 16, D: 16, Dv: 16, N: 8, T: 26, H: 2, E: 2, C: 2, G: 2, DTSP: 0}
+  inputs:
+  - {name: dt, kind: tensor, shape: [26, 2], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [2], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 0, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: H3
-  name: h_deep
-  knobs:
-    B: 2
-    L: 512
-    D: 256
-    Dv: 256
-    N: 128
-    T: 512
-    H: 8
-    E: 8
-    C: 64
-    G: 8
-    DTSP: 1
+  env: {B: 2, L: 512, D: 256, Dv: 256, N: 128, T: 512, H: 8, E: 8, C: 64, G: 8, DTSP: 1}
+  inputs:
+  - {name: dt, kind: tensor, shape: [512, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 1, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
 - id: H4
-  name: h_wide
-  knobs:
-    B: 32
-    L: 32
-    D: 64
-    Dv: 64
-    N: 32
-    T: 48
-    H: 8
-    E: 8
-    C: 8
-    G: 4
-    DTSP: 0
-inputs:
-  dt:
-    dims:
-    - T
-    - H
-    dtype: bfloat16
-    dist: rand
-  A:
-    dims:
-    - H
-    dtype: float32
-    dist: rand
-  dt_softplus:
-    scalar_knob: DTSP
-  chunk_size:
-    scalar: 16
-
-explicit_view:
-  P1:
-    provenance: baseline
-    tensors:
-      dt: '[28, 4] bfloat16 axes=T,H dist=rand'
-      A: '[4] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 0
-      chunk_size: 16
-  P2:
-    provenance: baseline
-    tensors:
-      dt: '[64, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P3:
-    provenance: baseline
-    tensors:
-      dt: '[128, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 0
-      chunk_size: 16
-  P4:
-    provenance: baseline
-    tensors:
-      dt: '[256, 32] bfloat16 axes=T,H dist=rand'
-      A: '[32] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P5:
-    provenance: synthetic
-    tensors:
-      dt: '[40, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 0
-      chunk_size: 16
-  P6:
-    provenance: synthetic
-    tensors:
-      dt: '[768, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P7:
-    provenance: synthetic
-    tensors:
-      dt: '[1024, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P8:
-    provenance: synthetic
-    tensors:
-      dt: '[64, 48] bfloat16 axes=T,H dist=rand'
-      A: '[48] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P9:
-    provenance: synthetic
-    tensors:
-      dt: '[64, 64] bfloat16 axes=T,H dist=rand'
-      A: '[64] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P10:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 2] bfloat16 axes=T,H dist=rand'
-      A: '[2] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P11:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 4] bfloat16 axes=T,H dist=rand'
-      A: '[4] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P12:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P13:
-    provenance: synthetic
-    tensors:
-      dt: '[32, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P14:
-    provenance: synthetic
-    tensors:
-      dt: '[64, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P15:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P16:
-    provenance: synthetic
-    tensors:
-      dt: '[128, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P17:
-    provenance: synthetic
-    tensors:
-      dt: '[192, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P18:
-    provenance: synthetic
-    tensors:
-      dt: '[256, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P19:
-    provenance: synthetic
-    tensors:
-      dt: '[384, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P20:
-    provenance: synthetic
-    tensors:
-      dt: '[512, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P21:
-    provenance: synthetic
-    tensors:
-      dt: '[640, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P22:
-    provenance: synthetic
-    tensors:
-      dt: '[768, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P23:
-    provenance: synthetic
-    tensors:
-      dt: '[1024, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P24:
-    provenance: synthetic
-    tensors:
-      dt: '[1280, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P25:
-    provenance: synthetic
-    tensors:
-      dt: '[1536, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P26:
-    provenance: synthetic
-    tensors:
-      dt: '[2048, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P27:
-    provenance: synthetic
-    tensors:
-      dt: '[2560, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P28:
-    provenance: synthetic
-    tensors:
-      dt: '[3072, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P29:
-    provenance: synthetic
-    tensors:
-      dt: '[3584, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P30:
-    provenance: synthetic
-    tensors:
-      dt: '[4096, 16] bfloat16 axes=T,H dist=rand'
-      A: '[16] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P31:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 32] bfloat16 axes=T,H dist=rand'
-      A: '[32] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P32:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 64] bfloat16 axes=T,H dist=rand'
-      A: '[64] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P33:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 96] bfloat16 axes=T,H dist=rand'
-      A: '[96] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P34:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 128] bfloat16 axes=T,H dist=rand'
-      A: '[128] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P35:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 192] bfloat16 axes=T,H dist=rand'
-      A: '[192] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P36:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 256] bfloat16 axes=T,H dist=rand'
-      A: '[256] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P37:
-    provenance: synthetic
-    tensors:
-      dt: '[192, 4] bfloat16 axes=T,H dist=rand'
-      A: '[4] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  P38:
-    provenance: synthetic
-    tensors:
-      dt: '[1536, 6] bfloat16 axes=T,H dist=rand'
-      A: '[6] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  H1:
-    provenance: synthetic
-    tensors:
-      dt: '[96, 6] bfloat16 axes=T,H dist=rand'
-      A: '[6] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  H2:
-    provenance: edge
-    tensors:
-      dt: '[26, 2] bfloat16 axes=T,H dist=rand'
-      A: '[2] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 0
-      chunk_size: 16
-  H3:
-    provenance: synthetic
-    tensors:
-      dt: '[512, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 1
-      chunk_size: 16
-  H4:
-    provenance: synthetic
-    tensors:
-      dt: '[48, 8] bfloat16 axes=T,H dist=rand'
-      A: '[8] float32 axes=H dist=rand'
-    params:
-      dt_softplus: 0
-      chunk_size: 16
+  env: {B: 32, L: 32, D: 64, Dv: 64, N: 32, T: 48, H: 8, E: 8, C: 8, G: 4, DTSP: 0}
+  inputs:
+  - {name: dt, kind: tensor, shape: [48, 8], dtype: bfloat16, axes: [T, H], dist: rand}
+  - {name: A, kind: tensor, shape: [8], dtype: float32, axes: [H], dist: rand}
+  - {name: dt_softplus, kind: scalar_knob, value: 0, expr: DTSP}
+  - {name: chunk_size, kind: scalar, value: 16}
