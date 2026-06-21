@@ -149,17 +149,44 @@ def test_corpus_wide_round_trip():
     assert processed >= 100, processed   # rows actually checked, not just globbed (guards a vacuous all-skip)
 
 
-def test_committed_v2_corpus_matches_regenerated():
-    # the ON-DISK migrated corpus must be EXACTLY what migrate_to_v2 writes from the knob. The round-trip test
-    # above only exercises the in-memory machinery (it never reads the committed file); this catches a
-    # corrupted / hand-edited committed shapes.yaml. Compare the FILE TEXT (not parsed dicts): dict equality
-    # is not type-strict (YAML 4.0 == int 4), so a float dim would pass yet break _resolve_dims at build time.
+def test_committed_v2_corpus_is_self_consistent():
+    # each committed file must round-trip THROUGH ITS OWN reconstruction back to itself, byte-for-byte. This is
+    # BASELINE-INDEPENDENT (no e563ac2 knob): it survives an authoring edit (add/remove rows) that legitimately
+    # diverges the corpus from the original migration, yet still catches a corrupted / hand-edited file. TEXT
+    # comparison (not dict-eq, which lets YAML 4.0 == int 4); SEMANTIC because generate_compact_shapes
+    # re-materialises each shape from axes+env, so a stale `shape` / wrong env value diverges from the committed.
     from scripts.corpus.migrate_to_v2 import to_yaml
+    from scripts.corpus.v2_authoring import v2_to_knob_spec
     mism, processed = [], 0
     for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
-        expected_text = to_yaml(generate_compact_shapes(knob_doc(str(sp.parent))))
-        if sp.read_text() != expected_text:
+        text = sp.read_text()
+        regen = to_yaml(generate_compact_shapes(v2_to_knob_spec(yaml.safe_load(text))))
+        if regen != text:
             mism.append(sp.parent.name)
         processed += 1
     assert mism == [], mism
     assert processed >= 100, processed
+
+
+#: tasks an authoring tool (quarantine/extend) has modified -- exempt from the migration-fidelity baseline
+#: below (they legitimately diverge from the original e563ac2 knob; self-consistency above still covers them).
+_AUTHORED_TASKS: frozenset = frozenset()
+
+
+def test_unauthored_v2_matches_e563ac2_migration():
+    # migration FIDELITY: every task NOT yet touched by an authoring tool stays byte-exact to the v2 that
+    # migrate_to_v2 produces from its ORIGINAL e563ac2 knob -- catches an accidental edit to a pristine task
+    # that self-consistency alone would accept. As authoring tools modify a task, add it to _AUTHORED_TASKS.
+    from scripts.corpus.migrate_to_v2 import to_yaml
+    all_tasks = sorted((REPO / "tasks").glob("level*/*/shapes.yaml"))
+    mism, processed = [], 0
+    for sp in all_tasks:
+        if sp.parent.name in _AUTHORED_TASKS:
+            continue
+        if sp.read_text() != to_yaml(generate_compact_shapes(knob_doc(str(sp.parent)))):
+            mism.append(sp.parent.name)
+        processed += 1
+    assert mism == [], mism
+    # non-vacuity: exactly the un-allowlisted tasks were checked (stays correct as the allowlist grows).
+    expected = len(all_tasks) - sum(1 for sp in all_tasks if sp.parent.name in _AUTHORED_TASKS)
+    assert processed == expected >= 1, (processed, expected)
