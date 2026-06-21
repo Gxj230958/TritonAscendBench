@@ -462,5 +462,43 @@ def test_corpus_contract_mirror_matches_meta(task_dir: Path):
         f"`python3 scripts/corpus/generate_shapes_and_contract.py --refresh-mirror-only`")
 
 
+def test_emit_shapes_yaml_is_canonical_v2():
+    # U10: a scaffolded NEW task is born as compact v2 (canonical, comment-free), not knob -- so it never
+    # diverges from the migrated corpus / the self-consistency test.
+    sys.path.insert(0, str(REPO))
+    from ascendbench.input_spec import shape_format as sf
+    from ascendbench.input_spec.compact_shapes import generate_compact_shapes
+    from scripts.corpus.migrate_to_v2 import to_yaml
+    from scripts.corpus.v2_authoring import v2_to_knob_spec
+    spec = {"x": {"dims": ["B", "D"], "dtype": "float32", "dist": "randn"},
+            "idx": {"dims": ["B"], "dtype": "int64", "dist": "randint:0:N"},
+            "eps": {"scalar": 1e-5}}
+    txt = pcd._emit_shapes_yaml(spec)
+    doc = yaml.safe_load(txt)
+    assert doc["schema_version"] == 2
+    assert sf.is_explicit_shapes_doc(doc) is True
+    assert to_yaml(doc) == txt                                            # canonical, comment-free
+    assert to_yaml(generate_compact_shapes(v2_to_knob_spec(doc))) == txt  # self-consistent
+    assert "#" not in txt                                                 # no comment header / manual note
+    assert list(sf.public_ids(doc)) == ["P1", "P2", "P3", "P4", "P5"]
+
+
+def test_manual_scaffold_gated_by_valid_release_scope(tmp_path):
+    # U10: a phase-c-MANUAL scaffold's shapes.yaml is comment-free v2, so the gate moves to a structured
+    # meta.release_scope.excluded marker -- which must be a COMPLETE record (validate_tasks requires
+    # excluded/reason/excluded_at/excluded_by when excluded is True).
+    td = tmp_path / "L2_11_rejection_sample"   # the hardcoded _MANUAL task id
+    td.mkdir()
+    (td / "oracle_pytorch.py").write_text("def run(inputs):\n    x = inputs['x']\n    return {'out': x}\n")
+    (td / "meta.yaml").write_text(yaml.safe_dump({"task_id": "L2_11_rejection_sample"}))
+    status = pcd.process_body(td, dry=False)
+    assert "[MANUAL]" in status
+    m = yaml.safe_load((td / "meta.yaml").read_text())
+    rs = m["release_scope"]
+    assert rs["excluded"] is True and rs["reason"] and rs["excluded_by"]
+    assert vt._validate_release_scope("L2_11_rejection_sample", m) == []   # a complete, valid record
+    assert "PHASE-C-MANUAL" not in (td / "shapes.yaml").read_text()        # gated via meta, not a comment
+
+
 if __name__ == "__main__":  # pragma: no cover
     sys.exit(pytest.main([__file__, "-v"]))

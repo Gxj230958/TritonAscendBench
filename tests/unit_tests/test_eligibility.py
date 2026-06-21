@@ -15,8 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ascendbench.release_gate import eligibility
 from ascendbench.corpus.dataset import iter_all_tasks
+from ascendbench.release_gate import eligibility
 
 
 @dataclass
@@ -50,6 +50,16 @@ def test_real_task_is_eligible(tmp_path):
     (tmp_path / "oracle_pytorch.py").write_text("def run(i):\n    return {}\n")
     (tmp_path / "shapes.yaml").write_text("public_shapes: []\n")
     assert eligibility.is_score_eligible(_FakeTask("t", tmp_path))
+
+
+def test_phase_c_manual_v2_gated_by_release_scope(tmp_path):
+    # the v2 corpus is comment-free, so a phase-c-manual scaffold can no longer carry a `# PHASE-C-MANUAL`
+    # shapes.yaml comment -- generate gates it via the structured meta marker instead. A canonical v2
+    # shapes.yaml (no comment) + release_scope.excluded must still be NOT score-eligible.
+    (tmp_path / "oracle_pytorch.py").write_text("def run(i):\n    return {}\n")
+    (tmp_path / "shapes.yaml").write_text("schema_version: 2\npublic: []\nhidden: []\n")
+    task = _FakeTask("t", tmp_path, meta={"release_scope": {"excluded": True}})
+    assert not eligibility.is_score_eligible(task)
 
 
 def test_os_error_is_not_eligible(tmp_path):

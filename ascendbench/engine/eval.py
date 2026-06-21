@@ -1032,6 +1032,9 @@ def evaluate(
             shapes_path.exists() and oracle_path.exists()
             and "raise NotImplementedError" not in oracle_src
             and "PHASE-C-MANUAL" not in shapes_txt
+            # the compact-v2 corpus carries no comments, so a phase-c-manual scaffold is gated by the
+            # structured meta.release_scope.excluded marker instead (mirrors eligibility.is_score_eligible).
+            and ((task.meta or {}).get("release_scope") or {}).get("excluded") is not True
         )
         if gradeable:
             shapes_doc = yaml.safe_load(shapes_txt)
