@@ -20,9 +20,9 @@ dtype: a new shape row carries ONLY knobs, never a dtype -- each input's dtype s
 ``inputs[*].dtype`` declares (the source of truth; ``param_constraints.dtypes`` may not cover every
 input). So this tool inherently preserves dtype and does NOT sweep it (that is Unit 4).
 
-Append-only WRITE is a byte-preserving TEXT splice (NOT ``yaml.safe_dump``, which drops comments /
-reorders keys / requotes): new public rows are inserted before ``hidden_shapes:``, new hidden rows
-before ``inputs:``; the result is re-parsed and the pre-existing rows are asserted byte-identical.
+Append-only WRITE re-emits the whole doc as canonical compact v2 (the corpus is v2 -- generate_compact_shapes
++ write_v2): the pre-existing rows re-materialise deterministically (asserted an unchanged ordered prefix per
+role) and only the new candidate rows are appended.
 
 Run:
   python3 scripts/corpus/extend_task_shapes.py --task L2_01_layer_norm_fwd --dry-run
@@ -45,7 +45,9 @@ REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
 
 from ascendbench.input_spec import param_constraints as pc  # noqa: E402
+from ascendbench.input_spec.compact_shapes import generate_compact_shapes  # noqa: E402
 from ascendbench.input_spec.inputs import build_inputs  # noqa: E402
+from scripts.corpus.v2_authoring import load_v2, v2_to_knob_spec, write_v2  # noqa: E402
 
 GOLDEN_SEED = 0  # mirror precompute/runner determinism
 
@@ -452,67 +454,41 @@ def _cpu_validate(task_dir: Path, base_doc: dict, meta: dict, oracle_mod,
     return True, "CPU-valid; pending GPU kernel confirmation"
 
 
-# ── byte-preserving text-splice append ─────────────────────────────────────────────────────────────
+# ── canonical v2 append ──────────────────────────────────────────────────────────────────────────
+# The v2 corpus is canonical, so extend re-emits the WHOLE doc through generate_compact_shapes + write_v2
+# (the byte-preserving text splice is retired): the existing rows re-materialise deterministically and the
+# new candidate rows are appended.
 
-def _yaml_row_text(row: dict) -> str:
-    """Render one shape row as 2-space-indented YAML list-item text matching the corpus style."""
-    lines = [f"- id: {row['id']}"]
-    if row.get("name"):
-        lines.append(f"  name: {row['name']}")
-    lines.append("  knobs:")
-    for k in sorted(row["knobs"].keys()):
-        lines.append(f"    {k}: {row['knobs'][k]}")
-    return "\n".join(lines) + "\n"
+def _write_extended_v2(orig_v2: dict, base_doc: dict, pub_rows: list[dict], hid_rows: list[dict],
+                       shapes_path: Path) -> dict:
+    """Append the new knob rows to ``base_doc``, re-emit the whole doc as canonical v2, and write it.
 
-
-def _splice_append(shapes_path: Path, public_rows: list[dict], hidden_rows: list[dict]) -> None:
-    """Insert new rows by TEXT (preserve existing bytes), then re-parse + assert old rows unchanged."""
-    original = shapes_path.read_text()
-    # Fail-closed id checks BEFORE splicing: a new id must not duplicate another new id NOR collide
-    # with an existing shape id (a same-id/same-content collision would otherwise slip past the
-    # parse-back equality guard and leave a duplicate row).
-    pre = yaml.safe_load(original) or {}
-    existing_ids = {s.get("id") for grp in ("public_shapes", "hidden_shapes")
-                    for s in (pre.get(grp) or []) if isinstance(s, dict)}
-    new_ids = [r["id"] for r in (public_rows + hidden_rows)]
+    Fail-closed: a new id must be unique among the new rows AND must not collide with an existing one; every
+    PRE-EXISTING row must re-materialise byte-identical (only the new rows are added). Returns the written v2.
+    """
+    new_ids = [r["id"] for r in pub_rows + hid_rows]
     if len(set(new_ids)) != len(new_ids):
         raise RuntimeError(f"duplicate id among new rows: {new_ids}")
-    clash = sorted(set(new_ids) & existing_ids)
+    existing = {r["id"] for r in (orig_v2.get("public") or []) + (orig_v2.get("hidden") or [])}
+    clash = sorted(set(new_ids) & existing)
     if clash:
         raise RuntimeError(f"new row id(s) collide with existing shapes: {clash}")
-    lines = original.splitlines(keepends=True)
 
-    def _insert_before(text_lines: list[str], header: str, block: str) -> list[str]:
-        for i, ln in enumerate(text_lines):
-            if ln.rstrip("\n") == header or ln.startswith(header):
-                return [*text_lines[:i], block, *text_lines[i:]]
-        # header absent -> append at EOF
-        return [*text_lines, block]
+    merged = {**base_doc,
+              "public_shapes": [*(base_doc.get("public_shapes") or []), *pub_rows],
+              "hidden_shapes": [*(base_doc.get("hidden_shapes") or []), *hid_rows]}
+    new_v2 = generate_compact_shapes(merged)
 
-    # hidden rows inserted before `inputs:`; public rows before `hidden_shapes:` (do hidden first so
-    # the public insertion index is unaffected, then public).
-    if hidden_rows:
-        block = "".join(_yaml_row_text(r) for r in hidden_rows)
-        lines = _insert_before(lines, "inputs:", block)
-    if public_rows:
-        block = "".join(_yaml_row_text(r) for r in public_rows)
-        lines = _insert_before(lines, "hidden_shapes:", block)
-
-    new_text = "".join(lines)
-    # parse-back + byte-identity check of pre-existing rows.
-    before = yaml.safe_load(original) or {}
-    after = yaml.safe_load(new_text) or {}
-    for grp in ("public_shapes", "hidden_shapes"):
-        old_rows = {s["id"]: s for s in (before.get(grp) or []) if isinstance(s, dict)}
-        new_rows = {s["id"]: s for s in (after.get(grp) or []) if isinstance(s, dict)}
-        for sid, row in old_rows.items():
-            if row != new_rows.get(sid):
-                raise RuntimeError(f"byte-preservation FAILED: existing row {sid} changed on splice")
-    # also assert inputs/size_knobs untouched
-    for key in ("inputs", "size_knobs"):
-        if before.get(key) != after.get(key):
-            raise RuntimeError(f"byte-preservation FAILED: {key} changed on splice")
-    shapes_path.write_text(new_text)
+    # byte-preservation: every pre-existing row must remain an UNCHANGED, ORDERED PREFIX of its role (the new
+    # rows are only appended). Catches a regressed generate_compact_shapes that dropped / reordered / mutated
+    # an existing row -- a per-id check alone would miss a drop or a cross-section move.
+    for role in ("public", "hidden"):
+        orig_role = orig_v2.get(role) or []
+        if (new_v2.get(role) or [])[:len(orig_role)] != orig_role:
+            raise RuntimeError(
+                f"byte-preservation FAILED: an existing {role} row was changed/dropped/reordered on extend")
+    write_v2(new_v2, shapes_path)
+    return new_v2
 
 
 # ── meta + contract count update ───────────────────────────────────────────────────────────────────
@@ -537,15 +513,21 @@ def extend_task(task_dir: Path, target_public: int, target_hidden: int,
     tid = task_dir.name
     ext = TaskExtension(task_id=tid)
     shapes_path = task_dir / "shapes.yaml"
-    base_doc = yaml.safe_load(shapes_path.read_text()) or {}
+    v2_doc = load_v2(shapes_path)
     meta = yaml.safe_load((task_dir / "meta.yaml").read_text()) or {}
 
-    # Reject struct inputs FIRST: struct fields can materialise tensors that scale with knobs, which
-    # the element-cap preflight does not model. No corpus task uses struct today; fail-closed if one does.
-    if any(isinstance(spec, dict) and "struct" in spec
-           for spec in (base_doc.get("inputs") or {}).values()):
+    # Reject struct inputs FIRST (fail-closed): struct fields can materialise tensors that scale with knobs,
+    # which the element-cap preflight does not model, and v2_to_knob_spec cannot reconstruct struct losslessly.
+    # No corpus task uses struct today.
+    if any(inp.get("kind") == "struct"
+           for r in (v2_doc.get("public") or []) + (v2_doc.get("hidden") or [])
+           for inp in (r.get("inputs") or [])):
         ext.skipped_reason = "struct input present -- element cap does not model struct tensors (fail-closed)"
         return ext
+
+    # reconstruct a knob-equivalent doc so the candidate generation + CPU validation below run UNCHANGED; the
+    # final write re-emits the whole doc through generate_compact_shapes + write_v2 (canonical v2).
+    base_doc = v2_to_knob_spec(v2_doc)
 
     active = _active_knobs_in_order(base_doc)
     ext.active_knobs = active
@@ -617,15 +599,11 @@ def extend_task(task_dir: Path, target_public: int, target_hidden: int,
 
     survivors = [c for c in ext.candidates if c.status == "CPU_VALID_PENDING_GPU"]
     if apply and survivors:
-        pub_rows = [{"id": c.assigned_id, "name": f"{c.source}_{c.reason or ''}".strip("_")[:24],
-                     "knobs": c.knobs} for c in survivors if c.role == "public"]
-        hid_rows = [{"id": c.assigned_id, "name": f"{c.source}_{c.reason or ''}".strip("_")[:24],
-                     "knobs": c.knobs} for c in survivors if c.role == "hidden"]
-        _splice_append(shapes_path, pub_rows, hid_rows)
-        new_doc = yaml.safe_load(shapes_path.read_text()) or {}
-        _update_meta_coverage(task_dir,
-                              len(new_doc.get("public_shapes") or []),
-                              len(new_doc.get("hidden_shapes") or []))
+        # the knob `name` is dropped (v2 carries none); the new rows carry only id + active-knob overrides.
+        pub_rows = [{"id": c.assigned_id, "knobs": c.knobs} for c in survivors if c.role == "public"]
+        hid_rows = [{"id": c.assigned_id, "knobs": c.knobs} for c in survivors if c.role == "hidden"]
+        new_v2 = _write_extended_v2(v2_doc, base_doc, pub_rows, hid_rows, shapes_path)
+        _update_meta_coverage(task_dir, len(new_v2["public"]), len(new_v2["hidden"]))
     return ext
 
 
@@ -649,7 +627,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     p.add_argument("--task", required=True, help="task id")
     p.add_argument("--dry-run", action="store_true", help="report candidates, do NOT write (default)")
-    p.add_argument("--apply", action="store_true", help="append survivors (byte-preserving splice)")
+    p.add_argument("--apply", action="store_true", help="append survivors (canonical v2 re-emit)")
     p.add_argument("--target-public", type=int, default=30)
     p.add_argument("--target-hidden", type=int, default=18)
     p.add_argument("--no-borrow", action="store_true", help="disable NPUKernelBench dim borrow")
@@ -675,7 +653,7 @@ def main(argv: list[str] | None = None) -> int:
         tag = c.assigned_id or "-"
         print(f"  [{c.status:>22}] {c.source:8} {tag:4} {c.knobs}  {('-- ' + c.reason) if c.reason else ''}")
     if args.apply and not args.dry_run and surv:
-        print(f"APPLIED: appended {len(surv)} rows to {td.name}/shapes.yaml (byte-preserving splice). "
+        print(f"APPLIED: appended {len(surv)} rows to {td.name}/shapes.yaml (canonical v2 re-emit). "
               f"Task now correctly release-gate RED until Unit-3 GPU re-verify.")
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(

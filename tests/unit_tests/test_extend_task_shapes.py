@@ -2,7 +2,7 @@
 
 Covers the mechanics that must be correct before any shape is appended: active-knob detection,
 NPUKernelBench dim-mapping (codex residual #4), non-pow2/mod-respecting value generation, canonical
-dedup, byte-preserving text splice, and determinism. The CPU-validation == pending_gpu contract is
+dedup, canonical v2 re-emit (the append path), and determinism. The CPU-validation == pending_gpu contract is
 exercised on a synthetic CPU-runnable task.
 """
 from __future__ import annotations
@@ -11,12 +11,24 @@ import importlib
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO))
 
 ext = importlib.import_module("scripts.corpus.extend_task_shapes")
+
+from ascendbench.input_spec.compact_shapes import generate_compact_shapes  # noqa: E402
+from scripts.corpus.migrate_to_v2 import to_yaml  # noqa: E402
+from scripts.corpus.v2_authoring import v2_to_knob_spec  # noqa: E402
+
+
+def _v2_and_base(knob_yaml: str | None = None):
+    """A (committed v2 doc, reconstructed knob base_doc) pair from a knob fixture."""
+    knob = yaml.safe_load(knob_yaml if knob_yaml is not None else _SHAPES_YAML)
+    v2 = generate_compact_shapes(knob)
+    return v2, v2_to_knob_spec(v2)
 
 
 # ── active-knob detection (document order, only inputs-referenced knobs) ───────────────────────────
@@ -124,7 +136,7 @@ def test_active_key_ignores_inert_and_uses_size_knob_fallback():
     assert k1 == k2 == (("B", 4), ("D", 16))
 
 
-# ── byte-preserving text splice ───────────────────────────────────────────────────────────────────
+# ── canonical v2 append (_write_extended_v2) ───────────────────────────────────────────────────────
 
 _SHAPES_YAML = """# header comment kept verbatim
 size_knobs:
@@ -152,46 +164,41 @@ inputs:
 """
 
 
-def test_splice_append_preserves_existing_bytes(tmp_path):
+def test_write_extended_v2_preserves_existing_rows(tmp_path):
+    orig_v2, base = _v2_and_base()
     p = tmp_path / "shapes.yaml"
-    p.write_text(_SHAPES_YAML)
-    ext._splice_append(
-        p,
-        public_rows=[{"id": "P2", "name": "borrow_x", "knobs": {"B": 128, "D": 4096}}],
-        hidden_rows=[{"id": "H2", "name": "edge", "knobs": {"B": 1, "D": 2}}],
-    )
-    new = p.read_text()
-    # original lines all still present verbatim (append-only, comment preserved)
-    for line in _SHAPES_YAML.splitlines():
-        assert line in new.splitlines(), f"existing line lost: {line!r}"
-    doc = yaml.safe_load(new)
-    assert {s["id"] for s in doc["public_shapes"]} == {"P1", "P2"}
-    assert {s["id"] for s in doc["hidden_shapes"]} == {"H1", "H2"}
-    # the new rows materialise correctly
-    assert doc["public_shapes"][1]["knobs"] == {"B": 128, "D": 4096}
-    # inputs + size_knobs untouched
-    assert doc["inputs"]["x"]["dtype"] == "bfloat16"
-    assert doc["size_knobs"] == {"B": 8, "D": 16}
+    new_v2 = ext._write_extended_v2(
+        orig_v2, base,
+        pub_rows=[{"id": "P2", "knobs": {"B": 128, "D": 4096}}],
+        hid_rows=[{"id": "H2", "knobs": {"B": 1, "D": 2}}],
+        shapes_path=p)
+    # existing rows re-materialise byte-identical (the v2 row dict is unchanged).
+    assert next(r for r in new_v2["public"] if r["id"] == "P1") == \
+        next(r for r in orig_v2["public"] if r["id"] == "P1")
+    assert {r["id"] for r in new_v2["public"]} == {"P1", "P2"}
+    assert {r["id"] for r in new_v2["hidden"]} == {"H1", "H2"}
+    # the new public row materialises the candidate env (B=128, D=4096) into its tensor shape.
+    p2 = next(r for r in new_v2["public"] if r["id"] == "P2")
+    assert p2["env"]["B"] == 128 and p2["env"]["D"] == 4096
+    assert next(i for i in p2["inputs"] if i["name"] == "x")["shape"] == [128, 4096]
+    # the written file is canonical v2.
+    assert p.read_text() == to_yaml(new_v2)
 
 
-def test_splice_append_detects_corruption(tmp_path, monkeypatch):
-    # if the splice were to alter an existing row, the parse-back guard must raise.
-    p = tmp_path / "shapes.yaml"
-    p.write_text(_SHAPES_YAML)
-    orig_row_text = ext._yaml_row_text
+def test_write_extended_v2_byte_preservation_guard(tmp_path, monkeypatch):
+    # if the re-emit ever changed an existing row, the guard must raise rather than write a corrupted corpus.
+    orig_v2, base = _v2_and_base()
+    real = ext.generate_compact_shapes
 
-    def _bad_row_text(row):
-        # simulate a buggy renderer that also mutates an existing id's knobs in the new block
-        return orig_row_text(row).replace("P2", "P1")  # collide with existing id -> mismatch
+    def _corrupt(doc):
+        out = real(doc)
+        out["public"][0]["env"]["B"] = 999   # mutate an EXISTING row (P1) on re-emit
+        return out
 
-    monkeypatch.setattr(ext, "_yaml_row_text", _bad_row_text)
-    try:
-        ext._splice_append(p, public_rows=[{"id": "P2", "name": "x", "knobs": {"B": 9, "D": 9}}],
-                           hidden_rows=[])
-        raised = False
-    except RuntimeError:
-        raised = True
-    assert raised, "byte-preservation guard must reject a splice that changes an existing row"
+    monkeypatch.setattr(ext, "generate_compact_shapes", _corrupt)
+    with pytest.raises(RuntimeError, match="byte-preservation FAILED"):
+        ext._write_extended_v2(orig_v2, base, [{"id": "P2", "knobs": {"B": 4, "D": 8}}], [],
+                               tmp_path / "shapes.yaml")
 
 
 # ── end-to-end on a synthetic CPU-runnable task: survivors are pending_gpu, append-only ────────────
@@ -199,7 +206,8 @@ def test_splice_append_detects_corruption(tmp_path, monkeypatch):
 def _mk_synth_task(tmp_path: Path) -> Path:
     td = tmp_path / "tasks" / "level1" / "L1_synth"
     td.mkdir(parents=True)
-    (td / "shapes.yaml").write_text(_SHAPES_YAML)
+    # the corpus is compact v2; extend_task load_v2's it, so the synth task ships its shapes.yaml as v2.
+    (td / "shapes.yaml").write_text(to_yaml(generate_compact_shapes(yaml.safe_load(_SHAPES_YAML))))
     (td / "meta.yaml").write_text(yaml.safe_dump({
         "param_constraints": {
             "scaffold": False, "dims": ["B >= 1", "D >= 2"],
@@ -221,35 +229,31 @@ def test_gen_self_candidates_constant_knob_no_crash():
     assert cands, "should still generate candidates for a constant-knob task"
 
 
-def test_splice_rejects_id_collision(tmp_path):
+def test_write_extended_v2_rejects_id_collision(tmp_path):
+    orig_v2, base = _v2_and_base()
     p = tmp_path / "shapes.yaml"
-    p.write_text(_SHAPES_YAML)
-    # new id "P1" collides with the existing P1 -> must raise (fail-closed), not silently duplicate.
-    try:
-        ext._splice_append(p, public_rows=[{"id": "P1", "name": "x", "knobs": {"B": 9, "D": 9}}],
-                           hidden_rows=[])
-        raised = False
-    except RuntimeError:
-        raised = True
-    assert raised
-    # duplicate id among the new rows themselves -> also raises.
-    try:
-        ext._splice_append(p, public_rows=[{"id": "P2", "name": "x", "knobs": {"B": 9, "D": 9}},
-                                           {"id": "P2", "name": "y", "knobs": {"B": 7, "D": 7}}],
-                           hidden_rows=[])
-        raised2 = False
-    except RuntimeError:
-        raised2 = True
-    assert raised2
+    # a new id "P1" collides with the existing P1 -> fail-closed, not a silent duplicate.
+    with pytest.raises(RuntimeError, match="collide"):
+        ext._write_extended_v2(orig_v2, base, [{"id": "P1", "knobs": {"B": 9, "D": 9}}], [], p)
+    # a duplicate id among the new rows themselves -> also raises.
+    with pytest.raises(RuntimeError, match="duplicate id"):
+        ext._write_extended_v2(orig_v2, base,
+                               [{"id": "P2", "knobs": {"B": 9, "D": 9}},
+                                {"id": "P2", "knobs": {"B": 7, "D": 7}}], [], p)
 
 
 def test_extend_task_rejects_struct(tmp_path, monkeypatch):
     td = tmp_path / "tasks" / "level1" / "L1_struct"
     td.mkdir(parents=True)
+    # a compact-v2 doc carrying a struct input row -- extend must skip fail-closed (the element cap does not
+    # model struct tensors, and v2_to_knob_spec cannot reconstruct struct).
     (td / "shapes.yaml").write_text(yaml.safe_dump({
-        "size_knobs": {"B": 4, "D": 8},
-        "public_shapes": [{"id": "P1", "knobs": {"B": 1, "D": 2}}],
-        "inputs": {"meta": {"struct": True, "fields": {"x": {"dims": ["B", "D"]}}}},
+        "schema_version": 2,
+        "public": [{"id": "P1", "env": {"B": 4, "D": 8}, "inputs": [
+            {"name": "x", "kind": "tensor", "shape": [4, 8], "dtype": "float32", "axes": ["B", "D"],
+             "dist": "randn"},
+            {"name": "meta", "kind": "struct", "struct": {"fields": {"y": 1}}}]}],
+        "hidden": [],
     }))
     (td / "meta.yaml").write_text(yaml.safe_dump({"param_constraints": {"scaffold": False,
         "dims": ["B >= 1"], "dtypes": {}, "dists": {}, "scalars": {}, "tensor_invariants": []}}))
@@ -267,9 +271,27 @@ def test_extend_task_end_to_end_pending_gpu(tmp_path, monkeypatch):
     assert res.active_knobs == ["B", "D"]
     assert surv, "expected at least one CPU-valid candidate"
     assert all(c.status == "CPU_VALID_PENDING_GPU" for c in surv)
-    # dry-run must NOT have written shapes.yaml
-    assert yaml.safe_load((td / "shapes.yaml").read_text())["public_shapes"] == [
-        {"id": "P1", "name": "tiny", "knobs": {"B": 1, "D": 2}}]
+    # dry-run must NOT have written shapes.yaml (still the single original v2 public row).
+    after = yaml.safe_load((td / "shapes.yaml").read_text())
+    assert [r["id"] for r in after["public"]] == ["P1"]
+
+
+def test_extend_task_apply_writes_canonical_v2(tmp_path, monkeypatch):
+    td = _mk_synth_task(tmp_path)
+    monkeypatch.setattr(ext, "_task_dir", lambda tid: td)
+    before = yaml.safe_load((td / "shapes.yaml").read_text())
+    res = ext.extend_task(td, target_public=3, target_hidden=0, apply=True, no_borrow=True)
+    surv_pub = [c for c in res.candidates if c.status == "CPU_VALID_PENDING_GPU" and c.role == "public"]
+    assert surv_pub
+    after = yaml.safe_load((td / "shapes.yaml").read_text())
+    # the original P1 row is byte-preserved + the survivors appended.
+    assert after["public"][0] == before["public"][0]
+    assert len(after["public"]) == 1 + len(surv_pub)
+    # the written file is canonical + self-consistent (passes the corpus invariant).
+    assert (td / "shapes.yaml").read_text() == to_yaml(generate_compact_shapes(v2_to_knob_spec(after)))
+    # the meta shape_coverage followed the survivor counts (the pre-existing H1 hidden row is untouched).
+    cov = yaml.safe_load((td / "meta.yaml").read_text())["runner_checks"]["shape_coverage"]
+    assert cov["public"] == len(after["public"]) and cov["hidden"] == len(after["hidden"])
 
 
 def test_value_ladder_diverse_and_bounded():
