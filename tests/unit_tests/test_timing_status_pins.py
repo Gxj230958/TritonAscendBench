@@ -30,9 +30,9 @@ from unittest import mock
 
 import yaml
 
-from ascendbench.integrity import process_isolation as pi
 from ascendbench.corpus.dataset import TaskDef
 from ascendbench.engine.eval import evaluate
+from ascendbench.integrity import process_isolation as pi
 from ascendbench.integrity.process_isolation import (
     CandidateRunResult,
     ShapeCandidateResult,
@@ -377,7 +377,6 @@ def test_r2_3_roofline_uses_real_dtype_size(tmp_path, monkeypatch):
     default — proof `eval` threaded the real dtype_size into FormulaEnv /
     compute_t_ref.
     """
-    from ascendbench.engine import eval as _eval
     from ascendbench.perf import peak_table as _pt
     from ascendbench.perf.cost_model import parse_cost_model
 

@@ -1,7 +1,6 @@
 """Unit tests for SolutionManifest round-trip."""
 from __future__ import annotations
 
-import pytest
 import yaml
 
 from ascendbench.manifest import SolutionManifest

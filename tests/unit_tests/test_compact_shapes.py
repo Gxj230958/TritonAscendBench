@@ -36,7 +36,7 @@ _TASKS = ["tasks/level1/L1_01_bias", "tasks/level1/L1_21_create_flashmla_kv_indi
 
 
 def _knob(task: str) -> dict:
-    # the corpus is migrated to v2; the knob source for the knob->v2 round-trip gate is in git history.
+    # the corpus is migrated to v2; the knob source for the knob->v2 round-trip gate is reconstructed from the committed v2.
     return knob_doc(task)
 
 
@@ -141,7 +141,7 @@ def test_corpus_wide_round_trip():
     tasks = sorted((REPO / "tasks").glob("level*/*/shapes.yaml"))
     mism, processed = [], 0
     for sp in tasks:
-        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob->v2 round-trip gate reads the KNOB from git
+        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob->v2 round-trip gate reads the KNOB reconstructed from the committed v2
         processed += 1
         if expand_compact(generate_compact_shapes(knob)) != generate_explicit_shapes(knob):
             mism.append(sp.parent.name)
@@ -168,25 +168,9 @@ def test_committed_v2_corpus_is_self_consistent():
     assert processed >= 100, processed
 
 
-#: tasks an authoring tool (quarantine/extend) has modified -- exempt from the migration-fidelity baseline
-#: below (they legitimately diverge from the original e563ac2 knob; self-consistency above still covers them).
-_AUTHORED_TASKS: frozenset = frozenset()
-
-
-def test_unauthored_v2_matches_e563ac2_migration():
-    # migration FIDELITY: every task NOT yet touched by an authoring tool stays byte-exact to the v2 that
-    # migrate_to_v2 produces from its ORIGINAL e563ac2 knob -- catches an accidental edit to a pristine task
-    # that self-consistency alone would accept. As authoring tools modify a task, add it to _AUTHORED_TASKS.
-    from scripts.corpus.migrate_to_v2 import to_yaml
-    all_tasks = sorted((REPO / "tasks").glob("level*/*/shapes.yaml"))
-    mism, processed = [], 0
-    for sp in all_tasks:
-        if sp.parent.name in _AUTHORED_TASKS:
-            continue
-        if sp.read_text() != to_yaml(generate_compact_shapes(knob_doc(str(sp.parent)))):
-            mism.append(sp.parent.name)
-        processed += 1
-    assert mism == [], mism
-    # non-vacuity: exactly the un-allowlisted tasks were checked (stays correct as the allowlist grows).
-    expected = len(all_tasks) - sum(1 for sp in all_tasks if sp.parent.name in _AUTHORED_TASKS)
-    assert processed == expected >= 1, (processed, expected)
+# NOTE: the old test_unauthored_v2_matches_e563ac2_migration (every task == the v2 migrate_to_v2 produces from
+# its ORIGINAL e563ac2 knob) is RETIRED with the git-ref decoupling (B): knob_doc now reconstructs the knob from
+# the CURRENT committed v2, so that test would be tautological with the self-consistency test above. It caught a
+# pristine task changed to a different-but-self-consistent value -- a coverage class intentionally retired now
+# that the corpus is a MUTABLE authored artifact (an authored task's correctness rides on the GPU re-grade, not
+# a frozen migration baseline). The migration was GPU-validated (S2 101/101 + C2 101/101) at the cutover.

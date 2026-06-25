@@ -26,6 +26,7 @@ sys.path.insert(
     str(Path(__file__).resolve().parents[2]),
 )
 
+from ascendbench._util.atomic import atomic_write_bytes
 from scripts.provenance.write_golden_manifest import (
     _canonical_json_bytes,
     build_envelope,
@@ -34,8 +35,6 @@ from scripts.provenance.write_golden_manifest import (
     sign_envelope,
     verify_envelope,
 )
-from ascendbench._util.atomic import atomic_write_bytes
-
 
 # ─────────────────────────────────────────────────────────────────────
 # atomic_write_bytes promotion
@@ -189,10 +188,10 @@ def _maybe_skip_no_crypto():
 
 def test_sign_verify_round_trip(tmp_path, monkeypatch):
     _maybe_skip_no_crypto()
+    from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (
         Ed25519PrivateKey,
     )
-    from cryptography.hazmat.primitives import serialization
 
     # Generate a key pair just for this test.
     priv = Ed25519PrivateKey.generate()

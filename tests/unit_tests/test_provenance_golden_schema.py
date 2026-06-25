@@ -19,13 +19,11 @@ from __future__ import annotations
 import pytest
 
 from ascendbench.corpus.provenance import (
-    ProvenanceGoldenSpec,
-    VALID_ORACLE_KERNEL_EQUIVALENCE,
     VALID_TOLERANCE_SOURCE,
+    ProvenanceGoldenSpec,
     parse_provenance_golden,
     validate_provenance_golden,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────
 # parse_provenance_golden -- grace period + typed view

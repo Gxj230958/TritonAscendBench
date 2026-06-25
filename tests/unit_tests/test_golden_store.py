@@ -2,14 +2,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
-
 from ascendbench.correctness.golden_store import GoldenStore
-
 
 # ─────────────────────────────────────────────────────────────────────
 # task_dir / locate / manifest_path / signature_path -- pure path locators

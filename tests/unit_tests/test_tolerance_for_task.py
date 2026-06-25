@@ -6,12 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 from ascendbench.correctness.tolerance import (
-    ToleranceClass,
     ToleranceSpec,
     for_task,
     load_policy,
 )
-
 
 _POLICY = load_policy()
 

@@ -238,7 +238,6 @@ def test_rewrite_severs_batch_invariant_shim_imports():
 def test_rewrite_refuses_unallowlisted_torch_utils_symbol():
     """A non-allowlisted vllm.utils.torch_utils symbol is NOT silently
     shimmed -- it must surface as a leak (fail-closed), not be defaulted."""
-    import re
     src = "from vllm.utils.torch_utils import some_unvetted_helper\nx = 1\n"
     out = pap.rewrite_imports_to_standalone(
         src, pap.TaskClassification(task_id="T", symbols=[]), task_dir=None
@@ -254,6 +253,7 @@ def test_envs_shim_exposes_only_verified_inert_flag():
     and any other flag LOUD-FAIL -- the loud-fail is the Class-S gate that
     keeps a task honestly BLOCKED instead of silently defaulting a knob."""
     import importlib
+
     import pytest
     REPO = Path(__file__).resolve().parent.parent.parent
     sys.path.insert(0, str(REPO))
@@ -303,8 +303,9 @@ def test_rewrite_customop_inert_shim_and_failclosed_guards():
 
 
 def test_customop_shim_is_nn_module_with_noop_register():
-    import torch
     from pathlib import Path
+
+    import torch
     REPO = Path(__file__).resolve().parent.parent.parent
     sys.path.insert(0, str(REPO))
     import importlib

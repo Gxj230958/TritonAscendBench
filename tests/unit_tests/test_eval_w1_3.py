@@ -11,9 +11,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from ascendbench.engine import eval as _eval
+from ascendbench.engine.eval import ShapeRunResult, evaluate
 from ascendbench.input_spec import inputs as _inputs
 from ascendbench.perf import timing
-from ascendbench.engine.eval import ShapeRunResult, evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 _TASK = "L1_01_bias"

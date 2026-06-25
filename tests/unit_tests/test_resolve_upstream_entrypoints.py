@@ -1900,10 +1900,10 @@ def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
         f"content-A verdicts as fresh."
     )
     assert content_part != sha_b, (
-        f"memo store TOCTOU: stored key content_part == "
-        f"sha256(content-B) while verdicts are content-A -- exactly "
-        f"the A-verdicts-under-B-key stale serve the single-snapshot "
-        f"fix eliminates."
+        "memo store TOCTOU: stored key content_part == "
+        "sha256(content-B) while verdicts are content-A -- exactly "
+        "the A-verdicts-under-B-key stale serve the single-snapshot "
+        "fix eliminates."
     )
 
     # STRUCTURAL guard: ZERO cache reads occur AFTER the post-parse

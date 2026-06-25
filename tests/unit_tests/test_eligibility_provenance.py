@@ -12,7 +12,6 @@ from ascendbench.release_gate.eligibility import (
     release_ready_with_provenance,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────
 # is_provenance_eligible
 # ─────────────────────────────────────────────────────────────────────

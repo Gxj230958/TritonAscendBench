@@ -11,14 +11,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 
 from ascendbench.corpus.kernel_resolver import (
     _resolve_meta_name_pattern,
     enumerate_non_jit_module_defs,
     is_jit_decorated,
-    kernel_function_exists,
     resolve_kernel_entrypoint,
 )
 
@@ -146,8 +144,8 @@ def test_l3_23_resolver_picks_host_wrapper():
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "oracle"))
     import yaml
-    from run_oracle_equivalence_gpu import _resolve_kernel_entrypoint as r1
     from precompute_oracle_reference import _resolve_kernel_entrypoint as r2
+    from run_oracle_equivalence_gpu import _resolve_kernel_entrypoint as r1
 
     td = Path("tasks/level3/L3_30_merge_16x16_to_32x32_inverse")
     meta = yaml.safe_load((td / "meta.yaml").read_text())

@@ -5,8 +5,6 @@ PROVISIONAL_MISSING_RARE / STOP) on synthetic corpora.
 """
 from __future__ import annotations
 
-import pytest
-
 from scripts.provenance.compute_release_planning_gate import (
     RARE_CLASS_SET,
     STATE_PROCEED,

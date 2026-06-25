@@ -13,8 +13,8 @@ import sys
 from pathlib import Path
 
 from ascendbench.engine import cli as _cli
-from ascendbench.integrity.adversarial import MetamorphicResult
 from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
+from ascendbench.integrity.adversarial import MetamorphicResult
 
 REPO = Path(__file__).resolve().parent.parent.parent
 _TASK = "L1_01_bias"

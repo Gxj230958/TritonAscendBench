@@ -7,8 +7,9 @@ einops declared in pyproject.toml so extra_pins is empty.
 from __future__ import annotations
 
 import re
-import tomllib  # Python >= 3.11 stdlib
 from pathlib import Path
+
+import tomllib  # Python >= 3.11 stdlib
 
 REPO = Path(__file__).resolve().parent.parent.parent
 

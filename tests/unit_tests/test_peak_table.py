@@ -8,10 +8,10 @@ handling via require_verified, and consistency with the coarse-grained
 """
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 
 import pytest
+import tomllib
 
 from ascendbench.perf.peak_table import (
     ABSOLUTE_VERIFIED_PROVENANCES,

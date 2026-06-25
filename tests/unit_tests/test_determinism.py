@@ -11,11 +11,9 @@ import torch
 
 from ascendbench.correctness.determinism import (
     DeterminismResult,
-    DeterminismVerdict,
     to_verdict,
     verify_determinism,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────
 # verify_determinism -- deterministic and non-deterministic paths

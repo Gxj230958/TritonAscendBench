@@ -325,7 +325,7 @@ def test_real_corpus_tasks_now_aligned(task_id, key, expected_rank):
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from _knob_corpus import knob_doc
-    shapes = knob_doc(str(td))   # corpus is v2; the re-authored 4-D shapes are in the knob form (git history)
+    shapes = knob_doc(str(td))   # corpus is v2; the re-authored 4-D shapes are in the knob form (reconstructed from the committed v2)
     inputs = build_inputs(shapes, "P1", seed=0)
     input_ranks = {k: v.ndim for k, v in inputs.items() if hasattr(v, "ndim")}
     # The re-authored input is 4-D ...

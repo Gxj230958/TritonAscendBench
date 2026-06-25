@@ -33,9 +33,9 @@ from types import SimpleNamespace
 import pytest
 
 from ascendbench.engine import eval as _eval
+from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
 from ascendbench.perf import peak_table
 from ascendbench.perf.cost_model import CostModel
-from ascendbench.engine.eval import ShapeRunResult, TaskEvalResult
 from ascendbench.perf.scoring import (
     EPSILON,
     TaskMeasurement,

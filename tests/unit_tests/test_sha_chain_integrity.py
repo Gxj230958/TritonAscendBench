@@ -15,10 +15,8 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
 import yaml
 
 from scripts.provenance.verify_upstream_commit_chain import (
@@ -29,7 +27,6 @@ from scripts.provenance.verify_upstream_commit_chain import (
     VERDICT_VERIFIED,
     verify_task,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Fixture helper: write a fake task dir with controllable meta

@@ -46,7 +46,7 @@ _SEEDS = [0, 1000]   # correctness seed 0 + a sampled measured-timing seed; valu
 
 
 def _load(task: str) -> dict:
-    # the corpus is migrated to v2; generate_explicit_shapes' input is the KNOB form (from git history).
+    # the corpus is migrated to v2; generate_explicit_shapes' input is the KNOB form (reconstructed from the committed v2).
     return knob_doc(task)
 
 

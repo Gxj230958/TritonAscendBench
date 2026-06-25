@@ -1,22 +1,26 @@
-"""Read a task's pre-flip KNOB shapes.yaml from git history.
+"""A knob-equivalent doc for a task, reconstructed from its CURRENT committed compact-v2 shapes.yaml.
 
 The corpus was migrated to the compact v2 explicit format (U9). Tests that exercise the knob->v2 / knob->v1
-machinery (round-trip, parity, the materializer) still need the KNOB source, which no longer lives in the
-working tree. It is in git at the all-knob ref below, so these helpers read it from there -- keeping such tests
-decoupled from the working-tree corpus format. Tests that instead assert "the CORPUS is X" should read the
-working-tree shapes.yaml directly and assert the v2 reality, NOT use this module.
+machinery (round-trip, knob-vs-explicit parity, the materializer) still need a KNOB-shaped doc. ``v2_to_knob_spec``
+reconstructs one LOSSLESSLY from the committed v2 (``generate_compact_shapes(v2_to_knob_spec(v2)) == v2``, proven
+101/101), so the source is the working-tree shapes.yaml -- NO git-history / pinned-commit dependency (it survives
+a squash-merge of the feature branch) and it reflects any authoring edit. The reconstructed doc is a NORMALISED
+knob stand-in (row-0 env as ``size_knobs``, full per-row ``knobs``), not the original authored bytes; that is
+faithful for these machinery tests, which compare independent generation paths on a valid knob.
+
+Tests that instead assert "the CORPUS is X" should read the working-tree shapes.yaml directly and assert the v2
+reality, NOT use this module.
 """
 from __future__ import annotations
 
-import functools
-import subprocess
+import sys
 from pathlib import Path
 
-import yaml
-
-#: the M2-writer commit -- the last state where all 101 tasks are still knob-format (before the flip).
-_ALL_KNOB_REF = "e563ac2"
 _REPO = Path(__file__).resolve().parents[2]
+if str(_REPO) not in sys.path:
+    sys.path.insert(0, str(_REPO))
+
+from scripts.corpus.v2_authoring import load_v2, v2_to_knob_spec  # noqa: E402
 
 
 def _resolve_rel(task: str) -> str:
@@ -39,33 +43,17 @@ def _resolve_rel(task: str) -> str:
     return str(matches[0].relative_to(_REPO))
 
 
-@functools.cache
-def knob_text(task: str) -> str:
-    """The knob-format shapes.yaml TEXT for a task, read from the all-knob git ref."""
-    rel = _resolve_rel(task)
-    out = subprocess.run(
-        ["git", "-C", str(_REPO), "show", f"{_ALL_KNOB_REF}:{rel}/shapes.yaml"],
-        capture_output=True, text=True,
-    )
-    if out.returncode != 0:
-        raise FileNotFoundError(f"no knob shapes.yaml for {rel} at {_ALL_KNOB_REF}: {out.stderr.strip()}")
-    return out.stdout
-
-
 def knob_doc(task: str) -> dict:
-    """The parsed knob-format shapes.yaml for a task (from git history).
+    """A knob-equivalent doc reconstructed from the task's current committed compact-v2 shapes.yaml.
 
-    Fail-closed: the all-knob ref must yield an actual knob doc. If it ever drifts to a non-knob (explicit) doc,
-    raise here rather than let a ``doc.get("size_knobs")``-gated test loop silently skip every row (a vacuous
-    pass). Every task at the all-knob ref carries size_knobs by construction.
+    Fail-closed via load_v2 (rejects a non-v2 / malformed file) and v2_to_knob_spec (rejects struct /
+    per-row-varying inputs). The result always carries ``size_knobs`` -- the ``doc.get("size_knobs")``-gated
+    test loops never silently skip every row.
     """
-    doc = yaml.safe_load(knob_text(task))
-    if not (isinstance(doc, dict) and doc.get("size_knobs")):
-        raise AssertionError(f"{task}: doc at {_ALL_KNOB_REF} is not knob-format (no size_knobs) -- ref drift?")
-    return doc
+    rel = _resolve_rel(task)
+    return v2_to_knob_spec(load_v2(_REPO / rel / "shapes.yaml"))
 
 
 def all_knob_task_dirs() -> list[Path]:
-    """The 101 real corpus task dirs (working-tree paths; their shapes.yaml are now v2, use knob_doc for the
-    knob form). Excludes the v2-only tasks/_canary fixture, which has no knob baseline at the all-knob ref."""
+    """The 101 real corpus task dirs (working-tree paths). Excludes the v2-only tasks/_canary fixture."""
     return sorted(p.parent for p in (_REPO / "tasks").glob("level*/*/shapes.yaml"))

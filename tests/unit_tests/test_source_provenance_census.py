@@ -25,7 +25,6 @@ from scripts.provenance.census_source_provenance import (
     census_task,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────
 # R17 reconstructability risk
 # ─────────────────────────────────────────────────────────────────────
@@ -196,7 +195,8 @@ def test_census_task_kernel_with_gpu_skip_pattern_reports_it(tmp_path):
 
 def test_census_on_real_corpus_task_l1_12_rms_norm():
     """L1_12_rms_norm is category=norm -> HIGH risk."""
-    from scripts.provenance.census_source_provenance import census_task as ct, TASKS_ROOT
+    from scripts.provenance.census_source_provenance import TASKS_ROOT
+    from scripts.provenance.census_source_provenance import census_task as ct
 
     td = TASKS_ROOT / "level1" / "L1_12_rms_norm"
     if not td.is_dir():

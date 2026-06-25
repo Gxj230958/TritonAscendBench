@@ -225,8 +225,8 @@ def test_release_ready_eligible_excludes_c2_failed(tmp_path):
 def _run_cli_analyze(tmp_path, monkeypatch, tasks):
     """Drive `cli._cmd_analyze` with `dataset.iter_all_tasks` patched to
     return `tasks`; return the parsed score_report.json."""
-    from ascendbench.engine import cli
     from ascendbench.corpus import dataset as ds
+    from ascendbench.engine import cli
 
     monkeypatch.setattr(ds, "iter_all_tasks", lambda: tasks)
 

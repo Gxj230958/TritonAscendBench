@@ -145,8 +145,8 @@ def test_select_all_finds_exactly_the_score_eligible_uor_set():
     over/under-selection; non-score-eligible UOR tasks (stub oracle /
     PHASE-C-MANUAL shapes) are excluded because they have no capturable
     offline golden."""
-    from ascendbench.release_gate import eligibility
     from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
 
     all_tasks = list(iter_all_tasks())
     selected = pbgc._select_tasks(None)
@@ -177,8 +177,8 @@ def test_select_all_includes_resolved_gumbel_sample_uor():
     (real oracle + executable shapes), so it is score-eligible and MUST
     appear in the capture sweep. (It was the corpus's last stub-oracle UOR
     before resolution; this guards against a regression back to a stub.)"""
-    from ascendbench.release_gate import eligibility
     from ascendbench.corpus.dataset import load_task
+    from ascendbench.release_gate import eligibility
 
     gumbel = load_task("L2_08_gumbel_sample")
     assert eligibility.is_upstream_oracle_required(gumbel)
@@ -219,8 +219,8 @@ def test_select_all_is_sorted():
 def test_select_task_rejects_non_upstream_oracle_required():
     """--task on a PyTorch-oracle task is a category error: such a task's
     golden is generated live, never pre-stored."""
-    from ascendbench.release_gate import eligibility
     from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
 
     non_uor = next(
         t for t in iter_all_tasks()
@@ -231,8 +231,8 @@ def test_select_task_rejects_non_upstream_oracle_required():
 
 def test_select_task_accepts_upstream_oracle_required():
     """--task on a real upstream_oracle_required task resolves to it."""
-    from ascendbench.release_gate import eligibility
     from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
 
     uor = next(
         t for t in iter_all_tasks()
@@ -290,8 +290,8 @@ def test_dry_run_all_tasks_enumerates_every_eval_shape():
     exactly the score-eligible upstream_oracle_required tasks and their
     full eval shape set. Counts are derived from the eligibility filter, not
     hardcoded, so the corpus composition is not frozen."""
-    from ascendbench.release_gate import eligibility
     from ascendbench.corpus.dataset import iter_all_tasks
+    from ascendbench.release_gate import eligibility
 
     expected_ids = {
         t.task_id for t in iter_all_tasks()

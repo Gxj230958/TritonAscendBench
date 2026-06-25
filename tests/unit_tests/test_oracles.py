@@ -8,9 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from pathlib import Path
 
-import pytest
 import torch
 
 from ascendbench.corpus.dataset import load_task

@@ -13,14 +13,11 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
-
 from ascendbench.integrity.static_checker import (
     _DENYLIST_IMPORT_EXACT,
     check_solution,
 )
 from scripts.automation.bench_evaluator_daemon import _r19_startup_self_check
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Layer A -- static_checker denylist additions

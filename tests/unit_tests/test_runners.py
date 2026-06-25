@@ -528,7 +528,7 @@ def test_acceptance_gate_health_probe_rejects_5xx():
         pytest.skip("curl(1) not installed on this host")
 
     class _Always500(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):  # noqa: N802 - stdlib signature
+        def do_GET(self):
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b"boom\n")

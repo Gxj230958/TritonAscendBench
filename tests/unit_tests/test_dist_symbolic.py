@@ -36,7 +36,7 @@ def _task(task: str):
     if not (d / "shapes.yaml").exists():
         pytest.skip(f"{task} absent")
     meta = yaml.safe_load((d / "meta.yaml").read_text()) or {}
-    doc = knob_doc(task)   # corpus is v2; the knob form (for generate_explicit_shapes) is in git history
+    doc = knob_doc(task)   # corpus is v2; the knob form (for generate_explicit_shapes) is reconstructed from the committed v2
     return meta.get("param_constraints"), doc
 
 

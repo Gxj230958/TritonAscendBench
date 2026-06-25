@@ -36,12 +36,12 @@ import pytest
 import yaml
 from safetensors.torch import save_file
 
-from ascendbench.engine import eval as _eval
-from ascendbench.input_spec import inputs as _inputs
-from ascendbench.perf import scoring
-from ascendbench.integrity import static_checker
 from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine import eval as _eval
 from ascendbench.engine.eval import _PERFORMANCE_STATUS_PRECEDENCE, evaluate
+from ascendbench.input_spec import inputs as _inputs
+from ascendbench.integrity import static_checker
+from ascendbench.perf import scoring
 
 REPO = Path(__file__).resolve().parents[2]
 

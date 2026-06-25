@@ -24,9 +24,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ascendbench.integrity import process_isolation as pi
 from ascendbench.corpus.dataset import TaskDef
 from ascendbench.engine.eval import evaluate
+from ascendbench.integrity import process_isolation as pi
 from ascendbench.integrity.process_isolation import (
     CandidateRunResult,
     ShapeCandidateResult,
@@ -450,7 +450,7 @@ def _run_child_merge(tensors_path: str, sidecar_path: str) -> dict:
     defs = {n.name: n for n in tree.body
             if isinstance(n, ast.FunctionDef) and n.name in ("_to_device", "_merge")}
     ns: dict = {"load_file": _lf, "json": json, "Path": Path, "_BACKEND": None}
-    exec(  # noqa: S102 — running our own vetted child snippet, not input.
+    exec(
         compile(ast.Module(body=[defs["_to_device"], defs["_merge"]],
                            type_ignores=[]), "<child-merge>", "exec"),
         ns)

@@ -41,7 +41,7 @@ def _docs(task: str):
     d = REPO / task
     if not (d / "shapes.yaml").exists():
         pytest.skip(f"{task} absent")
-    knob = knob_doc(task)   # corpus is v2 now; knob (for the knob-vs-explicit parity) comes from git history
+    knob = knob_doc(task)   # corpus is v2 now; knob (for the knob-vs-explicit parity) comes reconstructed from the committed v2
     meta = yaml.safe_load((d / "meta.yaml").read_text()) or {}
     return knob, meta, generate_explicit_shapes(knob)
 
@@ -96,7 +96,7 @@ def test_corpus_wide_classify_and_cost_parity():
     processed = 0
     # the 101 real corpus tasks (excludes the v2-only tasks/_canary fixture, which has no knob baseline).
     for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
-        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob-vs-explicit parity reads the KNOB from git
+        knob = knob_doc(str(sp.parent))   # corpus is v2; the knob-vs-explicit parity reads the KNOB reconstructed from the committed v2
         meta = yaml.safe_load((sp.parent / "meta.yaml").read_text()) or {}
         exp = generate_explicit_shapes(knob)
         if classify(knob, meta) != classify(exp, meta):

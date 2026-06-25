@@ -28,16 +28,16 @@ from pathlib import Path
 
 import yaml
 
-from ascendbench.integrity.adversarial import (
-    aggregate_canary_findings,
-    check_canaries,
-    run_canary_suite,
-)
 from ascendbench.corpus.dataset import (
     CanaryTaskDef,
     iter_all_tasks,
     iter_canary_tasks,
     load_canary_task,
+)
+from ascendbench.integrity.adversarial import (
+    aggregate_canary_findings,
+    check_canaries,
+    run_canary_suite,
 )
 from ascendbench.release_gate.eligibility import compute_score_eligible
 

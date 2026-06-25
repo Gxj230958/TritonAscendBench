@@ -382,7 +382,7 @@ def test_l2_34_shapes_and_oracle_follow_wrapper_contract():
         REPO / "tasks" / "level2"
         / "L2_29_silu_mul_static_tensorwise_quant_triton_kernel_for_cutlass_moe"
     )
-    shapes = knob_doc(str(td))   # corpus is v2; build the inputs from the KNOB form (git history)
+    shapes = knob_doc(str(td))   # corpus is v2; build the inputs from the KNOB form (reconstructed from the committed v2)
     inputs = build_inputs(shapes, "P1", seed=0)
 
     assert inputs["input"].ndim == 3

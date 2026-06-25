@@ -53,6 +53,34 @@ def test_nonuniform_input_set_fails_loud():
         v2_to_knob_spec(bad)
 
 
+@pytest.mark.parametrize(("p1", "p2"), [
+    ({"dtype": "float32"}, {"dtype": "int8"}),                                   # tensor dtype varies
+    ({"dist": "randn"}, {"dist": "randint:0:B"}),                                # tensor dist varies
+])
+def test_row_varying_tensor_template_fails_loud(p1, p2):
+    # same (name, kind) across rows but a DIFFERENT row-invariant template field (dtype / dist) -> the knob
+    # model has ONE template; v2_to_knob_spec must REFUSE rather than silently collapse to row 0.
+    base = {"name": "x", "kind": "tensor", "shape": [4], "axes": ["B"]}
+    bad = {"schema_version": 2, "public": [
+        {"id": "P1", "env": {"B": 4}, "inputs": [{**base, "dtype": "float32", "dist": "randn", **p1}]},
+        {"id": "P2", "env": {"B": 8}, "inputs": [{**base, "dtype": "float32", "dist": "randn", **p2}]}],
+        "hidden": []}
+    with pytest.raises(ValueError, match="template differs from row 0"):
+        v2_to_knob_spec(bad)
+
+
+def test_row_varying_scalar_value_fails_loud():
+    # a `scalar` value is row-invariant in the knob model; a per-row-varying scalar must fail-loud, not get
+    # silently fixed to row 0's value.
+    t = {"name": "x", "kind": "tensor", "shape": [4], "dtype": "float32", "axes": ["B"], "dist": "randn"}
+    bad = {"schema_version": 2, "public": [
+        {"id": "P1", "env": {"B": 4}, "inputs": [dict(t), {"name": "s", "kind": "scalar", "value": 4}]},
+        {"id": "P2", "env": {"B": 8}, "inputs": [dict(t), {"name": "s", "kind": "scalar", "value": 8}]}],
+        "hidden": []}
+    with pytest.raises(ValueError, match="template differs from row 0"):
+        v2_to_knob_spec(bad)
+
+
 def test_load_v2_rejects_knob_and_malformed(tmp_path):
     knob = tmp_path / "knob.yaml"
     knob.write_text(yaml.safe_dump({"size_knobs": {"B": 2}, "public_shapes": [{"id": "P1", "knobs": {}}]}))

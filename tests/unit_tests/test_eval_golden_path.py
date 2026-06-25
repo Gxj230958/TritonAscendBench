@@ -17,7 +17,6 @@ import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
 
 import pytest
 import torch
@@ -78,8 +77,8 @@ def test_chain_ok_when_no_manifest(tmp_path, monkeypatch):
     td = _make_task_dir(tmp_path)
     _write_golden(td, torch.tensor([0.1, 0.2]))
 
-    from ascendbench.release_gate import eligibility
     from ascendbench.correctness.golden_store import GoldenStore
+    from ascendbench.release_gate import eligibility
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
     assert eligibility.golden_integrity_chain_ok(td, ["P1"]) is True
@@ -90,8 +89,8 @@ def test_chain_ok_with_matching_manifest(tmp_path, monkeypatch):
     _write_golden(td, torch.tensor([0.1, 0.2]))
     _write_manifest(td)
 
-    from ascendbench.release_gate import eligibility
     from ascendbench.correctness.golden_store import GoldenStore
+    from ascendbench.release_gate import eligibility
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
     assert eligibility.golden_integrity_chain_ok(td, ["P1"]) is True
@@ -107,8 +106,8 @@ def test_chain_fails_after_tamper(tmp_path, monkeypatch):
     save_file({"out": torch.tensor([99.0, 99.0])},
               str(td / "golden" / "P1.safetensors"))
 
-    from ascendbench.release_gate import eligibility
     from ascendbench.correctness.golden_store import GoldenStore
+    from ascendbench.release_gate import eligibility
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
     assert eligibility.golden_integrity_chain_ok(td, ["P1"]) is False
@@ -120,8 +119,8 @@ def test_chain_fails_when_manifest_missing_shape(tmp_path, monkeypatch):
     _write_golden(td, torch.tensor([0.1, 0.2]))
     _write_manifest(td)
 
-    from ascendbench.release_gate import eligibility
     from ascendbench.correctness.golden_store import GoldenStore
+    from ascendbench.release_gate import eligibility
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
     # Asking about a shape that isn't in the manifest
@@ -153,8 +152,8 @@ def test_resolve_golden_raises_on_tamper(tmp_path, monkeypatch):
     save_file({"out": torch.tensor([99.0, 99.0])},
               str(td / "golden" / "P1.safetensors"))
 
-    from ascendbench.engine import eval as eval_mod
     from ascendbench.correctness.golden_store import GoldenStore
+    from ascendbench.engine import eval as eval_mod
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
 
@@ -174,9 +173,9 @@ def test_resolve_golden_passes_with_clean_chain(tmp_path, monkeypatch):
     _write_golden(td, torch.tensor([0.1, 0.2]))
     _write_manifest(td)
 
+    from ascendbench.correctness.golden_store import GoldenStore
     from ascendbench.engine import eval as eval_mod
     from ascendbench.perf import scoring
-    from ascendbench.correctness.golden_store import GoldenStore
 
     monkeypatch.setattr(GoldenStore, "task_dir", staticmethod(lambda tid: td))
 

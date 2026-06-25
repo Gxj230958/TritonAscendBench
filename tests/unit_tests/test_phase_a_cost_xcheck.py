@@ -27,9 +27,8 @@ xc = importlib.util.module_from_spec(_spec)
 sys.modules["phase_a_cost_xcheck"] = xc
 _spec.loader.exec_module(xc)
 
-from ascendbench.perf.cost_model import parse_cost_model  # noqa: E402
 from ascendbench.corpus.dataset import ShapeSpec, TaskDef, load_task  # noqa: E402
-
+from ascendbench.perf.cost_model import parse_cost_model  # noqa: E402
 
 # --------------------------------------------------------------------------
 # helpers

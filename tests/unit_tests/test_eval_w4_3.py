@@ -30,15 +30,15 @@ import torch
 import yaml
 from safetensors.torch import save_file
 
-from ascendbench.engine import eval as _eval
-from ascendbench.perf import scoring
-from ascendbench.integrity import static_checker
 from ascendbench.corpus.dataset import TaskDef
+from ascendbench.engine import eval as _eval
+from ascendbench.engine.eval import _resolve_golden, evaluate
+from ascendbench.integrity import static_checker
+from ascendbench.perf import scoring
 from ascendbench.release_gate.eligibility import (
     compute_verified_blocked,
     golden_complete,
 )
-from ascendbench.engine.eval import _resolve_golden, evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 

@@ -36,15 +36,15 @@ import torch
 import yaml
 from safetensors.torch import save_file
 
+from ascendbench.corpus.dataset import TaskDef
 from ascendbench.engine import eval as _eval
+from ascendbench.engine.eval import evaluate
 from ascendbench.integrity import process_isolation as pi
 from ascendbench.integrity import static_checker
-from ascendbench.corpus.dataset import TaskDef
 from ascendbench.release_gate.eligibility import (
     golden_artifact_usable,
     golden_complete,
 )
-from ascendbench.engine.eval import evaluate
 
 REPO = Path(__file__).resolve().parents[2]
 

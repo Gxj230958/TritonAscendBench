@@ -14,13 +14,9 @@ import torch
 import yaml
 
 from ascendbench.release_gate.sanity_gate import (
-    DEFAULT_BOUNDS,
-    SanityBounds,
-    SanityResult,
     apply_bounds,
     load_bounds,
 )
-
 
 _BOUNDS = load_bounds()
 

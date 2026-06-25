@@ -16,7 +16,7 @@ from _knob_corpus import knob_doc  # noqa: E402
 
 def test_real_task_lints_clean():
     # a real generated task obeys the invariant by construction (axis name -> single extent per row).
-    # corpus is v2 now; generate the explicit view from the KNOB (git history).
+    # corpus is v2 now; generate the explicit view from the KNOB (reconstructed from the committed v2).
     doc = generate_explicit_shapes(knob_doc("tasks/level3/L3_13_kernel_unified_attention_3d"))
     assert lint_task(doc) == []
 

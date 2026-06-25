@@ -34,7 +34,7 @@ def _old_inline_ids(doc: dict) -> tuple[list[str], list[str]]:
 def _knob_docs():
     # the 101 real corpus tasks (excludes the v2-only tasks/_canary fixture, which has no knob baseline).
     for sp in sorted((REPO / "tasks").glob("level*/*/shapes.yaml")):
-        doc = knob_doc(str(sp.parent))   # corpus is v2; this routing test compares against the KNOB ids (git)
+        doc = knob_doc(str(sp.parent))   # corpus is v2; this routing test compares against the KNOB ids (reconstructed from the committed v2)
         if isinstance(doc, dict) and doc.get("size_knobs"):
             yield sp.parent.name, doc
 
@@ -98,7 +98,7 @@ def test_adapter_dtype_table_covers_every_inputs_alias():
 def test_explicit_doc_enumerates_without_crashing():
     # the whole point: an explicit doc routes through the same adapter and yields the same ids.
     td = REPO / "tasks" / "level1" / "L1_01_bias"
-    knob = knob_doc(str(td))   # corpus is v2; build the explicit view from the KNOB (git history)
+    knob = knob_doc(str(td))   # corpus is v2; build the explicit view from the KNOB (reconstructed from the committed v2)
     exp = generate_explicit_shapes(knob)
     assert shape_ids(exp) == shape_ids(knob)
     assert list(public_ids(exp)) == list(public_ids(knob))

@@ -30,11 +30,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ascendbench.input_spec import param_constraints as pc
-from ascendbench.perf import scoring
 from ascendbench.corpus.dataset import TaskDef
 from ascendbench.engine.eval import _resolve_eval_task_status, evaluate
+from ascendbench.input_spec import param_constraints as pc
 from ascendbench.input_spec.inputs import build_inputs
+from ascendbench.perf import scoring
 
 REPO = Path(__file__).resolve().parent.parent.parent
 

@@ -110,13 +110,35 @@ def _knob_input_entry(inp: dict) -> Any:
     raise ValueError(f"unknown v2 input kind {kind!r}")
 
 
+def _row_template(inputs: list[dict]) -> list:
+    """The ROW-INVARIANT part of each input -- everything the knob template fixes across rows (only the
+    per-row resolved ``shape`` / scalar ``value`` vary). tensor: name/kind/axes/dtype/dist; derive &
+    scalar_knob: name/kind/expr (the value re-derives per row); scalar/scalar_seq/optional: name/kind/value
+    (fixed); struct: name/kind/struct.
+    """
+    out: list = []
+    for i in inputs:
+        k = i["kind"]
+        if k == "tensor":
+            out.append((i["name"], k, list(i.get("axes") or []), i.get("dtype"), i.get("dist")))
+        elif k in ("derive", "scalar_knob"):
+            out.append((i["name"], k, i.get("expr")))
+        elif k == "struct":
+            out.append((i["name"], k, i.get("struct")))
+        else:   # scalar / scalar_seq / optional -- the value is row-invariant
+            out.append((i["name"], k, i.get("value")))
+    return out
+
+
 def v2_to_knob_spec(v2: dict) -> dict:
     """Reconstruct a knob-equivalent doc from a v2 doc.
 
     Lossless: ``generate_compact_shapes(v2_to_knob_spec(v2)) == v2``. The symbolic ``inputs`` template + the
     base ``size_knobs`` come from ROW 0 (input order preserved); each row's ``env`` becomes its per-row
-    ``knobs`` (so ``effective_knobs == env`` and ``build_inputs`` resolves exactly). Fail-loud if a later row's
-    ``(name, kind)`` input set differs from row 0's -- the knob model has a single template for all rows.
+    ``knobs`` (so ``effective_knobs == env`` and ``build_inputs`` resolves exactly). Fail-loud if any later
+    row's FULL per-input template (name/kind + axes/dtype/dist or value/expr -- not just name+kind) differs
+    from row 0's: the knob model has a single template for all rows, so a row-varying template cannot round-trip
+    and must not be silently collapsed to row 0.
     """
     pub = v2.get("public") or []
     hid = v2.get("hidden") or []
@@ -124,11 +146,11 @@ def v2_to_knob_spec(v2: dict) -> dict:
     if not rows:
         raise ValueError("v2 doc has no rows -- nothing to reconstruct")
     row0 = rows[0]
-    sig0 = [(i["name"], i["kind"]) for i in row0["inputs"]]
+    tpl0 = _row_template(row0["inputs"])
     for r in rows[1:]:
-        if [(i["name"], i["kind"]) for i in r["inputs"]] != sig0:
+        if _row_template(r["inputs"]) != tpl0:
             raise ValueError(
-                f"row {r['id']!r} input set differs from row 0 -- not a uniform-template (knob) task")
+                f"row {r['id']!r} input template differs from row 0 -- not a uniform-template (knob) task")
     inputs = {i["name"]: _knob_input_entry(i) for i in row0["inputs"]}
     return {
         "size_knobs": dict(row0["env"]),       # FULL row-0 env, in env order (NOT axes-only)

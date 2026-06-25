@@ -23,7 +23,7 @@ _KNOB_TASK = "tasks/level3/L3_13_kernel_unified_attention_3d"
 
 
 def _knob_doc():
-    # the corpus is migrated to v2; the KNOB form for these machinery tests comes from git history.
+    # the corpus is migrated to v2; the KNOB form for these machinery tests comes reconstructed from the committed v2.
     return knob_doc(_KNOB_TASK)
 
 
