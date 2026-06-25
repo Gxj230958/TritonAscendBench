@@ -11,15 +11,10 @@ Commit SHA: 409d350fb6f6a1e7c7546e39028f811092a8e489
 File SHA-256 (this vendored copy): 06564b45a3dfa6be2e2ca246182b3ba6a75c5c265e1c5a1bb2582e254424a38a
 """
 
-import itertools
-import sys
-
-import pytest
 import torch
 import triton
 import triton.language as tl
 
-from ascendbench.frozen.shim import moe_align_block_size  # Phase A': sibling-only CUDA reference (B-inert-shim)
 from ascendbench.frozen.shim import register_cuda_ci  # Phase A': CI-registration no-op (B-inert-shim)
 
 register_cuda_ci(est_time=28, suite="stage-b-kernel-unit-1-gpu-large")
@@ -112,49 +107,6 @@ def moe_align_block_size_stage4(
 
 
 
-
-
-import torch
-
-
-# Authored launcher: drives the in-module 4-stage @triton.jit pipeline
-# exactly as the upstream host wrapper `moe_align_block_size_triton` does
-# (SGLang sglang/jit_kernel/tests/test_moe_align_block_size.py,
-# commit 409d350fb6f6a1e7c7546e39028f811092a8e489 -- the same file frozen
-# into kernel.py).
-#
-# Upstream host wrapper (kernel.py, verbatim launch sequence):
-#     numel = topk_ids.numel()
-#     grid = (num_experts,)
-#     tokens_cnts = torch.zeros((num_experts + 1, num_experts), int32, dev)
-#     cumsum = torch.zeros((num_experts + 1,), int32, dev)
-#     tokens_per_thread = ceil_div(numel, num_experts)
-#     moe_align_block_size_stage1[grid](topk_ids, tokens_cnts, num_experts,
-#                                       numel, tokens_per_thread)
-#     moe_align_block_size_stage2[grid](tokens_cnts, num_experts)
-#     moe_align_block_size_stage3[(1,)](num_tokens_post_pad, tokens_cnts,
-#                                       cumsum, num_experts, block_size)
-#     moe_align_block_size_stage4[grid](topk_ids, sorted_token_ids,
-#                                       expert_ids, tokens_cnts, cumsum,
-#                                       num_experts, block_size, numel,
-#                                       tokens_per_thread)
-#
-# The output buffers `sorted_token_ids` / `expert_ids` / `num_tokens_post_pad`
-# are caller-allocated. The upstream test allocates them OVER-SIZED to the
-# worst-case `max_num_tokens_padded` and then compares only the valid prefix
-# (`sorted_ids[:num_tokens_post_pad]`, `expert_ids[:num_tokens_post_pad //
-# block_size]`). The padded sentinel for `sorted_token_ids` is `numel`
-# (upstream: `sorted_ids.fill_(topk_ids.numel())`).
-#
-# Output keys + the trimmed valid region match the oracle contract
-# (oracle_pytorch.py::run) exactly:
-#   sorted_token_ids   : [num_tokens_post_pad] int32, padding slots = numel
-#   expert_ids         : [num_tokens_post_pad // block_size] int32
-#   num_tokens_post_pad: [1] int32
-def _ceil_div(a: int, b: int) -> int:
-    return (a + b - 1) // b
-
-import torch
 
 
 # Authored launcher: drives the in-module 4-stage @triton.jit pipeline
