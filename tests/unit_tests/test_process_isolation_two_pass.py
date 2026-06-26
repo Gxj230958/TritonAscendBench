@@ -201,8 +201,9 @@ def test_timing_pass_produces_per_trial_durations(tmp_path):
 
     scr = res.per_shape["P1"]
     assert scr.ran, scr.error
-    # One duration per measured trial (warmup trials are NOT timed).
-    assert len(scr.durations) == n_repeat
+    # One duration per measured trial (warmup trials are NOT timed), minus
+    # the single profiled trial whose host time is profiler-polluted (G5).
+    assert len(scr.durations) == n_repeat - 1
     assert all(d > 0 for d in scr.durations)
 
 
@@ -293,7 +294,8 @@ def test_timing_pass_hidden_shape_per_trial(tmp_path):
         sol, timing, pass_kind="timing", n_warmup=1, sample_size=2)
     scr = res.per_shape["H1"]
     assert scr.ran, scr.error
-    assert len(scr.durations) == 4
+    # 4 measured trials minus the 1 profiled trial excluded from timing (G5).
+    assert len(scr.durations) == 3
 
 
 def test_run_two_pass_sampled_indices_are_runner_secret(tmp_path):

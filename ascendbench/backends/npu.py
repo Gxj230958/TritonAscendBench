@@ -1,12 +1,20 @@
 """NPU backend — Atlas 910B via torch_npu + triton-ascend."""
 from __future__ import annotations
 
+# Stdlib imports used by the post-audit-hook graded path (`_profile_npu`) are
+# imported HERE at module load so they are cached in sys.modules BEFORE the
+# Layer E audit hook installs: a fresh pure-Python stdlib import inside the
+# graded path would emit an `exec` audit event the hook blocks. (torch_npu's
+# profiler submodule is pre-warmed separately in `ensure_initialized`, since it
+# cannot be imported on the dev box.)
+import os as _os
+import tempfile
 from collections.abc import Callable
 
 import torch
 
 try:
-    import torch_npu  # noqa: F401
+    import torch_npu  # noqa: F401 — feature-detect torch_npu availability.
     _NPU_AVAILABLE = True
 except ImportError:
     _NPU_AVAILABLE = False
@@ -43,7 +51,7 @@ class EventTimer:
         self._ended = False
         self._elapsed_ns: int | None = None
 
-    def __enter__(self) -> "EventTimer":
+    def __enter__(self) -> EventTimer:
         self._ev_start.record()  # current stream
         return self
 
@@ -93,11 +101,42 @@ class NpuBackend:
         call R5/R6 invariant there."""
         return _NPU_AVAILABLE
 
+    def is_available(self) -> bool:
+        """True iff torch_npu is importable on this host (G4 backend_active).
+        The child ships this so the trusted parent can tell a real-runner unknown
+        signal (profiler failure -> fail closed) from a dev-machine stub unknown
+        (no torch_npu here -> not measured, no flip).
+
+        This deliberately returns the IMMUTABLE import-time ``_NPU_AVAILABLE``,
+        NOT a live ``torch.npu.is_available()`` device probe. The probe is unsafe
+        here on two counts: (1) it is computed in the child AFTER the candidate
+        module loads, and ``torch.npu.is_available`` is a mutable attribute a
+        static-clean candidate could monkeypatch to force backend_active False
+        and suppress the anti-cheat fail-close; (2) the first device probe does
+        ``ctypes.CDLL`` which the Layer E audit hook blocks, so it would fail and
+        fall back to the import signal anyway. So the import bool is the only
+        safe, tamper-proof signal in the sandbox. Consequence (documented): a
+        host with torch_npu installed but no usable device reports True; that
+        rare case surfaces as a grade FAIL with a device error, not as a stub."""
+        return _NPU_AVAILABLE
+
     def ensure_initialized(self) -> None:
-        """No-op: ``import torch_npu`` initializes the device eagerly, so
-        there is no deferred dlopen to force before the Layer E hook (unlike
-        CUDA's lazy init). Defined for backend-interface symmetry."""
-        return
+        """Pre-load the torch_npu profiler NOW, in the trusted-shim phase, so any
+        lazy ``dlopen`` it does happens BEFORE the Layer E audit hook blocks
+        dlopen. ``import torch_npu`` inits the device eagerly, but the
+        ``torch_npu.profiler`` SUBMODULE the G1 path (``_profile_npu``) imports on
+        the graded call can load its native lib lazily on first import; if that
+        first import landed post-hook the ``ctypes``/``dlopen`` would be rejected.
+        Warming it here (mirroring GpuBackend's CUDA/cuBLAS pre-init) makes the
+        later ``import torch_npu.profiler`` a cached no-op. Best-effort: a profiler
+        that cannot import is left for ``_profile_npu`` to surface, never fatal
+        here. No-op on the dev machine (no torch_npu)."""
+        if not _NPU_AVAILABLE:
+            return
+        try:
+            import torch_npu.profiler  # noqa: F401 — side-effect: dlopen pre-hook.
+        except Exception:
+            pass
 
     def dtype_supported(self, dtype: torch.dtype) -> bool:
         # 910B does not have FP8 cube arithmetic; software emulation only.
@@ -198,33 +237,76 @@ class NpuBackend:
                 "kernel_event_present": None,
                 "stream_nondefault": None,
                 "fallback_signal": None,
+                "npu_prof_raw_dir": None,
             }
-        # NPU machine: torch_npu profiler trace inspection lands here.
-        # `_profile_npu` runs `fn` under the profiler (one call total) and
-        # returns that call's output alongside the kernel-event / stream
-        # signals. The fallback derivation is host-independent (see
-        # _derive_fallback).
-        output, kernel_event_present, stream_nondefault = self._profile_npu(
-            fn, inputs)
+        # NPU machine: `_profile_npu` RECORDS the candidate under the profiler
+        # (one call total) and returns the raw trace dir; the kernel-event /
+        # stream signals are DEFERRED (None) here and filled by the trusted
+        # parent's offline parse (the in-child CSV parse is blocked by the
+        # graded sandbox). fallback is likewise deferred until the parent fills
+        # kernel_event_present.
+        output, kernel_event_present, stream_nondefault, raw_dir = (
+            self._profile_npu(fn, inputs))
         return {
             "output": output,
             "kernel_event_present": kernel_event_present,
             "stream_nondefault": stream_nondefault,
             "fallback_signal": _derive_fallback(kernel_event_present),
+            "npu_prof_raw_dir": raw_dir,
         }
 
     def _profile_npu(self, fn: Callable, inputs: object) -> tuple:
-        """Real NPU profiler trace inspection (910B machine only).
+        """Record ``fn(inputs)`` once under ``torch_npu.profiler`` and hand the
+        RAW trace dir to the trusted parent to parse — the kernel-event signal is
+        DEFERRED, not extracted here.
 
-        Stubbed on the dev machine — `profile_call` never reaches here
-        without `_NPU_AVAILABLE`. The 910B implementation runs `fn` under
-        `torch_npu.profiler` exactly once and inspects the trace for
-        NPU/triton kernel events and non-default-stream activity. It
-        returns ``(output, kernel_event_present, stream_nondefault)`` —
-        ``output`` is that single call's return value so the caller never
-        re-invokes `fn` .
+        WHY deferred: ``kernel_details.csv`` (which lists the NPU kernels that
+        ran) is generated by the profiler spawning CANN parser SUBPROCESSES
+        (``exec``). This runs in the graded Layer E sandbox, which blocks
+        ``exec`` — so the CSV is never produced in-child (verified on 910B:
+        "Profiling data parsing failed, error: Layer E: blocked runtime operation
+        'exec'"). The RECORDING works in-sandbox (the raw ``*_ascend_pt`` dir IS
+        written); only the parse is blocked. So we record here and let the
+        trusted PARENT (no hook) run ``torch_npu.profiler.profiler.analyse`` on
+        the raw dir post-child and fill ``kernel_event_present`` /
+        ``fallback_signal`` (see ``process_isolation`` parent-side parse).
+
+        Returns ``(output, None, None, raw_dir)``: kernel_event_present and
+        stream_nondefault are DEFERRED (None); ``raw_dir`` is the parent-owned
+        trace dir to parse. The raw dir lives under ``AB_NPU_PROF_ROOT`` (a
+        parent-created root OUTSIDE the candidate cwd, so the trust boundary is
+        the parent's, not the candidate's). If that root is absent (a
+        misconfiguration), raw_dir is None and the signal stays deferred None ->
+        the parent leaves kernel_event None -> G4 fails closed (real device +
+        unverifiable primary signal). The single call's output is returned so the
+        caller never re-invokes ``fn`` (stateful-candidate invariant).
         """
-        raise RuntimeError("NPU profiler only available on the 910B machine")
+        # torch_npu.profiler is pre-warmed in ensure_initialized() (pre-hook), so
+        # this is a cached sys.modules lookup here. It stays in-function because
+        # it cannot be imported on the dev box (no torch_npu).
+        import torch_npu.profiler as _prof
+
+        root = _os.environ.get("AB_NPU_PROF_ROOT")
+        if not root or not _os.path.isdir(root):
+            # No parent-owned trace root -> parse-in-parent impossible. Run the
+            # one call for plumbing; leave the signal deferred (None) so the
+            # parent fails closed rather than inventing a verdict.
+            return fn(inputs), None, None, None
+
+        # Record into a per-call subdir of the PARENT-owned root (outside the
+        # candidate cwd). NOT cleaned here — the parent parses then removes it.
+        prof_dir = tempfile.mkdtemp(prefix="t_", dir=root)
+        with _prof.profile(
+            activities=[_prof.ProfilerActivity.CPU, _prof.ProfilerActivity.NPU],
+            on_trace_ready=_prof.tensorboard_trace_handler(prof_dir),
+        ):
+            output = fn(inputs)
+        torch.npu.synchronize()
+        # NO in-child parse: the CSV export spawns parser subprocesses (exec) the
+        # graded hook blocks. The raw `*_ascend_pt` dir is written regardless; the
+        # trusted parent parses it. kernel_event_present / stream_nondefault are
+        # deferred to None (the parent fills the real value).
+        return output, None, None, prof_dir
 
 
 def _derive_fallback(kernel_event_present: bool | None) -> bool | None:

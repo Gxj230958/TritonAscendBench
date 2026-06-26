@@ -136,6 +136,10 @@ def test_status_json_has_schema_version_and_diagnostics(tmp_path):
     assert scr.stream_nondefault is None
     assert scr.fallback_signal is None
     assert scr.sampled_outputs is None
+    # G4 (schema 3): backend_active round-trips the full child -> parent hop.
+    # On the dev machine the NPU backend is a stub -> False, never None.
+    assert hasattr(scr, "backend_active")
+    assert scr.backend_active is False
 
 
 def test_child_args_never_carry_repo_root_or_shapes(tmp_path, monkeypatch):

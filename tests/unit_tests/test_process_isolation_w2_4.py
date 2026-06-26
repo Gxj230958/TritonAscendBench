@@ -76,12 +76,19 @@ def test_correctness_pass_carries_diagnostic_fields(tmp_path):
     assert scr.kernel_event_present is None
     assert scr.stream_nondefault is None
     assert scr.fallback_signal is None
+    # G4: backend_active travels the full _profile -> rec -> status -> parent
+    # hop. On the dev machine the NPU backend is a stub, so it is False
+    # (NOT None) — distinguishing "no device here" from an unmeasured signal.
+    assert hasattr(scr, "backend_active")
+    assert scr.backend_active is False
 
 
 def test_timing_pass_carries_diagnostic_fields(tmp_path):
     """The timing pass profiles one MEASURED trial per shape (R3-5: bound
     to a runner-secret sampled measured trial, never a warm-up call) and
-    carries the diagnostics up. Every measured trial is still recorded."""
+    carries the diagnostics up. G5: the profiled trial's host time includes
+    profiler setup/export/parse overhead, so it is excluded from the timing
+    series — 4 measured trials minus the 1 profiled trial = 3 durations."""
     sol = _write_solution(tmp_path)
     timing = {"P1": _timing_payload("P1", n_warmup=2, n_repeat=4)}
     res = pi.run_candidate_isolated(
@@ -91,13 +98,15 @@ def test_timing_pass_carries_diagnostic_fields(tmp_path):
     scr = res.per_shape["P1"]
     assert scr.ran, scr.error
     assert scr.fallback_signal is None  # dev stub
-    # The profiled measured trial is itself a timed trial — all 4 recorded.
-    assert len(scr.durations) == 4
+    # 4 measured trials, the profiled/sampled one excluded -> 3 clean samples.
+    assert len(scr.durations) == 3
 
 
 def test_timing_pass_diagnostics_without_warmup(tmp_path):
     """With no warm-up trials the child still profiles a measured trial
-    (R3-5) — diagnostics travel up and every measured duration is kept."""
+    (R3-5) — diagnostics travel up. G5: the single profiled trial is excluded
+    from the timing series (its host time is profiler-polluted), so 3 measured
+    trials yield 2 clean latency samples; the median/cv never see the outlier."""
     sol = _write_solution(tmp_path)
     timing = {"P1": _timing_payload("P1", n_warmup=0, n_repeat=3)}
     res = pi.run_candidate_isolated(
@@ -106,7 +115,8 @@ def test_timing_pass_diagnostics_without_warmup(tmp_path):
 
     scr = res.per_shape["P1"]
     assert scr.ran, scr.error
-    assert len(scr.durations) == 3
+    # 3 measured trials minus the 1 profiled/sampled trial = 2 clean samples.
+    assert len(scr.durations) == 2
     assert scr.fallback_signal is None
 
 

@@ -121,6 +121,13 @@ Upstream status.json (child -> parent):
           "kernel_event_present": bool | None,
           "stream_nondefault": bool | None,
           "fallback_signal": bool | None,
+          "backend_active": bool | None,  # device backend live when measured
+          "npu_prof_raw_dir": str | None,  # schema 4: raw torch_npu profiler
+          #                              dir for the trusted PARENT to parse
+          #                              offline (the in-child CSV parse is
+          #                              blocked by the graded sandbox's exec
+          #                              block); the parent fills
+          #                              kernel_event_present / fallback_signal.
           "sampled_outputs": str | None  # ref to sampled-output payload
         }, ...
       }
@@ -129,15 +136,19 @@ Upstream status.json (child -> parent):
 """
 from __future__ import annotations
 
+import csv
+import glob
 import json
 import logging
 import os
 import secrets
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -150,13 +161,72 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
+# Roots the trusted NPU child may load shared libraries / toolchain from. The
+# standard CANN install prefix + system lib dirs; a deliberately non-standard
+# CANN prefix is added HERE, never auto-trusted from a (possibly contaminated)
+# parent env var. See _audited_npu_env.
+_NPU_TRUSTED_LIB_ROOTS = (
+    "/usr/local/Ascend", "/usr/lib", "/usr/lib64", "/lib", "/lib64",
+    "/usr/local/lib", "/usr/local/lib64",
+)
+
+
+def _audited_npu_env(keys: tuple[str, ...]) -> dict[str, str]:
+    """Value-level audit of the CANN/Ascend loader/toolchain env vars forwarded
+    into the trusted child on NPU (G2). Each ``os.pathsep`` entry must be
+    absolute, an existing dir, NOT world-writable, under a trusted root, and
+    never under the repo / cwd / a tmp dir. Fail-closed: a failing entry is
+    dropped and a var that filters to empty is omitted, so a contaminated parent
+    env cannot inject a loader path into the trusted child before grading.
+    """
+    repo = os.path.realpath(str(REPO_ROOT))
+    cwd = os.path.realpath(os.getcwd())
+    tmp = os.path.realpath(tempfile.gettempdir())
+    roots = tuple(os.path.realpath(r) for r in _NPU_TRUSTED_LIB_ROOTS)
+
+    def _safe(entry: str) -> bool:
+        if not entry or not os.path.isabs(entry):
+            return False
+        p = os.path.realpath(entry)
+        if not os.path.isdir(p):
+            return False
+        if any(p == bad or p.startswith(bad + os.sep) for bad in (repo, cwd, tmp)):
+            return False
+        try:
+            if os.stat(p).st_mode & stat.S_IWOTH:
+                return False
+        except OSError:
+            return False
+        return any(p == r or p.startswith(r + os.sep) for r in roots)
+
+    out: dict[str, str] = {}
+    for k in keys:
+        v = os.environ.get(k)
+        if not v:
+            continue
+        kept = os.pathsep.join(e for e in v.split(os.pathsep) if _safe(e))
+        if kept:
+            out[k] = kept
+    return out
+
+
 #  frozen protocol versions. Bump when the wire schema changes;
 # downstream W items pin against these.
-PROTOCOL_VERSION = 2        # parent -> child args schema (v2: + backend)
-# v2 : per-shape `event_ns` added — the timing-pass child's NPU
-# event-timer cross-check series (None on the dev machine; real on the
-# 910B). The parent feeds it to `timing.arbitrate_timing(event_ns=...)`.
-STATUS_SCHEMA_VERSION = 2   # child -> parent status.json schema
+PROTOCOL_VERSION = 3        # parent -> child contract
+# protocol 3 : the parent sets the `AB_NPU_PROF_ROOT` env on the NPU child — a
+#   parent-owned trace root (outside the candidate cwd) the child records the
+#   profiler into, so the trust boundary for the raw trace is the parent's.
+STATUS_SCHEMA_VERSION = 4   # child -> parent status.json schema
+# schema 2 : per-shape `event_ns` added — the timing-pass child's NPU
+#   event-timer cross-check series (None on the dev machine; real on the
+#   910B). The parent feeds it to `timing.arbitrate_timing(event_ns=...)`.
+# schema 3 : per-shape `backend_active` added — whether the child's device
+#   backend was live (real 910B/CUDA) vs a dev stub. The trusted parent uses
+#   it to fail-close only on a real-runner unverified anti-cheat signal (G4).
+# schema 4 : per-shape `npu_prof_raw_dir` added — the raw torch_npu profiler dir
+#   the child recorded; the in-child CSV parse is blocked by the graded sandbox
+#   (exec), so the trusted parent parses it offline and fills
+#   kernel_event_present / fallback_signal (deferred None from the child).
 
 # Timing-pass defaults aligned to docs/reference/timing_arbitration.md (10 warmup /
 # 100 trials / 10 samples). Kept overridable so a dev-box smoke can drop to a
@@ -188,6 +258,14 @@ class ShapeCandidateResult:
     kernel_event_present: bool | None = None
     stream_nondefault: bool | None = None
     fallback_signal: bool | None = None
+    # True iff the device backend was active (real 910B/CUDA) when the signals
+    # above were taken; lets G4 fail-close a real-runner unknown vs a dev stub.
+    backend_active: bool | None = None
+    # schema 4: the raw torch_npu profiler dir the child recorded (the in-child
+    # CSV parse is blocked by the graded sandbox). The trusted PARENT parses it
+    # offline and OVERWRITES kernel_event_present / fallback_signal above; this
+    # field is the child->parent hand-off path only.
+    npu_prof_raw_dir: str | None = None
     sampled_outputs: dict[str, torch.Tensor] | None = None
 
 
@@ -402,15 +480,27 @@ def _profile(fn, inp):
     Returns ``(output, {"kernel_event_present", "stream_nondefault",
     "fallback_signal"})``.
     """
+    # backend_active distinguishes a real-runner unknown signal (device present,
+    # profiler failed -> fail closed at G4) from a dev-machine stub (no device,
+    # signals unmeasurable -> not measured, no flip).
+    _active = (_BACKEND.is_available()
+               if hasattr(_BACKEND, "is_available") else None)
     if _PROFILER is None:
         output = fn(inp)
         return output, {"kernel_event_present": None,
                         "stream_nondefault": None,
-                        "fallback_signal": None}
+                        "fallback_signal": None,
+                        "backend_active": _active,
+                        "npu_prof_raw_dir": None}
     res = _PROFILER.profile_call(fn, inp)
+    # `npu_prof_raw_dir` (NPU only): the raw profiler dir the child recorded.
+    # kernel_event_present / fallback_signal are DEFERRED (None) from the child
+    # and OVERWRITTEN by the trusted parent's offline parse of this dir.
     diag = {"kernel_event_present": res.get("kernel_event_present"),
             "stream_nondefault": res.get("stream_nondefault"),
-            "fallback_signal": res.get("fallback_signal")}
+            "fallback_signal": res.get("fallback_signal"),
+            "backend_active": _active,
+            "npu_prof_raw_dir": res.get("npu_prof_raw_dir")}
     return res.get("output"), diag
 
 
@@ -510,6 +600,8 @@ def _new_rec():
         "ran": False, "error": None, "keys": [],
         "durations": [], "event_ns": None, "kernel_event_present": None,
         "stream_nondefault": None, "fallback_signal": None,
+        "backend_active": None,
+        "npu_prof_raw_dir": None,
         "sampled_outputs": None,
     }
 
@@ -545,6 +637,8 @@ def _record_diag(rec, inp):
     rec["kernel_event_present"] = diag.get("kernel_event_present")
     rec["stream_nondefault"] = diag.get("stream_nondefault")
     rec["fallback_signal"] = diag.get("fallback_signal")
+    rec["backend_active"] = diag.get("backend_active")
+    rec["npu_prof_raw_dir"] = diag.get("npu_prof_raw_dir")
     return _flatten(output)
 
 
@@ -687,6 +781,8 @@ def _timing_shape(fn, shape, rec):
             rec["kernel_event_present"] = diag.get("kernel_event_present")
             rec["stream_nondefault"] = diag.get("stream_nondefault")
             rec["fallback_signal"] = diag.get("fallback_signal")
+            rec["backend_active"] = diag.get("backend_active")
+            rec["npu_prof_raw_dir"] = diag.get("npu_prof_raw_dir")
             flat, err = _flatten(out)
         else:
             _sync_device()
@@ -701,16 +797,25 @@ def _timing_shape(fn, shape, rec):
         if err is not None:
             rec["error"] = err
             return
-        durations.append(h1 - h0)
-        # NPU event-timer cross-check — read off the SAME bracketed call
-        # (None on the dev machine, where `timer` is None).
-        if timer is not None:
-            try:
-                event_ns.append(timer.elapsed_ns())
-            except Exception:  # noqa: BLE001 — cross-check, never fatal.
+        # G5: the profiled trial's host/event time includes profiler setup /
+        # export / parse overhead, so it is NOT a clean latency sample — exclude
+        # it from the timing series (t_npu median + event cross-check). Its
+        # anti-cheat signals + sampled output are still recorded above, and the
+        # candidate cannot tell which trial is profiled, so this is invisible to
+        # it. N>1 measured trials leave a clean series; a 1-trial smoke yields no
+        # timing sample, which is correct (you cannot cleanly time the profiled
+        # call).
+        if t != profiled_t:
+            durations.append(h1 - h0)
+            # NPU event-timer cross-check — read off the SAME bracketed call
+            # (None on the dev machine, where `timer` is None).
+            if timer is not None:
+                try:
+                    event_ns.append(timer.elapsed_ns())
+                except Exception:  # noqa: BLE001 — cross-check, never fatal.
+                    event_ns.append(None)
+            else:
                 event_ns.append(None)
-        else:
-            event_ns.append(None)
         if keys0 is None:
             keys0 = list(flat.keys())
         if t in sampled_idx:
@@ -865,7 +970,13 @@ def run_candidate_isolated(
             False, False, "timing pass requires per-trial inputs",
             pass_kind=pass_kind)
 
-    with tempfile.TemporaryDirectory(prefix="tab-cand-") as td:
+    # `prof_root` is the NPU profiler trace root: a parent-owned dir OUTSIDE the
+    # candidate cwd (`td`), so the trust boundary for the raw trace is the
+    # parent's, not the candidate's (G1 parse-in-parent). Auto-cleaned on exit;
+    # passed to the NPU child via the AB_NPU_PROF_ROOT env below. (Created for
+    # every backend; only wired into the env + parsed for backend == "npu".)
+    with tempfile.TemporaryDirectory(prefix="tab-prof-") as prof_root, \
+            tempfile.TemporaryDirectory(prefix="tab-cand-") as td:
         tdp = Path(td)
         child_py = tdp / "_child.py"
         child_py.write_text(_CHILD)
@@ -944,6 +1055,26 @@ def run_candidate_isolated(
             # : trusted-shim import path (REPO_ROOT first).
             "PYTHONPATH": child_pythonpath,
         }
+        # On NPU the trusted child must load torch_npu + the CANN/driver
+        # runtime, which need the Ascend environment (set on the parent via
+        # set_env.sh). Forward a FIXED, value-AUDITED allowlist of CANN/driver
+        # vars from the parent (_audited_npu_env: only absolute, existing,
+        # non-world-writable dirs under a trusted CANN/system root — never
+        # repo/cwd/tmp). This governs only the trusted child PROCESS's library
+        # loading, NOT candidate capability (the candidate stays under the
+        # Layer E audit hook + the static AST whitelist, both unchanged).
+        # PATH / PYTHONPATH already carry the parent's CANN additions above.
+        if backend == "npu":
+            env.update(_audited_npu_env((
+                "LD_LIBRARY_PATH", "ASCEND_TOOLKIT_HOME", "ASCEND_HOME_PATH",
+                "ASCEND_OPP_PATH", "ASCEND_AICPU_PATH", "CMAKE_PREFIX_PATH",
+                "TOOLCHAIN_HOME",
+            )))
+            # G1 parse-in-parent: tell the child where to RECORD the profiler
+            # raw trace (a parent-owned dir outside the candidate cwd). The child
+            # cannot parse it (the CSV export's exec is blocked by the graded
+            # sandbox); the parent parses each per-shape raw dir below.
+            env["AB_NPU_PROF_ROOT"] = prof_root
         # : spawn via Popen so we can SIGKILL the WHOLE process group
         # on timeout — `subprocess.run` only waits/kills the direct child,
         # leaving any forked descendant alive to leak state into the next
@@ -1012,7 +1143,19 @@ def run_candidate_isolated(
                 kernel_event_present=rec.get("kernel_event_present"),
                 stream_nondefault=rec.get("stream_nondefault"),
                 fallback_signal=rec.get("fallback_signal"),
+                backend_active=rec.get("backend_active"),
+                npu_prof_raw_dir=rec.get("npu_prof_raw_dir"),
             )
+            # G1 parse-in-parent: the child DEFERRED kernel_event_present /
+            # fallback_signal (None) because its profiler CSV parse is blocked by
+            # the graded sandbox. Here in the trusted parent (no hook) we parse
+            # the raw trace dir it recorded and OVERWRITE those signals. A None
+            # result (no raw dir / escape / parse anomaly) stays None -> G4 fails
+            # closed on a real device. The dev stub (no raw dir) is left as-is.
+            if backend == "npu" and scr.npu_prof_raw_dir:
+                ke, fb = _parse_npu_kernel_event(scr.npu_prof_raw_dir, prof_root)
+                scr.kernel_event_present = ke
+                scr.fallback_signal = fb
             sampled_ref = rec.get("sampled_outputs")
             if sampled_ref:
                 sref = tdp / str(sampled_ref)
@@ -1032,6 +1175,120 @@ def run_candidate_isolated(
                 res.ran_any = True
             res.per_shape[sid] = scr
         return res
+
+
+# Generous bound on the trusted-parent NPU profiler parse (normal ~3 s on the
+# 910B); a corrupted raw trace that wedges the CANN parser past this is treated
+# as a parse failure (unverified -> fail-closed) rather than hanging the runner.
+_ANALYSE_TIMEOUT_S = 120
+
+
+def _run_with_timeout(fn, timeout_s):
+    """Run ``fn()`` in a daemon thread; return True iff it completed WITHOUT an
+    exception within ``timeout_s``. A hung ``fn`` leaves the daemon thread
+    abandoned (it cannot block process exit) and returns False, so a wedged CANN
+    parser cannot hang the runner — the caller fails closed.
+
+    Residual (accepted): on a timeout the abandoned analyse + any CANN parser
+    subprocesses it forked are NOT force-killed; they leak until the runner
+    exits. A subprocess+killpg boundary would be airtight but re-imports
+    torch_npu (~10 s) per parse — prohibitive for a full NPU eval (~2 parses per
+    shape x hundreds of shapes). A hang requires a corrupted raw trace, but the
+    candidate's FS-write primitives are statically blocked (Layers A-D/F), so the
+    raw trace is runner-produced and a hang is near-impossible; the in-process
+    timeout is the right trade and the verdict still fails closed."""
+    done = {"ok": False}
+
+    def _wrap():
+        try:
+            fn()
+            done["ok"] = True
+        except Exception:
+            done["ok"] = False
+
+    th = threading.Thread(target=_wrap, daemon=True)
+    th.start()
+    th.join(timeout_s)
+    return done["ok"] and not th.is_alive()
+
+
+def _parse_npu_kernel_event(raw_dir, prof_root):
+    """Trusted-PARENT offline parse of a child-recorded NPU profiler raw dir.
+
+    The in-child CSV parse is blocked by the graded sandbox (the profiler's CSV
+    export spawns parser subprocesses = `exec`, which Layer E blocks). This runs
+    in the parent (no hook), where `torch_npu.profiler.profiler.analyse` can
+    spawn its parsers. Returns ``(kernel_event_present, fallback_signal)``:
+
+      * >= 1 kernel row  -> (True,  False)  a real device kernel ran
+      * exactly 0 rows   -> (False, True)   confirmed empty-kernel / CPU fallback
+      * any anomaly      -> (None,  None)   -> G4 fails closed on a real device
+
+    Anti-forge: ``raw_dir`` MUST resolve UNDER ``prof_root`` (a parent-owned root
+    the candidate cannot legitimately reach); there must be exactly one
+    ``*_ascend_pt`` trace dir; any pre-existing ``kernel_details.csv`` is deleted
+    and MUST be regenerated by THIS parent ``analyse`` call — so a candidate that
+    forged the easy CSV (rather than the hard raw CANN binary) gains nothing.
+    Never raises; any anomaly returns ``(None, None)`` (unverified -> fail-closed).
+    """
+    unverified = (None, None)
+    if not raw_dir or not prof_root:
+        return unverified
+    try:
+        rd = os.path.realpath(raw_dir)
+        root = os.path.realpath(prof_root)
+        # rd must be STRICTLY under the trusted root: not the root itself, not
+        # escaped (realpath already resolved any symlink/`..`).
+        if (rd == root or not os.path.isdir(rd)
+                or os.path.commonpath([rd, root]) != root):
+            return unverified
+        asc = [d for d in glob.glob(os.path.join(rd, "*_ascend_pt"))
+               if os.path.isdir(d)]
+        if len(asc) != 1:
+            return unverified  # zero or multiple trace dirs -> not trustworthy
+        # The single trace dir must be a REAL subdir of rd — reject a symlink
+        # that would redirect the parent's parse / CSV write outside the
+        # parent-owned tree.
+        trace = asc[0]
+        if os.path.islink(trace):
+            return unverified
+        trace = os.path.realpath(trace)
+        if os.path.commonpath([trace, rd]) != rd:
+            return unverified
+        kd = os.path.join(trace, "ASCEND_PROFILER_OUTPUT", "kernel_details.csv")
+        # No symlink ANYWHERE from the validated trace dir down to the CSV: an
+        # intermediate `ASCEND_PROFILER_OUTPUT -> /external` symlink would
+        # redirect the delete/read outside the parent-owned tree. realpath
+        # resolves every component (incl. a not-yet-existing tail), so requiring
+        # realpath(kd) == kd rejects any intermediate-dir or file symlink; the
+        # resolved path must still be under rd.
+        if (os.path.realpath(kd) != kd
+                or os.path.commonpath([os.path.realpath(kd), rd]) != rd):
+            return unverified
+        # Distrust any child-side CSV — require the parent to regenerate it fresh.
+        # (Any symlink at kd was already rejected above, so this removes a real
+        # pre-existing file only.)
+        if os.path.exists(kd):
+            os.remove(kd)
+        from torch_npu.profiler.profiler import analyse  # parent-only; no hook
+        # Bound the parse: a corrupted raw trace could make CANN parsing hang —
+        # a wedged parser must not hang the runner. A hung/raised parse ->
+        # unverified -> G4 fails closed.
+        if not _run_with_timeout(lambda: analyse(rd), _ANALYSE_TIMEOUT_S):
+            return unverified
+        # Re-validate the WHOLE path right before reading (defense-in-depth: an
+        # out-of-model writer could TOCTOU-swap an intermediate component to a
+        # symlink between the pre-delete check and here). Require a real,
+        # non-symlink CSV freshly produced by THIS parent parse, still under rd.
+        if (not os.path.isfile(kd) or os.path.islink(kd)
+                or os.path.realpath(kd) != kd
+                or os.path.commonpath([os.path.realpath(kd), rd]) != rd):
+            return unverified
+        with open(kd, newline="") as fh:
+            rows = sum(1 for _ in csv.DictReader(fh))
+        return (True, False) if rows > 0 else (False, True)
+    except Exception:  # any parse anomaly -> unverified -> fail-closed at G4.
+        return unverified
 
 
 def scrub_between_passes() -> list[str]:

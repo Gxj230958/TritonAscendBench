@@ -164,8 +164,10 @@ def test_r5_2_timing_sampled_output_is_the_timed_call(tmp_path):
         assert torch.equal(scr.sampled_outputs[key], expected), (
             f"trial {t}: sampled output must be the single timed call's "
             f"output (one call per measured trial, no extra re-run)")
-    # Three measured trials, three durations — the profiled one included.
-    assert len(scr.durations) == 3
+    # Three measured trials; the profiled trial (t=0) is still called exactly
+    # once (so its sampled output above is valid) but its profiler-polluted
+    # host time is excluded from the timing series (G5) -> two durations.
+    assert len(scr.durations) == 2
 
 
 # --------------------------------------------------------------------------

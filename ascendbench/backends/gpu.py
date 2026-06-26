@@ -66,6 +66,12 @@ class GpuBackend:
         warmup call — preserving the exactly-one-graded-call R5/R6 invariant)."""
         return _CUDA_AVAILABLE
 
+    def is_available(self) -> bool:
+        """True iff a real CUDA device is present. Symmetry with NpuBackend;
+        the child ships this so the parent can distinguish a real-runner
+        unknown signal from a dev-machine stub (G4)."""
+        return _CUDA_AVAILABLE
+
     def ensure_initialized(self) -> None:
         """Force CUDA's lazy init now, in the trusted-shim phase, so the
         driver / runtime / cuBLAS ``ctypes.dlopen`` happens BEFORE the Layer E
