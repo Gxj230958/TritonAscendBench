@@ -47,11 +47,21 @@ REQUIRED_KEYS = [
 
 PLACEHOLDER_PATTERNS = ("<TBD>", "<frozen-", "<set-by-", "<fill-after-", "<no-git")
 
+# The NPU software_hash fields emitted per-verdict (ascendbench.policies.
+# version_matrix.npu_software_hash). Presence is not enough — an empty string
+# would pass the key-presence check yet yield an empty provenance stamp, so the
+# release gate must reject empties here specifically.
+NPU_SOFTWARE_HASH_KEYS = (
+    ("npu", "cann"),
+    ("npu", "torch_npu"),
+    ("npu", "triton_ascend"),
+)
 
-def main() -> int:
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", nargs="?", default=str(DEFAULT_PATH))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     p = Path(args.path)
     if not p.exists():
@@ -88,11 +98,28 @@ def main() -> int:
                 break
             d = d[seg]
 
+    # Reject empty NPU software_hash values: the per-verdict provenance stamp
+    # must be a real toolchain, not "".
+    empty_software: list[str] = []
+    for keypath in NPU_SOFTWARE_HASH_KEYS:
+        d2: dict = data
+        for seg in keypath:
+            if not isinstance(d2, dict) or seg not in d2:
+                d2 = None  # already reported by the missing-key pass
+                break
+            d2 = d2[seg]
+        if isinstance(d2, str) and not d2.strip():
+            empty_software.append(".".join(keypath))
+
     ok = True
     if missing:
         ok = False
         for k in missing:
             print(f"ERROR: missing required key {k}", file=sys.stderr)
+    if empty_software:
+        ok = False
+        for k in empty_software:
+            print(f"ERROR: empty NPU software_hash value {k}", file=sys.stderr)
     if placeholders:
         ok = False
         for path, val in placeholders:

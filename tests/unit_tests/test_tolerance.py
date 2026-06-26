@@ -133,3 +133,55 @@ def test_sampled_path_still_runs_full_allclose():
         "even though the full tensor contains a NaN — P1-3 attack."
     )
     assert "nan" in (res.reason or "").lower()
+
+
+# ---------------------------------------------------------------------------
+# G6 — migration-mode output-dtype-equality gate (require_output_dtype_match).
+# ---------------------------------------------------------------------------
+from ascendbench.correctness.tolerance import ToleranceClass  # noqa: E402
+
+_FLOAT_CLS = ToleranceClass(name="g6", atol=1e-3, rtol=1e-3)
+
+
+def test_dtype_gate_off_by_default_allows_float_widening():
+    """Default (off): a fp32 candidate vs a bf16 reference still passes via the
+    historical fp32-cast allclose — GPU-C2 callers are byte-unchanged."""
+    a = torch.zeros(8, dtype=torch.float32)
+    e = torch.zeros(8, dtype=torch.bfloat16)
+    assert compare(a, e, _FLOAT_CLS).passed
+    assert compare(a, e, _FLOAT_CLS, require_output_dtype_match=False).passed
+
+
+def test_dtype_gate_on_fails_float_dtype_mismatch():
+    """On (NPU migration): output dtype must equal the reference dtype."""
+    a = torch.zeros(8, dtype=torch.float32)
+    e = torch.zeros(8, dtype=torch.bfloat16)
+    res = compare(a, e, _FLOAT_CLS, require_output_dtype_match=True)
+    assert not res.passed
+    assert "dtype mismatch (migration)" in (res.reason or "")
+
+
+def test_dtype_gate_on_passes_same_dtype():
+    """On + identical dtype + identical values still passes (gate is dtype-only,
+    it does not bypass the numeric allclose)."""
+    a = torch.zeros(8, dtype=torch.bfloat16)
+    e = torch.zeros(8, dtype=torch.bfloat16)
+    assert compare(a, e, _FLOAT_CLS, require_output_dtype_match=True).passed
+
+
+def test_dtype_gate_on_does_not_bypass_numeric_check():
+    """On + same dtype but a large value drift must STILL fail — the gate adds a
+    dtype precondition, it never short-circuits the value comparison to a pass."""
+    a = torch.full((8,), 5.0, dtype=torch.float32)
+    e = torch.zeros(8, dtype=torch.float32)
+    assert not compare(a, e, _FLOAT_CLS, require_output_dtype_match=True).passed
+
+
+def test_dtype_gate_does_not_touch_integer_path():
+    """Integer outputs already enforce dtype in their own branch; the gate flag
+    is irrelevant there (int32 vs int32 passes regardless of the flag)."""
+    a = torch.zeros(8, dtype=torch.int32)
+    e = torch.zeros(8, dtype=torch.int32)
+    int_cls = ToleranceClass(name="g6i", atol=0, rtol=0, int_atol=0)
+    assert compare(a, e, int_cls, require_output_dtype_match=True).passed
+    assert compare(a, e, int_cls, require_output_dtype_match=False).passed

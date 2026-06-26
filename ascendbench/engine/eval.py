@@ -33,6 +33,7 @@ from pathlib import Path
 
 import torch
 
+from ascendbench.backends import get_backend
 from ascendbench.corpus.dataset import TaskDef, load_task
 from ascendbench.correctness import tolerance
 from ascendbench.integrity import static_checker
@@ -171,6 +172,13 @@ class TaskEvalResult:
     # E1: harness/orchestration error reason -- populated only when phase-2b
     # grading hits a non-candidate (harness) failure; never silently dropped.
     error_reason: str | None = None
+    # G6(i): NPU hardware-dtype provenance. Maps a reference-output tensor key
+    # to its dtype string when that dtype is not natively supported on the NPU
+    # (fp8 on 910B -> Vector/software-emulated, not a tensor-core MAC). This is
+    # a HARDWARE FLAG, not a denominator/status escape: the task stays graded
+    # (fp8 under ordered-code ULP). Populated only on the NPU backend; empty on
+    # GPU. Mirrored as the `hw_dtype_emulated` performance flag when non-empty.
+    hw_emulated_dtypes: dict[str, str] = field(default_factory=dict)
 
     def shape_measurements(self) -> list[scoring.ShapeMeasurement]:
         return [
@@ -219,6 +227,20 @@ class TaskEvalResult:
         )
 
 
+def _npu_unsupported_output_dtypes(expected: dict, backend_obj) -> dict[str, str]:
+    """G6(i): map each reference-output tensor key whose dtype the backend does
+    not natively support to its dtype string (fp8 on the 910B -> Vector /
+    software-emulated, not a tensor-core MAC). Pure metadata probe — callers
+    attach it as hardware provenance, NEVER as a gate/denominator escape. Uses
+    the backend's own ``dtype_supported`` so the fp8 policy has one source of
+    truth (no duplicated dtype list here)."""
+    out: dict[str, str] = {}
+    for key, exp in expected.items():
+        if torch.is_tensor(exp) and not backend_obj.dtype_supported(exp.dtype):
+            out[key] = str(exp.dtype)
+    return out
+
+
 def _verify_sampled_outputs(
     sampled: dict,
     shapes_doc: dict,
@@ -226,6 +248,8 @@ def _verify_sampled_outputs(
     meas_seed: int,
     omod,
     tol_cls,
+    *,
+    require_output_dtype_match: bool = False,
 ) -> dict:
     """Re-verify the timing pass's runner-sampled outputs against golden.
 
@@ -282,7 +306,10 @@ def _verify_sampled_outputs(
             if not torch.is_tensor(exp):
                 continue
             act = cand_out.get(key)
-            if act is None or not tolerance.compare(act, exp, tol_cls).passed:
+            if act is None or not tolerance.compare(
+                act, exp, tol_cls,
+                require_output_dtype_match=require_output_dtype_match,
+            ).passed:
                 mismatch = True
                 break
     return {"checked": checked, "mismatch": mismatch, "errors": errors}
@@ -292,6 +319,8 @@ def _verify_sampled_outputs_offline(
     sampled: dict,
     golden_dict: dict,
     tol_cls,
+    *,
+    require_output_dtype_match: bool = False,
 ) -> dict:
     """: re-verify the timing pass's runner-sampled outputs against the
     OFFLINE golden, for an ``upstream_oracle_required`` task in verified
@@ -333,7 +362,10 @@ def _verify_sampled_outputs_offline(
             if not torch.is_tensor(exp):
                 continue
             act = cand_out.get(key)
-            if act is None or not tolerance.compare(act, exp, tol_cls).passed:
+            if act is None or not tolerance.compare(
+                act, exp, tol_cls,
+                require_output_dtype_match=require_output_dtype_match,
+            ).passed:
                 mismatch = True
                 break
     return {"checked": checked, "mismatch": mismatch, "errors": 0}
@@ -376,6 +408,17 @@ def _apply_runtime_diagnostics(
     # signal None still counts as unverified (future-proof).
     gpu_all_verified = True
     gpu_saw_shape = False
+    # NPU anti-cheat (G4). The primary C7/B5 signal is fallback_signal (derived
+    # from kernel_event). A `None` on a shape means it was not measured -> always
+    # mark the run `npu_antihack_unverified` (provenance). But only FAIL-CLOSE
+    # (treat as fallback) when the device backend was ACTIVE for that shape
+    # (`backend_active is True`): a real 910B run with an unmeasured primary
+    # signal is a profiler failure -> non-passing; a dev-machine stub (no NPU,
+    # backend_active False/None) is "not measured here" and must not flip the
+    # gate. The B2 stream signal stays Phase-1b `None` and never fail-closes.
+    npu_primary_unverified = False     # any shape's primary signal is None
+    npu_active_unverified = False      # ...AND the device backend was active
+    npu_saw_shape = False
     for r in result.shape_results:
         sid = r.shape_id
         tscr = two.timing.per_shape.get(sid)
@@ -397,6 +440,18 @@ def _apply_runtime_diagnostics(
                     or src.stream_nondefault is None
                     or src.fallback_signal is None):
                 gpu_all_verified = False
+        if backend == "npu":
+            npu_saw_shape = True
+            src = tscr if tscr is not None else cscr
+            # primary C7/B5 signal must be measured (non-None) on every shape.
+            if src is None or src.fallback_signal is None:
+                npu_primary_unverified = True
+                # fail-close only when the device backend was live (real 910B);
+                # a dev stub (backend_active False/None) is "not measured here".
+                # getattr-default None so a diag object without the field (older
+                # mocks) degrades to dev-stub, never AttributeError.
+                if src is not None and getattr(src, "backend_active", None) is True:
+                    npu_active_unverified = True
         if diag is None:
             continue
         if diag.fallback_signal is True:
@@ -411,6 +466,17 @@ def _apply_runtime_diagnostics(
     if backend == "gpu" and (not gpu_saw_shape or not gpu_all_verified):
         if "gpu_antihack_unverified" not in result.performance_flags:
             result.performance_flags.append("gpu_antihack_unverified")
+    if backend == "npu" and (not npu_saw_shape or npu_primary_unverified):
+        # The primary C7/B5 anti-cheat was not measured on some shape -> mark the
+        # run so an unverified gate is distinguishable from a confirmed pass.
+        if "npu_antihack_unverified" not in result.performance_flags:
+            result.performance_flags.append("npu_antihack_unverified")
+    if backend == "npu" and npu_active_unverified:
+        # FAIL-CLOSED: a real 910B run (device backend active) whose primary
+        # signal is unmeasured is a profiler failure -> untrusted -> must not
+        # pass. Mark fallback_detected so the correctness gate fails before
+        # scoring. (A dev-machine stub does NOT reach here.)
+        result.fallback_detected = True
     if nondefault:
         if "invalid_stream" not in result.performance_flags:
             result.performance_flags.append("invalid_stream")
@@ -1164,6 +1230,11 @@ def evaluate(
             # "ok". Recorded across the per-shape loop, applied below.
             sampled_outputs_drift = False
 
+            # G6(i): backend handle for the NPU hardware-dtype provenance probe
+            # below (single source of truth for `dtype_supported`, never a
+            # duplicated fp8 list). Cheap to construct; no device init off-box.
+            _backend_obj = get_backend(backend)
+
             for sid in eval_shape_ids:
                 reason: str | None = None
                 passed = False
@@ -1194,6 +1265,19 @@ def evaluate(
                 elif tol_cls is None:
                     reason = f"unknown tolerance_class {task.tolerance_class!r}"
                 else:
+                    # G6(i): record NPU-unsupported reference-output dtypes as
+                    # hardware provenance (fp8 -> software-emulated on 910B).
+                    # Pure metadata — does NOT gate/skip the task; fp8 stays
+                    # graded under its ordered-code ULP class.
+                    if backend == "npu":
+                        for k, dt in _npu_unsupported_output_dtypes(
+                                expected, _backend_obj).items():
+                            result.hw_emulated_dtypes[k] = dt
+                        if (result.hw_emulated_dtypes
+                                and "hw_dtype_emulated"
+                                not in result.performance_flags):
+                            result.performance_flags.append("hw_dtype_emulated")
+
                     okk = True
                     for key, exp in expected.items():
                         if not torch.is_tensor(exp):
@@ -1203,7 +1287,12 @@ def evaluate(
                             okk = False
                             reason = f"missing output {key!r}"
                             break
-                        cmp = tolerance.compare(act, exp, tol_cls)
+                        # G6: enforce output-dtype preservation only on the NPU
+                        # migration path; GPU self-check (backend="gpu") and the
+                        # GPU-C2 oracle-equivalence path stay dtype-agnostic.
+                        cmp = tolerance.compare(
+                            act, exp, tol_cls,
+                            require_output_dtype_match=(backend == "npu"))
                         if not cmp.passed:
                             okk = False
                             reason = f"{key}: {cmp.reason}"
@@ -1251,11 +1340,13 @@ def evaluate(
                         and tol_cls is not None):
                     if golden_kind == "offline":
                         drift = _verify_sampled_outputs_offline(
-                            tscr.sampled_outputs, expected, tol_cls)
+                            tscr.sampled_outputs, expected, tol_cls,
+                            require_output_dtype_match=(backend == "npu"))
                     else:
                         drift = _verify_sampled_outputs(
                             tscr.sampled_outputs, shapes_doc, sid,
-                            meas_seed, omod, tol_cls)
+                            meas_seed, omod, tol_cls,
+                            require_output_dtype_match=(backend == "npu"))
                     sampled_checked = drift["checked"]
                     # : sampled outputs present but 0 verified — the
                     # anti-cheat could not run; fail-closed, never `ok`.

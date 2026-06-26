@@ -350,7 +350,7 @@ def _shape_result_json(r) -> dict:
     }
 
 
-def _round_result_json(result, canary_findings=None) -> dict:
+def _round_result_json(result, canary_findings=None, backend: str = "npu") -> dict:
     """Assemble the round_result.json payload from a TaskEvalResult .
 
     Emits the task-level Roofline ``s_t``, the DESIGN §9 provenance pair
@@ -362,6 +362,9 @@ def _round_result_json(result, canary_findings=None) -> dict:
     """
     tm = result.task_measurement()
     from ascendbench.integrity.adversarial import canary_finding_json
+    from ascendbench.policies.version_matrix import (
+        npu_software_hash as _npu_software_hash,
+    )
 
     return {
         "task_id": result.task_id,
@@ -379,6 +382,19 @@ def _round_result_json(result, canary_findings=None) -> dict:
         "baseline_ns": tm.baseline_ns,
         "measured_ns": tm.measured_ns,
         "task_status": result.task_status,
+        # G7: NPU software-stack provenance ({cann, torch_npu, triton_ascend}
+        # from version_matrix.toml) so every 910B verdict records the toolchain
+        # it was graded against. None on the GPU self-check backend — that path
+        # is the H200 proxy, not an authoritative 910B verdict.
+        "software_hash": (
+            _npu_software_hash() if backend == "npu" else None),
+        # G6(i): concrete NPU hardware-dtype provenance — the reference-output
+        # tensor keys whose dtype is software-emulated on the 910B (fp8). The
+        # `hw_dtype_emulated` performance flag above is the boolean signal; this
+        # map carries the actual {key: dtype} so a consumer knows exactly which
+        # outputs ran on the Vector/emulated path. Empty on GPU and for tasks
+        # with no unsupported dtype.
+        "hw_emulated_dtypes": result.hw_emulated_dtypes,
         # : diagnostic — whether the Roofline benchmark data was
         # complete for this task. `analyze` recomputes this authoritatively
         # from repo metadata, so the emitted value is informational only.
@@ -408,7 +424,7 @@ def _cmd_run(args) -> int:
     result = evaluate(args.task_id, Path(args.solution),
                       backend=args.backend, mode=args.mode,
                       peak_table_path=args.peak_table)
-    out = _round_result_json(result)
+    out = _round_result_json(result, backend=args.backend)
     Path(args.out).write_text(json.dumps(out, indent=2))
     s_t_str = f"{result.s_t:.4f}" if result.s_t is not None else "n/a"
     print(
@@ -482,7 +498,7 @@ def _cmd_run_suite(args) -> int:
                              mode=args.mode, peak_table_path=args.peak_table)
                 # : same round_result schema as `tab run` — task-level
                 # s_t + baseline_ns/measured_ns provenance + per-shape detail.
-                per_task.append(_round_result_json(r))
+                per_task.append(_round_result_json(r, backend=args.backend))
             except Exception as exc:
                 per_task.append({
                     "task_id": task.task_id,

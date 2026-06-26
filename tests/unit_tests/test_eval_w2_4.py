@@ -84,7 +84,9 @@ def test_nondefault_stream_sets_invalid_stream_and_suspicious():
 
 
 def test_none_signals_do_not_flip_status():
-    """The dev-machine stub ships None — no status is changed."""
+    """The dev-machine stub ships None with backend_active None — the run is
+    marked anti-cheat-unverified (G4 provenance), but correctness/performance
+    status are NOT flipped (not a real-runner profiler failure)."""
     result = TaskEvalResult(task_id="T", static_checks_passed=True)
     result.performance_status = "ok"
     result.shape_results.append(
@@ -96,8 +98,28 @@ def test_none_signals_do_not_flip_status():
     _eval._apply_runtime_diagnostics(result, two)
 
     assert result.fallback_detected is False
-    assert result.performance_flags == []
+    assert result.performance_flags == ["npu_antihack_unverified"]
     assert result.performance_status == "ok"
+
+
+def test_real_runner_none_primary_signal_fails_closed():
+    """G4: a REAL 910B run (backend_active=True) whose primary anti-cheat signal
+    is unmeasured (None) is a profiler failure -> fail-closed (fallback_detected)
+    + the unverified provenance flag. (Contrast the dev stub above, which does
+    NOT flip.)"""
+    result = TaskEvalResult(task_id="T", static_checks_passed=True)
+    result.performance_status = "ok"
+    result.shape_results.append(
+        ShapeRunResult("P1", True, None, None, None))
+    two = _two_pass({"kernel_event_present": None,
+                     "stream_nondefault": None,
+                     "fallback_signal": None,
+                     "backend_active": True})
+
+    _eval._apply_runtime_diagnostics(result, two)
+
+    assert result.fallback_detected is True
+    assert "npu_antihack_unverified" in result.performance_flags
 
 
 def test_quarantined_not_downgraded_by_nondefault_stream():
@@ -221,3 +243,45 @@ def test_evaluate_attaches_metamorphic_results():
     for r in result.shape_results:
         assert hasattr(r, "metamorphic_results")
         assert isinstance(r.metamorphic_results, list)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# G6(i) — NPU hardware-dtype provenance probe (_npu_unsupported_output_dtypes)
+# ─────────────────────────────────────────────────────────────────────────────
+def test_npu_unsupported_output_dtypes_flags_fp8_only():
+    """fp8 reference outputs are recorded (910B software-emulated); other
+    float/int dtypes are not. The non-tensor 'aux' is ignored."""
+    import torch
+
+    from ascendbench.backends import npu
+    from ascendbench.engine.eval import _npu_unsupported_output_dtypes
+
+    expected = {
+        "out": torch.zeros(4, dtype=torch.float8_e4m3fn),
+        "scale": torch.zeros(4, dtype=torch.float32),
+        "meta": 7,  # non-tensor — skipped
+    }
+    got = _npu_unsupported_output_dtypes(expected, npu.NpuBackend())
+    assert got == {"out": "torch.float8_e4m3fn"}
+
+
+def test_npu_unsupported_output_dtypes_empty_for_plain_float():
+    import torch
+
+    from ascendbench.backends import npu
+    from ascendbench.engine.eval import _npu_unsupported_output_dtypes
+
+    expected = {"out": torch.zeros(4, dtype=torch.bfloat16)}
+    assert _npu_unsupported_output_dtypes(expected, npu.NpuBackend()) == {}
+
+
+def test_gpu_backend_supports_fp8_so_probe_is_empty():
+    """The probe uses the backend's own dtype_supported — GPU supports fp8, so
+    even an fp8 output yields no provenance entry (this is an NPU-only flag)."""
+    import torch
+
+    from ascendbench.backends import gpu
+    from ascendbench.engine.eval import _npu_unsupported_output_dtypes
+
+    expected = {"out": torch.zeros(4, dtype=torch.float8_e4m3fn)}
+    assert _npu_unsupported_output_dtypes(expected, gpu.GpuBackend()) == {}

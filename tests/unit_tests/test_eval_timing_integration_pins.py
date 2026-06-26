@@ -189,8 +189,15 @@ def test_clean_run_emits_performance_status_ok(tmp_path, monkeypatch):
     assert result.performance_status == "ok", (
         f"clean run did not promote performance_status: "
         f"{result.performance_status!r}")
-    # A clean run carries no downgrade flags.
-    assert result.performance_flags == [], result.performance_flags
+    # A clean run carries no DOWNGRADE flags. The dev-stub backend ships
+    # unmeasured anti-cheat signals (backend_active None), so the run IS marked
+    # `npu_antihack_unverified` (G4 provenance, non-downgrade) — but no flag that
+    # lowers performance_status, and no fail-close.
+    assert "torch_fallback" not in result.performance_flags, result.performance_flags
+    assert "invalid_stream" not in result.performance_flags, result.performance_flags
+    assert result.fallback_detected is False
+    assert result.performance_flags in ([], ["npu_antihack_unverified"]), \
+        result.performance_flags
 
 
 def test_quarantine_still_downgrades_after_ok_promotion(tmp_path,

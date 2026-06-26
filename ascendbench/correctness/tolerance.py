@@ -387,6 +387,8 @@ def compare(
     actual: torch.Tensor,
     expected: torch.Tensor,
     cls: ToleranceClass,
+    *,
+    require_output_dtype_match: bool = False,
 ) -> ComparisonResult:
     """Numeric comparison.
 
@@ -398,6 +400,18 @@ def compare(
     Integer / bool dtypes (or any `bit_exact: true`
     class) get strict torch.equal — they MUST NOT go through float32 cast
     + allclose, which silently rounds e.g. int64(2^24+1) to 2^24.
+
+    ``require_output_dtype_match`` (keyword-only, default off) is the
+    migration-mode output-dtype gate (G6): on the NPU eval path a migration
+    must PRESERVE the oracle/golden output dtype, so a float output whose
+    dtype differs from the reference fails instead of being silently fp32-cast
+    to a pass. Default-off keeps every GPU-C2 caller byte-unchanged; the
+    integer / fp8 / bit_exact branches already enforce dtype equality, so this
+    flag only affects the float-allclose branch below. NOTE: the gate is only
+    as authoritative as the reference dtype — for a task whose fixture is fp32
+    while the true product contract is bf16, this makes the fixture dtype
+    authoritative (surfaced by the report-only GPU audit before any shared
+    enforcement).
     """
     if actual.shape != expected.shape:
         return ComparisonResult(
@@ -439,6 +453,18 @@ def compare(
             )
     if cls.bit_exact:
         return _bit_exact_compare(actual, expected)
+
+    # G6 migration-mode output-dtype gate (float branch only — int/fp8/bit_exact
+    # above already enforce dtype). A migration that widens/narrows the output
+    # dtype relative to the reference is a fidelity violation, not a pass.
+    if require_output_dtype_match and actual.dtype != expected.dtype:
+        return ComparisonResult(
+            passed=False,
+            reason=(f"output dtype mismatch (migration): "
+                    f"{actual.dtype} vs {expected.dtype}"),
+            max_abs_diff=float("inf"), max_rel_diff=float("inf"),
+            inf_mismatch_count=-1, nan_mismatch_count=-1,
+        )
 
     a_full = actual.detach().to(torch.float32).cpu()
     e_full = expected.detach().to(torch.float32).cpu()

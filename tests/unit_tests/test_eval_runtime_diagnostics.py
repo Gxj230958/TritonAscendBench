@@ -13,9 +13,10 @@ from types import SimpleNamespace
 from ascendbench.engine.eval import _apply_runtime_diagnostics
 
 
-def _scr(ke=None, sn=None, fs=None):
+def _scr(ke=None, sn=None, fs=None, backend_active=None):
     return SimpleNamespace(
-        kernel_event_present=ke, stream_nondefault=sn, fallback_signal=fs)
+        kernel_event_present=ke, stream_nondefault=sn, fallback_signal=fs,
+        backend_active=backend_active)
 
 
 def _two(timing, correctness=None):
@@ -39,10 +40,22 @@ def test_gpu_all_none_diagnostics_flagged_unverified():
 
 
 def test_npu_all_none_diagnostics_not_flagged():
-    """NPU stub all-None is the documented dev path — no GPU provenance flag."""
+    """NPU stub all-None is the documented dev path — no GPU provenance flag,
+    and a dev stub (backend_active None) does NOT fail-close."""
     res = _result(["P1"])
     _apply_runtime_diagnostics(res, _two({"P1": _scr()}), backend="npu")
     assert "gpu_antihack_unverified" not in res.performance_flags
+    assert res.fallback_detected is False
+
+
+def test_npu_real_runner_none_primary_fails_closed():
+    """G4: a REAL 910B run (backend_active True) with an unmeasured primary
+    anti-cheat signal (None) fails closed — distinct from the dev stub above."""
+    res = _result(["P1"])
+    two = _two({"P1": _scr(backend_active=True)})
+    _apply_runtime_diagnostics(res, two, backend="npu")
+    assert res.fallback_detected is True
+    assert "npu_antihack_unverified" in res.performance_flags
 
 
 def test_gpu_all_signals_present_not_flagged():
