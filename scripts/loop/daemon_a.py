@@ -284,6 +284,22 @@ def _run_verify_one(
             "--output-dir",
             str(gg_dir),
         ]
+    elif action == "npu-grade":
+        # Candidate-grade NPU smoke: mirror of gpu-grade for the 910B. Runs a
+        # real triton kernel through the process_isolation sandbox on a torch_npu
+        # host and asserts the NPU anti-cheat signals (kernel_event / fallback /
+        # backend_active) plus the event timer + G5 series. Only PASSes when this
+        # daemon runs on real 910B silicon (phase_python -> a torch_npu env);
+        # on a CUDA-only host it honestly reports FAIL (backend_active False).
+        ng_dir = RESULTS / batch_id / "npu_grade"
+        cmd = [
+            phase_python,
+            "scripts/loop/npu_grade_one.py",
+            "--task",
+            task_id,
+            "--output-dir",
+            str(ng_dir),
+        ]
     elif action == "gpu-rank":
         # Trusted-operator cost-model ranking: run the task's own reference
         # triton kernel via the oracle-equiv path with device-only CUDA-event
@@ -385,6 +401,18 @@ def _run_verify_one(
                 verdict_status = "VERDICT_PARSE_ERROR"
         if not verdict_status:
             verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
+    elif action == "npu-grade":
+        # npu_grade_one writes a structured verdict JSON (overall field).
+        vp = RESULTS / batch_id / "npu_grade" / f"{task_id}.json"
+        if vp.is_file():
+            try:
+                gv = json.loads(vp.read_text())
+                verdict_status = gv.get("overall", "")
+                verdict_line = f"npu-grade {task_id}: {verdict_status}"
+            except (ValueError, OSError):
+                verdict_status = "VERDICT_PARSE_ERROR"
+        if not verdict_status:
+            verdict_status = "FAILED" if (rc is None or rc != 0) else "UNKNOWN"
     elif action == "gpu-rank":
         vp = RESULTS / batch_id / "gpu_rank" / f"{task_id}.json"
         if vp.is_file():
@@ -482,7 +510,7 @@ def _handle_batch(
     require_smoke = bool(spec.get("require_smoke", False))
     action = spec.get("action", "verify")
     if action not in ("verify", "resolve", "oracle-equiv", "gpu-grade",
-                      "gpu-rank"):
+                      "npu-grade", "gpu-rank"):
         # Fail-closed: an unknown action is an operator error, never a silent
         # downgrade to verify (that would emit a wrong verdict -- e.g. a
         # bit-exact S2 check for an oracle-equiv request).

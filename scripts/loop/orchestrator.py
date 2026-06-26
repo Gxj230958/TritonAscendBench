@@ -533,6 +533,42 @@ def cmd_run_gpu_grade(args: argparse.Namespace) -> int:
     return wait_rc
 
 
+def cmd_npu_grade(args: argparse.Namespace) -> int:
+    """submit a batch with spec.action='npu-grade' (candidate-grade NPU smoke).
+
+    Mirror of cmd_gpu_grade for the 910B: the daemon runs a real triton kernel
+    through the process_isolation sandbox per task on a torch_npu host, writing a
+    verdict JSON to results/<batch>/npu_grade/<task>.json. Asserts the NPU
+    anti-cheat signals (kernel_event / fallback / backend_active) the GPU stub
+    cannot produce. Only meaningful when the target daemon runs on real 910B
+    silicon.
+    """
+    args.action = "npu-grade"
+    if not hasattr(args, "require_smoke"):
+        args.require_smoke = False
+    return cmd_submit(args)
+
+
+def cmd_run_npu_grade(args: argparse.Namespace) -> int:
+    """sync-code + npu-grade + wait + collect, one shot."""
+    rc = cmd_sync_code(args)
+    if rc != 0:
+        return rc
+    batch_id = args.batch_id or _new_batch_id()
+    args.batch_id = batch_id
+    rc = cmd_npu_grade(args)
+    if rc != 0:
+        return rc
+    wait_rc = cmd_wait(args)
+    if wait_rc == 0:
+        return cmd_collect(args)
+    if wait_rc == 3:
+        print(f"{batch_id}: collecting partial results before exit (DEAD)")
+        cmd_collect(args)
+        return 3
+    return wait_rc
+
+
 def cmd_gpu_rank(args: argparse.Namespace) -> int:
     """submit a batch with spec.action='gpu-rank' (full GPU ranking per task).
 
@@ -710,6 +746,24 @@ def main() -> int:
     s.add_argument("--interval", type=int, default=10)
     s.add_argument("--stale-after", type=int, default=300)
     s.set_defaults(func=cmd_run_gpu_grade)
+
+    s = sub.add_parser("npu-grade",
+                       help="submit a batch that runs the candidate-grade NPU "
+                            "sandbox smoke per task (needs a 910B daemon)")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.set_defaults(func=cmd_npu_grade)
+
+    s = sub.add_parser("run-npu-grade",
+                       help="sync-code + npu-grade + wait + collect")
+    s.add_argument("--batch-id", default=None)
+    s.add_argument("--tasks", nargs="+", required=True)
+    s.add_argument("--allow-recycle", action="store_true")
+    s.add_argument("--timeout", type=int, default=3600)
+    s.add_argument("--interval", type=int, default=10)
+    s.add_argument("--stale-after", type=int, default=300)
+    s.set_defaults(func=cmd_run_npu_grade)
 
     s = sub.add_parser("gpu-rank",
                        help="submit a batch that runs each task's reference "

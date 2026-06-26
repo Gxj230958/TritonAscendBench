@@ -159,9 +159,11 @@ def run(task: str) -> GradeVerdict:
     # stateful cheat); the timing sampled-output path is not asserted here.
     cheat_caught = (cheat["ran"] and cheat["error"] is None
                     and not cheat["correct"])
+    # 100 measured trials, minus the single profiled trial whose host time is
+    # profiler-polluted and excluded from the series (G5) -> 99 clean durations.
     overall = ("PASS" if (honest["ran"] and honest["timing_ran"]
                           and honest["correct"] and cheat_caught
-                          and len(durs) == 100 and honest["event_ns_nonnull"] > 0)
+                          and len(durs) == 99 and honest["event_ns_nonnull"] > 0)
                else "FAIL")
     return GradeVerdict(
         task, overall, honest["ran"], honest["timing_ran"], honest["correct"],
