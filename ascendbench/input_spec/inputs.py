@@ -903,6 +903,8 @@ def _materialise_struct(
     only honest path otherwise.
     """
     import importlib
+    import os
+    import sys
 
     klass_path = spec.get("struct")
     if not isinstance(klass_path, str) or "." not in klass_path:
@@ -911,6 +913,22 @@ def _materialise_struct(
             f"(e.g. 'sglang.srt.lora.utils.LoRABatchInfo')"
         )
     mod_path, _, cls_name = klass_path.rpartition(".")
+    # Runtime-purity guard (R7): on the runtime path (`tab run`) a struct input
+    # may import only ascendbench / stdlib / torch. ANY other top-level package
+    # (vllm/sglang, or a third-party dep that imports upstream indirectly) is a
+    # release-boundary violation -- an allowlist, so an arbitrary YAML-driven
+    # import cannot smuggle upstream in. The provenance/oracle path opts in with
+    # AB_ALLOW_UPSTREAM_STRUCT=1. Fail closed by default so a future task's
+    # shapes.yaml cannot silently import upstream at run time.
+    top_pkg = mod_path.split(".", 1)[0]
+    runtime_allowed = {"ascendbench", "torch"} | sys.stdlib_module_names
+    if top_pkg not in runtime_allowed and os.environ.get("AB_ALLOW_UPSTREAM_STRUCT") != "1":
+        raise ImportError(
+            f"input {name!r}: struct class {klass_path!r} imports non-runtime "
+            f"package {top_pkg!r} -- a release-boundary violation on the runtime "
+            f"path. Set AB_ALLOW_UPSTREAM_STRUCT=1 on the provenance/oracle path "
+            f"to allow it."
+        )
     try:
         mod = importlib.import_module(mod_path)
         cls = getattr(mod, cls_name)
