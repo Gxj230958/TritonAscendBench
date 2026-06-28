@@ -20,9 +20,6 @@ The Phase C shapes.yaml schema (consumed here):
 `oracle_pytorch.run(inputs)` and to the candidate solution. Tensor specs
 are size-knob formulas so one inputs block covers every shape row.
 
-This is the bridge eval.py was missing (was a Phase 2.B TODO): with it,
-shapes.yaml is actually executable and the oracle can be run per shape.
-
 WA.3 adds three non-tensor refinements to the materialisation layer:
 
 * **derived scalars** — ``{derive: "1/sqrt(D)"}`` replaces a hardcoded
@@ -439,10 +436,9 @@ def _resolve_dtype(name: str) -> torch.dtype:
     """Resolve a ``shapes.yaml`` dtype alias to a ``torch.dtype`` — fail-loud.
 
     The dtype alias must be a key of the shared :data:`DTYPE_ALIASES` table
-    (`docs/reference/task_api_contract.md §5.2`). WA.4 ③: an unknown alias (a typo) is
-    a hard :class:`DistSpecError`-style failure — there is **no** silent
-    fallback to ``float32``, which would have materialised oracle and
-    candidate at a dtype neither the task author nor the validator intended.
+    (`docs/reference/task_api_contract.md §5.2`). An unknown alias raises
+    rather than silently falling back to ``float32`` — a fallback would
+    materialise oracle and candidate at a dtype neither intended.
 
     Args:
         name: the dtype alias string from a ``shapes.yaml`` tensor spec.
@@ -805,10 +801,10 @@ def _make_tensor(spec: dict[str, Any], knobs: dict[str, int],
 
 
 # JSON-representable non-tensor scalar types accepted in an inputs dict.
-# `scalar` / `derive` values must be one of these — the  sidecar IPC
-# carries no pickle (`inputs.py` `split_inputs`, `process_isolation.py`
-# `_merge`), so a non-JSON scalar (e.g. a list under `scalar`) cannot cross
-# the channel. WA.3 ② makes that boundary a hard error at materialisation.
+# `scalar` / `derive` values must be one of these: the sidecar IPC carries no
+# pickle (split_inputs / process_isolation._merge), so a non-JSON scalar (e.g.
+# a list under `scalar`) cannot cross the channel and is a hard error at
+# materialisation.
 _JSON_SCALAR_TYPES = (bool, int, float, str, type(None))
 
 
@@ -816,10 +812,10 @@ def _materialise_scalar(name: str, spec: dict[str, Any],
                         knobs: dict[str, int]) -> Any:
     """Materialise one non-tensor input (``scalar`` / ``derive`` / ``scalar_seq``).
 
-    WA.3 ① / ②: the value of a ``scalar`` (a literal) or a ``derive`` rule
-    (a knob expression evaluated through :func:`expr.eval_numeric`) must be a
-    JSON scalar — the  sidecar IPC type boundary. A ``scalar_seq`` is a
-    list of JSON scalars (the dedicated key for list literals such as
+    The value of a ``scalar`` (a literal) or a ``derive`` rule (a knob
+    expression evaluated through :func:`expr.eval_numeric`) must be a JSON
+    scalar (the IPC boundary — see :data:`_JSON_SCALAR_TYPES`). A ``scalar_seq``
+    is a list of JSON scalars (the dedicated key for list literals such as
     ``L2_10`` ``block_size`` and ``L1_31`` ``mrope_section``).
 
     Args:
@@ -1068,9 +1064,8 @@ def shape_ids(shapes_doc: dict[str, Any]) -> tuple[list[str], list[str]]:
 def _json_sidecar_value(name: str, value: Any) -> Any:
     """Coerce a non-tensor input value to its JSON-sidecar representation.
 
-    The IPC sidecar carries no pickle, so a non-tensor value must be a JSON
-    scalar (``bool`` / ``int`` / ``float`` / ``str`` / ``None``) or a
-    ``scalar_seq`` list of JSON scalars (WA.3 ②). Anything else fails loudly.
+    A non-tensor value must be a JSON scalar or a ``scalar_seq`` list of them
+    (the IPC boundary — see :data:`_JSON_SCALAR_TYPES`). Anything else fails loudly.
 
     Args:
         name: the input name (for error messages).
@@ -1108,8 +1103,8 @@ def split_inputs(
     (``scalar`` / ``derive`` / ``scalar_knob`` results, and ``scalar_seq``
     lists) keyed by input name.
 
-    Raises ``TypeError`` if a non-tensor value is not JSON-representable —
-    the IPC carries no pickle, so unexpected object types must fail loudly.
+    Raises ``TypeError`` if a non-tensor value is not JSON-representable
+    (the IPC boundary — see :data:`_JSON_SCALAR_TYPES`).
     """
     tensors: dict[str, torch.Tensor] = {}
     sidecar: dict[str, Any] = {}

@@ -447,15 +447,11 @@ def _verify_one_task(
         log.info("  %s: cannot resolve kernel entrypoint", task_id)
         return verdict
 
-    # Static wrapper-rank check BEFORE GPU
-    # import / kernel call. Many tasks previously fell through to
-    # `_import_kernel_function`, then LAUNCH_BLOCKED with stale
-    # `not enough values to unpack` tracebacks. Catching the rank
-    # mismatch statically gives an actionable verdict (shapes-patch
-    # candidate vs source-2 reroute) instead of a misleading runtime
-    # trace; AND when ALL shapes are static-blocked we skip kernel
-    # import entirely, so import-time failures cannot mask a clean
-    # static verdict.
+    # Catch wrapper rank-mismatch statically, before GPU import / kernel
+    # call: gives an actionable verdict (shapes-patch candidate vs source-2
+    # reroute) instead of a misleading runtime trace. When every shape is
+    # statically blocked we skip kernel import entirely, so an import-time
+    # failure can't mask a clean static verdict.
     from ascendbench.integrity.wrapper_contract import (
         check_against_inputs,
         extract_oracle_helper_contract,
@@ -537,11 +533,10 @@ def _verify_one_task(
                 )
             per_shape_static_verdict[sid] = sv
 
-    # If EVERY shape has a static verdict (any mix of WRAPPER_CONTRACT_
+    # If every shape has a static verdict (any mix of WRAPPER_CONTRACT_
     # MISMATCH / ORACLE_KERNEL_LAYOUT_MISMATCH / build-error
-    # LAUNCH_BLOCKED), skip kernel import entirely. This is the
-    # An unrelated import-time crash can no
-    # longer mask a clean static verdict.
+    # LAUNCH_BLOCKED), skip kernel import entirely so an import-time crash
+    # can't mask a clean static verdict.
     if (
         per_shape_static_verdict
         and len(per_shape_static_verdict) == len(all_shape_ids)
@@ -893,13 +888,11 @@ def _verify_one_task(
                 if isinstance(inputs_gpu.get(k), torch.Tensor)
             }
         elif isinstance(kernel_out, (tuple, list)):
-            # Multi-output kernels MUST carry the oracle's dict insertion
-            # order in safetensors metadata. Silently falling back to
-            # alphabetical ``ref_tensors.keys()`` is a mispair landmine
-            # for the L1_36 case it would
-            # quietly swap seg_indptr and src2dst and report inf again.
-            # Validate the metadata: it must be a list of strings whose
-            # set EXACTLY matches the safetensors keys and whose length
+            # Multi-output kernels must carry the oracle's dict insertion
+            # order in safetensors metadata; the alphabetical
+            # ``ref_tensors.keys()`` fallback would mis-pair outputs (e.g.
+            # swap seg_indptr / src2dst). Validate the metadata: a list of
+            # strings whose set matches the safetensors keys and whose length
             # equals the kernel tuple length.
             alphabetical_keys = list(ref_tensors.keys())
             if len(ref_tensors) <= 1:
@@ -1016,9 +1009,8 @@ def _verify_one_task(
                     sv.max_rel_diff[key] = float("inf")
                     sv.max_tol_units[key] = float("inf")
                     sv.max_ref_abs[key] = float("inf")
-                # Tolerance-aware verdict — compare returns ComparisonResult,
-                # NOT bool. Check the .passed field; earlier code treated the
-                # whole object as truthy which produced false-positive VERIFIED.
+                # compare() returns ComparisonResult, not bool — check
+                # .passed (the object is always truthy).
                 result = compare(ker_t, ref_t, tol)
                 if not result.passed:
                     all_pass = False

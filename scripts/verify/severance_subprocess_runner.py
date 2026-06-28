@@ -143,19 +143,15 @@ def _import_audit_modules(baseline: set[str] | None = None) -> list[str]:
 
 
 def _capture_infer_closure() -> list[str]:
-    """HOLE 3 -- snapshot every loaded module whose
-    ``__file__`` resolves under an infer/ root (``infer/vllm`` /
-    ``infer/sglang/python``). The S2 ``original`` side ALSO puts infer/
-    on ``sys.path`` and imports the UNMODIFIED upstream kernel.py, so a
-    verdict-affecting infer/ file imported ONLY on the S2-original path
-    (not on the oracle-consistency path) was previously OUTSIDE the
-    per-task ``upstream_fp`` closure (the oracle runner captured only
-    its OWN side). Mirroring the oracle runner's capture here and
-    UNIONing it into ``upstream_fp`` makes the per-task belt genuinely
-    reflect the COMPLETE live-upstream closure (oracle UNION S2-original).
-    Order-independent; absolute resolved paths (the parent maps them to
-    infer-rooted relpaths + byte-hashes them, exactly like the oracle
-    side)."""
+    """Snapshot every loaded module whose ``__file__`` resolves under an
+    infer/ root (``infer/vllm`` / ``infer/sglang/python``). The S2
+    ``original`` side also puts infer/ on ``sys.path`` and imports the
+    unmodified upstream kernel.py, so the parent unions this closure with
+    the oracle-runner closure into the per-task ``upstream_fp`` -- without
+    it, an infer/ file imported only on the S2-original path would fall
+    outside the belt. Order-independent absolute resolved paths (the
+    parent maps them to infer-rooted relpaths and byte-hashes them, like
+    the oracle side)."""
     roots = [str(VLLM_ROOT.resolve()), str(SGLANG_ROOT.resolve())]
     out: list[str] = []
     seen: set[str] = set()
@@ -265,25 +261,17 @@ def _encode_tree(obj, leaves: dict, prefix: str):
 
 
 def _move_to_device(obj, device: str):
-    """Recursively move EVERY tensor in ``obj`` (dict / list / tuple /
+    """Recursively move every tensor in ``obj`` (dict / list / tuple /
     bare tensor) onto ``device``, preserving structure and non-tensor
-    leaves verbatim.
-
-    Real Triton GPU kernels REQUIRE
-    CUDA tensors -- on a GPU host the authoritative S2 pass MUST hand
-    the entrypoint CUDA inputs or it no-runs / errors and
-    S2-gpu-authoritative is structurally unable to PASS. The
-    CPU/``TRITON_INTERPRET=1`` smoke pass passes ``device='cpu'`` so it
-    is a no-op there (smoke stays CPU, runs on a no-GPU box).
-
-    The move happens BEFORE the entrypoint is invoked. All stride /
-    storage-offset / ``storage_id`` alias evidence is captured by
-    ``_tensor_meta`` FROM the resulting on-device tensor objects (the
-    same objects the kernel mutates / aliases), so the device move does
-    NOT destroy the HOLE C alias/stride evidence -- only the value
-    *bytes* are later copied to CPU (``.detach().cpu()``) for
-    safetensors serialisation, AFTER the on-device metadata is
-    recorded."""
+    leaves verbatim. The move runs before the entrypoint is invoked:
+    no-op for ``device='cpu'`` so CPU smoke still works on a no-GPU box;
+    the GPU pass needs CUDA inputs since real Triton kernels can't run on
+    CPU tensors. Stride / storage-offset / ``storage_id`` alias evidence
+    is captured by ``_tensor_meta`` from the resulting on-device tensors
+    (the same objects the kernel mutates / aliases), so the move
+    preserves the alias/stride evidence -- only the value bytes are later
+    copied to CPU (``.detach().cpu()``) for safetensors serialisation,
+    after the on-device metadata is recorded."""
     import torch
 
     if torch.is_tensor(obj):
@@ -316,31 +304,25 @@ SHAPES_INCOMPLETE_MARKER = "BLOCKED(shapes-incomplete"
 
 
 class ShapesIncompleteError(RuntimeError):
-    """A required (NO-default) entrypoint parameter has no value in
-    shapes.yaml/build_inputs. This is a benchmark GAP (shapes.yaml is
-    incomplete), NOT a severing defect -- and CRITICALLY it must NEVER
-    be papered over with a silent positional shift:
-    skipping a missing param and shifting the remaining positional args
-    can land e.g. ``is_causal=True`` in the ``b_seq_len`` slot, causing
-    either a misleading crash OR (far worse) a wrong-but-"successful"
-    comparison. We map STRICTLY by name and fail LOUD + explicit."""
+    """A required (no-default) entrypoint parameter has no value in
+    shapes.yaml/build_inputs -- a benchmark gap, not a severing defect.
+    Binding is strictly by name; a skip+shift could land e.g.
+    ``is_causal=True`` in the ``b_seq_len`` slot and produce a
+    wrong-but-passing comparison, so this fails explicitly instead."""
 
 
 def _map_inputs_by_name(fn, entrypoint_name: str, inputs: dict,
                         param_name_map: dict | None = None):
-    """Map ``inputs`` onto ``fn``'s declared parameters STRICTLY BY NAME
-    -- never by silently skip+shift (the soundness
-    hole). For each declared positional/keyword parameter:
+    """Map ``inputs`` onto ``fn``'s declared parameters by name (never
+    skip+shift). For each declared positional/keyword parameter:
 
-      * present in ``inputs``           -> pass it (by keyword, so a
-        gap can never positionally shift a later arg).
-      * absent but has a real default   -> omit it; the entrypoint's
-        own default applies (legitimately optional).
-      * absent and NO default           -> hard, explicit
-        ``ShapesIncompleteError`` -> the runner surfaces a
-        ``BLOCKED(shapes-incomplete: missing param <name> for
-        entrypoint <e>)`` (a loud HONEST benchmark gap, never a silent
-        mis-call / false PASS).
+      * present in ``inputs``         -> pass it by keyword (so a gap
+        can never positionally shift a later arg).
+      * absent but has a real default -> omit it; the entrypoint's own
+        default applies (legitimately optional).
+      * absent and no default         -> raise ``ShapesIncompleteError``;
+        the runner surfaces ``BLOCKED(shapes-incomplete: missing param
+        <name> for entrypoint <e>)``.
 
     ``*args`` / ``**kwargs`` params are skipped (nothing to bind);
     a signature we cannot introspect falls back to ``fn(inputs)``."""
@@ -806,15 +788,13 @@ def _run_side(args: argparse.Namespace) -> int:
 
         shapes_doc = json.loads(Path(spec["shapes_json"]).read_text())
         out_dir = Path(spec["out_dir"])
-        # The parent passes device='cuda' for the
-        # S2-gpu-authoritative pass and device='cpu' for the
-        # CPU/TRITON_INTERPRET smoke pass. On a GPU host the real
-        # Triton kernel needs CUDA tensors; on a no-GPU host the smoke
-        # pass keeps device='cpu' (no-op move). We assert the requested
-        # CUDA device is actually present so a misconfigured GPU host
-        # FAILS LOUDLY rather than silently running CPU tensors (which
-        # would make S2-gpu-authoritative vacuously "run" without ever
-        # touching the GPU -- a silent-fake we refuse).
+        # The parent passes device='cuda' for the S2-gpu-authoritative
+        # pass and device='cpu' for the CPU/TRITON_INTERPRET smoke pass.
+        # On a GPU host the real Triton kernel needs CUDA tensors; on a
+        # no-GPU host the smoke pass keeps device='cpu' (no-op move).
+        # Assert the requested CUDA device is actually present so a
+        # misconfigured GPU host fails loudly rather than silently
+        # running CPU tensors.
         device = str(spec.get("device", "cpu"))
         if device.startswith("cuda") and not torch.cuda.is_available():
             status["error"] = (

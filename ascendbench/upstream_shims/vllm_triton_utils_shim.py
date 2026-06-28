@@ -22,32 +22,14 @@ Triton via the clone's ``__getattr__``-style copy of ``__dict__``.
 
 Autotune fallback (the key fix vs. upstream's placeholder)
 ----------------------------------------------------------
-On a CPU/``TRITON_INTERPRET=1`` host with no active Triton driver, the
-real ``triton.autotune`` decorator still produces an ``Autotuner``
-object, but the moment its ``__call__`` runs it tries to benchmark
-each ``Config`` on the GPU and aborts with ``RuntimeError: 0 active
-drivers``. That is the L2_01-style failure mode the resolver hits.
-
-The shim's ``autotune`` replaces the decorator with one that:
-
-  * when ``TRITON_INTERPRET=1`` *or* no Triton backend driver is
-    active, **skips benchmarking entirely**. It returns a wrapper
-    whose ``__getitem__(grid)`` builds a callable that merges the first
-    ``Config``'s ``kwargs`` into the user kwargs, then dispatches into
-    the underlying ``@triton.jit`` function's ``[grid](...)`` directly.
-    The first config is a documented, deterministic choice (NOT a
-    "best" config -- we explicitly do not pretend to autotune without
-    a GPU; this is a soundness-preserving fallback used solely to let
-    the resolver verify *operator identity* under ``TRITON_INTERPRET``);
-  * when a real backend driver is active, delegates to the real
-    ``triton.autotune`` so a GPU run still benchmarks normally.
-
-This is exactly the behaviour an interpreter-mode resolver needs: it
-never silently picks a wrong operator (the operator is the same JIT
-function under any config); it only avoids the benchmark step that
-requires a GPU. The Config kwargs (``BLOCK_SIZE`` etc.) and
-``num_warps`` / ``num_stages`` propagate to the JIT call exactly as
-they would after autotune picks them.
+On a CPU/``TRITON_INTERPRET=1`` host with no active Triton driver, the real
+``triton.autotune`` decorator aborts with ``RuntimeError: 0 active drivers``
+the moment it tries to benchmark a ``Config`` (the L2_01-style failure mode
+the resolver hits). The shim's ``autotune`` instead skips benchmarking under
+``TRITON_INTERPRET=1`` or no active driver and binds the first ``Config``
+(deterministic, not "best") -- see ``triton_autotune_interp`` for the
+soundness argument. With a live driver it delegates to the real
+``triton.autotune`` so a GPU run still benchmarks normally.
 """
 
 from __future__ import annotations

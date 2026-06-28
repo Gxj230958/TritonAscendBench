@@ -29,20 +29,18 @@ conditional access / L2 reuse / tile geometry make it inherently not
 5%-predictive (BLOCKED) -- under the ``asymptotic_hbm_xcheck`` policy that
 gates on large shapes and marks tiny burst-floor shapes ``FLOOR_OBSERVED``.
 
-**Honesty contract.** The cross-check is GPU-authoritative AND
-measurement-authoritative: it never fabricates a measurement and never writes
-``cost_model.status = PASS`` without a real one.
+The cross-check is both GPU-authoritative and measurement-authoritative:
 
 * With no live CUDA device the script refuses to run the instrumented pass.
 * ``M_r`` models HBM *traffic* (bytes read + written by the kernel). The only
   honest measurement of that quantity is the hardware DRAM throughput
   counters, read here via Nsight Compute. If ``ncu`` is not on ``PATH``, or
   the profiled run does not yield the DRAM metrics, the shape/task is marked
-  ``BLOCKED`` with an explicit reason -- it is **never** approximated from
-  the CUDA allocator's memory bookkeeping (that counts allocations, not HBM
-  traffic) or from static tensor sizes (that is itself an analytic estimate).
-* ``--dry-run`` evaluates ONLY the analytic formulas (it runs on the no-GPU
-  dev machine) and writes nothing -- it is a formula sanity check, not a
+  ``BLOCKED`` with an explicit reason -- it is not approximated from the CUDA
+  allocator's memory bookkeeping (that counts allocations, not HBM traffic)
+  or from static tensor sizes (that is itself an analytic estimate).
+* ``--dry-run`` evaluates only the analytic formulas (it runs on the no-GPU
+  dev machine) and writes nothing -- a formula sanity check, not a
   cross-check verdict.
 
 **FLOPs side -- honestly not hard-checked.** A ``@triton.jit`` kernel is
@@ -359,13 +357,12 @@ _NCU_WORKER_TEMPLATE = textwrap.dedent(
     _rspec.loader.exec_module(runner)
 
     from pathlib import Path as _Path
-    # Load the frozen kernel through the SAME path C2/S2 use: a per-call
-    # synthetic package (so ``from .base`` frozen-dep relative imports
-    # resolve), sys.modules registration (so a kernel reading
-    # sys.modules[run.__module__] finds itself), device_assert-strip compat
-    # load, and _pa_launcher.py exec (so jit-only kernels expose run). A flat
-    # spec_from_file_location skipped all four. upstream_roots=None: the
-    # on-disk kernel is the severed standalone (no vllm relative imports).
+    # Load the frozen kernel via runner._load_kernel_with_optional_bridge so
+    # frozen ``from .base`` relative imports resolve, a kernel reading
+    # sys.modules[run.__module__] finds itself, device_assert-strip compat
+    # load applies, and _pa_launcher.py exec exposes run for jit-only kernels.
+    # upstream_roots=None: the on-disk kernel is the severed standalone (no
+    # vllm relative imports).
     kmod = runner._load_kernel_with_optional_bridge(_Path({kernel_path!r}), "_pa_kernel", None)
     fn = runner._resolve_entrypoint(kmod, {{"entrypoint": {entrypoint!r}, "param_name_map": {param_name_map!r}}})
     if not callable(fn):

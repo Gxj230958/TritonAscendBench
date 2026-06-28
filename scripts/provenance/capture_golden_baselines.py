@@ -55,7 +55,7 @@ capture uses the severed/promoted standalone ``kernel.py`` (which exposes
 positional entrypoint -- capturing from it would be non-reproducible.
 Each task is gated on ``meta.phase_a_prime.status == PASS`` AND the
 kernel actually exposing a top-level ``run``; a task that fails the gate
-is reported as an HONEST per-task error and skipped, never faked.
+is reported as a per-task error and skipped.
 
 CLI::
 
@@ -64,11 +64,11 @@ CLI::
     python3 scripts/provenance/capture_golden_baselines.py --all --dry-run # enumerate only
     python3 scripts/provenance/capture_golden_baselines.py --all --force   # re-capture
 
-``--dry-run`` enumerates the tasks + shapes and prints what WOULD be
+``--dry-run`` enumerates the tasks + shapes and prints what would be
 captured without importing torch.cuda, running any kernel, or writing
-anything -- it is the dev-machine (no-GPU) verification path. Without
-``--dry-run`` a missing CUDA device is an HONEST hard error: this script
-never fabricates a golden artifact.
+anything -- the dev-machine (no-GPU) verification path. Without
+``--dry-run`` a missing CUDA device is a hard error (use ``--dry-run`` for
+the no-GPU path).
 
 Idempotent: a shape whose ``golden/<shape_id>.safetensors`` already
 exists and is loadable is skipped unless ``--force`` is given.
@@ -121,9 +121,9 @@ PROMOTED_ENTRYPOINT = "run"
 # fixed seed via ``inputs.build_inputs``, moves them onto the GPU, calls
 # ``run``, and writes the output dict to ``<shape_id>.safetensors``.
 #
-# A child failure (no CUDA, kernel error, non-tensor output, ...) is
-# surfaced via ``status.json`` so the parent reports it honestly -- the
-# child NEVER writes a partial / fabricated artifact.
+# A child failure (no CUDA, kernel error, non-tensor output) is surfaced
+# via ``status.json`` so the parent reports it; the child writes no partial
+# artifact.
 _CAPTURE_CHILD = r'''
 import importlib, importlib.util, json, sys
 from pathlib import Path

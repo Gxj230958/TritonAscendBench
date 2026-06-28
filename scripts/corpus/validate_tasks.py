@@ -75,28 +75,21 @@ REQUIRED_META_TOP_LEVEL = {
     "upstream", "interface", "oracle", "tolerance_class",
     "oracle_simplified", "runner_checks",
     "is_canary", "is_hidden_only",   # `in_s_native` removed (no AscendC)
-    #  / : `cost_model` is a required top-level key — a missing block
-    # is a validation error. The red→green transition for the full corpus is
-    # carried by this validator layer (Phase 1-2 the corpus validator is red
-    # until  backfills all 100 tasks' cost_model). The dataset *loader*
-    # stays backward compatible (`TaskDef.cost_model = None` on a missing
-    # block) so shared loader paths are not broken — the two layers do not
-    # contradict: only `validate_tasks` enforces presence.
+    # `cost_model` is required here; a missing block is a validation error.
+    # The dataset loader stays lenient (`TaskDef.cost_model = None` on
+    # absence) so only `validate_tasks` enforces presence.
     "cost_model",
-    # WA.1: `param_constraints` (the operator input contract, six subsections
-    # — `docs/reference/task_api_contract.md §5.2`) is a required top-level key, with
-    # the SAME loader-lenient / validator-strict split as `cost_model`. A
-    # missing block is a validation error. `is_canary` tasks are EXEMPT —
-    # `_param_constraints_required` removes the key for them before the
-    # missing-key check (see `validate_task` Step 2). The full-corpus
-    # red→green transition is carried by WB.1, never by the loader.
+    # `param_constraints` (the operator input contract, six subsections —
+    # `docs/reference/task_api_contract.md §5.2`) is required, with the same
+    # loader-lenient / validator-strict split as `cost_model`. Canary tasks
+    # are exempt (see `validate_task` Step 2).
     "param_constraints",
 }
 
 # `param_constraints` is required for every real task EXCEPT canary tasks
 # (`is_canary: true`) — a canary reuses its source task's solution, is a
 # deliberately-crafted trap, and is never score-eligible. Removing the key
-# from the required set for canaries keeps the  canary detection chain
+# from the required set for canaries keeps the canary detection chain
 # open. Every other top-level key in `REQUIRED_META_TOP_LEVEL` stays required.
 _CANARY_EXEMPT_REQUIRED_KEYS = frozenset({"param_constraints"})
 
@@ -120,29 +113,22 @@ PLACEHOLDER_PATTERNS = ("<frozen-snapshot>", "<TBD>", "<set-by-", "<fill-after-"
 # tasks would all false-positive). See `_validate_kernel_export`.
 GPU_TRITON_PLACEHOLDER = "kernel.py::placeholder"
 
-# High-level torch ops forbidden in the body of an `upstream_oracle_required`
-# oracle (docs/reference/task_api_contract.md §6, L195). Such a task's oracle must be
-# expanded into low-level primitives -- a one-line `F.softmax` would make the
-# oracle an *independent* (and possibly diverging) truth source.
+# High-level torch ops forbidden in an `upstream_oracle_required` oracle body
+# (docs/reference/task_api_contract.md §6 / L195): such an oracle must be
+# expanded into low-level primitives, since a one-line `F.softmax` would make
+# it an independent (possibly diverging) truth source.
 #
-# The check is AST-based and **alias-resolving** : it parses the
-# module's `import` / `from ... import` statements to map every local name to
-# its canonical dotted path, then resolves each *call*'s function to a
-# canonical `torch...`-rooted symbol. A high-level op is therefore caught no
-# matter how it is imported — `import torch.nn.functional as G; G.silu(...)`,
-# `from torch.nn.functional import silu as s; s(...)`, `torch.softmax(...)` —
-# not just the handful of hard-coded `F.` / `torch.` qualifiers the old
-# narrow leaf-name match recognised. A bare `import torch.nn.functional` with
-# no high-level call is still fine (L1_13 / L1_14 import F but hand-roll the
-# math).
+# Detection is AST-based and alias-resolving: imports are mapped to canonical
+# dotted paths, then each call's function is resolved to a canonical
+# `torch`-rooted symbol, so the op is caught under any import alias
+# (`import torch.nn.functional as G; G.silu(...)`, `torch.softmax(...)`). A
+# bare `import torch.nn.functional` with no high-level call is fine (L1_13 /
+# L1_14 import F but hand-roll the math).
 #
-# : the high-level-op family covers BOTH forms of every op — the
-# lowercase `torch.nn.functional` *function* (`silu`) AND the Capitalised
-# `torch.nn` *nn.Module class* (`SiLU`). The latter is invoked as a
-# construct-then-call expression — `torch.nn.SiLU()(x)`,
-# `from torch.nn import SiLU as S; S()(x)` — whose outer `Call`'s `func` is
-# itself a `Call` (the constructor), not an attribute chain. Both forms are
-# semantically equivalent and equally forbidden in an oracle body.
+# Both forms of each op are covered: the lowercase `torch.nn.functional`
+# function (`silu`) and the Capitalised `torch.nn` nn.Module class
+# (`torch.nn.SiLU()(x)`, whose outer Call's func is itself the constructor
+# Call, not an attribute chain).
 #
 # `_HIGH_LEVEL_OP_NAMES` is the canonical *leaf* op-name family — a symbol is
 # forbidden when it resolves to `torch.<name>` or `torch.nn.functional.<name>`
@@ -156,12 +142,9 @@ _HIGH_LEVEL_OP_NAMES = frozenset({
     "cross_entropy", "softplus", "glu",
 })
 
-# Capitalised `torch.nn` *module/class* leaves — the `nn.Module` form of the
-# same high-level ops . `torch.nn.SiLU()(x)` is semantically identical
-# to `torch.nn.functional.silu(x)`: both are forbidden in an
-# `upstream_oracle_required` oracle body. The detection covers the
-# construct-then-call pattern `torch.nn.SiLU()(x)` and import aliases
-# (`from torch.nn import SiLU as S; S()(x)`).
+# Capitalised `torch.nn` module/class leaves — the nn.Module form of the same
+# high-level ops (see the op-family note above). `torch.nn.SiLU()(x)` is
+# forbidden exactly as `torch.nn.functional.silu(x)` is.
 _HIGH_LEVEL_NN_CLASS_NAMES = frozenset({
     "SiLU", "GELU", "Softmax", "LogSoftmax", "Sigmoid", "ReLU",
     "LeakyReLU", "ELU", "Tanh", "Mish", "Hardswish", "Hardsigmoid",
@@ -260,9 +243,9 @@ def _shapes_knob_names(task_dir: Path) -> set[str]:
 def _validate_cost_model(tid: str, meta: dict, task_dir: Path) -> list[str]:
     """Validate ``meta.yaml.cost_model``.
 
-    : ``cost_model`` is a **required** top-level key — its absence is
-    already reported by the :data:`REQUIRED_META_TOP_LEVEL` check (Step 2).
-    This function only validates the block when present: schema (scalar /
+    ``cost_model`` is a required top-level key — its absence is already
+    reported by the :data:`REQUIRED_META_TOP_LEVEL` check (Step 2). This
+    function only validates the block when present: schema (scalar /
     map form, with the scalar form's required companion ``flops_class`` /
     ``bytes_resource``), then every formula is confirmed parseable +
     evaluable under the shared cost_model evaluator against the task's
@@ -483,12 +466,10 @@ def _canonical_call_path(fn: ast.AST, aliases: dict[str, str]) -> str | None:
 def _is_high_level_canonical(canonical: str) -> bool:
     """True if a canonical ``torch``-rooted path names a high-level op.
 
-    Covers both op forms :
-
-    * lowercase ``torch.nn.functional`` / ``torch`` *function* leaf —
-      ``torch.nn.functional.silu``, ``torch.softmax``;
-    * Capitalised ``torch.nn`` *nn.Module class* leaf —
-      ``torch.nn.SiLU``, ``torch.nn.Softmax``.
+    Covers both op forms (see the op-family note at module top): the
+    lowercase ``torch.nn.functional`` / ``torch`` function leaf
+    (``torch.softmax``) and the Capitalised ``torch.nn`` nn.Module class
+    leaf (``torch.nn.SiLU``).
     """
     module, _, leaf = canonical.rpartition(".")
     if module in _HIGH_LEVEL_OP_MODULES and leaf in _HIGH_LEVEL_OP_NAMES:
@@ -504,28 +485,16 @@ def _is_high_level_canonical(canonical: str) -> bool:
 def _high_level_oracle_ops(src: str) -> list[str]:
     """Return any forbidden high-level torch ops *called* in an oracle body.
 
-    AST-based and **alias-resolving** : every ``import`` is
-    parsed into a canonical-path alias map, then each ``Call`` is resolved
-    to a canonical ``torch``-rooted dotted path. A call is a forbidden
-    high-level op when its canonical path names one of the high-level op
-    families (see :func:`_is_high_level_canonical`).
+    AST-based and alias-resolving (see the op-family note at module top):
+    each ``import`` becomes a canonical-path alias map, then each ``Call``
+    is resolved to a canonical ``torch``-rooted path and checked against the
+    high-level op families (:func:`_is_high_level_canonical`).
 
-    Two call shapes are recognised:
-
-    * **functional form** — the call's ``func`` is an attribute chain /
-      bare name resolving to a ``torch.nn.functional`` / ``torch``
-      lowercase function: ``F.silu(x)``, ``torch.softmax(x)``,
-      ``import torch.nn.functional as G; G.silu(x)``,
-      ``from torch.nn.functional import silu as s; s(x)``.
-    * **module/class form**  — the call's ``func`` is *itself a
-      ``Call``* (the ``nn.Module`` constructor), i.e. the
-      construct-then-call expression ``torch.nn.SiLU()(x)`` or
-      ``from torch.nn import SiLU as S; S()(x)``. The constructor's own
-      ``func`` is resolved and checked against the Capitalised
-      ``torch.nn`` class family.
-
-    A bare ``import torch.nn.functional`` with no high-level call still
-    does not trip the check (docs/reference/task_api_contract.md §6 / L195).
+    Recognises both call shapes: the functional form (``F.silu(x)``,
+    ``torch.softmax(x)``) and the nn.Module construct-then-call form
+    (``torch.nn.SiLU()(x)``), where the outer ``Call``'s ``func`` is itself
+    the constructor ``Call``. A bare ``import torch.nn.functional`` with no
+    high-level call does not trip the check.
     """
     try:
         tree = ast.parse(src)
@@ -670,40 +639,28 @@ def _validate_kernel_export(tid: str, meta: dict, task_dir: Path) -> list[str]:
 
 
 def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
-    """golden/ layout completeness for upstream_oracle_required tasks.
+    """golden/ layout completeness for score-eligible
+    upstream_oracle_required tasks.
 
-    : an `upstream_oracle_required` task has NO PyTorch oracle that
-    can serve as golden — its only golden source is the offline-collected
-    `golden/<shape_id>.safetensors` artifact set ( Phase-4 GPU
-    capture). This is the static "missing provider golden" gate: such a
-    task MUST ship a complete `golden/` directory covering every public +
-    hidden eval shape. A missing `golden/` directory, or a `golden/` that
-    does not cover every eval shape, is a validation error.
+    An `upstream_oracle_required` task has no PyTorch oracle to serve as
+    golden — its only golden source is the offline-collected
+    `golden/<shape_id>.safetensors` set, which must cover every public +
+    hidden eval shape. A missing or incomplete `golden/` is a validation
+    error. The full corpus stays red on this check until the offline
+    artifacts are collected; the validator layer carries that transition.
 
-    This is NOT phase-gated on the directory's prior existence (the old
-    "validate only if golden/ exists" rule let a task that NEVER produced
-    a `golden/` validate clean forever — the promised static gate would
-    then be absent). Like 's `cost_model` requirement: the full
-    corpus is expected RED on this check until  Phase 4 collects the
-    artifacts; the validator layer carries that red→green transition.
+    Applies only to score-eligible tasks. A non-score-eligible
+    `upstream_oracle_required` task (stub oracle / `PHASE-C-MANUAL` shapes)
+    has a placeholder kernel and unimplemented oracle, so it can never reach
+    a promoted state and an offline golden can never be captured for it;
+    enforcing the gate would pin `--release-gate` permanently red on a task
+    excluded from the scored denominator by design. The exemption uses the
+    shared `eligibility.is_score_eligible` predicate that `eval` /
+    `cli analyze` / `phase_b_golden_capture` consult, so the static
+    validator and runtime eligibility cannot drift.
 
-    The golden requirement applies ONLY to **score-eligible**
-    `upstream_oracle_required` tasks. A non-score-eligible task (stub
-    oracle / `PHASE-C-MANUAL` shapes — `L2_08_gumbel_sample` today) has a
-    placeholder kernel and an unimplemented oracle stub: it can never
-    reach a promoted state, so an offline golden can never be captured
-    for it. Enforcing the golden gate on such a task would keep
-    `--release-gate` permanently RED on a task that is, by design, an
-    acknowledged non-score-eligible special case excluded from the
-    scored denominator. The exemption uses the SAME
-    `eligibility.is_score_eligible` predicate `eval` / `cli analyze` /
-    `phase_b_golden_capture` consult — so the static validator and the
-    runtime eligibility logic cannot drift. Score-eligible
-    `upstream_oracle_required` tasks (18 today) still require a complete
-    `golden/` set, unchanged.
-
-    This is a `validate_tasks` schema-mode check -- it does NOT alter the
-    binary `release_status` predicate (DESIGN §4.4).
+    Schema-mode check — it does not alter the binary `release_status`
+    predicate (DESIGN §4.4).
     """
     if meta.get("oracle_simplified") != "upstream_oracle_required":
         return []
@@ -726,10 +683,6 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
 
     golden_dir = task_dir / "golden"
     if not golden_dir.is_dir():
-        # : a `golden/` directory is REQUIRED for an
-        # `upstream_oracle_required` task — its absence is the "missing
-        # provider golden" error, no longer a silently-clean pre-
-        # state.
         errs.append(
             f"{tid}: upstream_oracle_required task has no golden/ "
             f"directory (the offline upstream-kernel golden is the only "
@@ -739,14 +692,11 @@ def _validate_golden(tid: str, meta: dict, task_dir: Path) -> list[str]:
         )
         return errs
 
-    # : an artifact must be USABLE, not merely present. Reuse the
-    # shared `eligibility.golden_artifact_usable` predicate  — the
-    # exact "exists AND safetensors loads" check `eval._resolve_golden`
-    # and `eligibility.golden_complete` apply at runtime. A bare
-    # `is_file()` check let a corrupt / truncated / text-pasted
-    # `.safetensors` validate clean while the runtime golden gates
-    # fail-closed on it: the static validator and the runtime loader
-    # would then disagree on whether the same task is gradeable.
+    # An artifact must be usable, not merely present: reuse the shared
+    # `eligibility.golden_artifact_usable` predicate (exists AND safetensors
+    # loads) — the same check `eval._resolve_golden` /
+    # `eligibility.golden_complete` apply at runtime, so the static and runtime
+    # gates agree on whether a task is gradeable.
     unusable = [
         sid for sid in expected
         if not golden_artifact_usable(golden_dir / f"{sid}.safetensors")
@@ -972,7 +922,7 @@ def _validate_metamorphic_checks(tid: str, meta: dict) -> list[str]:
 
     Each declared check name (string item, or dict item's ``name``) must be a
     member of :data:`KNOWN_METAMORPHIC_CHECKS`. An unknown name is rejected at
-    validation time rather than silently skipped at runtime (the  runtime
+    validation time rather than silently skipped at runtime (the runtime
     path can only execute checks it has a transformation for).
     """
     rc = meta.get("runner_checks") or {}
@@ -1132,7 +1082,7 @@ def validate_canary_task(
 
 
 def run_canary_validation(strict: bool) -> list[str]:
-    """Validate every canary under `tasks/_canary/` — the  entry point."""
+    """Validate every canary under `tasks/_canary/`."""
     if not CANARY_ROOT.is_dir():
         return []
     policy_classes = _load_policy_classes()
@@ -1224,10 +1174,10 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     if "@triton.jit" not in kernel_text:
         errs.append(f"{tid}: kernel.py contains no @triton.jit")
 
-    # Step 7b: cost_model schema + formula check . Optional pre-;
-    # validated strictly when present. Accepts both the scalar and the map
-    # form for `flops` / `bytes`; confirms every formula is parseable and
-    # evaluable under the shared cost_model evaluator.
+    # Step 7b: cost_model schema + formula check (optional, validated strictly
+    # when present). Accepts both the scalar and the map form for `flops` /
+    # `bytes`; confirms every formula is parseable and evaluable under the
+    # shared cost_model evaluator.
     errs.extend(_validate_cost_model(tid, meta, task_dir))
 
     # Step 7b': param_constraints schema-shape check (WA.1). Presence is the
@@ -1242,28 +1192,27 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # `dims` predicates, `dtypes` / `dists` agreement, `scalars` value
     # domains and materialised-tensor `tensor_invariants` are enforced here.
     # `is_canary` tasks are exempt (canary reuses its source solution and is
-    # never score-eligible — keeps the  canary detection chain open).
+    # never score-eligible — keeps the canary detection chain open).
     if meta.get("is_canary") is not True:
         errs.extend(
             _validate_param_constraints_semantic(tid, meta, task_dir))
 
-    # Step 7c: oracle_pytorch.py / contract.md consistency . oracle
-    # exports `run`; contract.md references the task id; an
-    # upstream_oracle_required oracle body has no high-level torch ops.
+    # Step 7c: oracle_pytorch.py / contract.md consistency — oracle exports
+    # `run`; contract.md references the task id; an upstream_oracle_required
+    # oracle body has no high-level torch ops.
     errs.extend(_validate_oracle_and_contract(tid, meta, task_dir))
 
-    # Step 7d: kernel.py exports the resolved gpu_triton entrypoint ,
-    # PHASE-AWARE -- format-only while gpu_triton is still the placeholder.
+    # Step 7d: kernel.py exports the resolved gpu_triton entrypoint —
+    # phase-aware: format-only while gpu_triton is still the placeholder.
     errs.extend(_validate_kernel_export(tid, meta, task_dir))
 
-    # Step 7e: golden/ layout completeness for SCORE-ELIGIBLE
-    # upstream_oracle_required tasks . A non-score-eligible
-    # upstream_oracle_required task (stub oracle / PHASE-C-MANUAL) has no
-    # capturable offline golden and is exempt.
+    # Step 7e: golden/ layout completeness for score-eligible
+    # upstream_oracle_required tasks. A non-score-eligible task (stub oracle /
+    # PHASE-C-MANUAL) has no capturable offline golden and is exempt.
     errs.extend(_validate_golden(tid, meta, task_dir))
 
     # Step 7f: metamorphic_checks names must be in the known-check registry
-    # . The authoritative registry is built later by .
+    # (`ascendbench.integrity.adversarial.KNOWN_METAMORPHIC_CHECKS`).
     errs.extend(_validate_metamorphic_checks(tid, meta))
 
     # Step 7g: bench-team-internal §6a state fields. All four blocks are
@@ -1350,11 +1299,10 @@ def _load_eligible_ids() -> tuple[set[str], int]:
     from ascendbench.corpus.dataset import iter_all_tasks
     from ascendbench.release_gate.eligibility import compute_release_ready_eligible
 
-    # Release-ready eligible = score-eligible INTERSECT C2 provenance-eligible
-    # (is_provenance_eligible). Gating the release set on this is what makes C2
-    # a REAL release gate: a C2-FAILED / un-provenanced task is excluded from
-    # the released corpus, so it cannot satisfy the S2-only release_status_pass
-    # and sneak through. (compute_score_eligible alone has no C2 clause.)
+    # Release-ready eligible = score-eligible ∩ C2 provenance-eligible
+    # (is_provenance_eligible), so a C2-failed / un-provenanced task is
+    # excluded from the released corpus and cannot pass on S2 alone
+    # (compute_score_eligible has no C2 clause).
     all_tasks = list(iter_all_tasks())
     eligible = compute_release_ready_eligible(all_tasks)
     return eligible, len(eligible)
@@ -1399,11 +1347,10 @@ def run_release_gate(tasks=None, eligible_ids=None, strict: bool = False) -> int
     else:
         expected = len(eligible_ids)
 
-    # MATERIALISE before BOTH passes: the
-    # function iterates `tasks` once for `examined` and again for
-    # `blocking`. If `tasks` is a one-shot generator the 2nd pass is
-    # empty -> `blocking` is [] -> a vacuous return 0 ("releasable")
-    # even with eligible non-PASS tasks. list() makes it re-iterable.
+    # Materialise tasks before the two passes: the function iterates `tasks`
+    # once for `examined` and again for `blocking`. A one-shot generator
+    # would leave the second pass empty -> `blocking` == [] -> a vacuous
+    # return 0 ("releasable") even with eligible non-PASS tasks.
     tasks = list(tasks)
 
     if expected == 0:
@@ -1426,8 +1373,8 @@ def run_release_gate(tasks=None, eligible_ids=None, strict: bool = False) -> int
         )
         return 2
 
-    # : composite release predicate -- shared with cli.py analyze
-    # and phase_a_prime.py's S6 verdict (identical blocking set).
+    # Composite release predicate — shared with cli.py analyze and
+    # phase_a_prime.py's S6 verdict (identical blocking set).
     from ascendbench.release_gate.eligibility import compute_release_blocking
 
     blocking = compute_release_blocking(all_tasks, eligible_ids)
@@ -1556,7 +1503,7 @@ def main() -> int:
         return run_release_gate(strict=strict)
 
     if args.canary:
-        # Dedicated canary-only mode .
+        # Dedicated canary-only mode.
         canary_errs = run_canary_validation(args.strict)
         if canary_errs:
             print(f"\n{len(canary_errs)} canary validation error(s)",
@@ -1584,8 +1531,8 @@ def main() -> int:
             if args.strict and errs:
                 return 1
 
-    # : a full scan (no `--task` filter) also validates the `_canary`
-    # trap tasks — malformed canaries must not slip past the static gate.
+    # A full scan (no `--task` filter) also validates the `_canary` trap
+    # tasks — malformed canaries must not slip past the static gate.
     if not args.task:
         all_errs.extend(run_canary_validation(args.strict))
 

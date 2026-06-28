@@ -326,8 +326,7 @@ def moe_align_block_size(*args, **kwargs):
     the graded entrypoint drives the in-module 4-stage @triton.jit pipeline via
     _pa_launcher.py and never calls it. Importing the real symbol pulls the
     sglang JIT/CUDA-compile dependency chain into the severed standalone, so it
-    is redirected here. Raising keeps any task that genuinely needs the CUDA
-    reference honest -- the severed kernel must not silently fake it."""
+    is redirected here."""
     raise NotImplementedError(
         "moe_align_block_size is the sibling-only sglang CUDA reference kernel "
         "(used by the frozen kernel.py's pytest cross-checks, never the graded "
@@ -354,8 +353,7 @@ def fused_topk(*args, **kwargs):
     frozen kernel.py imports it ONLY for the sibling ``FusedMoeRouter.forward_torch``
     method; the graded ``fused_moe_router_cudacore`` entrypoint computes its own
     top-k inside the @triton.jit kernel and never calls it. Redirected here so the
-    module imports standalone; raising keeps any task that genuinely reaches it
-    honest -- the severed kernel must surface the call, never fake it."""
+    module imports standalone."""
     raise NotImplementedError(
         "fused_topk is the sibling-only sglang CUDA topk_softmax dispatcher "
         "(used by FusedMoeRouter.forward_torch, never the graded "
@@ -388,8 +386,7 @@ def count_expert_num_tokens(*args, **kwargs):
     never reaches -- kernel_1 builds the contiguous-group layout straight
     from the per-expert counts. Importing the real symbol pulls vllm's
     fused_moe.utils closure into the severed standalone, so it is
-    redirected here. Raising keeps any task that genuinely reaches it
-    honest: the severed kernel must surface the call, never fake it."""
+    redirected here."""
     raise NotImplementedError(
         "count_expert_num_tokens belongs to the off-graded-path host wrapper "
         "deepgemm_moe_permute; the graded _fwd_kernel_ep_scatter_1 never calls "
@@ -405,8 +402,7 @@ def get_mk_alignment_for_contiguous_layout(*args, **kwargs):
     block (block_m, block_k); the graded entrypoint
     ``_fwd_kernel_ep_scatter_1`` hard-codes BLOCK_E=128 in _pa_launcher.py
     and never reaches this wrapper. The real symbol lives in vllm's
-    optional deep_gemm accel surface, so it is redirected here. Raising
-    keeps the severed kernel honest if the call path ever changes."""
+    optional deep_gemm accel surface, so it is redirected here."""
     raise NotImplementedError(
         "get_mk_alignment_for_contiguous_layout belongs to the off-graded-path "
         "host wrapper deepgemm_moe_permute; the graded _fwd_kernel_ep_scatter_1 "
@@ -437,8 +433,7 @@ def sglang_per_token_group_quant_fp8(*args, **kwargs):
     """Loud-fail stand-in for sglang fp8_kernel.sglang_per_token_group_quant_fp8.
     The bundled cutlass-moe file imports it under a `if is_cuda()` gate, but only
     the silu_and_mul_post_quant sibling CALLS it; the reorder entrypoints never
-    do. Raising keeps any task that genuinely needs fp8 quant honest -- the
-    severed kernel must not silently fake it."""
+    do."""
     raise NotImplementedError(
         "sglang_per_token_group_quant_fp8 is a sibling-only fp8 quant path that "
         "is not vendored; the graded reorder entrypoint must not invoke it"
@@ -456,8 +451,7 @@ def scaled_fp8_quant(*args, **kwargs):
     invoke_fused_moe_kernel sibling (kernel.py:764, fp8 activation quant); the
     graded act_and_mul_kernel entrypoint never calls it. Importing the real
     symbol pulls the sglang fp8-quant CUDA closure into the severed standalone,
-    so it is redirected here. Raising keeps any task that genuinely needs fp8
-    quant honest -- the severed kernel must not silently fake it."""
+    so it is redirected here."""
     raise NotImplementedError(
         "scaled_fp8_quant is a sibling-only fp8 quant path (the dead "
         "invoke_fused_moe_kernel branch); it is not vendored into the severed "
@@ -512,10 +506,10 @@ class _SetupOnlyShim:
 
     def __getattr__(self, name):
         raise AttributeError(
-            f"{type(self).__name__} shim: '.{name}' reached. This inert "
-            f"stand-in is setup-only and must NOT enter a verified "
-            f"entrypoint's path; a frozen kernel reaching real buffer "
-            f"behaviour is a true runtime dependency, not a clean standalone."
+            f"{type(self).__name__} shim: '.{name}' reached. This setup-only "
+            f"stand-in must not enter a verified entrypoint's path; a frozen "
+            f"kernel reaching real buffer behaviour is a runtime dependency to "
+            f"classify, not a clean standalone."
         )
 
 
@@ -956,14 +950,14 @@ def has_triton_kernels() -> bool:
 # behaviour is a true dependency to classify, never silently fake).
 # ───────────────────────────────────────────────────────────────────────────
 class _FailClosedSentinel:
-    """An inert sentinel whose EVERY interaction loud-fails -- attribute access,
+    """An inert sentinel whose every interaction loud-fails -- attribute access,
     call, equality, and membership. Used for the ``kFp8*`` QuantKey constants the
     frozen file references only inside the off-path ``_supports_quant_scheme``
     ``(weight_key, activation_key) in SUPPORTED_W_A`` membership test. Unlike a
-    plain ``_SetupOnlyShim`` (whose default ``__eq__`` would silently return a
-    bool), this raises on ``==``/``in`` too, so a future on-path read can never
-    silently resolve to a wrong scheme decision. The name only needs to bind on
-    the graded path (the membership test is never reached)."""
+    plain ``_SetupOnlyShim`` (whose default ``__eq__`` returns a bool), this
+    raises on ``==``/``in`` too, so a membership test against a quant-key
+    constant can't silently resolve. The name only needs to bind on the graded
+    path (the membership test is never reached)."""
 
     __slots__ = ("_name",)
 

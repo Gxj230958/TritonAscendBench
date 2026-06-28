@@ -1,20 +1,20 @@
 """Phase-2 U8: the central dual-format shape adapter.
 
 Every consumer that reads a ``shapes.yaml`` -- manifest hashing, build_inputs/IPC, the sandbox public
-view, param_constraints, the cost universe, scoring/eval/release/perf/oracle scripts -- routes through THIS
+view, param_constraints, the cost universe, scoring/eval/release/perf/oracle scripts -- routes through this
 module instead of reaching into ``size_knobs`` / ``public_shapes`` / ``hidden_shapes`` directly. That makes
-the knob-grid -> explicit-format cutover a ONE-PLACE change: a doc is dispatched by :func:`is_explicit_shapes_doc`
+the knob-grid -> explicit-format cutover a single-place change: a doc is dispatched by :func:`is_explicit_shapes_doc`
 and every reader gets the same answer for "the public ids", "this row's environment", "build this row's
 inputs", "the manifest projection", "the candidate-safe view" regardless of format.
 
 The corpus is still 100% knob-format; U8 only makes the readers ALSO understand the explicit format (U9
-migrates tasks + re-grades on the daemon). So for a knob-format doc every function MUST behave exactly as
+migrates tasks + re-grades on the daemon). So for a knob-format doc every function behaves exactly as
 the pre-U8 code did -- the manifest hash in particular stays byte-identical (proven by re-hashing all 101).
 
-Discriminator is STRICT + fail-closed (codex): a doc is explicit iff ``schema_version`` is exactly the
-supported int version AND it carries top-level ``public`` (+ optional ``hidden``) row lists with per-row
-``inputs`` lists and unique ids; a versioned-but-malformed doc, or top-level ``public``/``hidden`` WITHOUT a
-``schema_version``, RAISES rather than silently falling back to the knob path. The Phase-1 ``explicit_view``
+Discriminator is strict + fail-closed: a doc is explicit iff ``schema_version`` is exactly the
+supported int version and it carries top-level ``public`` (+ optional ``hidden``) row lists with per-row
+``inputs`` lists and unique ids; a versioned-but-malformed doc, or top-level ``public``/``hidden`` without a
+``schema_version``, raises rather than silently falling back to the knob path. The Phase-1 ``explicit_view``
 is a nested advisory map (no top-level ``public`` list, no ``schema_version``) and is never mistaken for it.
 """
 from __future__ import annotations
@@ -85,8 +85,9 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
                                    f"missing an 'inputs' list")
         row_id = row.get("id")
         if type(row_id) is not str or not row_id:
-            # a non-string id (None, a list, a dict, a hostile str subclass) would also make `set(ids)` below
-            # raise a raw TypeError -- require an exact non-empty str so the doc fails closed, never crashes.
+            # require an exact non-empty str id (`type() is str`, not isinstance:
+            # a str subclass is rejected) so the duplicate-id `set()` check below
+            # can't raise a raw TypeError on a malformed doc.
             raise ShapeFormatError(f"explicit shapes doc row id must be a non-empty string, got {row_id!r}")
         if "env" in row and row["env"] is not None:
             env = row["env"]
@@ -149,9 +150,9 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
                         raise ShapeFormatError(
                             f"explicit row {row_id!r} tensor input {name!r} missing a well-formed "
                             f"'dist_symbolic' {{kind: str, args: dict}}, got {ds!r}")
-                    # args keys must all be strings (parse_dist_spec always emits string keys) -- a hostile doc
-                    # with mixed-type keys would otherwise make the row-invariance signature's sort raise a raw
-                    # TypeError instead of failing closed here.
+                    # args keys must all be strings (parse_dist_spec always emits string keys); mixed-type
+                    # keys would otherwise make the row-invariance signature's sort raise a raw TypeError
+                    # instead of failing closed here.
                     if any(type(k) is not str for k in ds["args"]):
                         raise ShapeFormatError(
                             f"explicit row {row_id!r} tensor input {name!r} dist_symbolic args keys must all be "
@@ -175,8 +176,8 @@ def is_explicit_shapes_doc(doc: dict) -> bool:
                     dist_canon: object = i.get("dist")
                 else:
                     ds = i.get("dist_symbolic") or {}
-                    # sort by str(key) -- defense in depth so this never raises a raw TypeError even if a future
-                    # path reaches here with non-string arg keys (the presence check already rejects those).
+                    # sort by str(key): defense in depth so this can't raise a raw TypeError on non-string
+                    # arg keys (the presence check above already rejects those).
                     dist_canon = (ds.get("kind"),
                                   tuple(sorted((ds.get("args") or {}).items(), key=lambda kv: str(kv[0]))))
                 out.append((i.get("name"), "tensor", i.get("dtype"),
@@ -330,7 +331,7 @@ def explicit_row_dist_symbolic(doc: dict, sid: str, name: str) -> dict | None:
 
 
 def explicit_canonical_projection(doc: dict) -> dict:
-    """The hash-input projection for an EXPLICIT doc: the FULL row (codex) so any semantic edit moves the hash.
+    """The hash-input projection for an EXPLICIT doc: the full row, so any semantic edit moves the hash.
 
     Rows sorted by (role, id); inputs kept in authored ORDER (a reorder is a real change); each input keeps
     every field (tensor: name/kind/shape/dtype/axes/dist/dist_symbolic; non-tensor: name/kind/value/expr);

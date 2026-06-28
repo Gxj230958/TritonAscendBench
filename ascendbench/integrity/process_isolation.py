@@ -10,9 +10,8 @@ host-independent properties:
     trusted oracle), spawned via `subprocess.Popen` with
     `start_new_session=True` so it leads its own process group. On
     timeout — and again before the temp dir is torn down — the runner
-    `os.killpg`s the WHOLE group, so forked descendants cannot survive
-    .
-  * **Two sandboxes ** — a candidate is graded in two *independent*
+    `os.killpg`s the whole group, so forked descendants cannot survive.
+  * **Two sandboxes** — a candidate is graded in two *independent*
     subprocess passes: a correctness pass then a timing pass. Between
     them the runner SIGKILLs the correctness pass's whole process group
     and scrubs `/tmp` scratch + the Triton compile cache (device memory
@@ -20,7 +19,7 @@ host-independent properties:
     pre-computation channel and stops a forked descendant from leaking
     state into the timing pass (DESIGN §3.3 / §6.6,
     the process-isolation model "Why Two Candidate Processes").
-  * **No golden-output leak ** — the child receives ONLY
+  * **No golden-output leak** — the child receives ONLY
     a sanitised minimal set: `solution.py` + the inputs the runner
     materialised for it. It never sees the original `task_dir`,
     `oracle_pytorch.py`, `contract.md`, `golden/`, or the `shapes.yaml`
@@ -28,33 +27,33 @@ host-independent properties:
     the shapes document at all, the `hidden_shapes` section is
     structurally absent from the candidate view — this is strictly
     stronger than the DESIGN §3.3 "strip the hidden_shapes section"
-    requirement. The repo root IS on the child's `PYTHONPATH`  so
+    requirement. The repo root IS on the child's `PYTHONPATH` so
     its trusted-shim segment can import the in-repo helper modules; this
     leaks no golden data — the candidate cannot `open()` / walk the repo
     (Layer A/E denylist) and the AST whitelist rejects importing the
     oracle / tasks. When a sanitised public shapes view is needed
     elsewhere, :func:`sanitised_shapes_view` produces one with the
     `hidden_shapes` section removed.
-  * **safetensors-only IPC ** — both directions of the IPC are
+  * **safetensors-only IPC** — both directions of the IPC are
     data-only: inputs flow down as safetensors payloads + JSON sidecar
     manifests; outputs flow up the same way. No pickle → no RCE on load.
-  * **Runner-materialised inputs ** — every shape's inputs (public
+  * **Runner-materialised inputs** — every shape's inputs (public
     AND hidden) are built by the trusted parent via `inputs.build_inputs`
     and injected down the IPC. The child does NOT call `build_inputs` and
     is not handed the shapes document; this both keeps hidden-shape
     definitions out of the candidate view and removes the need for the
     child to know the full `shapes_doc`.
-  * **Host-authoritative timing ** — the timing pass times each
+  * **Host-authoritative timing** — the timing pass times each
     measured trial with `CLOCK_MONOTONIC_RAW` inside a trusted-shim
     segment of the child, on a *fresh* per-trial inputs dict the runner
     injected. A runner-secret RNG — seeded fresh per evaluation from a
     CSPRNG, strictly distinct from the deterministic input-generation
-    seed  — selects a subset of trials whose outputs are sent up
+    seed — selects a subset of trials whose outputs are sent up
     (`sampled_outputs`) so the parent can re-verify them against golden,
-    closing the correctness-pass cheat path. The  profiler
-    diagnostics are bound to one of those runner-secret sampled measured
-    trials , so a candidate cannot behave honestly on a profiled
-    call while cheating the timed calls.
+    closing the correctness-pass cheat path. The profiler diagnostics are
+    bound to one of those runner-secret sampled measured trials, so a
+    candidate cannot behave honestly on a profiled call while cheating the
+    timed calls.
   * **Timeout** — a hung/over-long candidate is terminated.
 
 NOT enforced here (GPU-machine layer, documented in the spec):
@@ -77,13 +76,13 @@ Downstream child args (parent -> child, the JSON in argv[1]):
       "protocol_version": int,        # == PROTOCOL_VERSION
       "status_schema_version": int,   # == STATUS_SCHEMA_VERSION (the child
       #                                 stamps this onto status.json)
-      "pass_kind": "correctness" | "timing",   #
+      "pass_kind": "correctness" | "timing",
       "solution":   str,              # abs path to solution.py
       "out_dir":    str,              # abs dir for output safetensors
       "status_json": str,             # abs path the child writes status to
       "inputs_mode": "single" | "per_trial",
       "n_trials":   int,              # per-trial sequence length; 1 for "single"
-      #  timing-pass knobs (ignored for the correctness pass):
+      # timing-pass knobs (ignored for the correctness pass):
       "n_warmup":   int,              # warm-up iterations (not timed)
       "sample_size": int,             # # of trials whose outputs go up
       "sampled_indices": {            # runner-secret RNG choice, per shape
@@ -113,9 +112,9 @@ Upstream status.json (child -> parent):
           "ran": bool,
           "error": str | None,
           "keys": [str, ...],          # output tensor keys
-          # --- diagnostics ( carriers; populated by /) ---
+          # --- diagnostics (timing-pass carriers) ---
           "durations": [float, ...],   # per-trial host_ns (timing pass)
-          "event_ns": [float | None, ...] | None,  # : per-trial NPU
+          "event_ns": [float | None, ...] | None,  # per-trial NPU
           #                              event-timer ns (timing pass; None
           #                              on the dev machine — host-only)
           "kernel_event_present": bool | None,
@@ -210,7 +209,7 @@ def _audited_npu_env(keys: tuple[str, ...]) -> dict[str, str]:
     return out
 
 
-#  frozen protocol versions. Bump when the wire schema changes;
+# frozen protocol versions. Bump when the wire schema changes;
 # downstream W items pin against these.
 PROTOCOL_VERSION = 3        # parent -> child contract
 # protocol 3 : the parent sets the `AB_NPU_PROF_ROOT` env on the NPU child — a
@@ -249,9 +248,9 @@ class ShapeCandidateResult:
     ran: bool
     outputs: dict[str, torch.Tensor] = field(default_factory=dict)
     error: str | None = None
-    # ---  diagnostics (filled by  timing pass / ) ----------
+    # --- diagnostics (filled by the timing pass) ----------
     durations: list[float] = field(default_factory=list)
-    # : per-trial NPU event-timer ns from the timing pass — the
+    # per-trial NPU event-timer ns from the timing pass — the
     # host/event-drift cross-check series. `None` on the dev machine (no
     # NPU); the parent passes it to `timing.arbitrate_timing(event_ns=...)`.
     event_ns: list[float] | None = None
@@ -275,15 +274,15 @@ class CandidateRunResult:
     timed_out: bool
     load_error: str | None
     per_shape: dict[str, ShapeCandidateResult] = field(default_factory=dict)
-    # : schema version of the status.json this result was decoded from.
+    # schema version of the status.json this result was decoded from.
     schema_version: int = STATUS_SCHEMA_VERSION
-    # : which pass produced this result ("correctness" | "timing").
+    # which pass produced this result ("correctness" | "timing").
     pass_kind: str = "correctness"
 
 
 @dataclass
 class TwoPassResult:
-    """ — the pair of independent passes plus their isolation receipt.
+    """The pair of independent passes plus their isolation receipt.
 
     `correctness` and `timing` are each a `CandidateRunResult` from a
     separate child subprocess. `scrubbed` records what the runner cleared
@@ -303,7 +302,7 @@ class TwoPassResult:
 # with CLOCK_MONOTONIC_RAW host timing — and sends up durations + the
 # runner-selected sampled outputs. Never imports the oracle.
 #
-#  — after the candidate module loads but before any warmup/graded call the
+# After the candidate module loads but before any warmup/graded call the
 # child installs the Layer E `sys.addaudithook` runtime-defense hook (a brief
 # "compile" phase around the triton warmup; "graded" thereafter), and once per
 # shape it profiles one candidate call for the NPU kernel-event /
@@ -328,14 +327,11 @@ backend = args["backend"]
 
 
 def _fail_child(load_error):
-    """: write a status.json carrying an explicit `load_error` and
-    exit non-zero.
+    """Write a status.json carrying an explicit `load_error` and exit non-zero.
 
-    Used when the trusted-shim segment cannot be set up (the in-repo
-    `ascendbench` helper modules failed to import). This is NOT a
-    candidate fault — it is a misconfigured child — so it is surfaced
-    loudly via `load_error` rather than silently swallowed. The parent
-    reads `load_error` off status.json and marks the run an error.
+    Used when the trusted-shim imports fail (the in-repo `ascendbench` helper
+    modules failed to import) — a misconfigured child, not a candidate fault, so
+    the parent marks the run an error instead of a silent skip.
     """
     Path(args["status_json"]).write_text(json.dumps(
         {"schema_version": args["status_schema_version"],
@@ -343,7 +339,7 @@ def _fail_child(load_error):
     sys.exit(1)
 
 
-# ── Trusted-shim segment  ──────────────────────────────────────────
+# ── Trusted-shim segment ──────────────────────────────────────────
 # The trusted-shim segment imports the in-repo `ascendbench`
 # helpers — the Layer E runtime audit hook and the NPU profiler / event
 # timer. The parent prepends the repository root to this child's
@@ -363,14 +359,13 @@ def _fail_child(load_error):
 # already-cached modules. The audit hook is therefore installed below,
 # after the candidate `solution.py` module has been loaded.
 #
-# This does NOT relax candidate isolation. The candidate `solution.py` is
-# still loaded under the Layer E audit hook + the static AST whitelist: it
-# cannot fresh-import the oracle / tasks or walk the package tree. "The
-# child process can import the package" and "the candidate can reach the
-# repository" are two separate layers — the former is PYTHONPATH, the
-# latter is the audit hook / AST checker, which are unchanged.
+# This does not relax candidate isolation: `solution.py` is still loaded under
+# the Layer E audit hook + the static AST whitelist (it cannot fresh-import the
+# oracle / tasks or walk the package tree). PYTHONPATH governs only what the
+# child process imports, not what the candidate may reach (see the PYTHONPATH
+# note in the parent for the two-layer rationale).
 
-#  Layer E: the sys.addaudithook runtime-defense hook installer. It
+# Layer E: the sys.addaudithook runtime-defense hook installer. It
 # traps dynamic-import / exec / subprocess / ctypes attempts the static
 # pass cannot see. Imported here; *installed* below after every other
 # trusted-shim import has been cached.
@@ -384,24 +379,24 @@ except Exception as e:  # noqa: BLE001
                 "ascendbench.integrity.static_checker "
                 "(%s: %s)" % (type(e).__name__, e))
 
-#  child-side profiler: detect NPU kernel-event presence, non-default
+# child-side profiler: detect NPU kernel-event presence, non-default
 # stream activity, and the derived fallback signal. The NPU measurement
 # belongs to backends/npu.py; on the dev machine it is a documented stub.
 #
-#  / : the same backend exposes the timing event-timer seam — an
+# The same backend exposes the timing event-timer seam — an
 # `EventTimer` *context manager* whose NPU `Event.record()` calls bracket
-# the SAME measured `fn(inp)` invocation that host time and the profiler
+# the same measured `fn(inp)` invocation that host time and the profiler
 # see. `_BACKEND.event_timer()` returns a fresh timer on the 910B and
 # `None` on the dev machine (no NPU); the timing pass degrades to
 # host-only there. Either way the `event_ns` series is sent up so the
 # parent's `arbitrate_timing` channel is end-to-end connected.
 #
-# : there is deliberately NO callable that re-runs the candidate to
-# take a separate event sample — that executed every measured input
-# twice and reopened the  stateful-candidate hole. The event timer
-# only brackets a call the timing loop already makes.
+# There is deliberately no callable that re-runs the candidate to take a
+# separate event sample — that would execute every measured input twice,
+# reopening the stateful-candidate hole. The event timer only brackets a
+# call the timing loop already makes.
 #
-# : this import is also a trusted-shim import — a failure is a
+# This import is also a trusted-shim import — a failure is a
 # misconfigured child, surfaced via `load_error`, not silently swallowed.
 # Both backends guard their accelerator import, so the module loads even
 # without torch_npu / CUDA; only the *device* is absent on the dev machine.
@@ -424,14 +419,10 @@ except Exception as e:  # noqa: BLE001
     _fail_child("backend init failed: %s (%s: %s)"
                 % (backend, type(e).__name__, e))
 
-# NOTE: the Layer E audit hook is NOT installed here — it is installed
-# below, AFTER the candidate `solution.py` module is loaded but BEFORE any
-# graded `fn(inp)` invocation. CPython emits an `exec` audit event for the
-# import system's module-code execution, and the hook blocks `exec`; an
-# install before the candidate module load would block the load itself.
-# The candidate module body already passed the static AST whitelist
-# (Layers A-D/F); the audit hook is the runtime net for the *graded*
-# `fn(inp)` calls — see the install site after the candidate load below.
+# The Layer E audit hook is installed after the candidate load (see the install
+# site below), not here — installing before the load would block the candidate's
+# own module-code `exec`. The candidate body already passed the static AST
+# whitelist (Layers A-D/F).
 
 
 def _sync_device():
@@ -465,12 +456,11 @@ def _host_ns():
 def _profile(fn, inp):
     """Profile ONE candidate call; return ``(output, diagnostics)``.
 
-    The candidate `fn(inp)` is invoked exactly once. That single call
-    produces BOTH the output the caller consumes AND the three
-    diagnostic signals — the profiler path and the graded/timed path are
-    the same invocation. A stateful candidate therefore cannot behave
-    honestly on a profiled call and cheat on a separate graded/timed call
-    : there is no separate call.
+    The candidate `fn(inp)` is invoked exactly once: that single call produces
+    both the output the caller consumes and the three diagnostic signals, so
+    the profiled call IS the graded/timed call. A stateful candidate cannot be
+    honest when profiled and cheat on a separate graded/timed call — there is
+    no separate call.
 
     `_PROFILER.profile_call` runs `fn` once and hands back both `output`
     and the kernel-event / stream / fallback signals. When no profiler is
@@ -557,13 +547,13 @@ try:
 except Exception:  # noqa: BLE001
     _uses_triton = True
 
-#  /  Layer E: install the sys.addaudithook runtime-defense hook NOW —
+# Layer E: install the sys.addaudithook runtime-defense hook NOW —
 # after the candidate module body loaded (vetted source) but BEFORE any warmup
 # or graded `fn(inp)` call. It defaults to the "graded" phase (everything
 # blocked); the compile warmup below briefly flips it to the narrow "compile"
 # phase. CPython emits an `exec` audit event for module-code execution, so
 # installing earlier would have blocked the candidate's own load. The install
-# is unconditional and not swallowed .
+# is unconditional and not swallowed.
 install_runtime_audit_hook()
 
 # Warmup-compile (Q2 phase-aware, Q3 triton-gated): a triton kernel JIT-compiles
@@ -626,12 +616,11 @@ def _run_one(fn, inp):
 def _record_diag(rec, inp):
     """Profile ONE candidate call; store the diagnostics, return the output.
 
-    The single profiled `fn(inp)` invocation produces both the
-    diagnostics (stored on `rec`) AND the candidate output, which is
-    returned here as ``(flat_outputs, error)`` so the caller consumes
-    *this* call's result. The caller MUST NOT re-invoke `fn` on the same
-    input — that would let a stateful candidate be honest on the diagnosed
-    call and cheat on the separately-graded call .
+    The single profiled `fn(inp)` invocation produces both the diagnostics
+    (stored on `rec`) and the candidate output, returned here as
+    ``(flat_outputs, error)`` so the caller consumes *this* call's result. The
+    caller must not re-invoke `fn` on the same input (single profiled call —
+    see `_profile`).
     """
     output, diag = _profile(fn, inp)
     rec["kernel_event_present"] = diag.get("kernel_event_present")
@@ -645,11 +634,10 @@ def _record_diag(rec, inp):
 def _correctness_shape(fn, shape, rec):
     """Correctness pass for one shape: one call, store t=0 output.
 
-    The stored output is the output of the SAME call that was profiled
-     — `_record_diag` profiles `fn(inp)` once and returns that
-    call's output. The candidate is never invoked twice on one input, so
-    the diagnostics and the graded correctness output describe the same
-    invocation .
+    The stored output is the output of the same call `_record_diag` profiled —
+    the candidate is never invoked twice on one input, so the diagnostics and
+    the graded correctness output describe the same invocation (single profiled
+    call — see `_profile`).
     """
     if inputs_mode == "single":
         inp = _merge(shape["input_tensors"], shape["input_sidecar"])
@@ -689,22 +677,13 @@ def _timing_shape(fn, shape, rec):
     dict, host-timed with CLOCK_MONOTONIC_RAW. The runner-secret sampled
     indices select which trials' outputs are sent up for re-verification.
 
-    : the  profiler diagnostics (kernel-event / non-default-stream
-    / fallback) are bound to a REAL measured invocation — specifically a
-    runner-secret sampled measured trial — not a sacrificial warm-up call.
-    The candidate cannot predict which measured trials the runner sampled,
-    so it cannot behave honestly on a profiled call and cheat on the
-    timing calls: the profiled call IS one of the calls being timed and
-    output-reverified.
-
-     / : the profiled measured trial runs `fn` EXACTLY ONCE. That
-    single invocation is host-timed, NPU-event-bracketed, profiled, and
-    its return value is the output sampled / reverified for that trial —
-    there is no second, untimed call. The NPU event timer is a
-    *context manager* whose `Event.record()` calls bracket that same one
-    invocation; the candidate is never re-run merely to take an event
-    sample. A stateful candidate therefore cannot run honestly on the
-    timed call and serve a different output on a re-run.
+    The profiler diagnostics (kernel-event / non-default-stream / fallback) are
+    bound to a runner-secret sampled measured trial, not a sacrificial warm-up
+    call — the candidate cannot predict which, so the profiled call is one of
+    the calls being timed and output-reverified (single profiled call — see
+    `_profile`). The NPU event timer is a *context manager* whose
+    `Event.record()` calls bracket that same one invocation; the candidate is
+    never re-run merely to take an event sample.
     """
     sid = shape["shape_id"]
     trials = {t["t"]: t for t in shape.get("trials", [])}
@@ -713,11 +692,10 @@ def _timing_shape(fn, shape, rec):
         return
     sampled_idx = set(args.get("sampled_indices", {}).get(sid, []))
 
-    # Phase a: warm-up — negative trial indices, NOT timed. Warm-up calls
-    # are no longer profiled: a sacrificial warm-up call is exactly the
-    # call a candidate could behave honestly on while cheating the timed
-    # calls. The profiler now runs on a runner-secret measured trial in
-    # phase b .
+    # Phase a: warm-up — negative trial indices, not timed and not profiled:
+    # a sacrificial warm-up is exactly the call a candidate could be honest on
+    # while cheating the timed calls. The profiler runs on a runner-secret
+    # measured trial in phase b.
     warm_ts = sorted(k for k in trials if k < 0)
     for t in warm_ts:
         inp = _merge(trials[t]["input_tensors"], trials[t]["input_sidecar"])
@@ -727,23 +705,22 @@ def _timing_shape(fn, shape, rec):
             return
 
     # Phase b: measured loop — fresh inputs per trial, host-timed.
-    #  / : each measured trial also records an NPU event-timer ns.
-    # The event timer is an `EventTimer` context manager that BRACKETS the
-    # SAME single `fn(inp)` call host time and the profiler see — it does
-    # NOT re-run the candidate. On the dev machine `event_timer()` returns
-    # None, so `event_ns` stays an all-None series and arbitration
-    # degrades to host-only — but the channel up to the parent is
-    # connected either way.
+    # Each measured trial also records an NPU event-timer ns. The event timer
+    # is an `EventTimer` context manager that brackets the same single `fn(inp)`
+    # call host time and the profiler see — it does not re-run the candidate.
+    # On the dev machine `event_timer()` returns None, so `event_ns` stays an
+    # all-None series and arbitration degrades to host-only — but the channel up
+    # to the parent is connected either way.
     durations = []
     event_ns = []
     sampled = {}
     keys0 = None
     meas_ts = sorted(k for k in trials if k >= 0)
-    # : the profiler is bound to a runner-secret sampled measured
-    # trial. Pick the first sampled measured index when the runner sampled
-    # any; otherwise (no sampling configured) fall back to the first
-    # measured trial so the  channel is still populated. Either way it
-    # is a real measured invocation, not a warm-up call.
+    # The profiler is bound to a runner-secret sampled measured trial: pick the
+    # first sampled measured index when the runner sampled any; otherwise (no
+    # sampling configured) fall back to the first measured trial so the channel
+    # is still populated. Either way it is a real measured invocation, not a
+    # warm-up call.
     profiled_t = None
     sampled_meas = sorted(t for t in meas_ts if t in sampled_idx)
     if sampled_meas:
@@ -752,21 +729,17 @@ def _timing_shape(fn, shape, rec):
         profiled_t = meas_ts[0]
     for t in meas_ts:
         inp = _merge(trials[t]["input_tensors"], trials[t]["input_sidecar"])
-        # : one NPU event timer per measured trial, bracketing the
-        # ONE measured call. `None` on the dev machine ⇒ nullcontext, the
-        # trial is host-only timed.
+        # One NPU event timer per measured trial, bracketing the one measured
+        # call. `None` on the dev machine ⇒ nullcontext, the trial is host-only
+        # timed.
         timer = _make_event_timer()
         bracket = timer if timer is not None else contextlib.nullcontext()
         if t == profiled_t:
-            # The profiled call IS the measured invocation: the profiler
-            # runs `fn(inp)` exactly once and returns BOTH that call's
-            # output and the  signals. Host-time AND event-bracket
-            # that same single call so the trial is timed, profiled, and
-            # output-sampled off one invocation. The candidate cannot tell
-            # this trial apart from any other measured trial, and — because
-            # there is no second call — cannot run honestly on the timed
-            # call and cheat on a re-run that produces the sampled output
-            # .
+            # The profiled call IS the measured invocation: the profiler runs
+            # `fn(inp)` exactly once and returns both that call's output and the
+            # diagnostic signals. Host-time and event-bracket that same call so
+            # the trial is timed, profiled, and output-sampled off one
+            # invocation (single profiled call — see `_profile`).
             _sync_device()
             h0 = _host_ns()
             # The post-bracket sync runs in `finally` so an exception from the
@@ -873,7 +846,7 @@ def _materialise_inputs(
 
 
 def sanitised_shapes_view(shapes_doc: dict) -> dict:
-    """: the candidate-safe projection of a task's ``shapes.yaml``.
+    """The candidate-safe projection of a task's ``shapes.yaml``.
 
     The trusted runner holds the *complete* ``shapes.yaml`` (public AND
     hidden shapes). Any candidate-facing shapes view must drop the
@@ -1027,20 +1000,18 @@ def run_candidate_isolated(
             "backend": backend,
             "shapes": shapes_arg,
         }
-        # : prepend REPO_ROOT to the child's PYTHONPATH so its
-        # trusted-shim segment imports the `ascendbench` helpers
-        # (Layer E audit hook + NPU profiler / event timer) from THIS
-        # checkout — a plain checkout has nothing on `sys.path`, and a
-        # stale site-package install would otherwise shadow the branch
-        # under test. Any pre-existing PYTHONPATH is preserved AFTER
-        # REPO_ROOT so the checkout wins.
+        # Prepend REPO_ROOT to the child's PYTHONPATH so its trusted-shim
+        # segment imports the `ascendbench` helpers (Layer E audit hook + NPU
+        # profiler / event timer) from this checkout — a plain checkout has
+        # nothing on `sys.path`, and a stale site-package install would
+        # otherwise shadow the branch under test. Any pre-existing PYTHONPATH
+        # is preserved after REPO_ROOT so the checkout wins.
         #
-        # This does NOT loosen candidate isolation: the candidate
-        # `solution.py` is still graded under the Layer E audit hook + the
-        # static AST whitelist (which reject importing the oracle / tasks
-        # or walking the repo). PYTHONPATH only governs what the trusted
-        # child *process* can import; the audit hook / AST checker govern
-        # what the *candidate* may do — two separate, unchanged layers.
+        # This does not loosen candidate isolation: PYTHONPATH governs what the
+        # trusted child *process* can import; the Layer E audit hook + static
+        # AST whitelist govern what the *candidate* may do (they reject
+        # importing the oracle / tasks or walking the repo) — two separate
+        # layers.
         _existing_pp = os.environ.get("PYTHONPATH", "")
         child_pythonpath = (
             f"{REPO_ROOT}{os.pathsep}{_existing_pp}"
@@ -1052,7 +1023,7 @@ def run_candidate_isolated(
             # GPU-machine layer — see module docstring.)
             "PYTHONHASHSEED": "0",
             "PYTHONDONTWRITEBYTECODE": "1",
-            # : trusted-shim import path (REPO_ROOT first).
+            # trusted-shim import path (REPO_ROOT first).
             "PYTHONPATH": child_pythonpath,
         }
         # On NPU the trusted child must load torch_npu + the CANN/driver
@@ -1075,7 +1046,7 @@ def run_candidate_isolated(
             # cannot parse it (the CSV export's exec is blocked by the graded
             # sandbox); the parent parses each per-shape raw dir below.
             env["AB_NPU_PROF_ROOT"] = prof_root
-        # : spawn via Popen so we can SIGKILL the WHOLE process group
+        # spawn via Popen so we can SIGKILL the whole process group
         # on timeout — `subprocess.run` only waits/kills the direct child,
         # leaving any forked descendant alive to leak state into the next
         # pass. `start_new_session=True` makes the child a process-group
@@ -1184,19 +1155,17 @@ _ANALYSE_TIMEOUT_S = 120
 
 
 def _run_with_timeout(fn, timeout_s):
-    """Run ``fn()`` in a daemon thread; return True iff it completed WITHOUT an
+    """Run ``fn()`` in a daemon thread; return True iff it completed without an
     exception within ``timeout_s``. A hung ``fn`` leaves the daemon thread
     abandoned (it cannot block process exit) and returns False, so a wedged CANN
     parser cannot hang the runner — the caller fails closed.
 
-    Residual (accepted): on a timeout the abandoned analyse + any CANN parser
-    subprocesses it forked are NOT force-killed; they leak until the runner
-    exits. A subprocess+killpg boundary would be airtight but re-imports
-    torch_npu (~10 s) per parse — prohibitive for a full NPU eval (~2 parses per
-    shape x hundreds of shapes). A hang requires a corrupted raw trace, but the
-    candidate's FS-write primitives are statically blocked (Layers A-D/F), so the
-    raw trace is runner-produced and a hang is near-impossible; the in-process
-    timeout is the right trade and the verdict still fails closed."""
+    A timed-out parse leaks its abandoned thread + any CANN subprocesses it
+    forked until the runner exits (a killpg boundary would be airtight but
+    re-imports torch_npu ~10 s per parse — prohibitive at ~2 parses x hundreds
+    of shapes). Acceptable: the candidate's FS-write primitives are statically
+    blocked (Layers A-D/F), so the raw trace is runner-produced and a hang needs
+    a corrupted trace; the verdict still fails closed."""
     done = {"ok": False}
 
     def _wrap():
@@ -1325,12 +1294,12 @@ def scrub_between_passes() -> list[str]:
 
 
 def _fresh_sampling_seed() -> int:
-    """: a fresh, unpredictable sampling seed for the runner-secret
-    trial selection — generated in the trusted parent for EVERY evaluation.
+    """A fresh, unpredictable sampling seed for the runner-secret trial
+    selection — generated in the trusted parent for every evaluation.
 
     The candidate cannot predict which measured trials get output-reverified
-    (and, after , which one is profiled) only if the seed driving that
-    choice is unpredictable. This seed MUST therefore be:
+    (and which one is profiled) only if the seed driving that choice is
+    unpredictable. This seed must therefore be:
 
       * **fresh per evaluation** — never reused across runs;
       * **drawn from a CSPRNG** — ``secrets`` (stdlib), not a fixed literal
@@ -1360,35 +1329,34 @@ def run_two_pass(
     golden_fixed_inputs: dict[str, object] | None = None,
     backend: str = "npu",
 ) -> TwoPassResult:
-    """ dual-sandbox driver — two independent candidate subprocesses.
+    """Dual-sandbox driver — two independent candidate subprocesses.
 
     1. **Correctness pass** — a fresh subprocess over ``correctness_inputs``
        (one inputs dict per shape). The subprocess is killed on exit.
     2. **Scrub** — :func:`scrub_between_passes` clears the Triton compile
        cache + `/tmp` scratch + NPU device memory so the timing pass
        cannot read anything the correctness pass left behind. The
-       correctness-pass process group is SIGKILLed  before the
+       correctness-pass process group is SIGKILLed before the
        scrub so no forked descendant survives into the timing pass.
     3. **Timing pass** — a *separate* fresh subprocess over
        ``timing_inputs`` (a per-trial sequence per shape). A runner-secret
        RNG picks which measured trials' outputs are sampled and sent up.
 
     Each child runs in its own process group (``start_new_session=True``);
-    a hung child has its WHOLE group SIGKILLed on timeout . The two
-    passes never share interpreter / device / cache state — this is the
-    the process-isolation model "Why Two Candidate Processes"
-    requires.
+    a hung child has its whole group SIGKILLed on timeout. The two
+    passes never share interpreter / device / cache state — this is what
+    the process-isolation model "Why Two Candidate Processes" requires.
 
     `correctness_inputs` is ``{shape_id: built_dict}``; `timing_inputs` is
     ``{shape_id: [t0_dict, ...]}`` whose leading ``n_warmup`` entries are
     warm-up trials.
 
-    : the sampled-trial RNG seed is generated FRESH per call from a
-    CSPRNG and is strictly distinct from the deterministic input-generation
-    seed — no caller-supplied / hard-coded seed feeds it, so a submitter
-    cannot pre-compute which trials are reverified or profiled.
+    The sampled-trial RNG seed is generated fresh per call from a CSPRNG and is
+    strictly distinct from the deterministic input-generation seed — no
+    caller-supplied / hard-coded seed feeds it, so a submitter cannot
+    pre-compute which trials are reverified or profiled.
 
-    : ``golden_fixed_inputs`` (``{shape_id: built_dict}``) is the
+    ``golden_fixed_inputs`` (``{shape_id: built_dict}``) is the
     offline-golden cheat-path closure for ``upstream_oracle_required``
     tasks graded in verified mode. Such a task has no per-trial PyTorch
     oracle to re-run, so a runner-secret *sampled* timing trial cannot be
@@ -1398,7 +1366,7 @@ def run_two_pass(
     the runner OVERWRITES every runner-secret sampled measured trial's
     input with that shape's fixed input (the seed-0 input the offline
     golden covers). The candidate cannot tell a sampled trial apart from
-    any other measured trial (the indices are runner-secret, ), so it
+    any other measured trial (the indices are runner-secret), so it
     cannot target the cheat at the non-sampled trials; the non-sampled
     trials keep their fresh per-trial inputs so the cache-reuse defence
     still holds. The caller then reverifies the shipped-up sampled outputs
@@ -1411,12 +1379,12 @@ def run_two_pass(
         timeout_s=timeout_s, pass_kind="correctness", backend=backend)
 
     # Between passes — the correctness-pass process group was SIGKILLed in
-    # `run_candidate_isolated` ; here we scrub the cross-pass
-    # pre-computation channel so the timing pass starts clean.
+    # `run_candidate_isolated`; here we scrub the cross-pass pre-computation
+    # channel so the timing pass starts clean.
     scrubbed = scrub_between_passes()
 
     # Pass 2 — timing sandbox. The sampled-trial indices come from a
-    # fresh CSPRNG seed  the candidate cannot predict.
+    # fresh CSPRNG seed the candidate cannot predict.
     rng = torch.Generator()
     rng.manual_seed(_fresh_sampling_seed())
     sampled_indices: dict[str, list[int]] = {}
@@ -1432,12 +1400,12 @@ def run_two_pass(
         perm = torch.randperm(n_meas, generator=rng).tolist()
         sampled_indices[sid] = sorted(perm[:k])
 
-    # : for an offline-golden task, swap each runner-secret sampled
-    # measured trial's input to the shape's fixed (golden-covered) input
-    # so the shipped-up sampled output can be reverified against the
-    # offline golden. Done AFTER the secret indices are chosen and only
-    # on the sampled slots — the candidate cannot distinguish them, and
-    # the non-sampled trials keep fresh inputs (anti-cache).
+    # For an offline-golden task, swap each runner-secret sampled measured
+    # trial's input to the shape's fixed (golden-covered) input so the
+    # shipped-up sampled output can be reverified against the offline golden.
+    # Done after the secret indices are chosen and only on the sampled slots —
+    # the candidate cannot distinguish them, and the non-sampled trials keep
+    # fresh inputs (anti-cache).
     if golden_fixed_inputs:
         timing_inputs = _apply_golden_fixed_inputs(
             timing_inputs, sampled_indices, golden_fixed_inputs, n_warmup)
@@ -1458,7 +1426,7 @@ def _apply_golden_fixed_inputs(
     golden_fixed_inputs: dict[str, object],
     n_warmup: int,
 ) -> dict[str, object]:
-    """: overwrite the runner-secret sampled measured trials with each
+    """Overwrite the runner-secret sampled measured trials with each
     shape's fixed golden-covered input.
 
     For an ``upstream_oracle_required`` task graded in verified mode the
