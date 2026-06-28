@@ -1,158 +1,224 @@
 # TritonAscendBench (TAB)
 
-> 中文版：[README.zh.md](README.zh.md)
-
-> A **Migration Benchmark** for porting GPU Triton kernels to Huawei Ascend 910B via `triton-ascend`.
+A **migration benchmark** that measures whether production GPU Triton kernels —
+extracted from vLLM and SGLang inference paths — can be ported to the Huawei
+Ascend 910B (Atlas A2) via `triton-ascend` **without losing correctness or
+performance**. Where generation benchmarks ask *"can a model write a kernel?"*,
+TAB asks *"can a real kernel survive a hardware migration?"*
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue)](pyproject.toml)
 [![Tasks](https://img.shields.io/badge/Tasks-101-blue)](tasks/)
+[![Status](https://img.shields.io/badge/Status-research_preview-orange)](#status)
 
-## What
+English | [中文](README.zh.md)
 
-TritonAscendBench evaluates whether a NPU triton-ascend implementation can match the **GPU Triton reference** from vLLM/SGLang inference paths on Huawei 910B (Atlas A2 series), in both **correctness and performance**.
+## Contents
 
-Unlike [KernelBench](https://github.com/ScalingIntelligence/KernelBench) (PyTorch → CUDA generation) and [TritonBench](https://github.com/thunlp/TritonBench) (PyTorch → Triton generation), this is a **Migration Benchmark**: starting point is *existing production GPU Triton code* from vLLM / SGLang, target is NPU triton-ascend on 910B.
+- [Overview](#overview)
+- [Motivation](#motivation)
+- [Quick Start](#quick-start)
+- [Dependencies](#dependencies)
+- [Task Suite](#task-suite)
+- [Scoring](#scoring)
+- [Leaderboard](#leaderboard)
+- [Integrity](#integrity)
+- [Status](#status)
+- [Documentation](#documentation)
+- [Citation](#citation)
+- [License & Attribution](#license--attribution)
+- [Contributing](#contributing)
 
-## Why
+## Overview
 
-- **Generation benchmarks** (KernelBench, TritonBench) test "can an LLM write a kernel from scratch?"
-- **Migration benchmark** (this) tests "can a real production kernel be ported to NPU without regression?"
-- Real industrial scenario: vLLM / SGLang already runs on H100/A100 with mature Triton kernels. Porting them to 910B requires fidelity to upstream semantics, not creativity.
+TritonAscendBench evaluates a candidate `triton-ascend` (NPU) implementation
+against the **GPU Triton reference** the kernel was extracted from, on two axes:
+**correctness** (graded now, on CPU) and **performance** (raw NPU latency,
+requires 910B hardware). The 101 tasks are real operators from vLLM / SGLang —
+not synthetic — so a passing submission demonstrates behaviorally faithful
+handling of a production-kernel migration task, within the documented
+tolerance / ceiling policy.
+
+| | Starting point | Target | Question |
+|---|---|---|---|
+| [KernelBench](https://github.com/ScalingIntelligence/KernelBench) | PyTorch module | CUDA | Can a model **generate** a kernel? |
+| [TritonBench](https://github.com/thunlp/TritonBench) | PyTorch op | Triton | Can a model **generate** a Triton kernel? |
+| **TritonAscendBench** | **Production GPU Triton** (vLLM/SGLang) | **NPU triton-ascend (910B)** | Can a real kernel **migrate** without regression? |
+
+## Motivation
+
+vLLM and SGLang already serve LLMs on H100 / A100 with mature, hand-tuned Triton
+kernels. Bringing that ecosystem to the Ascend 910B is a **porting** problem, not
+a creative one: the port must reproduce upstream numerical semantics exactly,
+and ideally match its performance envelope. TAB measures precisely that gap, with
+upstream itself as the ground truth.
 
 ## Quick Start
 
-### As a Submitter (porting a kernel)
+> `pip install` provides the gradable package; **clone the repository** (or use
+> the release tarball) to obtain the 101 `tasks/` — they are not in the pip wheel
+> or sdist (see [Dependencies](#dependencies)).
+
+Port a kernel and grade it locally (no GPU/NPU required for correctness):
 
 ```bash
-pip install triton-ascend-bench
+pip install triton-ascend-bench        # or: pip install -e . from a clone
 
-# 1. Scaffold a solution dir for a specific task. The task_id is positional.
-tab init-solution L1_12_rms_norm_kernel --out my_solutions/L1_12_rms_norm_kernel
+# 1. Scaffold a solution directory for a task (task_id is positional).
+tab init-solution L1_12_rms_norm --out my_solutions/L1_12_rms_norm
 
-# 2. Write your NPU triton implementation in
-#    my_solutions/L1_12_rms_norm_kernel/solution.py
-#    Also drop a manifest.yaml at the root (see ascendbench.manifest.SolutionManifest).
+# 2. Implement your NPU triton kernel in solution.py + a manifest.yaml
+#    (schema: ascendbench.manifest.SolutionManifest).
 
-# 3. Run one task locally (positional task_id).
-tab run L1_12_rms_norm_kernel \
-    --solution my_solutions/L1_12_rms_norm_kernel/solution.py \
-    --backend gpu \
-    --out round_result.json
+# 3. Grade one task against the PyTorch oracle.
+tab run L1_12_rms_norm \
+    --solution my_solutions/L1_12_rms_norm/solution.py \
+    --backend gpu --out round_result.json
 
-# 4. Run the whole suite (one solution.py per task expected at <root>/<task_id>/solution.py).
-tab run-suite \
-    --solutions-root my_solutions \
-    --backend gpu \
-    --out suite_results.json
+# 4. Grade the whole suite (one solution.py per task under the root).
+tab run-suite --solutions-root my_solutions --backend gpu --out suite_results.json
 
-# 5. Package and submit. `package` warns if manifest.yaml is missing.
-tab package my_solutions/L1_12_rms_norm_kernel --out submission.tar.gz
-tab validate-submission submission.tar.gz                     # schema-check the manifest
-tab submit submission.tar.gz --endpoint https://leaderboard.example.com
+# 5. Package + validate a submission. (`tab submit` POSTs to a leaderboard
+#    endpoint; the hosted submission service is roadmap — see Leaderboard.)
+tab package my_solutions/L1_12_rms_norm --out submission.tar.gz
+tab validate-submission submission.tar.gz
 ```
 
-### As a Benchmark Maintainer
+The correctness grader needs no accelerator: a submission flows static-check →
+isolated subprocess (`ascendbench.integrity.process_isolation`, safetensors-only
+IPC so the candidate never sees oracle output) → `tolerance.compare` per shape
+against the in-process PyTorch oracle. Performance timing requires a 910B
+machine (see [Status](#status)).
 
-The task bundle is built by a staged, idempotent pipeline:
+<details>
+<summary><b>Maintainer: rebuild the task bundle</b></summary>
+
+The corpus is produced by a staged, idempotent pipeline (provider-side only):
 
 ```bash
-# Phase 0: validate every task against the spec schema.
-python scripts/corpus/validate_tasks.py --strict
+python scripts/corpus/validate_tasks.py --strict        # validate against the spec schema
 python scripts/provenance/verify_version_matrix.py
-
-# Phase 0.5: scaffold the 101-task tree from docs/kernel-select.md.
-python scripts/corpus/generate_task_scaffolds.py        # 96 scaffolds (+5 PoC)
-
-# Phase A: vendor the upstream GPU triton kernel.py (Apache-2.0/BSD-3
-# attribution preserved; raw snapshot kept in ascendbench/frozen/snapshots/).
-python scripts/verify/freeze_upstream_sources.py --limit 9999    # 93 frozen
-
-# Phase B: author the PyTorch ground-truth oracle_pytorch.py.
-python scripts/corpus/generate_oracle_from_kernel.py                 # 96 working refs
-
-# Phase C: emit size-knob shapes.yaml + contract.md; the oracle input
-# bridge is ascendbench.input_spec.inputs.build_inputs.
-python scripts/corpus/generate_shapes_and_contract.py                   # 92 (+5 PoC migrated)
+python scripts/corpus/generate_task_scaffolds.py        # scaffold the task tree
+python scripts/verify/freeze_upstream_sources.py        # vendor upstream kernel.py (attribution preserved)
+python scripts/corpus/generate_oracle_from_kernel.py    # author the PyTorch ground-truth oracle
+python scripts/corpus/generate_shapes_and_contract.py   # emit shapes.yaml + contract.md
 ```
 
-The candidate **correctness grader runs without GPU/NPU**:
-`ascendbench.integrity.process_isolation` executes the submitted
-`npu_triton_impl(inputs)` in an isolated subprocess (safetensors-only
-IPC; candidate never sees oracle output) and `tolerance.compare`
-grades it per shape against the in-process oracle. Timing/performance
-needs the 910B machine — see **Maturity** below.
+Re-running upstream-equivalence (S2/C2) additionally needs the `[infer]` extra and
+an external `infer/` vLLM/SGLang checkout — see [Dependencies](#dependencies).
+</details>
 
-## Task Levels
+## Dependencies
 
-| Level | Tasks | Type | Hardware |
-|-------|-------|------|----------|
-| **L1** | 36 | Single-op / elementwise / reduce / quant / sample | NPU Vector |
-| **L2** | 35 | Fused / Cube matmul / LoRA / MoE EP / Mamba step | NPU Cube + Vector |
-| **L3** | 30 | Full Flash Attention / Fused MoE / Mamba chunk pipeline | NPU full pipeline |
+Although the tasks are extracted from vLLM / SGLang, **the runtime imports
+neither.** A default install is 8 standard packages — `torch`, `triton`,
+`numpy`, `pyyaml`, `safetensors`, `click`, `rich`, `einops` (Python ≥ 3.10) —
+with none of vLLM / SGLang's heavy transitive stack. Importing `ascendbench` and
+running `tab run` pull zero `vllm` / `sglang`, enforced in CI by an import-deny
+gate.
 
-Selection rationale: see [`docs/kernel-select.md`](docs/kernel-select.md).
+| Role | Installs | vLLM / SGLang? |
+|---|---|---|
+| **Submitter / evaluator** | the package + `clone` for `tasks/` | none |
+| **Maintainer** (re-derive provenance, re-run S2/C2) | `+ [infer]` extra + external `infer/` checkout | yes, opt-in only |
+
+How the decoupling works and how upstream fidelity is preserved through it:
+[`docs/reference/dependency_model.md`](docs/reference/dependency_model.md).
+
+## Task Suite
+
+| Level | Tasks | Kernel class | 910B units |
+|-------|:-----:|--------------|------------|
+| **L1** | 36 | Single-op / elementwise / reduce / quant / sample | Vector |
+| **L2** | 35 | Fused / Cube matmul / LoRA / MoE EP / Mamba step | Cube + Vector |
+| **L3** | 30 | Flash Attention / Fused MoE / Mamba chunk pipeline | Full pipeline |
+
+Selection rationale: [`docs/kernel-select.md`](docs/kernel-select.md).
 
 ## Scoring
 
-This is a GPU-triton → NPU-triton **migration** benchmark. **Correctness
-is the live scored axis** (per-shape `tolerance.compare` vs the PyTorch
-oracle). There is **no AscendC native baseline** — the migration
-question is "does the port preserve correctness/perf vs the GPU-triton
-original," not "is triton-ascend as fast as hand-written native."
+**Correctness is the live scored axis** — per-shape `tolerance.compare` against
+the PyTorch oracle. There is **no AscendC native baseline**: the question is
+"does the port preserve the GPU-Triton original's behaviour," not "is
+triton-ascend as fast as hand-written native code."
 
-Performance metric (deferred — requires Ascend 910B):
+Performance is a Roofline-efficiency metric, deferred until 910B hardware is
+wired end-to-end. Each correct task gets an efficiency score `s_t` (achieved vs.
+Roofline-attainable throughput); the headline metrics aggregate it:
 
-$$\text{FastP}(p) = \frac{|\{t \in \text{catalogue} : \text{correct} \land t_{\text{npu}} \le p \cdot t_{\text{baseline}}\}|}{|\text{catalogue}|}$$
+$$\text{FastP}_{\text{native}}@\tau = \frac{\bigl|\{\,t \in \text{catalogue} : s_t \ge \tau\,\}\bigr|}{|\text{catalogue}|}, \quad \tau \in \{1.0, 1.5\}$$
 
-- `t_baseline` is the task's declared perf reference (currently
-  unmeasured; raw NPU latency is reported when hardware is available)
-- `FastP_native@1.0/1.5`, `capped_geomean_native` — function/key names
-  retained for output-schema stability; `_native` = the NPU-triton
-  track (not AscendC). Capped at 5×, floor ε=0.01.
+- `s_t` — the task's Roofline efficiency (reported once 910B latency is measured;
+  an incorrect task scores 0, not excluded).
+- `fastp_native_at_1_0/1_5`, `capped_geomean_native` — `_native` denotes the
+  NPU-triton track (not AscendC); names retained for output-schema stability.
+  Capped at 5×, floor ε = 0.01.
 
-Full scoring spec: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spec.md).
+Full specification: [`docs/reference/scoring_spec.md`](docs/reference/scoring_spec.md).
 
-## Two-Tier Leaderboard
+## Leaderboard
 
-| Tier | Verification | Use case |
-|------|-------------|----------|
-| **v0.1 self-reported** | Submitter's own measurements + hash check | Iteration, sandbox |
-| **v1.0 verified** | Official 910B runner 100% re-execution + hidden shapes + sandbox + audit | Public ranking |
+Two tiers are designed; **v0.1 is local-only today** (package + validate + hash
+check), and the hosted submission service plus the v1.0 verified runner are
+roadmap (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
 
-## Reward Hacking Defense
+| Tier | Verification | Status |
+|------|--------------|--------|
+| **v0.1 self-reported** | submitter's own measurements + hash check | local tooling shipped |
+| **v1.0 verified** | official 910B runner: 100% re-execution + hidden shapes + sandbox + audit | planned |
 
-29 by-design defense principles across 7 layers (Process / Code / Correctness / Sanity / Submission / Test-set / Cross-cutting), covering 31 attack categories.
+## Integrity
+
+Submissions run under a layered reward-hacking defense — 29 by-design principles
+across 7 layers (Process / Code / Correctness / Sanity / Submission / Test-set /
+Cross-cutting) covering 31 attack categories. See
+[`docs/reference/reward_hack_defense.md`](docs/reference/reward_hack_defense.md).
+
+## Status
+
+> **Research preview.** Correctness is fully wired and exercised across the whole
+> corpus on a plain CPU box. Performance (Roofline efficiency) requires real
+> Ascend 910B hardware and is **not yet wired end-to-end** — until then NPU
+> latency is reported as raw numbers only and is out of the release gate.
+> Upstream-fidelity grading is honest about its limits: the current release
+> status is **83 verified + 18 ceiling-accepted** (a documented large-shape
+> precision relaxation), with a **blocked** status reserved for any task where
+> upstream itself diverges from a correct reference (none today). Nothing is
+> reported as perfect that is not.
 
 ## Documentation
 
-- [Selection rationale](docs/kernel-select.md)
+- [Selection rationale](docs/kernel-select.md) — why these 101 kernels
+- [Architecture](docs/ARCHITECTURE.md) / [Design](docs/DESIGN.md)
 - [Task API contract](docs/reference/task_api_contract.md)
-- [Tolerance policy](docs/reference/tolerance_policy.md)
 - [Correctness model](docs/reference/correctness_model.md) — how outputs are graded correct (precision alignment)
+- [Dependency model](docs/reference/dependency_model.md) — why the runtime needs no vLLM/SGLang, and how upstream fidelity survives the decoupling
+- [Tolerance policy](docs/reference/tolerance_policy.md) · [Scoring spec](docs/reference/scoring_spec.md) · [Reward-hacking defense](docs/reference/reward_hack_defense.md)
 
-## Maturity
+## Citation
 
-The **correctness** grader runs on a plain CPU dev box (no GPU/NPU required) and
-is exercised across the whole corpus: a submission flows static-check → isolated
-subprocess → `tolerance.compare` vs the PyTorch oracle. The **performance** axis
-(Roofline efficiency) requires real Ascend 910B hardware and is not yet wired
-end-to-end; until then performance is reported as raw latency only and is out of
-the release gate. There is no AscendC baseline — this is a migration benchmark
-scored against the upstream GPU-Triton reference.
+```bibtex
+@misc{tritonascendbench,
+  title  = {TritonAscendBench: A Migration Benchmark for Porting Production
+            GPU Triton Kernels to Ascend NPU},
+  year   = {2026},
+  note   = {https://github.com/sii-ai-infra/TritonAscendBench}
+}
+```
 
-## License
+## License & Attribution
 
-Apache 2.0 — see [LICENSE](LICENSE).
+Apache 2.0 — see [LICENSE](LICENSE). The benchmark vendors and adapts third-party
+sources, primarily Apache-2.0, with preserved upstream notices where applicable;
+full attribution is in [NOTICE](NOTICE):
 
-Vendored / inspired sources:
-- [KernelBench](https://github.com/ScalingIntelligence/KernelBench) (Apache 2.0) — eval / timing patterns
-- vLLM (Apache 2.0) — task source kernels
-- SGLang (Apache 2.0) — task source kernels
-
-Full attribution: [NOTICE](NOTICE).
+- **vLLM** / **SGLang** — task source kernels (extracted, severed, and re-graded).
+- [**KernelBench**](https://github.com/ScalingIntelligence/KernelBench) — eval / timing patterns.
+- [**TritonBench**](https://github.com/thunlp/TritonBench) — stdout-comparison pattern (reimplemented).
 
 ## Contributing
 
-This is a **provider-only** repo. We maintain task bundles, harness, baselines, and leaderboard. We do **not** write NPU triton kernel implementations (that's the submitter's role).
-
-Bug reports and improvements welcome via GitHub issues.
+This is a **provider-only** repository: we maintain the task bundles, harness,
+baselines, and leaderboard, and deliberately do **not** author NPU triton kernel
+implementations (that is the submitter's role). Bug reports and harness
+improvements are welcome via GitHub issues.
