@@ -89,6 +89,40 @@ def test_release_tarball_excludes_internal_test_files(release_tarball):
     )
 
 
+# --- Runtime purity: frozen snapshots are non-importable data ---------------
+
+
+def test_frozen_snapshots_are_not_importable():
+    """U1: ``ascendbench.frozen.snapshots`` holds raw upstream archives that
+    still carry live ``import vllm``/``import sglang``. The guard ``__init__``
+    must make every snapshot submodule non-importable -- failing closed BEFORE
+    the snapshot body's upstream import runs -- so the runtime stays
+    vllm/sglang-free. Provenance tooling reads these files as text by path,
+    which the guard does not affect."""
+    import importlib
+    import sys
+
+    snap_dir = _REPO_ROOT / "ascendbench" / "frozen" / "snapshots"
+    sample = next(p for p in sorted(snap_dir.glob("*.py")) if p.name != "__init__.py")
+    module = f"ascendbench.frozen.snapshots.{sample.stem}"
+    # delta, not absolute membership: an unrelated test may legitimately have
+    # imported real vllm/sglang earlier (a dev box can have an external infer/
+    # tree on sys.path), so assert the blocked import pulled NO *new* upstream.
+    before = {m for m in sys.modules if m.split(".")[0] in {"vllm", "sglang"}}
+    with pytest.raises(ImportError) as exc:
+        importlib.import_module(module)
+    # the guard fired (not a vllm ModuleNotFoundError reached past it)
+    assert "provenance archives" in str(exc.value)
+    after = {m for m in sys.modules if m.split(".")[0] in {"vllm", "sglang"}}
+    assert after == before, f"blocked snapshot import pulled new upstream: {after - before}"
+    # the `from ... import X` form is blocked the same way (parent guard runs first)
+    with pytest.raises(ImportError) as from_exc:
+        __import__("ascendbench.frozen.snapshots", fromlist=[sample.stem])
+    assert "provenance archives" in str(from_exc.value)
+    # the file is still readable as text (consumers use Path.read_text by path)
+    assert sample.read_text(encoding="utf-8")
+
+
 # --- Happy path: bench core does not reference orchestrator -----------------
 
 # Every PUBLIC (release-tarball) module. Fenced dev-only helpers
