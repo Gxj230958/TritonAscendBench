@@ -198,8 +198,9 @@ def _argv_from(args, *keys: str) -> list[str]:
 def _source_checkout_only(subcommand: str) -> int:
     print(
         f"tab {subcommand}: source-checkout-only subcommand -- it needs the "
-        "repository's scripts/ tree, which is not bundled in the pip wheel. "
-        "Run it from a git checkout of the bench repo.",
+        "repository's scripts/ tree (not bundled in the pip wheel) plus the "
+        "provenance opt-in deps. Run it from a git checkout of the bench repo "
+        "with `pip install -e '.[infer]'`.",
         file=sys.stderr,
     )
     return 2

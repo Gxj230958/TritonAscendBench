@@ -12,7 +12,7 @@ license = { text = "Apache-2.0" }
 authors = [
     { name = "TritonAscendBench Authors" },
 ]
-keywords = ["benchmark", "triton", "ascend", "npu", "910b", "migration", "vllm", "sglang"]
+keywords = ["benchmark", "triton", "ascend", "npu", "910b", "migration"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -57,6 +57,9 @@ automation = [
     "requests>=2.31",
 ]
 infer = [
+    # INTERNAL opt-in extra -- NOT a runtime dep and NOT in a default install.
+    # Only needed to re-run S2/C2 / provenance against the external infer/
+    # vllm/sglang source trees; the runtime (`tab run`) never imports these.
     # Transitive deps imported by the vllm/sglang source trees under
     # infer/. We use those source trees directly (not pip-installed
     # vllm/sglang, so the per-task ``upstream_fp`` hash can pin the
@@ -134,7 +137,7 @@ infer = [
     "blobfile",
     "IPython",
     "datasets",
-    "einops",
+    # einops is already a core dep (see [project].dependencies) -- not repeated here
     "apache-tvm-ffi",
     "nvidia-ml-py",
     "llguidance",

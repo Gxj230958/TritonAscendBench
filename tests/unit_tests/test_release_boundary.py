@@ -123,6 +123,38 @@ def test_frozen_snapshots_are_not_importable():
     assert sample.read_text(encoding="utf-8")
 
 
+def test_keywords_do_not_advertise_upstream():
+    """U3/R6: package keywords must not advertise vllm/sglang -- the runtime is
+    decoupled from them."""
+    pyproject = (_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    m = re.search(r"^keywords\s*=\s*\[(.*?)\]", pyproject, re.MULTILINE | re.DOTALL)
+    assert m, "keywords not found in pyproject.toml"
+    kw = m.group(1)
+    assert "vllm" not in kw and "sglang" not in kw, (
+        f"package keywords still advertise upstream: {kw}"
+    )
+
+
+def test_provenance_subcommand_degradation_message():
+    """U3/R4: the degradation helper the 5 provenance subcommands fall back to
+    (cli.py ``_source_checkout_only``, reached via their ``try/except
+    ModuleNotFoundError`` when the scripts/ tree is absent) returns rc=2 with an
+    actionable message that names the opt-in install. The subcommand try/except
+    dispatch is pre-existing behavior; this asserts the U3 message change."""
+    import contextlib
+    import io
+
+    from ascendbench.engine.cli import _source_checkout_only
+
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        rc = _source_checkout_only("census")
+    msg = buf.getvalue()
+    assert rc == 2
+    assert "census" in msg
+    assert "[infer]" in msg, f"degradation message must name the opt-in extra: {msg!r}"
+
+
 # --- Happy path: bench core does not reference orchestrator -----------------
 
 # Every PUBLIC (release-tarball) module. Fenced dev-only helpers
