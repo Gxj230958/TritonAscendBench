@@ -6,9 +6,9 @@
 
 | 维度 | 构成 |
 |------|------|
-| 来源仓 | vLLM 61 · SGLang 39 |
+| 来源仓 | vLLM 61 · SGLang 40 |
 | 计算类型 | VV（向量 / 逐元素）66 · CV（含 cube matmul）35 |
-| 迁移难度 | medium 70 · high 24 · low 6 |
+| 迁移难度 | medium 71 · high 24 · low 6 |
 
 ## 2. 选型原则
 
@@ -34,11 +34,11 @@
 
 | 类别 | 题数 | 类别 | 题数 |
 |------|-----:|------|-----:|
-| moe（MoE / EP / 路由 / Cutlass W4A8） | 20 | elementwise（激活 / 状态合并） | 7 |
-| attention（MLA / paged / Flash） | 18 | normalization（含 norm / residual fusion） | 6 |
-| ssm（Mamba / GDN / GLA / KDA） | 16 | other | 4 |
+| moe（MoE / EP / 路由 / Cutlass W4A8） | 20 | elementwise（激活 / 状态合并） | 6 |
+| attention（MLA / paged / Flash） | 16 | normalization（含 norm / residual fusion） | 7 |
+| ssm（Mamba / GDN / GLA / KDA） | 18 | other | 4 |
 | gemm（Cube GEMM / LoRA matmul） | 9 | convolution（causal conv1d） | 3 |
-| quantization（量化 / dequant / 量化 matmul） | 8 | spec_decode | 1 |
+| quantization（量化 / dequant / 量化 matmul） | 9 | spec_decode | 1 |
 | sampling（spec decode / logits / structured） | 8 | | |
 
 关键成对覆盖：GELU↔SiLU 激活、ALiBi↔RoPE attention、quantize↔dequant KV cache、W4A8 Cutlass MoE 前/后 reorder 成对、vLLM↔SGLang 双源 chunked-prefill 状态合并。
