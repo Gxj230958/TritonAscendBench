@@ -1859,13 +1859,10 @@ JIT_LAUNCHER_TEMPLATE = '''
 # grid derived from input shapes; autotune pinned to a single
 # triton.Config; single stream; no distributed (plan U5).
 def run(inputs: dict) -> dict:  # noqa: D401
-    """Deterministic standalone entrypoint for a jit-only kernel.
-
-    NOTE: this is a generated template skeleton. The concrete grid /
-    constexpr binding is filled per-task during U5 authoring; left as
-    an explicit NotImplementedError so a stub can never masquerade as
-    a PASS (plan §invariant 1: no fake completion).
-    """
+    """Deterministic standalone entrypoint for a jit-only kernel. This is a
+    generated skeleton; the per-task grid/constexpr binding is filled during
+    authoring, and it raises until then so an unfilled skeleton cannot be
+    scored PASS."""
     raise NotImplementedError(
         "Phase A' jit-only launcher template -- fill per-task grid/config; "
         "must be S2-gpu-authoritative verified before status=PASS"
@@ -6286,25 +6283,19 @@ def _resolve_upstream_entrypoint(task_dir: Path) -> tuple[bool, str | None, str]
 
 _SYNTH_RUN_TEMPLATE = '''
 
-# ── Phase A' synthesised standalone entrypoint (HOLE B) ─────────────
-# The staged candidate MUST expose run(inputs)->dict so S2 can compare
-# it against the UNMODIFIED upstream (which exposes the positional
-# entrypoint {ep!r}, NOT run). This wrapper is a PURE dict->positional
-# argument shuffle of the EXISTING upstream entrypoint -- it never
-# reimplements numeric logic (changing values = an A' failure). The
-# original side runs the same upstream callable via the identical
-# signature adapter in _pa_subproc_runner._signature_adapter, so the
-# two manifests are structurally comparable. Promotion of this file is
-# gated on a genuine S2-gpu-authoritative PASS (never fabricated).
+# ── Phase A' synthesised standalone entrypoint ─────────────────────
+# run(inputs) is a name-based dict->positional adapter onto the upstream
+# `{ep}` entrypoint (which takes positional args, not a run() wrapper).
+# It only shuffles arguments (no numeric logic) and mirrors the original
+# side's adapter (_pa_subproc_runner._signature_adapter), so S2 binds both
+# sides identically. Promoted only on a genuine S2-gpu PASS.
 def run(inputs: dict) -> dict:  # noqa: D401
-    """Standalone S2 entrypoint -- maps `inputs` onto the upstream
-    `{ep}` signature STRICTLY BY NAME (never a silent
-    skip+positional-shift; a required no-default param with no value is
-    a hard BLOCKED(shapes-incomplete), NOT a mis-call), returns a dict
-    (mutated args surfaced when the upstream entrypoint mutates in
-    place and returns None). This mirrors
-    _pa_subproc_runner._signature_adapter EXACTLY so the original and
-    severed sides bind identically."""
+    """Standalone S2 entrypoint: bind `inputs` to the upstream `{ep}`
+    signature by name and return a dict (mutated in-place args are surfaced
+    when the entrypoint returns None). A required parameter with no value
+    raises BLOCKED(shapes-incomplete) rather than skip-and-shift; this matches
+    _pa_subproc_runner._signature_adapter so original and severed sides bind
+    identically."""
     import inspect
 
     import torch as _torch
