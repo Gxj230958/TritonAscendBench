@@ -188,12 +188,16 @@ Cross-cutting) covering 31 attack categories. See
 
 ## Documentation
 
-- [Selection rationale](docs/kernel-select.md) — why these 101 kernels
-- [Architecture](docs/ARCHITECTURE.md) / [Design](docs/DESIGN.md)
-- [Task API contract](docs/reference/task_api_contract.md)
-- [Correctness model](docs/reference/correctness_model.md) — how outputs are graded correct (precision alignment)
-- [Dependency model](docs/reference/dependency_model.md) — why the runtime needs no vLLM/SGLang, and how upstream fidelity survives the decoupling
-- [Tolerance policy](docs/reference/tolerance_policy.md) · [Scoring spec](docs/reference/scoring_spec.md) · [Reward-hacking defense](docs/reference/reward_hack_defense.md)
+Start by intent:
+
+- **Use it** → [Usage Guide](docs/USAGE.md) — scaffold → implement → grade → package → submit, with a worked example.
+- **Understand how it works** → [Architecture](docs/ARCHITECTURE.md) (companion overview) → [Design](docs/DESIGN.md) (rationale) · [Selection rationale](docs/kernel-select.md) (why these 101 kernels).
+- **Deep reference** ([docs/reference/](docs/reference/)):
+  - *Contract* — [Task API contract](docs/reference/task_api_contract.md)
+  - *Correctness* — [Correctness model](docs/reference/correctness_model.md) · [Tolerance policy](docs/reference/tolerance_policy.md)
+  - *Scoring* — [Scoring spec](docs/reference/scoring_spec.md) · [Timing arbitration](docs/reference/timing_arbitration.md)
+  - *Integrity* — [Reward-hacking defense](docs/reference/reward_hack_defense.md) · [Process isolation](docs/reference/process_isolation.md) · [AST denylist](docs/reference/ast_denylist.md)
+  - *Provenance* — [Dependency model](docs/reference/dependency_model.md) (why the runtime needs no vLLM/SGLang) · [Artifact provenance](docs/reference/artifact_provenance.md)
 
 ## Citation
 

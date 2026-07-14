@@ -121,10 +121,16 @@ $$\text{FastP}(p) = \frac{|\{t \in \text{catalogue} : \text{correct} \land t_{\t
 
 ## 文档
 
-- [选型理由](docs/zh/kernel-select.md)
-- [Task API 契约](docs/zh/reference/task_api_contract.md)
-- [容差策略](docs/zh/reference/tolerance_policy.md)
-- [正确性模型](docs/zh/reference/correctness_model.md) — 输出如何被评判为正确（精度对齐）
+按意图入门:
+
+- **怎么用** → [使用指南](docs/zh/USAGE.md) — scaffold → 实现 → 评分 → 打包 → 提交,含 worked example。
+- **原理** → [架构](docs/zh/ARCHITECTURE.md) → [设计](docs/zh/DESIGN.md) · [选型理由](docs/zh/kernel-select.md)。
+- **深度参考**([docs/zh/reference/](docs/zh/reference/)):
+  - *契约* — [Task API 契约](docs/zh/reference/task_api_contract.md)
+  - *正确性* — [正确性模型](docs/zh/reference/correctness_model.md) · [容差策略](docs/zh/reference/tolerance_policy.md)
+  - *计分* — [计分规范](docs/zh/reference/scoring_spec.md) · [时序仲裁](docs/zh/reference/timing_arbitration.md)
+  - *完整性* — [奖励作弊防御](docs/zh/reference/reward_hack_defense.md) · [进程隔离](docs/zh/reference/process_isolation.md) · [AST 拒绝表](docs/zh/reference/ast_denylist.md)
+  - *溯源* — [依赖模型](docs/reference/dependency_model.md)(英文;运行时为何不需 vLLM/SGLang) · [制品溯源](docs/zh/reference/artifact_provenance.md)
 
 ## 成熟度
 

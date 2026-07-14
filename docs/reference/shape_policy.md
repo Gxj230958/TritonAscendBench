@@ -34,7 +34,7 @@ faith.
 1. **CPU pre-filter** (at generation time): `build_inputs` materialises the row, the task oracle runs
    on it, and `param_constraints` hold. A row that the oracle can't even run is dropped before it is
    ever written.
-2. **GPU authoritative grade** (on the eval daemon — a real CUDA GPU, *not* the dev box):
+2. **GPU authoritative grade** (on a real CUDA GPU):
    - **S2 severance** — the frozen kernel must compile, run, and be **bit-exact** across the
      severed/original boundary for that shape.
    - **Correctness** — for a normal task, **C2 oracle-equivalence** (kernel output aligns with
@@ -42,7 +42,7 @@ faith.
      task, whose simplified oracle is not trustworthy as ground truth, the verification is
      **golden capture** (the kernel's deterministic output is captured as the reference) instead.
 
-The dev box is triage only; the daemon verdict is always authoritative
+The GPU grade is authoritative; any CPU-only run is triage only
 (see [`task_api_contract.md` §6](task_api_contract.md)).
 
 ## 3. No fake coverage — you cannot pad, drop, or tune to a number

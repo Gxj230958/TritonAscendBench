@@ -381,8 +381,8 @@ ULP (§6). `dtype_supported = False` is a hardware flag, **not** a denominator
 escape — fp8 tasks stay graded under that class (eligibility is governed solely
 by `eligibility.py`).
 
-**The provider GPU cross-check is a PROXY, not a guarantee.** The authoritative
-eval daemon runs on a **CUDA H200, not a 910B** (the H200 peak table is labelled
+**The provider GPU cross-check is a PROXY, not a guarantee.** The reference
+grade runs on a **CUDA GPU, not a 910B** (the CUDA peak table is labelled
 "self-check, not for 910B scoring"). So GPU oracle-equivalence proves the
 extracted GPU-Triton kernel runs and matches its PyTorch oracle **on CUDA** —
 faithful extraction plus correct fp32-model logic. It does **not** prove

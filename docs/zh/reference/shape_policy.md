@@ -31,14 +31,14 @@ GPU→NPU 迁移后的 kernel 在真实负载会遇到的各种 shape 上,**正�
 
 1. **CPU 预过**(生成时):`build_inputs` 物化该行、task oracle 在其上运行、`param_constraints`
    成立。oracle 连跑都跑不了的行,在写入前就被丢弃。
-2. **GPU 权威 grade**(在 eval daemon —— 真实 CUDA GPU,**不是**开发机):
+2. **GPU 权威 grade**(在一台真实 CUDA GPU 上):
    - **S2 severance** —— frozen kernel 必须能编译、能运行,且在 severed/original 边界上对该 shape
      **bit-exact**。
    - **正确性** —— 普通 task 用 **C2 oracle-equivalence**(kernel 输出在 task 容差类内与
      `oracle_pytorch` 对齐)。对 `upstream_oracle_required`(UOR)task(其 simplified oracle 不可作
      ground truth),验证改用 **golden capture**(把 kernel 的确定性输出捕获为参考)。
 
-开发机只是 triage;daemon 判定永远是权威(见 [`task_api_contract.md` §6](task_api_contract.md))。
+GPU grade 永远是权威;任何仅 CPU 的运行只是 triage(见 [`task_api_contract.md` §6](task_api_contract.md))。
 
 ## 3. 不许造假 —— 不能注水、不能剔难题、不能调参凑数
 

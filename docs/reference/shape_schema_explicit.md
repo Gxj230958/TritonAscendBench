@@ -29,7 +29,7 @@ per `RowSpec(id, role, provenance, tensors, params, structs)`.
 
 **Why each field:** `axes` names every dimension (the glossary maps the short symbols);
 `dist` is the explicit fill rule (required — no implicit `randn` default); `params` holds the six
-non-tensor symbol classes from `docs/reviews/2026-06-17-symbol-provenance.md` (scalar / scalar_knob /
+non-tensor symbol classes (scalar / scalar_knob /
 derive / scalar_seq / optional / row-only); `provenance` is a tracked, improvable coverage metric.
 
 ## 2. Per-op spec (the human-edited generator source)
