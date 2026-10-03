@@ -1164,46 +1164,63 @@ def evaluate(
 
             tol_cls = tolerance.load_policy().get(task.tolerance_class)
 
-            # //: the runner materialises every graded shape's
-            # inputs (public always; hidden too in verified mode) and
-            # injects them down the IPC. Correctness pass gets one dict
-            # per shape (seed=0); the timing pass gets a per-trial
-            # sequence — n_warmup warm trials (warm_seed) then n_repeat
-            # measured trials, each a FRESH input at meas_seed + t.
+            # //: the runner grades every graded shape
+            # (public always; hidden too in verified mode) and injects the
+            # inputs down the IPC. Correctness pass gets one dict per
+            # shape (seed=0); the timing pass gets a per-trial sequence —
+            # n_warmup warm trials (warm_seed) then n_repeat measured
+            # trials, each a FRESH input at meas_seed + t.
+            #
+            # Streaming materialisation: inputs are NOT built up-front
+            # into a {shape: [111 dicts]} residence set — that held
+            # O(all graded shapes x (1 + n_warmup + n_repeat)) inputs in
+            # parent host memory, and on large-shape tasks blew the host
+            # memcg (OOM-kill / exit 137) after a long silent
+            # materialisation. The lazy payload forms (callable per-shape
+            # correctness input; LazyTrials per-trial sequences) make
+            # `run_two_pass` build / serialise / release ONE input at a
+            # time inside each isolated pass; only seeds, the
+            # runner-secret sampled indices and (offline-golden path) the
+            # per-shape seed-0 fixed input are retained. Trial seeds,
+            # isolation, scrub and sampled-index secrecy are unchanged.
             n_warmup = process_isolation.DEFAULT_N_WARMUP
             n_repeat = process_isolation.DEFAULT_N_TRIALS
             warm_seed, meas_seed = 1, 1000
+
+            def build_input(sid, seed):
+                return build_inputs_for(shapes_doc, sid, seed=seed)
+
+            def _trial_builder(sid):
+                def build(i):
+                    if i < n_warmup:
+                        return build_input(sid, warm_seed + i)
+                    return build_input(sid, meas_seed + (i - n_warmup))
+                return build
+
             correctness_inputs = {
-                sid: build_inputs_for(shapes_doc, sid, seed=0)
+                sid: process_isolation.LazyInput(
+                    (lambda sid=sid: build_input(sid, 0)))
                 for sid in eval_shape_ids
             }
             timing_inputs = {
-                sid: (
-                    [build_inputs_for(shapes_doc, sid,
-                                          seed=warm_seed + w)
-                     for w in range(n_warmup)]
-                    + [build_inputs_for(shapes_doc, sid,
-                                            seed=meas_seed + t)
-                       for t in range(n_repeat)]
-                )
+                sid: process_isolation.LazyTrials(
+                    n_warmup + n_repeat, _trial_builder(sid))
                 for sid in eval_shape_ids
             }
-            # : `run_two_pass` no longer takes a `seed` — the
-            # runner-secret sampling seed is generated fresh per call from
-            # a CSPRNG inside `run_two_pass`, strictly distinct from the
-            # deterministic input-generation `meas_seed`.
-            #
             # : for an `upstream_oracle_required` task graded in
             # verified mode the offline golden is captured on the seed-0
-            # input — i.e. the same input as `correctness_inputs[sid]`.
-            # Hand `run_two_pass` that fixed input per shape: it then
-            # forces every runner-secret sampled timing trial onto it so
-            # the timing-pass output can be reverified against the offline
+            # input — the same input the correctness pass runs. Hand the
+            # pass that fixed input per shape (materialised once per shape
+            # — the necessary golden retention): it forces every
+            # runner-secret sampled timing trial onto it so the
+            # timing-pass output can be reverified against the offline
             # golden (the offline-golden cheat-path closure). The
             # non-sampled trials keep fresh per-trial inputs (anti-cache).
-            golden_fixed_inputs = (
-                dict(correctness_inputs) if golden_kind == "offline"
-                else None)
+            golden_fixed_inputs = None
+            if golden_kind == "offline":
+                golden_fixed_inputs = {
+                    sid: build_input(sid, 0) for sid in eval_shape_ids}
+                correctness_inputs = dict(golden_fixed_inputs)
             two = process_isolation.run_two_pass(
                 solution_path, correctness_inputs, timing_inputs,
                 n_warmup=n_warmup,
@@ -1252,7 +1269,12 @@ def evaluate(
                     expected = offline_golden[sid]
                 else:
                     try:
-                        expected = omod.run(correctness_inputs[sid])
+                        # Rebuild the shape's seed-0 correctness-pass input
+                        # on demand instead of holding a per-shape
+                        # `correctness_inputs` residence set (streaming
+                        # materialisation); the dict is dropped after the
+                        # oracle run.
+                        expected = omod.run(build_input(sid, 0))
                     except Exception as e:
                         reason = f"oracle error: {e}"
                         result.shape_results.append(
@@ -1380,6 +1402,16 @@ def evaluate(
                                    p99=dstats.p99,
                                    cv=dstats.cv,
                                    trials=dstats.trials))
+
+                # Streaming-materialisation peak hygiene: this shape's
+                # correctness outputs and timing sampled outputs are
+                # graded at this point — drop them before the next shape
+                # so the parent never accumulates O(all shapes) candidate
+                # output tensors alongside the streamed inputs.
+                if scr is not None:
+                    scr.outputs = {}
+                if tscr is not None:
+                    tscr.sampled_outputs = None
 
             ran = list(result.shape_results)
             if ran:

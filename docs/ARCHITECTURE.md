@@ -178,10 +178,15 @@ checks (AST denylist, import allowlist, constexpr match) over the submitted
 source. A blocked solution fails correctness without ever running.
 
 **Build inputs.** The trusted parent materialises every graded shape's inputs
-via `inputs.build_inputs(shapes_doc, shape_id, seed)`. The correctness pass gets
-one dict per shape (seed 0); the timing pass gets a per-trial sequence — warm-up
-trials followed by measured trials, each a **fresh** input at a distinct seed,
-so a candidate cannot cache one answer across trials.
+via `inputs.build_inputs(shapes_doc, shape_id, seed)`. Inputs are built
+**lazily, one shape/trial at a time** (`run_two_pass_lazy` streams build →
+serialise → release inside each isolated pass), so the parent's peak host
+memory stays O(one shape's single input) rather than O(all graded shapes ×
+n_trials) — large-shape tasks no longer risk a host memcg OOM during
+materialisation. The correctness pass gets one dict per shape (seed 0); the
+timing pass gets a per-trial sequence — warm-up trials followed by measured
+trials, each a **fresh** input at a distinct seed, so a candidate cannot
+cache one answer across trials.
 
 **Run the candidate in isolation.** `integrity/process_isolation.py` never
 executes candidate code in the trusted process. The submitted

@@ -294,6 +294,84 @@ class TwoPassResult:
     scrubbed: list[str] = field(default_factory=list)
 
 
+class LazyInput:
+    """A lazily-built single inputs dict for one shape.
+
+    Read-only mapping façade over the built inputs: the first key access
+    builds the dict and caches it (:meth:`_realize`), so consumers that
+    treat the payload as the built mapping itself (e.g.
+    ``omod.run(correctness_inputs[sid])``) keep working unchanged. The
+    streaming serialisation path (:func:`run_candidate_isolated`) detects
+    this type and calls :meth:`build_fresh` — build WITHOUT caching, drop
+    right after — so the parent's peak memory stays at one input.
+    """
+
+    __slots__ = ("_builder", "_cached")
+
+    def __init__(self, builder):
+        self._builder = builder
+        self._cached = None
+
+    def build_fresh(self):
+        """Build the inputs dict without retaining it."""
+        return self._builder()
+
+    def _realize(self):
+        if self._cached is None:
+            self._cached = self._builder()
+        return self._cached
+
+    def __getitem__(self, key):
+        return self._realize()[key]
+
+    def get(self, key, default=None):
+        return self._realize().get(key, default)
+
+    def __contains__(self, key):
+        return key in self._realize()
+
+    def __iter__(self):
+        return iter(self._realize())
+
+    def __len__(self):
+        return len(self._realize())
+
+    def keys(self):
+        return self._realize().keys()
+
+    def items(self):
+        return self._realize().items()
+
+    def values(self):
+        return self._realize().values()
+
+
+class LazyTrials:
+    """A lazily-built per-trial input sequence for one shape.
+
+    Streaming input path (see :func:`run_two_pass_lazy`): the trusted parent
+    hands :func:`run_candidate_isolated` a per-shape ``LazyTrials`` instead
+    of a materialised ``[t0_dict, t1_dict, ...]`` list, so at most ONE built
+    inputs dict is alive in the parent at a time — trial ``i`` is built,
+    serialised into the child's temp dir, then dropped before trial ``i+1``
+    is built. Host peak memory falls from O(all graded shapes x n_trials)
+    to O(one shape's single input); the wire protocol (trial indexing,
+    warm-up ``t = i - n_warm`` mapping, args JSON) is identical to the
+    materialised-list form.
+
+    ``n_total`` is the number of list positions (warm-up + measured).
+    ``build(i)`` returns the built inputs dict for list position ``i``,
+    counted exactly like the legacy list index (leading warm-up entries
+    first).
+    """
+
+    __slots__ = ("n_total", "build")
+
+    def __init__(self, n_total: int, build):
+        self.n_total = int(n_total)
+        self.build = build
+
+
 # Standalone child script. Loads the candidate, rebuilds each shape's mixed
 # inputs dict from the runner-materialised safetensors payload + JSON
 # sidecar (NEVER calls build_inputs / sees shapes.yaml / repo_root). For a
@@ -903,17 +981,26 @@ def run_candidate_isolated(
     solution_path:
         Path to the candidate ``solution.py``.
     materialised_inputs:
-        Inputs the runner has already built via ``inputs.build_inputs``.
-        Two shapes are accepted:
+        Inputs the runner has built (materialised form) or can build on
+        demand (streaming form) via ``inputs.build_inputs``. Accepted
+        payloads per shape id:
 
-        * **correctness pass** — ``{shape_id: built_inputs_dict}``; one
-          inputs dict is injected per shape.
+        * **correctness pass** — ``{shape_id: built_inputs_dict}``, or a
+          :class:`LazyInput` / zero-arg callable returning that dict
+          (built just in time); one inputs dict is injected per shape.
         * **timing pass** — ``{shape_id: [t0_dict, t1_dict, ...]}``; a
-          per-trial sequence is injected (``t=0..N-1``). The runner is
-          responsible for building each trial's dict with its own
-          ``meas_seed + t`` so every trial is a fresh input. The leading
-          ``n_warmup`` entries are consumed as warm-up trials (negative
-          indices on the wire) and are NOT timed.
+          per-trial sequence is injected (``t=0..N-1``), or a
+          :class:`LazyTrials` describing the same sequence lazily. The
+          runner is responsible for building each trial's dict with its
+          own ``meas_seed + t`` so every trial is a fresh input. The
+          leading ``n_warmup`` entries are consumed as warm-up trials
+          (negative indices on the wire) and are NOT timed.
+
+        The streaming forms exist so the parent's peak host memory stays
+        O(one built input): each trial is built, serialised into the
+        child's temp dir and released before the next is built — the wire
+        protocol the child sees is unchanged (see
+        :func:`run_two_pass_lazy`).
     timeout_s:
         Wall-clock budget for the child; on expiry it is SIGKILLed.
     pass_kind:
@@ -937,7 +1024,7 @@ def run_candidate_isolated(
 
     # Detect mode from the value type; both shapes share one code path.
     sample = next(iter(materialised_inputs.values()))
-    per_trial = isinstance(sample, list)
+    per_trial = isinstance(sample, (list, LazyTrials))
     if pass_kind == "timing" and not per_trial:
         return CandidateRunResult(
             False, False, "timing pass requires per-trial inputs",
@@ -962,7 +1049,29 @@ def run_candidate_isolated(
         for sid, payload in materialised_inputs.items():
             if per_trial:
                 trials = []
-                if pass_kind == "timing":
+                if isinstance(payload, LazyTrials):
+                    # Streaming form: build ONE trial's inputs, serialise,
+                    # release — identically shaped wire output, but peak
+                    # parent memory is one input, not the whole sequence.
+                    if pass_kind == "timing":
+                        n_warm = min(n_warmup, max(payload.n_total - 1, 0))
+                        for i in range(payload.n_total):
+                            t = i - n_warm
+                            built = payload.build(i)
+                            tp, sp = _materialise_inputs(
+                                built, in_dir, f"{sid}.t{t}")
+                            del built
+                            trials.append({"t": t, "input_tensors": tp,
+                                           "input_sidecar": sp})
+                    else:
+                        for t in range(payload.n_total):
+                            built = payload.build(t)
+                            tp, sp = _materialise_inputs(
+                                built, in_dir, f"{sid}.t{t}")
+                            del built
+                            trials.append({"t": t, "input_tensors": tp,
+                                           "input_sidecar": sp})
+                elif pass_kind == "timing":
                     # Leading n_warmup entries -> negative trial indices
                     # (warm-up, not timed); the rest -> measured trials.
                     n_warm = min(n_warmup, max(len(payload) - 1, 0))
@@ -981,6 +1090,12 @@ def run_candidate_isolated(
                 n_trials = max(n_trials, len(trials))
                 shapes_arg.append({"shape_id": sid, "trials": trials})
             else:
+                if isinstance(payload, LazyInput):
+                    # Streaming form: build the single input just in time,
+                    # drop it right after serialisation (no cached copy).
+                    payload = payload.build_fresh()
+                elif callable(payload):
+                    payload = payload()
                 tp, sp = _materialise_inputs(payload, in_dir, sid)
                 shapes_arg.append({"shape_id": sid, "input_tensors": tp,
                                    "input_sidecar": sp})
@@ -1349,7 +1464,12 @@ def run_two_pass(
 
     `correctness_inputs` is ``{shape_id: built_dict}``; `timing_inputs` is
     ``{shape_id: [t0_dict, ...]}`` whose leading ``n_warmup`` entries are
-    warm-up trials.
+    warm-up trials. A per-shape :class:`LazyTrials` value is accepted too:
+    the per-trial dicts are then built/serialised/released one at a time in
+    the parent instead of being held as a materialised list (same wire
+    protocol; the `golden_fixed_inputs` sampled-slot overwrite applies to
+    both forms — :func:`_apply_golden_fixed_inputs` wraps the lazy builder
+    the same way it rewrites the list).
 
     The sampled-trial RNG seed is generated fresh per call from a CSPRNG and is
     strictly distinct from the deterministic input-generation seed — no
@@ -1389,10 +1509,14 @@ def run_two_pass(
     rng.manual_seed(_fresh_sampling_seed())
     sampled_indices: dict[str, list[int]] = {}
     for sid, payload in timing_inputs.items():
-        if not isinstance(payload, list):
+        if isinstance(payload, LazyTrials):
+            n_total = payload.n_total
+        elif isinstance(payload, list):
+            n_total = len(payload)
+        else:
             continue
-        n_warm = min(n_warmup, max(len(payload) - 1, 0))
-        n_meas = len(payload) - n_warm
+        n_warm = min(n_warmup, max(n_total - 1, 0))
+        n_meas = n_total - n_warm
         if n_meas <= 0:
             sampled_indices[sid] = []
             continue
@@ -1445,12 +1569,30 @@ def _apply_golden_fixed_inputs(
     """
     out: dict[str, object] = {}
     for sid, payload in timing_inputs.items():
-        if not isinstance(payload, list) or sid not in golden_fixed_inputs:
+        if sid not in golden_fixed_inputs or not isinstance(
+                payload, (list, LazyTrials)):
             out[sid] = payload
             continue
         fixed = golden_fixed_inputs[sid]
-        n_warm = min(n_warmup, max(len(payload) - 1, 0))
+        n_total = payload.n_total if isinstance(payload, LazyTrials) else len(payload)
+        n_warm = min(n_warmup, max(n_total - 1, 0))
         sampled = set(sampled_indices.get(sid, []))
+        if isinstance(payload, LazyTrials):
+            # Streaming form: wrap the builder so the sampled measured
+            # slots build `fixed` instead of a fresh per-trial input —
+            # same overwrite positions as the list form, no materialised
+            # residence set.
+            build0 = payload.build
+
+            def build(i, build0=build0, fixed=fixed,
+                      n_warm=n_warm, sampled=sampled):
+                meas_idx = i - n_warm
+                if meas_idx >= 0 and meas_idx in sampled:
+                    return fixed
+                return build0(i)
+
+            out[sid] = LazyTrials(n_total, build)
+            continue
         new_payload = list(payload)
         for i in range(len(new_payload)):
             meas_idx = i - n_warm
@@ -1458,6 +1600,82 @@ def _apply_golden_fixed_inputs(
                 new_payload[i] = fixed
         out[sid] = new_payload
     return out
+
+
+def run_two_pass_lazy(
+    solution_path: Path,
+    shape_ids: list[str],
+    build_input,
+    *,
+    timeout_s: int = 90,
+    n_warmup: int = DEFAULT_N_WARMUP,
+    n_repeat: int = DEFAULT_N_TRIALS,
+    sample_size: int = DEFAULT_SAMPLE_SIZE,
+    warm_seed: int = 1,
+    meas_seed: int = 1000,
+    golden_fixed_builder=None,
+    backend: str = "npu",
+) -> TwoPassResult:
+    """Streaming-input convenience wrapper over :func:`run_two_pass`.
+
+    ``build_input(shape_id, seed)`` builds ONE shape's inputs dict for one
+    seed (e.g. ``shape_format.build_inputs_for``). This wrapper assembles
+    the lazy payloads (:class:`LazyTrials` per-trial sequences + callable
+    correctness inputs) and delegates to :func:`run_two_pass`, so the
+    two-subprocess isolation, CSPRNG sampled indices and offline-golden
+    sampled-slot overwrite all live in exactly ONE implementation (no
+    driver drift).
+
+    Inputs are constructed lazily, per shape and per trial, inside each
+    isolated pass, serialised into the child's temp dir and immediately
+    released; only seeds, the runner-secret sampled indices and (on the
+    offline-golden path) the per-shape seed-0 fixed inputs are retained:
+
+    * correctness pass — one ``build_input(sid, 0)`` input per shape;
+    * timing pass — ``n_warmup`` warm-up trials
+      (``build_input(sid, warm_seed + w)``, ``w = 0..n_warmup-1``) followed
+      by ``n_repeat`` measured trials, each a fresh
+      ``build_input(sid, meas_seed + t)`` input;
+    * ``golden_fixed_builder(sid)`` (the offline-golden cheat-path closure
+      for ``upstream_oracle_required`` tasks: typically the shape's seed-0
+      input the offline artifact covers) is materialised ONCE per shape —
+      the necessary golden retention — and
+      :func:`_apply_golden_fixed_inputs` overwrites only the runner-secret
+      sampled measured slots with it; non-sampled trials keep their fresh
+      inputs (anti-cache).
+    """
+    def _trial_builder(sid):
+        def build(i: int):
+            # List position i == legacy materialised list index: leading
+            # n_warmup entries are warm-up, the rest measured trial
+            # i - n_warmup. Sampled-slot golden overwrites are applied
+            # inside run_two_pass (_apply_golden_fixed_inputs).
+            if i < n_warmup:
+                return build_input(sid, warm_seed + i)
+            return build_input(sid, meas_seed + (i - n_warmup))
+
+        return build
+
+    correctness_inputs = {
+        sid: LazyInput((lambda sid=sid: build_input(sid, 0)))
+        for sid in shape_ids
+    }
+    timing_inputs = {
+        sid: LazyTrials(n_warmup + n_repeat, _trial_builder(sid))
+        for sid in shape_ids
+    }
+    golden_fixed_inputs = None
+    if golden_fixed_builder is not None:
+        # One fixed input per shape is retained for the sampled-slot
+        # overwrite; the correctness pass reuses the same seed-0 dicts.
+        golden_fixed_inputs = {
+            sid: golden_fixed_builder(sid) for sid in shape_ids
+        }
+        correctness_inputs = dict(golden_fixed_inputs)
+    return run_two_pass(
+        solution_path, correctness_inputs, timing_inputs,
+        timeout_s=timeout_s, n_warmup=n_warmup, sample_size=sample_size,
+        golden_fixed_inputs=golden_fixed_inputs, backend=backend)
 
 
 def kill_process_group(pgid: int) -> None:

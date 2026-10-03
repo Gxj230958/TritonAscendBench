@@ -106,7 +106,10 @@ def _grade(pi, torch, sol_text: str, x):
     sol.write_text(sol_text)
     n_warmup = 10
     correctness = {"P1": {"x": x}}
-    timing = {"P1": [{"x": torch.randn(x.shape)} for _ in range(n_warmup + 100)]}
+    # Stream the per-trial inputs (build/serialise/release one at a time in
+    # the parent) instead of holding all n_warmup + 100 tensors at once.
+    timing = {"P1": pi.LazyTrials(
+        n_warmup + 100, lambda i: {"x": torch.randn(x.shape)})}
     res = pi.run_two_pass(
         sol, correctness, timing, n_warmup=n_warmup, backend="gpu")
     cscr = res.correctness.per_shape.get("P1")

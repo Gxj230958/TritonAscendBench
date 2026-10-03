@@ -176,7 +176,11 @@ load_task ─▶ static checks ─▶ build inputs ─▶ run candidate in isola
 在正确性上失败，且根本不会被运行。
 
 **构建输入。** 可信父进程通过
-`inputs.build_inputs(shapes_doc, shape_id, seed)` 物化每个计分 shape 的输入。正确性扫描得到
+`inputs.build_inputs(shapes_doc, shape_id, seed)` 物化每个计分 shape 的输入。输入按
+shape/trial **惰性逐个构建**（`run_two_pass_lazy` 在每次隔离扫描内部流式执行
+构建 → 序列化 → 释放），因此父进程的主机峰值内存保持在 O（单个 shape 的
+一份输入）而非 O（全部计分 shape × trial 数）—— 大 shape 任务不再因物化
+阶段撑爆主机 memcg 而 OOM。正确性扫描得到
 每个 shape 一个 dict（seed 0）；计时扫描得到一个逐 trial 序列 —— 预热
 trial 之后是被测 trial，每个都是一个在不同 seed 下的 **全新** 输入，
 这样候选实现就无法在多个 trial 之间缓存某一个答案。
