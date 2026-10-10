@@ -28,6 +28,7 @@ the timing-pass child's trusted-shim segment).
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -848,11 +849,28 @@ class GoldenIntegrityError(RuntimeError):
     """
 
 
+class _OfflineGolden(Mapping):
+    """Metadata-only index; each lookup owns just one shape's tensor mapping."""
+
+    def __init__(self, paths):
+        self.paths = paths
+
+    def __iter__(self):
+        return iter(self.paths)
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, key):
+        from safetensors.torch import load_file
+        return dict(load_file(str(self.paths[key])))
+
+
 def _resolve_golden(
     task,
     mode: str,
     eval_shape_ids: list[str],
-) -> tuple[str, str, dict[str, dict] | None]:
+) -> tuple[str, str, Mapping[str, dict] | None]:
     """ : route the golden source by ``oracle_simplified``
     x ``mode`` and derive the task-level ``task_status``.
 
@@ -900,8 +918,6 @@ def _resolve_golden(
         # Pre-Phase-4 dev machine: no golden/ directory — fail-closed.
         return ("blocked", "none", None)
 
-    from safetensors.torch import load_file
-
     from ascendbench.release_gate import eligibility
 
     if not eligibility.golden_integrity_chain_ok(
@@ -912,7 +928,7 @@ def _resolve_golden(
             "did not verify; evaluation refused"
         )
 
-    offline: dict[str, dict] = {}
+    offline: dict[str, Path] = {}
     for sid in eval_shape_ids:
         artifact = golden_dir / f"{sid}.safetensors"
         if not eligibility.golden_artifact_usable(artifact):
@@ -921,8 +937,8 @@ def _resolve_golden(
             logger.warning("offline golden missing/unusable for %s/%s",
                             task.task_id, sid)
             return ("blocked", "none", None)
-        offline[sid] = dict(load_file(str(artifact)))
-    return (scoring.TASK_STATUS_EVALUATED, "offline", offline)
+        offline[sid] = artifact
+    return (scoring.TASK_STATUS_EVALUATED, "offline", _OfflineGolden(offline))
 
 
 def _resolve_eval_task_status(task: TaskDef, mode: str) -> str:
@@ -1172,42 +1188,57 @@ def evaluate(
             # measured trials, each a FRESH input at meas_seed + t.
             n_warmup = process_isolation.DEFAULT_N_WARMUP
             n_repeat = process_isolation.DEFAULT_N_TRIALS
-            warm_seed, meas_seed = 1, 1000
-            correctness_inputs = {
-                sid: build_inputs_for(shapes_doc, sid, seed=0)
-                for sid in eval_shape_ids
-            }
-            timing_inputs = {
-                sid: (
-                    [build_inputs_for(shapes_doc, sid,
-                                          seed=warm_seed + w)
-                     for w in range(n_warmup)]
-                    + [build_inputs_for(shapes_doc, sid,
-                                            seed=meas_seed + t)
-                       for t in range(n_repeat)]
-                )
-                for sid in eval_shape_ids
-            }
-            # : `run_two_pass` no longer takes a `seed` — the
-            # runner-secret sampling seed is generated fresh per call from
-            # a CSPRNG inside `run_two_pass`, strictly distinct from the
-            # deterministic input-generation `meas_seed`.
-            #
-            # : for an `upstream_oracle_required` task graded in
-            # verified mode the offline golden is captured on the seed-0
-            # input — i.e. the same input as `correctness_inputs[sid]`.
-            # Hand `run_two_pass` that fixed input per shape: it then
-            # forces every runner-secret sampled timing trial onto it so
-            # the timing-pass output can be reverified against the offline
-            # golden (the offline-golden cheat-path closure). The
-            # non-sampled trials keep fresh per-trial inputs (anti-cache).
-            golden_fixed_inputs = (
-                dict(correctness_inputs) if golden_kind == "offline"
-                else None)
+            meas_seed = 1000
+            from ascendbench.integrity.streaming import InputSource
+
+            source = InputSource(
+                tuple(eval_shape_ids),
+                lambda sid, seed: build_inputs_for(shapes_doc, sid, seed=seed),
+                n_warmup, n_repeat, golden_kind == "offline")
+            receipts = {}
+            _backend_obj = get_backend(backend)
+
+            def consume(pass_kind, sid, trial, seed, actual):
+                # Rebuild from the seed: candidates may mutate their private input.
+                expected = (offline_golden[sid] if golden_kind == "offline"
+                            else omod.run(build_inputs_for(shapes_doc, sid, seed=seed)))
+                if backend == "npu":
+                    result.hw_emulated_dtypes.update(
+                        _npu_unsupported_output_dtypes(expected, _backend_obj))
+                    if result.hw_emulated_dtypes and "hw_dtype_emulated" not in result.performance_flags:
+                        result.performance_flags.append("hw_dtype_emulated")
+                reason = None
+                if tol_cls is None:
+                    reason = f"unknown tolerance_class {task.tolerance_class!r}"
+                else:
+                    for key, exp in expected.items():
+                        if not torch.is_tensor(exp):
+                            continue
+                        if key not in actual:
+                            reason = f"missing output {key!r}"
+                            break
+                        cmp = tolerance.compare(actual[key], exp, tol_cls,
+                            require_output_dtype_match=(backend == "npu"))
+                        if not cmp.passed:
+                            reason = f"{key}: {cmp.reason}"
+                            break
+                receipt = receipts.setdefault(sid, {"passed": False, "reason": None,
+                                                     "checked": 0, "drift": False})
+                if pass_kind == "correctness":
+                    receipt.update(passed=reason is None, reason=reason)
+                else:
+                    receipt["checked"] += 1
+                    receipt["drift"] |= reason is not None
+                    if reason is not None:
+                        raise ValueError(f"sampled output verification failed: {sid}: {reason}")
+                return reason is None
+            # Only the source and consumer reach the isolation driver. Offline
+            # sampled trials rebuild seed 0; repeated content remains cacheable
+            # despite secret indices (see streaming_evaluation.md).
             two = process_isolation.run_two_pass(
-                solution_path, correctness_inputs, timing_inputs,
+                solution_path, source, source,
                 n_warmup=n_warmup,
-                golden_fixed_inputs=golden_fixed_inputs, backend=backend)
+                result_consumer=consume, backend=backend)
             cand = two.correctness
 
             #  / : metamorphic checks for this real task. The
@@ -1236,6 +1267,26 @@ def evaluate(
             _backend_obj = get_backend(backend)
 
             for sid in eval_shape_ids:
+                if cand.streamed or sid in receipts:
+                    receipt = receipts.get(sid, {"passed": False, "reason": cand.load_error,
+                                                 "checked": 0, "drift": False})
+                    cscr = cand.per_shape.get(sid)
+                    tscr = two.timing.per_shape.get(sid)
+                    durations = list(tscr.durations) if tscr and tscr.ran else []
+                    dstats = scoring.duration_stats(durations)
+                    passed = receipt["passed"] and cscr is not None and cscr.ran
+                    reason = receipt["reason"] or (None if passed else cand.load_error)
+                    if receipt["drift"]:
+                        sampled_outputs_drift = True
+                        if "measured_outputs_drift" not in result.performance_flags:
+                            result.performance_flags.append("measured_outputs_drift")
+                    result.shape_results.append(ShapeRunResult(
+                        sid, passed, reason, None, None,
+                        metamorphic_results=list(metamorphic), durations=durations,
+                        event_ns=tscr.event_ns if tscr else None,
+                        sampled_outputs_checked=receipt["checked"], t_npu=dstats.median,
+                        median=dstats.median, p99=dstats.p99, cv=dstats.cv, trials=dstats.trials))
+                    continue
                 reason: str | None = None
                 passed = False
                 #  : the golden output for this shape. For a
@@ -1252,7 +1303,7 @@ def evaluate(
                     expected = offline_golden[sid]
                 else:
                     try:
-                        expected = omod.run(correctness_inputs[sid])
+                        expected = omod.run(build_inputs_for(shapes_doc, sid, seed=0))
                     except Exception as e:
                         reason = f"oracle error: {e}"
                         result.shape_results.append(

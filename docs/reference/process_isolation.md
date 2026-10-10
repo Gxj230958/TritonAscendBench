@@ -1,5 +1,12 @@
 # Process Isolation Architecture
 
+The default evaluator now uses the [streaming lifecycle](streaming_evaluation.md):
+one outstanding trial, sealed memfd/safetensors transport, immediate output
+validation, and shape-local golden loading. Both candidate entrypoints use
+private cache/scratch directories; cleanup never deletes shared global paths.
+The diagrams below describe the broader deployment model, including confinement
+features that remain deployment work rather than guarantees of Python isolation.
+
 > 中文版：[../zh/reference/process_isolation.md](../zh/reference/process_isolation.md)
 
 > Two isolation layers. The **shipped** dev-runnable layer

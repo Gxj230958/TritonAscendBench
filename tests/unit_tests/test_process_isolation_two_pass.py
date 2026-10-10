@@ -107,9 +107,9 @@ def test_run_two_pass_scrub_receipt(tmp_path, monkeypatch):
 
     two = pi.run_two_pass(sol, correctness, timing, n_warmup=1)
 
-    # The scrub removed the planted cache and recorded it in the receipt.
-    assert str(fake_cache) in two.scrubbed
-    assert not fake_cache.exists()
+    # The legacy path also owns its per-pass cache. Shared paths are untouched.
+    assert two.scrubbed == []
+    assert (fake_cache / "kernel.bin").read_bytes() == b"stale"
 
 
 def test_scrub_between_passes_is_safe_when_nothing_to_clear(monkeypatch):
