@@ -52,6 +52,8 @@ def main():
             elif any(word in text.lower() for word in ("vector core exception", "507035",
                                                        "aicore exception", "507015")):
                 category = "device_execution_failure"
+            elif any(word in text.lower() for word in ("keyerror:", "missing required positional")):
+                category = "candidate_contract_failure"
             elif any(word in text.lower() for word in ("compile", "compilation", "llvm", "triton.compiler")):
                 category = "candidate_compile_failure"
             elif any(word in text.lower() for word in ("verification failed", "mismatch", "missing output", "max_abs", "tolerance", "bit_exact equality failed")):

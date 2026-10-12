@@ -60,3 +60,16 @@ def test_device_crash_is_separate_from_an_earlier_numerical_mismatch(tmp_path):
     summary = json.loads((tmp_path / "summary.json").read_text())
     assert summary["complete_device_tasks"] == 0
     assert summary["records"][0]["attempts"][0]["category"] == "device_execution_failure"
+
+
+def test_missing_input_key_during_compile_warmup_is_a_contract_failure(tmp_path):
+    write_run(tmp_path, timing_trials=0, timing_ran=False,
+              runtime="error", performance="error")
+    file = tmp_path / "task/0/result.json"
+    run = json.loads(file.read_text())
+    run["result"]["error_reason"] = "candidate P1/compile: KeyError: 'cb'"
+    file.write_text(json.dumps(run))
+    subprocess.run([sys.executable, str(SCRIPT), str(tmp_path)], check=True, capture_output=True)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["complete_device_tasks"] == 0
+    assert summary["records"][0]["attempts"][0]["category"] == "candidate_contract_failure"
