@@ -12,6 +12,9 @@ import subprocess
 import sys
 import time
 import signal
+import shutil
+import shlex
+import re
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -23,6 +26,32 @@ def sha(path):
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def device_idle(status, device):
+    return (f"No running processes found in NPU {device} " in status and
+            re.search(rf"\|\s*{device}\s+910B\S*\s*\|\s*OK\s*\|", status) is not None)
+
+
+def pending_attempts(records, root, task=None):
+    queue = []
+    for entry in records:
+        if task and entry["task"] != task:
+            continue
+        missing = None
+        for index in range(len(entry["candidates"])):
+            path = root / entry["task"] / str(index) / "result.json"
+            if not path.exists():
+                if missing is None:
+                    missing = index
+                continue
+            result = json.loads(path.read_text())["result"]
+            if result.get("runtime_status") == "ok" and result.get("correctness_status") == "ok":
+                missing = None
+                break
+        if missing is not None:
+            queue.append((entry["task"], missing))
+    return queue
 
 
 def inventory(args):
@@ -71,11 +100,9 @@ def inventory(args):
 def run_task(args):
     # Health/occupancy is checked immediately before imports that initialize NPU.
     status = subprocess.run(["npu-smi", "info"], capture_output=True, text=True, check=True).stdout
-    marker = f"No running processes found in NPU {args.device} "
-    import re
-    health = re.search(rf"\|\s*{args.device}\s+910B\S*\s*\|\s*OK\s*\|", status)
-    if marker not in status or health is None:
-        raise RuntimeError(f"device {args.device} is not healthy and idle")
+    if not device_idle(status, args.device):
+        print(f"device {args.device} is not healthy and idle; retry admission", flush=True)
+        raise SystemExit(75)
     os.environ["ASCEND_RT_VISIBLE_DEVICES"] = str(args.device)
     os.environ.pop("ASCEND_DEVICE_ID", None)
     os.environ.pop("DEVICE_ID", None)
@@ -95,6 +122,11 @@ def run_task(args):
     task = dataset.load_task(args.task)
     destination = args.out / args.task / str(args.candidate)
     destination.mkdir(parents=True, exist_ok=True)
+    frozen_solution = destination / "solution.py"
+    shutil.copyfile(solution, frozen_solution)
+    if sha(frozen_solution) != candidate["sha256"]:
+        raise RuntimeError("candidate changed during snapshot")
+    solution = frozen_solution
     os.environ["TAB_STREAM_REPORT_DIR"] = str(destination / "protocol")
     (destination / "device-before.txt").write_text(status)
     versions = {}
@@ -103,11 +135,45 @@ def run_task(args):
             versions[package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             versions[package] = None
+    instrumentation = []
+    if args.baseline_root:
+        from ascendbench.integrity import process_isolation as pi
+        # Legacy children strip device selection. A tiny interpreter adapter
+        # supplies the exact same selected card without changing kernel code.
+        launcher = destination / "selected-python.sh"
+        launcher.write_text("#!/bin/sh\nexport ASCEND_RT_VISIBLE_DEVICES=" + str(args.device)
+                            + "\nexec " + shlex.quote(sys.executable) + ' "$@"\n')
+        launcher.chmod(0o700)
+        pi.sys.executable = str(launcher)
+        for name in ("home", "scratch"):
+            (destination / name).mkdir(exist_ok=True)
+        os.environ["HOME"] = str(destination / "home")
+        os.environ["TMPDIR"] = str(destination / "scratch")
+        import tempfile
+        tempfile.tempdir = str(destination / "scratch")
+        pi.scrub_between_passes = lambda: []
+        original = pi.run_candidate_isolated
+        def record_pass(*pos, **kw):
+            kw["timeout_s"] = int(os.environ.get("TAB_PASS_TIMEOUT_S", "1800"))
+            response = original(*pos, **kw)
+            records = {}
+            for sid, rec in response.per_shape.items():
+                records[sid] = {field.name: getattr(rec, field.name) for field in dataclasses.fields(rec)
+                                if field.name not in ("outputs", "sampled_outputs")}
+            target = destination / "protocol"
+            target.mkdir(exist_ok=True)
+            (target / f"{response.pass_kind}-{os.getpid()}.json").write_text(json.dumps({
+                "pass": response.pass_kind, "result": {"per_shape": records,
+                "load_error": response.load_error, "timed_out": response.timed_out}}, indent=2))
+            return response
+        pi.run_candidate_isolated = record_pass
+        instrumentation = ["selected-device interpreter adapter", "private HOME/TMPDIR",
+                           "global scrub disabled", "explicit 1800s child timeout", "scalar diagnostic receipt"]
     started = time.monotonic()
     code_hashes = {str(p.relative_to(ROOT)): sha(p) for p in (
         ROOT / "ascendbench/engine/eval.py", ROOT / "ascendbench/integrity/process_isolation.py",
         ROOT / "ascendbench/integrity/streaming.py", ROOT / "ascendbench/integrity/stream_transport.py",
-        ROOT / "ascendbench/integrity/profile_worker.py")}
+        ROOT / "ascendbench/integrity/profile_worker.py") if p.is_file()}
     reference_hashes = {str(p.relative_to(task_dir)): sha(p) for p in (
         task_dir / "meta.yaml", task_dir / "oracle_pytorch.py", task_dir / "shapes.yaml",
         *sorted((task_dir / "golden").glob("*"))) if p.is_file()}
@@ -115,6 +181,7 @@ def run_task(args):
     output = {"result": dataclasses.asdict(result), "elapsed_s": time.monotonic() - started,
               "versions": versions, "candidate": candidate, "device": args.device, "code_sha256": code_hashes,
               "reference_sha256": reference_hashes,
+              "baseline_instrumentation": instrumentation,
               "command": sys.argv, "commit": subprocess.check_output(
                   ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
     (destination / "result.json").write_text(json.dumps(output, indent=2))
@@ -127,9 +194,7 @@ def suite(args):
     """Supervise only owned workers; include system file cache conservatively."""
     import psutil
     records = json.loads((args.out / "inventory.json").read_text())
-    queue = [(r["task"], 0) for r in records if r["candidates"]
-             and (not args.task or r["task"] == args.task)
-             and not (args.out / r["task"] / "0/result.json").exists()]
+    queue = pending_attempts(records, args.out, args.task)
     if args.limit:
         queue = queue[:args.limit]
     active = {}
@@ -137,6 +202,10 @@ def suite(args):
     peak = 0
     samples = (args.out / f"resources-{args.workers}.jsonl").open("a")
     outcomes = []
+    last_admission_check = 0
+    last_status = ""
+    last_notice = 0
+    session = str(time.time_ns())
     def stop_owned(proc):
         try:
             descendants = psutil.Process(proc.pid).children(recursive=True)
@@ -188,38 +257,57 @@ def suite(args):
                                  "correctness": result.get("correctness_status"),
                                  "runtime": result.get("runtime_status")})
                 record = next(r for r in records if r["task"] == task)
-                if (result.get("runtime_status") != "ok" or result.get("correctness_status") != "ok"):
+                if proc.returncode == 75:
+                    queue.append((task, candidate))
+                elif (result.get("runtime_status") != "ok" or result.get("correctness_status") != "ok"):
                     if candidate + 1 < len(record["candidates"]):
                         queue.append((task, candidate + 1))
                 print(json.dumps(outcomes[-1]), flush=True)
                 del active[device]
             if accounted < 800_000_000_000:
+                now = time.monotonic()
+                if queue and now - last_admission_check >= 5:
+                    last_status = subprocess.check_output(["npu-smi", "info"], text=True)
+                    last_admission_check = now
                 for device in range(args.device, args.device + args.workers):
-                    if device in active or not queue:
+                    if device in active or not queue or not device_idle(last_status, device):
                         continue
                     task, candidate = queue.pop(0)
                     dest = args.out / task / str(candidate)
                     if (dest / "result.json").exists():
                         continue
                     dest.mkdir(parents=True, exist_ok=True)
+                    old_log = dest / "run.log"
+                    if old_log.exists():
+                        old_log.rename(dest / f"run-before-{session}.log")
                     log = (dest / "run.log").open("w")
                     cmd = [sys.executable, str(Path(__file__).resolve()), "task", "--out", str(args.out),
                            "--task", task, "--candidate", str(candidate), "--device", str(device)]
+                    if args.baseline_root:
+                        cmd.extend(["--baseline-root", str(args.baseline_root)])
                     proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
                                             start_new_session=True)
                     active[device] = proc, log, task, candidate
+            if time.monotonic() - last_notice >= 30:
+                print(json.dumps({"pending": len(queue), "active": len(active),
+                                  "accounted_bytes": accounted}), flush=True)
+                last_notice = time.monotonic()
             time.sleep(1)
     finally:
         for proc, log, _, _ in active.values():
             stop_owned(proc)
             log.close()
         samples.close()
-        (args.out / f"supervisor-{args.workers}.json").write_text(json.dumps({
+        target = args.out / f"supervisor-{args.workers}.json"
+        if target.exists():
+            target.rename(args.out / f"supervisor-{args.workers}-before-{session}.json")
+        target.write_text(json.dumps({
             "elapsed_s": time.monotonic() - started, "peak_accounted_bytes": peak,
             "cgroup_hard_limit": False, "outcomes": outcomes}, indent=2))
 
 
 def main():
+    global ROOT
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["inventory", "task", "suite", "campaign"])
     parser.add_argument("--tasks", type=Path)
@@ -230,7 +318,11 @@ def main():
     parser.add_argument("--candidate", type=int, default=0)
     parser.add_argument("--workers", type=int, choices=[1, 2, 4, 8], default=1)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--baseline-root", type=Path)
     args = parser.parse_args()
+    if args.baseline_root:
+        ROOT = args.baseline_root.resolve()
+        sys.path.insert(0, str(ROOT))
     import logging
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     if args.action == "campaign":

@@ -34,14 +34,16 @@ def main():
                        if s.get("correctness_reason")]
             text = " ".join([result.get("error_reason") or "", *reasons, *protocol_errors])
             if complete and result.get("correctness_status") == "ok":
-                category = "complete_verified"
+                category = ("complete_verified" if result.get("runtime_status") == "ok"
+                            and result.get("performance_status") == "ok"
+                            else "complete_performance_flagged")
             elif result.get("static_checks_passed") is False:
                 category = "candidate_static_rejected"
             elif "golden" in text.lower() or result.get("task_status") in ("blocked", "unsupported"):
                 category = "artifact_or_contract_blocked"
             elif any(word in text.lower() for word in ("compile", "compilation", "llvm", "triton.compiler")):
                 category = "candidate_compile_failure"
-            elif any(word in text.lower() for word in ("verification failed", "mismatch", "missing output", "max_abs", "tolerance")):
+            elif any(word in text.lower() for word in ("verification failed", "mismatch", "missing output", "max_abs", "tolerance", "bit_exact equality failed")):
                 category = "candidate_numerical_failure"
             else:
                 category = "incomplete_needs_diagnosis"
