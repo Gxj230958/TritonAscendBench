@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tarfile
+import tempfile
+import shutil
 
 
 def digest(path):
@@ -42,6 +44,9 @@ def main():
                       attempts[-1] if attempts else None)
         row["final_category"] = chosen["category"] if chosen else "not_executed"
         row["verified_pass"] = any(a["category"] == "complete_verified" for a in attempts)
+        row["observed_device_shapes"] = sorted({sid for a in attempts
+                                               for phase in ("correctness", "timing")
+                                               for sid in a.get(f"observed_{phase}_shapes", [])})
         categories[row["final_category"]] += 1
         rows.append(row)
     summary = {"tasks": len(rows), "required_shapes": suite["required_shapes"],
@@ -49,14 +54,16 @@ def main():
                "complete_device_tasks": sum(r["complete"] for r in rows),
                "verified_pass_tasks": sum(r["verified_pass"] for r in rows),
                "complete_device_shapes": sum(r["required_shapes"] for r in rows if r["complete"]),
+               "observed_device_shapes": sum(len(r["observed_device_shapes"]) for r in rows),
                "categories": dict(categories), "records": rows}
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2))
     table = ["# Full Task Results", "", "The first seven tasks use frozen-code replay evidence.", "",
-             "| Task | Required Shapes | Device Coverage | Final Category | Attempts |",
-             "|---|---:|---|---|---:|"]
+             "| Task | Required Shapes | Observed Device Shapes | Full Device Coverage | Final Category | Attempts |",
+             "|---|---:|---:|---|---|---:|"]
     for row in rows:
         table.append(f'| {row["task"]} | {row["required_shapes"]} | '
+                     f'{len(row["observed_device_shapes"])} | '
                      f'{"complete" if row["complete"] else "incomplete"} | '
                      f'{row["final_category"]} | {len(row["attempts"])} |')
     (args.out / "task-results.md").write_text("\n".join(table) + "\n")
@@ -93,15 +100,22 @@ def main():
                 if digest(evidence) != candidate["evidence_sha256"]:
                     raise RuntimeError(f"historical evidence changed: {evidence}")
                 files.append((f'candidates/{entry["task"]}/{index}/verified_result.json', evidence))
-    manifest = [{"path": name, "bytes": path.stat().st_size, "sha256": digest(path)}
-                for name, path in files]
     manifest_path = args.out / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2))
     archive = args.out / "raw-evidence.tar.gz"
-    with tarfile.open(archive, "w:gz") as handle:
-        handle.add(manifest_path, arcname="manifest.json")
+    with tempfile.TemporaryDirectory(prefix="evidence-snapshot-", dir=args.out) as temporary:
+        snapshots = []
         for name, path in files:
-            handle.add(path, arcname=name, recursive=False)
+            snapshot = Path(temporary) / name
+            snapshot.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, snapshot)
+            snapshots.append((name, snapshot))
+        manifest = [{"path": name, "bytes": path.stat().st_size, "sha256": digest(path)}
+                    for name, path in snapshots]
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        with tarfile.open(archive, "w:gz") as handle:
+            handle.add(manifest_path, arcname="manifest.json")
+            for name, path in snapshots:
+                handle.add(path, arcname=name, recursive=False)
     (args.out / "archive-sha256.txt").write_text(digest(archive) + "  raw-evidence.tar.gz\n")
     print(json.dumps({k: v for k, v in summary.items() if k != "records"}))
 

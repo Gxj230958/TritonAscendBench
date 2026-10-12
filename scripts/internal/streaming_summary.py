@@ -17,11 +17,15 @@ def main():
             run = json.loads(file.read_text())
             result = run["result"]
             phases = {}
+            observed = {}
             protocol_errors = []
             for receipt in file.parent.glob("protocol/*.json"):
                 protocol = json.loads(receipt.read_text())
                 phase = protocol["pass"]
                 shape_records = protocol["result"]["per_shape"]
+                observed[phase] = {
+                    sid for sid, rec in shape_records.items()
+                    if rec.get("backend_active") is True and rec.get("kernel_event_present") is True}
                 phases[phase] = {
                     sid for sid, rec in shape_records.items()
                     if rec.get("ran") and rec.get("backend_active") is True
@@ -53,6 +57,8 @@ def main():
                              "runtime": result.get("runtime_status"), "performance": result.get("performance_status"),
                              "executed_correctness_shapes": sorted(phases.get("correctness", set())),
                              "executed_timing_shapes": sorted(phases.get("timing", set())),
+                             "observed_correctness_shapes": sorted(observed.get("correctness", set())),
+                             "observed_timing_shapes": sorted(observed.get("timing", set())),
                              "elapsed_s": run["elapsed_s"], "reason": text[:3000]})
         tasks.append({"task": entry["task"], "required_shapes": len(required), "attempts": attempts,
                       "complete": any(a["complete"] for a in attempts)})
