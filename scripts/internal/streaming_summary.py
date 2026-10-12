@@ -49,6 +49,9 @@ def main():
                 category = "candidate_static_rejected"
             elif "golden" in text.lower() or result.get("task_status") in ("blocked", "unsupported"):
                 category = "artifact_or_contract_blocked"
+            elif any(word in text.lower() for word in ("vector core exception", "507035",
+                                                       "aicore exception", "507015")):
+                category = "device_execution_failure"
             elif any(word in text.lower() for word in ("compile", "compilation", "llvm", "triton.compiler")):
                 category = "candidate_compile_failure"
             elif any(word in text.lower() for word in ("verification failed", "mismatch", "missing output", "max_abs", "tolerance", "bit_exact equality failed")):

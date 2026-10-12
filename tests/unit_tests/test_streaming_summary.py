@@ -46,3 +46,17 @@ def test_complete_device_run_with_invalid_performance_is_not_verified_pass(tmp_p
     attempt = summary["records"][0]["attempts"][0]
     assert attempt["category"] == "complete_performance_flagged"
     assert attempt["executed_timing_shapes"] == ["H1", "P1"]
+
+
+def test_device_crash_is_separate_from_an_earlier_numerical_mismatch(tmp_path):
+    write_run(tmp_path, timing_trials=0, timing_ran=False,
+              runtime="error", performance="error")
+    file = tmp_path / "task/0/result.json"
+    run = json.loads(file.read_text())
+    run["result"]["shape_results"] = [{"correctness_reason": "shape mismatch"}]
+    run["result"]["error_reason"] = "closed channel: vector core exception, code 507035"
+    file.write_text(json.dumps(run))
+    subprocess.run([sys.executable, str(SCRIPT), str(tmp_path)], check=True, capture_output=True)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["complete_device_tasks"] == 0
+    assert summary["records"][0]["attempts"][0]["category"] == "device_execution_failure"

@@ -1,5 +1,11 @@
 # 进程隔离架构
 
+默认评测入口采用[流式生命周期](../../reference/streaming_evaluation.md)：
+每次仅有一个未消费 trial，通过封存 memfd/safetensors 传输，输出立即验证，
+golden 按当前 shape 加载和释放。每个 pass 使用私有缓存与 scratch；清理只作用于
+本次运行拥有的目录。下图包含部署层尚待实现的隔离能力，不能视为 Python 进程
+隔离已提供的完整保证。
+
 > English: [../../reference/process_isolation.md](../../reference/process_isolation.md)
 
 > 两层隔离。**已交付（shipped）**、可在开发机运行的那一层
@@ -33,7 +39,7 @@
 │  • Writes output.safetensors (NOT .pt)          │
 └─────────────────────────────────────────────────┘
         │ exit + SIGKILL process group
-        ↓ (clear /tmp/triton-ascend-cache, device memory)
+        ↓ (delete owned pass directories; device context exits)
 ┌─── Candidate Process #2 (timing sandbox) ──────┐
 │  • Same mounts as Process #1                   │
 │  • Trusted shim runs warm-up + measured loops  │
@@ -55,7 +61,8 @@ Trusted Runner reads pipe, computes verdict
 强制执行的缓解措施：
 - 每个阶段使用不同的进程
 - 每个阶段结束后执行 SIGKILL
-- 阶段之间执行完整的缓存清除（`/tmp/triton-ascend-cache/*`、`/tmp/scratch`、设备内存）
+- 每个阶段独立使用 HOME、scratch、编译缓存和 profiler 目录
+- 删除已完成阶段拥有的目录；设备分配随所属进程退出而释放
 
 ## 为什么输出用 Safetensors（而非 Pickle）
 

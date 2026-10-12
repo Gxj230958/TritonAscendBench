@@ -40,7 +40,7 @@ features that remain deployment work rather than guarantees of Python isolation.
 │  • Writes output.safetensors (NOT .pt)          │
 └─────────────────────────────────────────────────┘
         │ exit + SIGKILL process group
-        ↓ (clear /tmp/triton-ascend-cache, device memory)
+        ↓ (delete owned pass directories; device context exits)
 ┌─── Candidate Process #2 (timing sandbox) ──────┐
 │  • Same mounts as Process #1                   │
 │  • Trusted shim runs warm-up + measured loops  │
@@ -62,7 +62,8 @@ Otherwise: candidate could pre-compute answers in correctness pass, cache in `/t
 Mitigations enforced:
 - Different process per phase
 - SIGKILL after each phase
-- Full cache scrub between phases (`/tmp/triton-ascend-cache/*`, `/tmp/scratch`, device memory)
+- Independent HOME, scratch, compile cache, and profiler directories per pass
+- Delete only the completed pass's directories; device allocations die with its process
 
 ## Why Safetensors Output (NOT Pickle)
 

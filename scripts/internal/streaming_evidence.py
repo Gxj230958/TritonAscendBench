@@ -127,6 +127,20 @@ def main():
                     if digest(evidence) != candidate["evidence_sha256"]:
                         raise RuntimeError(f"historical evidence changed: {evidence}")
                     files.append((f'candidates/{prefix}{entry["task"]}/{index}/verified_result.json', evidence))
+    screening = args.supplement / "candidate-screening.json" if args.supplement else None
+    if screening is not None and screening.exists():
+        for entry in json.loads(screening.read_text())["records"]:
+            for candidate in entry["candidates"]:
+                solution = Path(candidate["path"])
+                if digest(solution) != candidate["sha256"]:
+                    raise RuntimeError(f"screened source changed: {solution}")
+                prefix = f'screening-candidates/{entry["task"]}/{candidate["sha256"]}'
+                files.append((f"{prefix}/solution.py", solution))
+                if candidate.get("evidence"):
+                    evidence = Path(candidate["evidence"])
+                    if digest(evidence) != candidate["evidence_sha256"]:
+                        raise RuntimeError(f"screening evidence changed: {evidence}")
+                    files.append((f"{prefix}/verified_result.json", evidence))
     manifest_path = args.out / "manifest.json"
     archive = args.out / "raw-evidence.tar.gz"
     with tempfile.TemporaryDirectory(prefix="evidence-snapshot-", dir=args.out) as temporary:

@@ -54,6 +54,20 @@ def pending_attempts(records, root, task=None):
     return queue
 
 
+def admission_snapshot(args):
+    status = subprocess.run(["npu-smi", "info"], capture_output=True, text=True,
+                            check=True, timeout=15).stdout
+    selected = list(range(args.device, args.device + args.workers))
+    receipt = {"captured_unix_ns": time.time_ns(), "command": ["npu-smi", "info"],
+               "selected_devices": selected,
+               "healthy_idle_devices": [d for d in selected if device_idle(status, d)],
+               "raw_status": status}
+    args.out.mkdir(parents=True, exist_ok=True)
+    target = args.out / f'device-admission-{receipt["captured_unix_ns"]}.json'
+    target.write_text(json.dumps(receipt, indent=2))
+    print(json.dumps({"receipt": str(target), "healthy_idle_devices": receipt["healthy_idle_devices"]}))
+
+
 def inventory(args):
     import yaml
     from ascendbench.input_spec.inputs import shape_ids
@@ -309,7 +323,7 @@ def suite(args):
 def main():
     global ROOT
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=["inventory", "task", "suite", "campaign"])
+    parser.add_argument("action", choices=["inventory", "task", "suite", "campaign", "admission"])
     parser.add_argument("--tasks", type=Path)
     parser.add_argument("--experiments", type=Path)
     parser.add_argument("--out", type=Path, required=True)
@@ -331,7 +345,8 @@ def main():
             args.limit = workers if workers < 8 else 0
             suite(args)
     else:
-        {"inventory": inventory, "task": run_task, "suite": suite}[args.action](args)
+        {"inventory": inventory, "task": run_task, "suite": suite,
+         "admission": admission_snapshot}[args.action](args)
 
 
 if __name__ == "__main__":
