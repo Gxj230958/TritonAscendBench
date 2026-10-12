@@ -1337,11 +1337,10 @@ def run_two_pass(
 
     1. **Correctness pass** — a fresh subprocess over ``correctness_inputs``
        (one inputs dict per shape). The subprocess is killed on exit.
-    2. **Scrub** — :func:`scrub_between_passes` clears the Triton compile
-       cache + `/tmp` scratch + NPU device memory so the timing pass
-       cannot read anything the correctness pass left behind. The
-       correctness-pass process group is SIGKILLed before the
-       scrub so no forked descendant survives into the timing pass.
+    2. **Cleanup** — kill the correctness-pass process group and delete
+       its owned directories. Each pass has private HOME, compile cache,
+       scratch and profiler directories. Shared global paths are never
+       deleted; device allocations disappear with their owning process.
     3. **Timing pass** — a *separate* fresh subprocess over
        ``timing_inputs`` (a per-trial sequence per shape). A runner-secret
        RNG picks which measured trials' outputs are sampled and sent up.
@@ -1351,7 +1350,9 @@ def run_two_pass(
     passes never share interpreter / device / cache state — this is what
     the process-isolation model "Why Two Candidate Processes" requires.
 
-    `correctness_inputs` is ``{shape_id: built_dict}``; `timing_inputs` is
+    The default InputSource path builds one trial at a time and requires an
+    immediate result consumer. Legacy `correctness_inputs` is
+    ``{shape_id: built_dict}``; `timing_inputs` is
     ``{shape_id: [t0_dict, ...]}`` whose leading ``n_warmup`` entries are
     warm-up trials.
 
@@ -1369,11 +1370,9 @@ def run_two_pass(
     wrong only in the timed pass). When ``golden_fixed_inputs`` is given,
     the runner OVERWRITES every runner-secret sampled measured trial's
     input with that shape's fixed input (the seed-0 input the offline
-    golden covers). The candidate cannot tell a sampled trial apart from
-    any other measured trial (the indices are runner-secret), so it
-    cannot target the cheat at the non-sampled trials; the non-sampled
-    trials keep their fresh per-trial inputs so the cache-reuse defence
-    still holds. The caller then reverifies the shipped-up sampled outputs
+    golden covers). Secret indices do not hide repeated seed-0 content:
+    offline sampled inputs remain recognizable and cacheable. Non-sampled
+    trials keep fresh per-trial inputs. The caller reverifies sampled outputs
     against the offline golden. ``None`` (the in-process-oracle path)
     leaves ``timing_inputs`` untouched.
     """
@@ -1388,9 +1387,7 @@ def run_two_pass(
         solution_path, correctness_inputs,
         timeout_s=timeout_s, pass_kind="correctness", backend=backend)
 
-    # Between passes — the correctness-pass process group was SIGKILLed in
-    # `run_candidate_isolated`; here we scrub the cross-pass pre-computation
-    # channel so the timing pass starts clean.
+    # Each isolated call already kills its group and deletes owned directories.
     scrubbed = scrub_between_passes()
 
     # Pass 2 — timing sandbox. The sampled-trial indices come from a

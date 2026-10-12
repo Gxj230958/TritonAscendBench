@@ -21,24 +21,43 @@ def digest(path):
     return value.hexdigest()
 
 
+def merge_attempts(row, supplement):
+    row = dict(row)
+    attempts = [{**attempt, "evidence_root": row["evidence_root"]}
+                for attempt in row["attempts"]]
+    if supplement:
+        if supplement["required_shapes"] != row["required_shapes"]:
+            raise RuntimeError("supplement shape coverage differs from primary inventory")
+        attempts.extend({**attempt, "evidence_root": "supplement"}
+                        for attempt in supplement["attempts"])
+    row["attempts"] = attempts
+    row["complete"] = any(attempt["complete"] for attempt in attempts)
+    return row
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite", type=Path, required=True)
     parser.add_argument("--replay", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--supplement", type=Path)
     parser.add_argument("--extra", type=Path, action="append", default=[])
     args = parser.parse_args()
-    for root in (args.suite, args.replay):
+    for root in (args.suite, args.replay, *([args.supplement] if args.supplement else [])):
         subprocess.run([sys.executable, str(Path(__file__).with_name("streaming_summary.py")),
                         str(root)], check=True)
     suite = json.loads((args.suite / "summary.json").read_text())
     replay = json.loads((args.replay / "summary.json").read_text())
     replacements = {row["task"]: row for row in replay["records"]}
+    supplements = ({row["task"]: row for row in json.loads(
+        (args.supplement / "summary.json").read_text())["records"]}
+        if args.supplement else {})
     rows = []
     categories = Counter()
     for original in suite["records"]:
         row = dict(replacements.get(original["task"], original))
         row["evidence_root"] = "replay" if original["task"] in replacements else "suite"
+        row = merge_attempts(row, supplements.get(original["task"]))
         attempts = row["attempts"]
         chosen = next((a for a in attempts if a["category"] == "complete_verified"),
                       attempts[-1] if attempts else None)
@@ -68,6 +87,8 @@ def main():
                      f'{row["final_category"]} | {len(row["attempts"])} |')
     (args.out / "task-results.md").write_text("\n".join(table) + "\n")
     roots = [("suite", args.suite), ("replay", args.replay)]
+    if args.supplement:
+        roots.append(("supplement", args.supplement))
     roots.extend((p.name.removeprefix("tab-"), p) for p in args.extra)
     files = []
     for label, root in roots:
@@ -90,16 +111,22 @@ def main():
                      *sorted((task / "golden").glob("*.json"))]:
             if path.is_file():
                 files.append((f'references/{entry["task"]}/{path.relative_to(task)}', path))
-        for index, candidate in enumerate(entry["candidates"]):
-            solution = Path(candidate["path"])
-            if digest(solution) != candidate["sha256"]:
-                raise RuntimeError(f"inventoried candidate changed: {solution}")
-            files.append((f'candidates/{entry["task"]}/{index}/solution.py', solution))
-            if candidate.get("evidence"):
-                evidence = Path(candidate["evidence"])
-                if digest(evidence) != candidate["evidence_sha256"]:
-                    raise RuntimeError(f"historical evidence changed: {evidence}")
-                files.append((f'candidates/{entry["task"]}/{index}/verified_result.json', evidence))
+    candidate_inventories = [("", inventory)]
+    if args.supplement:
+        candidate_inventories.append(("supplement/", json.loads(
+            (args.supplement / "inventory.json").read_text())))
+    for prefix, entries in candidate_inventories:
+        for entry in entries:
+            for index, candidate in enumerate(entry["candidates"]):
+                solution = Path(candidate["path"])
+                if digest(solution) != candidate["sha256"]:
+                    raise RuntimeError(f"inventoried candidate changed: {solution}")
+                files.append((f'candidates/{prefix}{entry["task"]}/{index}/solution.py', solution))
+                if candidate.get("evidence"):
+                    evidence = Path(candidate["evidence"])
+                    if digest(evidence) != candidate["evidence_sha256"]:
+                        raise RuntimeError(f"historical evidence changed: {evidence}")
+                    files.append((f'candidates/{prefix}{entry["task"]}/{index}/verified_result.json', evidence))
     manifest_path = args.out / "manifest.json"
     archive = args.out / "raw-evidence.tar.gz"
     with tempfile.TemporaryDirectory(prefix="evidence-snapshot-", dir=args.out) as temporary:

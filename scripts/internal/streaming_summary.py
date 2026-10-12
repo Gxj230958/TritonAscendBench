@@ -36,6 +36,10 @@ def main():
             complete = all(phases.get(p, set()) == required for p in ("correctness", "timing"))
             reasons = [s.get("correctness_reason") for s in result.get("shape_results", [])
                        if s.get("correctness_reason")]
+            reasons.extend(
+                f'{finding.get("layer")} at line {finding.get("line")}: {finding.get("message")}'
+                for finding in result.get("static_findings", [])
+                if finding.get("severity") == "block")
             text = " ".join([result.get("error_reason") or "", *reasons, *protocol_errors])
             if complete and result.get("correctness_status") == "ok":
                 category = ("complete_verified" if result.get("runtime_status") == "ok"

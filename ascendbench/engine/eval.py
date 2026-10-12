@@ -5,7 +5,7 @@ Pipeline:
     2. Static checks on solution.py (static_checker)
     3. Spawn isolated candidate passes (process_isolation.py):
          a. Correctness pass — one subprocess, one inputs dict per shape.
-         b. SIGKILL + scrub (compile cache / /tmp / device memory).
+         b. SIGKILL process group and delete its owned pass directories.
          c. Timing pass — a SEPARATE subprocess, per-trial fresh inputs.
     4. Per shape:
          a. Runner materialises inputs (correctness: single; timing:
@@ -20,10 +20,10 @@ Pipeline:
     5. Score via scoring.capped_geomean_native
     6. Emit round_result.json
 
-: this module only *orchestrates* the two passes and records the
-returned ``durations`` / ``sampled_outputs`` — it never times candidate
-code in the parent process (timing is host-`CLOCK_MONOTONIC_RAW` inside
-the timing-pass child's trusted-shim segment).
+The default streaming path validates returned outputs immediately and retains
+only verdicts and timing/diagnostic scalars. It never times candidate code in
+the parent process; host CLOCK_MONOTONIC_RAW timing stays inside the timing
+child's trusted shim. Legacy mocked result objects remain supported.
 """
 from __future__ import annotations
 
