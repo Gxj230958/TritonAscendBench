@@ -1,5 +1,42 @@
 # Streaming Evaluation Experiment Report
 
+## Pull Request Description
+
+This PR replaces eager trial serialization and accumulated evaluation outputs
+with a complete streaming lifecycle. The runner constructs one deterministic
+trial at a time, transfers safetensors through sealed Linux memfd descriptors
+with bounded JSON control messages, validates returned outputs immediately, and
+releases each trial before advancing. A per-trial temporary-file fallback is
+available. Offline golden tensors are loaded only for the current shape, while
+oracle inputs are independently reconstructed from their seeds. Live tensor
+and transport resources therefore scale with the largest shape's working set
+rather than the total number of shapes and trials.
+
+The implementation preserves separate, sequential correctness and timing
+processes, the existing evaluation JSON schema, and legacy dictionary/list
+callers. Formal scoring remains 10 warmups, 100 measured calls, and 10 secret
+sampled-output checks, with the profiled invocation excluded from latency
+statistics. Input preparation, transfer, and parent validation remain outside
+the kernel timing window. Device selection, private cache/scratch/profiler
+directories, separate timeout budgets, protocol validation, and scoped cleanup
+support concurrent execution without deleting other runs' resources. Failed
+or incomplete streamed passes cannot produce valid performance results.
+
+Validation includes 279 passing CPU regressions and one skip, controlled
+comparisons against main and improvement-1, and verified 1/2/4/8-worker NPU
+experiments. The 101-task campaign and supplemental retries produced 194
+canonical attempts: 73 tasks completed correctness and timing on all 3,078
+required shapes. The remaining 28 tasks retain explicit numerical, compilation,
+contract, device-execution, or missing-golden outcomes. In the controlled
+four-shape CPU comparison, peak owned temporary storage fell from approximately
+419 MB to 24 KB. Frozen sources, raw receipts, resource measurements, and a
+checksummed evidence archive accompany this report. These results establish
+lifecycle improvements, not a kernel speedup or 101/101 acceptance. Offline
+seed-0 sampling retains its documented anti-cache limitation, and sampled
+memory accounting is not a hard cgroup guarantee.
+
+## Experiment Status
+
 Status: implementation, regressions, comparison/concurrency experiments, and
 the primary 101-task campaign and supplemental candidate validation are complete.
 **73 tasks / 3,078 shapes passed full verified device coverage.**
