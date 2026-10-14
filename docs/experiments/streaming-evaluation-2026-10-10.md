@@ -121,6 +121,14 @@ successful retries. The dtype-ceiling fail-closed checks also passed 25/25.
 CI retains coverage collection and now has a 60-minute job budget for the full
 suite and subprocess checks; this does not change candidate execution timeouts.
 
+The first remote rerun (`38515133739`) passed Ruff and release boundary checks,
+then exposed an undeclared `loguru` dependency during generator-test collection.
+The development extra now declares that dependency. A separate jobless failure
+on push came from invalid indentation in the existing `verified_runner.yml`;
+its YAML nesting and Docker build context were corrected, retaining only manual
+and repository-dispatch triggers. This syntax repair does not certify that
+legacy device workflow's commands or publish any leaderboard results.
+
 ## CPU Regression
 
 The campaign's distinct regression total is **279 passed and 1 skipped**. The core
