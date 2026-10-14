@@ -663,7 +663,7 @@ def _r19_startup_self_check() -> tuple[bool, str]:
         )
 
     # CAP_SETUID is bit 7 (Linux capabilities, see capabilities(7)).
-    _CAP_SETUID_BIT = 1 << 7
+    _CAP_SETUID_BIT = 1 << 7  # noqa: N806 - capability bit constant
     if caps_mask & _CAP_SETUID_BIT:
         return True, f"R19: uid {current_uid} has CAP_SETUID"
 

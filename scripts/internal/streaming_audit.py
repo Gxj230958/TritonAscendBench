@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import argparse
 import ast
-from collections import Counter
 import hashlib
 import json
 import math
-from pathlib import Path
 import subprocess
 import tarfile
+from collections import Counter
+from pathlib import Path
 
 
 def sha(data):
@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--suite", type=Path, required=True)
     parser.add_argument("--replay", type=Path, required=True)
     parser.add_argument("--supplement", type=Path, required=True)
+    parser.add_argument("--runtime-commit", default="f940554",
+                        help="Frozen runtime revision whose AST is compared with campaign sources.")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     roots = {name: getattr(args, name) for name in ("suite", "replay", "supplement")}
@@ -58,7 +60,9 @@ def main():
                 key = (commit, name)
                 if key not in runtime_hashes:
                     source = subprocess.check_output(["git", "show", f"{commit}:{name}"], cwd=root)
-                    assert normalized(source) == normalized((root / name).read_bytes())
+                    reference = subprocess.check_output(
+                        ["git", "show", f"{args.runtime_commit}:{name}"], cwd=root)
+                    assert normalized(source) == normalized(reference)
                     runtime_hashes[key] = sha(source)
                 assert runtime_hashes[key] == digest
             attempts[attempt["category"]] += 1
@@ -98,7 +102,8 @@ def main():
                       "removed_profiler_roots": len(profiler_roots),
                       "archive_entries_checked": len(manifest),
                       "archive_sha256": sha(archive.read_bytes()),
-                      "runtime_ast_equivalence": True}, indent=2))
+                      "runtime_ast_equivalence": True,
+                      "runtime_comparison_commit": args.runtime_commit}, indent=2))
 
 
 if __name__ == "__main__":

@@ -108,15 +108,20 @@ def test_locate_pyref_returns_none_for_unknown_task():
     assert GoldenStore.locate_pyref("L9_99_does_not_exist", "P1") is None
 
 
-def test_has_pyref_true_when_artifacts_present():
-    """Spot-check the dev tree: L1_13 has refs in r10_pyref/."""
-    assert GoldenStore.has_pyref("L2_01_layer_norm_fwd") is True
+def test_has_pyref_true_when_artifacts_present(tmp_path, monkeypatch):
+    import torch
+    from safetensors.torch import save_file
+
+    pyref = tmp_path / "r10_pyref"
+    pyref.mkdir()
+    save_file({"out": torch.zeros(1)}, str(pyref / "ref_P1.safetensors"))
+    monkeypatch.setattr(GoldenStore, "task_dir", lambda _task_id: tmp_path)
+    assert GoldenStore.has_pyref("SYN_pyref") is True
 
 
-def test_has_pyref_false_when_artifacts_absent():
-    # L3_02 has the dir but no refs (SIGNATURE_MISMATCH per R10.a audit)
-    # OR may not even have the dir on this machine -- both -> False
-    assert GoldenStore.has_pyref("L1_01_bias") in {False, True}
+def test_has_pyref_false_when_artifacts_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(GoldenStore, "task_dir", lambda _task_id: tmp_path)
+    assert GoldenStore.has_pyref("SYN_pyref") is False
 
 
 def test_has_pyref_false_for_unknown_task():

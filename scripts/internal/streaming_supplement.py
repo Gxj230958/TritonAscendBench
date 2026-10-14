@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
 import json
-from pathlib import Path
 import sys
+from dataclasses import asdict
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from ascendbench.integrity import static_checker
-from scripts.internal.streaming_validation import sha
+from ascendbench.integrity import static_checker  # noqa: E402 - source checkout bootstrap
+from scripts.internal.streaming_validation import sha  # noqa: E402
 
 
 def rank(candidate):

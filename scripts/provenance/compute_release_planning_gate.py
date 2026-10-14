@@ -38,7 +38,6 @@ import argparse
 import json
 import logging
 import sys
-from collections import Counter
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -132,7 +131,7 @@ class GateOutcome:
 def _rare_class_corpus_counts(tasks: list[_MiniTask]) -> dict[str, int]:
     """Count rare-class tasks in the WHOLE corpus (denominator for the
     rare-class coverage ratio)."""
-    out: dict[str, int] = {c: 0 for c in RARE_CLASS_SET}
+    out: dict[str, int] = dict.fromkeys(RARE_CLASS_SET, 0)
     for t in tasks:
         cat = t.meta.get("category")
         if cat in out:
@@ -143,7 +142,7 @@ def _rare_class_corpus_counts(tasks: list[_MiniTask]) -> dict[str, int]:
 def _rare_class_projected_counts(
     tasks: list[_MiniTask], projected_ids: set[str]
 ) -> dict[str, int]:
-    out: dict[str, int] = {c: 0 for c in RARE_CLASS_SET}
+    out: dict[str, int] = dict.fromkeys(RARE_CLASS_SET, 0)
     proj_set = projected_ids
     for t in tasks:
         if t.task_id not in proj_set:

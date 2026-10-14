@@ -51,9 +51,12 @@ coverage, not a 101/101 device acceptance claim. Experiments ran October 10 and
 - Streaming implementation: `2092615` on `fix/streaming-eval-inputs`.
 - All 163 primary canonical attempt receipts match the five runtime source hashes at
   `2092615`. Supplemental runtime hashes match `f940554`; tooling also advanced
-  to `18468d6` during that campaign. Later commits update experiment tooling and documentation; final
-  runtime-file edits correct docstrings/comments only, with AST equivalence
-  verified after removing docstrings.
+  to `18468d6` during that campaign. Campaign runtime revisions have AST equivalence
+  verified after removing docstrings. The subsequent CI repair includes import
+  ordering and equivalent Python style changes; device measurements remain tied
+  to their original recorded source hashes. The auditor compares the frozen
+  campaign revisions against `f940554` (configurable with `--runtime-commit`),
+  rather than claiming AST identity with every later working tree.
 - Host: Ubuntu 22.04.5 LTS, Linux 5.15.0-119-generic, Python 3.11.14;
   two Xeon Platinum 8468 sockets, 192 logical CPUs, two NUMA nodes.
 - Device: Ascend 910B2C, 16 visible physical cards, driver `25.0.rc1.1`.
@@ -73,9 +76,54 @@ The final worktree is retained at
 primary/replay/supplement raw records are also retained beneath
 `/inspire/sj-ssd3/project/qianghuaxuexi/s26045/tab-streaming-evaluation-2026-10-10/`.
 
+## CI Repair (October 13-14, 2026)
+
+GitHub run `38245311955` stopped at Ruff before unit tests or the release gate
+executed. Ruff 0.17.0 reported 4,965 violations; clean baseline `main` already
+reported 4,947. Of the branch violations, 4,713 came from byte-pinned frozen
+upstream artifacts. Those files are now excluded from authored-code linting;
+their bytes and task provenance remain unchanged. The remaining authored-code
+violations were corrected while preserving the existing lint rule families.
+Ruff is pinned to 0.17.0 for reproducibility. Narrow naming exceptions preserve
+public APIs, mathematical shape knobs, and third-party mock interfaces.
+
+Clean-checkout tests previously depended on a maintainer-only sealed canary
+and private `solutions/` candidates. Temporary synthetic canaries and tiny CPU
+evaluation fixtures now exercise the existing assertions without publishing
+the actual traps or requiring device execution. CLI producer tests still run
+the real argument parser and serialization; parent grading uses deterministic
+CPU outputs from a mocked execution backend. A Python 3.12-only f-string was
+also corrected so the minimum supported Python 3.11 can collect the suite.
+Cache tests now opt into real, clean temporary Git repositories with explicit
+fixture pins; dirty, missing and wrong-commit sources still fail closed.
+Pyref-presence tests create their own artifacts, permission tests explicitly
+simulate denial, and the rollback tests' `rsync` dependency is checked in CI.
+
+The manifest CI command now explicitly uses `--strict --source-only`, validating
+source, schema, hashes, and provenance without requiring machine-local golden
+tensors. Default validation still requires usable offline golden artifacts;
+`--release-gate-strict` retains exact golden coverage, and `--source-only` is
+rejected when combined with either release-gate mode. The existing S6 gate
+remains a hard CI step and passed for all 101 release-ready tasks. Source-only
+validation, version-matrix validation, release boundary checks, and the frozen
+experiment audit also passed locally. This is code validation, not an upgrade
+of incomplete device coverage to 101/101 acceptance.
+
+Local Python 3.11 verification covered every case in the current collection:
+**2,559 passed, 2 skipped, 0 missing, 0 unresolved failures** across 2,561 cases.
+This was a partitioned verification with focused retries after fixture repairs,
+not a claim that the first all-tests invocation passed. The latest JUnit outcome
+for each currently collected case was checked; both existing integration skips
+remain explicit (an absent corpus fixture and upstream `__all__` checkout).
+The [receipt audit](../../scripts/internal/evidence/ci-repair-2026-10-14/receipt-audit.json)
+and all input JUnit files preserve the earlier failed attempts as well as the
+successful retries. The dtype-ceiling fail-closed checks also passed 25/25.
+CI retains coverage collection and now has a 60-minute job budget for the full
+suite and subprocess checks; this does not change candidate execution timeouts.
+
 ## CPU Regression
 
-The final distinct regression total is **279 passed and 1 skipped**. The core
+The campaign's distinct regression total is **279 passed and 1 skipped**. The core
 implementation matrix contributed 136 passes and one skip across the
 streaming lifecycle, legacy isolation protocol, two-pass execution, golden
 routing, secret sampled-output checking, timing/status integration, fixed

@@ -26,22 +26,17 @@ from ascendbench.engine.eval import evaluate
 from ascendbench.integrity import process_isolation as pi
 
 REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias"
-_SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 
-def _declared_ids() -> tuple[set[str], set[str]]:
+def _declared_ids(task) -> tuple[set[str], set[str]]:
     """The task's public/hidden eval-shape ids, derived from shapes.yaml so they never go stale as the
     shape-coverage set grows (was hardcoded to a pre-expansion P1..P5 / H1..H4)."""
     import yaml
 
     from ascendbench.input_spec.inputs import shape_ids
-    doc = yaml.safe_load((REPO / "tasks" / "level1" / _TASK / "shapes.yaml").read_text())
+    doc = yaml.safe_load((task.task_dir / "shapes.yaml").read_text())
     pub, hid = shape_ids(doc)
     return set(pub), set(hid)
-
-
-_PUBLIC_IDS, _HIDDEN_IDS = _declared_ids()
 
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
@@ -55,66 +50,74 @@ def _run_tab(*args: str) -> subprocess.CompletedProcess:
 # evaluate(mode=...) shape selection.
 # ---------------------------------------------------------------------------
 
-def test_self_reported_mode_grades_public_only():
+def test_self_reported_mode_grades_public_only(tiny_eval_fixture):
     """The default self-reported mode grades public shapes only — no
     hidden shape is materialised or graded."""
-    assert _SOLUTION.exists(), f"fixture missing: {_SOLUTION}"
-    result = evaluate(_TASK, _SOLUTION, mode="self-reported")
+    task, solution = tiny_eval_fixture
+    public_ids, hidden_ids = _declared_ids(task)
+    result = evaluate(task.task_id, solution, mode="self-reported", task_def=task)
 
     assert result.error_reason is None, result.error_reason
     graded = {r.shape_id for r in result.shape_results}
     assert graded, "self-reported grading produced no shape results"
-    assert graded <= _PUBLIC_IDS, (
-        f"self-reported mode graded a non-public shape: {graded - _PUBLIC_IDS}"
+    assert graded == public_ids, (
+        f"self-reported mode graded an unexpected shape set: {graded ^ public_ids}"
     )
-    assert graded.isdisjoint(_HIDDEN_IDS), (
-        f"self-reported mode leaked hidden shapes: {graded & _HIDDEN_IDS}"
+    assert graded.isdisjoint(hidden_ids), (
+        f"self-reported mode leaked hidden shapes: {graded & hidden_ids}"
     )
 
 
-def test_default_mode_is_self_reported():
+def test_default_mode_is_self_reported(tiny_eval_fixture):
     """Omitting `mode` is identical to self-reported — no hidden shapes."""
-    default = evaluate(_TASK, _SOLUTION)
-    explicit = evaluate(_TASK, _SOLUTION, mode="self-reported")
+    task, solution = tiny_eval_fixture
+    _, hidden_ids = _declared_ids(task)
+    default = evaluate(task.task_id, solution, task_def=task)
+    explicit = evaluate(task.task_id, solution, mode="self-reported", task_def=task)
     assert {r.shape_id for r in default.shape_results} == (
         {r.shape_id for r in explicit.shape_results}
     )
-    assert {r.shape_id for r in default.shape_results}.isdisjoint(_HIDDEN_IDS)
+    assert {r.shape_id for r in default.shape_results}.isdisjoint(hidden_ids)
 
 
-def test_verified_mode_grades_public_and_hidden():
+def test_verified_mode_grades_public_and_hidden(tiny_eval_fixture):
     """Verified mode grades the public shapes AND the sealed
     `shapes.yaml.hidden_shapes` shapes — the runner materialises and
     injects the hidden shapes' inputs down the W1.0 IPC."""
-    result = evaluate(_TASK, _SOLUTION, mode="verified")
+    task, solution = tiny_eval_fixture
+    public_ids, hidden_ids = _declared_ids(task)
+    result = evaluate(task.task_id, solution, mode="verified", task_def=task)
 
     assert result.error_reason is None, result.error_reason
     graded = {r.shape_id for r in result.shape_results}
-    assert _PUBLIC_IDS <= graded, (
-        f"verified mode dropped public shapes: {_PUBLIC_IDS - graded}"
+    assert public_ids <= graded, (
+        f"verified mode dropped public shapes: {public_ids - graded}"
     )
-    assert _HIDDEN_IDS <= graded, (
+    assert hidden_ids <= graded, (
         f"verified mode did not grade the hidden shapes: "
-        f"{_HIDDEN_IDS - graded}"
+        f"{hidden_ids - graded}"
     )
 
 
-def test_verified_grades_strictly_more_shapes_than_self_reported():
+def test_verified_grades_strictly_more_shapes_than_self_reported(tiny_eval_fixture):
     """Verified mode's graded set is a strict superset of self-reported's:
     proof the hidden shapes are an *addition*, not a replacement."""
-    sr = {r.shape_id for r in evaluate(_TASK, _SOLUTION,
-                                       mode="self-reported").shape_results}
-    ve = {r.shape_id for r in evaluate(_TASK, _SOLUTION,
-                                       mode="verified").shape_results}
+    task, solution = tiny_eval_fixture
+    _, hidden_ids = _declared_ids(task)
+    sr = {r.shape_id for r in evaluate(task.task_id, solution,
+                                       mode="self-reported", task_def=task).shape_results}
+    ve = {r.shape_id for r in evaluate(task.task_id, solution,
+                                       mode="verified", task_def=task).shape_results}
     assert sr < ve, f"verified ({ve}) is not a strict superset of self-reported ({sr})"
-    assert (ve - sr) == _HIDDEN_IDS
+    assert (ve - sr) == hidden_ids
 
 
-def test_unknown_mode_rejected():
+def test_unknown_mode_rejected(tiny_eval_fixture):
     """An unknown mode string fails loudly rather than silently grading
     public-only."""
     with pytest.raises(ValueError, match="mode must be"):
-        evaluate(_TASK, _SOLUTION, mode="overlay")
+        task, solution = tiny_eval_fixture
+        evaluate(task.task_id, solution, mode="overlay", task_def=task)
 
 
 # ---------------------------------------------------------------------------
@@ -198,22 +201,23 @@ def test_run_has_mode_flag():
     assert "self-reported" in out and "verified" in out
 
 
-def test_shapes_overlay_flag_ignored_and_not_emitted(tmp_path):
+def test_shapes_overlay_flag_ignored_and_not_emitted(tmp_path, tiny_cli_fixture):
     """Passing the deprecated `--shapes-overlay` neither errors nor leaves
     any residual semantics: the suite output JSON has no `shapes_overlay`
     key, and the flag's value does not appear anywhere in the result."""
     sol_root = tmp_path / "solutions"
-    (sol_root / _TASK).mkdir(parents=True)
-    (sol_root / _TASK / "solution.py").write_text(_SOLUTION.read_text())
+    task, solution, run = tiny_cli_fixture
+    (sol_root / task.task_id).mkdir(parents=True)
+    (sol_root / task.task_id / "solution.py").write_text(solution.read_text())
     out_path = tmp_path / "suite.json"
 
-    r = _run_tab(
+    rc = run(
         "run-suite", "--level", "L1",
         "--solutions-root", str(sol_root),
         "--shapes-overlay", "/nonexistent/overlay/dir",
         "--out", str(out_path),
     )
-    assert r.returncode == 0, f"run-suite failed: {r.stdout} {r.stderr}"
+    assert rc == 0
     doc = json.loads(out_path.read_text())
     # The deprecated flag must not be echoed into the suite contract.
     assert "shapes_overlay" not in doc, (

@@ -108,7 +108,8 @@ def _ceiling_verdict(task_id: str, sv: ShapeVerdict) -> tuple[bool, str, str]:
         if not all(isinstance(x, (int, float)) and math.isfinite(x) and x > 0
                    for x in (factor, ulp)):
             return False, "physical_scale", f"invalid factor/ulp ({factor!r},{ulp!r}) fail-closed"
-        factor = float(factor); ulp = float(ulp)
+        factor = float(factor)
+        ulp = float(ulp)
         for key in sv.failing_keys:
             mref = sv.max_ref_abs.get(key)
             mabs = sv.max_abs_diff.get(key)
@@ -694,7 +695,7 @@ def _verify_one_task(
                     return False
                 if isinstance(a, list):
                     return len(a) == len(b) and all(
-                        _strict_eq(x, y) for x, y in zip(a, b)
+                        _strict_eq(x, y) for x, y in zip(a, b, strict=False)
                     )
                 if isinstance(a, dict):
                     return a.keys() == b.keys() and all(
@@ -864,7 +865,7 @@ def _verify_one_task(
         elif isinstance(kernel_out, torch.Tensor):
             # Single tensor → name it by first ref key
             if len(ref_tensors) == 1:
-                key = list(ref_tensors.keys())[0]
+                key = next(iter(ref_tensors.keys()))
                 out_dict = {key: kernel_out}
             else:
                 out_dict = {"output": kernel_out}
@@ -1073,7 +1074,7 @@ def _verify_one_task(
         # scale" bound would grade each shape, while tol_units stays the actual
         # gate (a pure backward bound mis-rejects L2_03's independent-maxima
         # clean ceiling and stops protecting small-reference elements).
-        _BF16_ULP = 0.00390625
+        _BF16_ULP = 0.00390625  # noqa: N806 - local physical constant
         _back_ulp = 0.0
         for _bk, _bma in sv.max_abs_diff.items():
             _bmr = sv.max_ref_abs.get(_bk, 0.0)

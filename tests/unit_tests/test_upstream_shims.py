@@ -470,40 +470,24 @@ def test_autotune_pin_env_forces_first_config_on_active_driver(
         os.environ.pop("PA_PIN_AUTOTUNE_FIRST", None)
 
 
-def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
+def test_existing_subpackage_not_shadowed(shim_clean, tmp_path, monkeypatch) -> None:
     """Installing the ``vllm.triton_utils`` shim must NOT block access
-    to the rest of the ``vllm.*`` namespace. We use
-    ``vllm.utils.math_utils.cdiv`` because (a) it is real, (b) it is
-    used by upstream's own ``triton_utils/importing.py``, and (c) it is
-    pure-Python (no GPU dependency)."""
-    # Put infer/vllm on sys.path so the real vllm package resolves.
-    vllm_path = str(INFER_VLLM_ROOT)
-    added_path = False
-    if vllm_path not in sys.path:
-        sys.path.insert(0, vllm_path)
-        added_path = True
+    to an existing package's other submodules. The disk-backed fixture
+    makes this namespace contract independent of an external checkout."""
+    package = tmp_path / "vllm"
+    utils = package / "utils"
+    utils.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (utils / "__init__.py").write_text("")
+    utility = utils / "math_utils.py"
+    utility.write_text("def cdiv(a, b):\n    return (a + b - 1) // b\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
 
-    # Drop only cached vllm modules that do NOT resolve to the
-    # infer/vllm checkout, so the import resolves to infer/vllm without
-    # disturbing the real upstream copy. We must NOT drop the real
-    # infer/vllm modules: re-importing the real vllm package re-runs
-    # ``vllm/utils/torch_utils.py`` which calls
-    # ``register_opaque_type(LayerName)`` -- a torch process-global that
-    # CANNOT be unregistered, so a second import raises "already
-    # registered". A prior test in the full suite may already have
-    # imported the real vllm; keeping its (correct, already-loaded)
-    # modules makes this test order-independent (it previously passed
-    # alone but failed in the full suite via this exact pollution).
-    infer_root = INFER_VLLM_ROOT.resolve()
-    for k in [m for m in sys.modules if m == "vllm" or m.startswith("vllm.")]:
-        mod = sys.modules.get(k)
-        mod_file = getattr(mod, "__file__", None)
-        under_infer = (
-            mod_file is not None
-            and Path(mod_file).resolve().is_relative_to(infer_root)
-        )
-        if not under_infer:
-            sys.modules.pop(k, None)
+    # Restore module objects rather than re-importing upstream global registrations.
+    saved = {k: v for k, v in sys.modules.items()
+             if k == "vllm" or k.startswith("vllm.")}
+    for key in saved:
+        sys.modules.pop(key, None)
 
     try:
         from ascendbench.upstream_shims import _inject
@@ -512,7 +496,7 @@ def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
 
         import vllm.utils.math_utils as mu
 
-        # cdiv is the canonical pure-Python utility upstream exports.
+        assert Path(mu.__file__).resolve() == utility.resolve()
         assert callable(mu.cdiv)
         assert mu.cdiv(7, 3) == 3
 
@@ -523,8 +507,10 @@ def test_real_vllm_subpackage_not_shadowed(shim_clean) -> None:
 
         assert sys.modules["vllm.triton_utils"] is expected
     finally:
-        if added_path:
-            sys.path.remove(vllm_path)
+        for key in list(sys.modules):
+            if key == "vllm" or key.startswith("vllm."):
+                sys.modules.pop(key, None)
+        sys.modules.update(saved)
 
 
 def test_vllm_triton_utils_importing_submodule(shim_clean) -> None:

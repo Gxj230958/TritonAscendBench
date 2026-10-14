@@ -4,11 +4,11 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
 import re
 import shlex
 import subprocess
 import sys
+from pathlib import Path
 
 
 def main():
@@ -30,9 +30,10 @@ def main():
     sys.path.insert(0, str(args.baseline_root))
     import torch
     import yaml
+
+    from ascendbench.correctness import tolerance
     from ascendbench.input_spec.shape_format import build_inputs_for
     from ascendbench.integrity import process_isolation as pi
-    from ascendbench.correctness import tolerance
     previous = json.loads(args.result.read_text())
     task_id = previous["result"]["task_id"]
     entry = next(r for r in json.loads(args.inventory.read_text()) if r["task"] == task_id)

@@ -15,7 +15,7 @@ from pathlib import Path
 try:
     import tomllib
 except ModuleNotFoundError:                              # 3.10 fallback
-    import tomli as tomllib                              # type: ignore[no-redef]
+    import tomli as tomllib  # type: ignore[no-redef]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_PATH = REPO_ROOT / "ascendbench" / "policies" / "version_matrix.toml"
@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
 
     def _walk(d: dict, path: tuple[str, ...] = ()) -> None:
         for k, v in d.items():
-            here = path + (k,)
+            here = (*path, k)
             if isinstance(v, dict):
                 _walk(v, here)
             elif isinstance(v, str):

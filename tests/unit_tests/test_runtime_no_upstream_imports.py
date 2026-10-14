@@ -21,8 +21,6 @@ import sys
 import textwrap
 from pathlib import Path
 
-import pytest
-
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Subprocess body: block vllm/sglang at import, walk + import the runtime

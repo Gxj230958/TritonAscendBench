@@ -45,7 +45,7 @@ class SolutionManifest:
     raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, doc: dict[str, Any]) -> "SolutionManifest":
+    def from_dict(cls, doc: dict[str, Any]) -> SolutionManifest:
         sub = doc["submitter"]
         return cls(
             submission_id=doc["submission_id"],
@@ -66,7 +66,7 @@ class SolutionManifest:
         )
 
     @classmethod
-    def load(cls, path: Path) -> "SolutionManifest":
+    def load(cls, path: Path) -> SolutionManifest:
         return cls.from_dict(yaml.safe_load(Path(path).read_text()))
 
     def to_dict(self) -> dict[str, Any]:

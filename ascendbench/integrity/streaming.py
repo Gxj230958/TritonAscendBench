@@ -17,10 +17,9 @@ import tempfile
 import threading
 import time
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable
 
 from ascendbench.input_spec.inputs import split_inputs
 from ascendbench.integrity import stream_transport as wire
@@ -144,12 +143,14 @@ def run_streaming_pass(solution, source, consumer, *, pass_kind, samples,
         stderr_tail = deque(maxlen=8)
         stderr_thread = None
         try:
-            args = dict(protocol_version=pi.PROTOCOL_VERSION,
-                        status_schema_version=pi.STATUS_SCHEMA_VERSION,
-                        solution=str(candidate_dir / "solution.py"), out_dir=str(candidate_dir),
-                        status_json=str(candidate_dir / "status.json"), pass_kind=pass_kind,
-                        inputs_mode="stream", shapes=[], backend=backend,
-                        stream_fd=child_sock.fileno(), transport=transport)
+            args = {
+                "protocol_version": pi.PROTOCOL_VERSION,
+                "status_schema_version": pi.STATUS_SCHEMA_VERSION,
+                "solution": str(candidate_dir / "solution.py"), "out_dir": str(candidate_dir),
+                "status_json": str(candidate_dir / "status.json"), "pass_kind": pass_kind,
+                "inputs_mode": "stream", "shapes": [], "backend": backend,
+                "stream_fd": child_sock.fileno(), "transport": transport,
+            }
             args_path = candidate_dir / "_args.json"
             args_path.write_text(json.dumps(args))
             env = {"PATH": os.environ.get("PATH", ""), "HOME": str(root / "home"),

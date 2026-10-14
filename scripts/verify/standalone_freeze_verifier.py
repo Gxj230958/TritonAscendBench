@@ -2517,7 +2517,7 @@ def s2_verify_task(td: Path) -> S2Result:
 
     # 4. S2-gpu-authoritative (needs CUDA). The ONLY PASS source.
     run_id = f"s2-{td.name}-{datetime.datetime.now():%Y%m%dT%H%M%S}"
-    g_eq, g_why, _g_o, g_s, g_phase, g_out = _run_s2_pair(
+    g_eq, g_why, _g_o, g_s, g_phase, _g_out = _run_s2_pair(
         kernel_path, staged, entrypoint, shapes_doc, shape_ids, seed,
         accel_disabled, pinned_config, interpret=False,
     )
@@ -3420,7 +3420,7 @@ def _build_per_task(
             per_task.append((r.task_id, r.tier, "BLOCKED", r.blocked_reason))
             continue
         td = task_dirs_by_id.get(r.task_id)
-        resolvable, _ep, why = (
+        resolvable, _ep, _why = (
             _resolve_upstream_entrypoint(td)
             if td is not None
             else (False, None, "task dir not found")
@@ -5477,7 +5477,7 @@ def rewrite_imports_to_standalone(
         # than being silently dropped. The shim's stubs raise if actually
         # invoked, so a task that truly needs fp8 quant is never faked. The
         # multi-line form was collapsed to one line at the top of this function.
-        _FP8K = "from sglang.srt.layers.quantization.fp8_kernel import "
+        _FP8K = "from sglang.srt.layers.quantization.fp8_kernel import "  # noqa: N806
         if stripped.startswith(_FP8K):
             indent = ln[: len(ln) - len(ln.lstrip())]
             out.append(
@@ -6054,7 +6054,7 @@ def rewrite_imports_to_standalone(
                     f"  # Phase A': off-path forward-context (B-inert-shim)\n"
                 )
                 continue
-        _QUANT_UTILS = (
+        _QUANT_UTILS = (  # noqa: N806 - fixed import prefix
             "from vllm.model_executor.layers.quantization.utils.quant_utils import"
         )
         if stripped.startswith(_QUANT_UTILS):

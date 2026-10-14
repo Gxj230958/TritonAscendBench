@@ -41,7 +41,7 @@ dev = [
     "pytest>=7.0",
     "pytest-cov",
     "black",
-    "ruff",
+    "ruff==0.17.0",
     "mypy",
     "pre-commit",
 ]
@@ -167,6 +167,8 @@ ascendbench = ["policies/*.yaml", "policies/*.json", "policies/*.toml"]
 
 [tool.ruff]
 line-length = 120
+# Frozen upstream sources are byte-pinned provenance artifacts, not authored code.
+extend-exclude = ["ascendbench/frozen"]
 # match requires-python (>=3.10): py311 here makes UP017 rewrite datetime.timezone.utc -> datetime.UTC,
 # which breaks the 3.10 daemon env. Keep in lockstep with project.requires-python.
 target-version = "py310"
@@ -174,6 +176,13 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "C4", "UP", "RUF"]
 ignore = ["E501"]  # line length handled by formatter
+# Deliberate mathematical notation and the fullwidth punctuation normalizer.
+allowed-confusables = ["α", "−", "×", "，", "–"]
+
+[tool.ruff.lint.per-file-ignores]
+# Uppercase shape knobs and function-local lookup tables are intentional.
+"ascendbench/input_spec/inputs.py" = ["N806"]
+"ascendbench/integrity/static_checker.py" = ["N806"]
 
 [tool.black]
 line-length = 120

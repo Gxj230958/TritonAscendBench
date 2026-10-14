@@ -1,7 +1,7 @@
 import os
 import socket
-import weakref
 import time
+import weakref
 
 import pytest
 import torch
@@ -151,6 +151,7 @@ def test_failed_output_cannot_produce_timing(tmp_path, failure):
 
 def test_golden_index_does_not_retain_tensors(tmp_path):
     from safetensors.torch import save_file
+
     from ascendbench.engine.eval import _OfflineGolden
     paths = {}
     for i in range(20):
@@ -168,12 +169,14 @@ def test_golden_index_does_not_retain_tensors(tmp_path):
 @pytest.mark.parametrize("offline", [False, True])
 def test_evaluate_streams_and_checks_every_sample(tmp_path, monkeypatch, offline):
     from types import SimpleNamespace
+
     import yaml
     from safetensors.torch import save_file
-    from tests.unit_tests.test_eval_timing_integration_pins import _make_task, _TENSOR_INPUTS
+
     from ascendbench.engine import eval as engine
     from ascendbench.input_spec.shape_format import build_inputs_for
     from ascendbench.integrity import process_isolation as pi
+    from tests.unit_tests.test_eval_timing_integration_pins import _TENSOR_INPUTS, _make_task
 
     task, sol = _make_task(tmp_path, inputs_spec=_TENSOR_INPUTS)
     sol.write_text('def npu_triton_impl(inputs):\n'

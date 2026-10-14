@@ -10,7 +10,8 @@ jobs:
   unit-tests:
     name: Unit tests (CPU, mock backends)
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    # Full CPU coverage includes thousands of cases and isolated subprocesses.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +23,10 @@ jobs:
 
       - name: Install dependencies (CPU-only)
         run: |
+          if ! command -v rsync >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y rsync
+          fi
           pip install --upgrade pip
           pip install -e ".[dev,automation]"
 
@@ -131,12 +136,16 @@ jobs:
       - name: Run unit tests
         env:
           TAB_BACKEND: mock
+          TORCH_DEVICE_BACKEND_AUTOLOAD: "0"
+          OMP_NUM_THREADS: "1"
         run: |
-          pytest tests/unit_tests/ -v --cov=ascendbench
+          pytest tests/unit_tests/ -v --cov=ascendbench --durations=25
 
       - name: Validate task manifests against schema
         run: |
-          python scripts/corpus/validate_tasks.py --strict
+          # Golden tensors are machine-local; release artifact validation keeps
+          # the default golden requirement and --release-gate-strict.
+          python scripts/corpus/validate_tasks.py --strict --source-only
 
       - name: Verify version matrix
         run: |

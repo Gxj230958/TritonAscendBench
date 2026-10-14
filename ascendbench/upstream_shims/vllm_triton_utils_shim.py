@@ -135,7 +135,14 @@ LOGE2: float = math.log(2.0)
 
 
 __all__ = [
-    "HAS_TRITON", "LOG2E", "LOGE2", "tl", "tldevice", "triton",
-    "autotune", "_AutotunedKernel", "_interpreter_mode_active",
+    "HAS_TRITON",
+    "LOG2E",
+    "LOGE2",
+    "_AutotunedKernel",
     "_has_active_triton_driver",
+    "_interpreter_mode_active",
+    "autotune",
+    "tl",
+    "tldevice",
+    "triton",
 ]

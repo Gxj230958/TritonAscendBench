@@ -30,9 +30,10 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ def run_metamorphic_checks(
             continue
         try:
             out.append(fn())
-        except Exception as exc:                       # noqa: BLE001
+        except Exception as exc:
             out.append(MetamorphicResult(name, False, f"raised: {type(exc).__name__}: {exc}"))
     return out
 
@@ -223,8 +224,8 @@ class MetamorphicContext:
     """
 
     base_inputs: dict
-    run_candidate: "Callable[[dict], dict | None]"
-    tensors_close: "Callable[[Any, Any], bool]"
+    run_candidate: Callable[[dict], dict | None]
+    tensors_close: Callable[[Any, Any], bool]
 
 
 def _float_tensor_names(inputs: dict) -> list[str]:
@@ -237,7 +238,7 @@ def _float_tensor_names(inputs: dict) -> list[str]:
     ]
 
 
-def _pick_target(ctx: "MetamorphicContext", check_name: str) -> str | None:
+def _pick_target(ctx: MetamorphicContext, check_name: str) -> str | None:
     """Resolve which input tensor a check targets.
 
     Prefers the check's declared hint (``x1`` / ``A`` / ``v`` / …); falls
@@ -254,7 +255,7 @@ def _pick_target(ctx: "MetamorphicContext", check_name: str) -> str | None:
 
 
 def _annihilation_transform(
-    ctx: "MetamorphicContext", check_name: str,
+    ctx: MetamorphicContext, check_name: str,
 ) -> MetamorphicResult:
     """Zero a named input ⇒ every candidate output must be all-zero.
 
@@ -290,7 +291,7 @@ def _annihilation_transform(
 
 
 def _homogeneity_transform(
-    ctx: "MetamorphicContext", check_name: str,
+    ctx: MetamorphicContext, check_name: str,
 ) -> MetamorphicResult:
     """Scale a named input by k ⇒ every output scales by exactly k.
 
@@ -339,7 +340,7 @@ def _homogeneity_transform(
 
 
 def _compensating_transform(
-    ctx: "MetamorphicContext", check_name: str,
+    ctx: MetamorphicContext, check_name: str,
 ) -> MetamorphicResult:
     """Scale one input by α and another by 1/α ⇒ output unchanged.
 
@@ -394,7 +395,7 @@ def _compensating_transform(
 
 
 def _row_permute_transform(
-    ctx: "MetamorphicContext", check_name: str,
+    ctx: MetamorphicContext, check_name: str,
 ) -> MetamorphicResult:
     """Permute leading-dim rows of every rank>=2 input ⇒ output rows
     permute identically.
@@ -458,7 +459,7 @@ def _row_permute_transform(
 
 
 def _differential_transform(
-    ctx: "MetamorphicContext", check_name: str,
+    ctx: MetamorphicContext, check_name: str,
 ) -> MetamorphicResult:
     """Perturb a float input ⇒ the output MUST change.
 
@@ -517,8 +518,8 @@ def _differential_transform(
 
 def build_metamorphic_transformations(
     checks: list[dict[str, Any]],
-    ctx: "MetamorphicContext",
-) -> dict[str, "Callable[[], MetamorphicResult]"]:
+    ctx: MetamorphicContext,
+) -> dict[str, Callable[[], MetamorphicResult]]:
     """Build the ``{check_name: callable}`` transformation registry for a
     task's declared metamorphic checks .
 
@@ -534,7 +535,7 @@ def build_metamorphic_transformations(
     :func:`run_metamorphic_checks` rejects it as
     ``unknown metamorphic check`` before the transform would run.
     """
-    registry: dict[str, "Callable[[], MetamorphicResult]"] = {}
+    registry: dict[str, Callable[[], MetamorphicResult]] = {}
     for spec in checks:
         name = spec.get("name") if isinstance(spec, dict) else spec
         if not isinstance(name, str) or not is_known_metamorphic_check(name):

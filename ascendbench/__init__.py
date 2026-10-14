@@ -21,13 +21,13 @@ The task DATA lives separately in tasks/. See docs/reference/ for the protocol.
 
 __version__ = "0.1.0"
 __all__ = [
-    "engine",
-    "integrity",
-    "correctness",
-    "perf",
-    "input_spec",
-    "corpus",
-    "release_gate",
-    "manifest",
     "backends",
+    "corpus",
+    "correctness",
+    "engine",
+    "input_spec",
+    "integrity",
+    "manifest",
+    "perf",
+    "release_gate",
 ]

@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 import hashlib
 import json
-from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
-import shutil
+from collections import Counter
+from pathlib import Path
 
 
 def digest(path):

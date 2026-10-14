@@ -7,14 +7,14 @@ import hashlib
 import importlib.metadata
 import json
 import os
-from pathlib import Path
+import re
+import shlex
+import shutil
+import signal
 import subprocess
 import sys
 import time
-import signal
-import shutil
-import shlex
-import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -70,6 +70,7 @@ def admission_snapshot(args):
 
 def inventory(args):
     import yaml
+
     from ascendbench.input_spec.inputs import shape_ids
     records = []
     for task_dir in sorted(args.tasks.glob("level*/*")):

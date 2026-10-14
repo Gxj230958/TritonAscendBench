@@ -336,7 +336,7 @@ def extract_wrapper_contract(
         if isinstance(tgt, (ast.Tuple, ast.List)):
             genexp_bases = _is_genexp_alias_unpack(stmt.value, set(alias_map))
             if genexp_bases is not None and len(genexp_bases) == len(tgt.elts):
-                for alias_node, base_name in zip(tgt.elts, genexp_bases):
+                for alias_node, base_name in zip(tgt.elts, genexp_bases, strict=False):
                     if isinstance(alias_node, ast.Name):
                         alias_map[alias_node.id] = alias_map[base_name]
     aliased_inputs = set(alias_map)
@@ -505,9 +505,9 @@ def extract_oracle_helper_contract(oracle_path: Path) -> WrapperContract | None:
 
 
 __all__ = [
-    "WrapperContract",
     "Violation",
-    "extract_wrapper_contract",
-    "extract_oracle_helper_contract",
+    "WrapperContract",
     "check_against_inputs",
+    "extract_oracle_helper_contract",
+    "extract_wrapper_contract",
 ]

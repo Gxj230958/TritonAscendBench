@@ -10,20 +10,13 @@ This test pins the grading chain: it must run to completion (non-empty
 ``shape_results``, ``correctness_status`` set to ok/fail) with no harness
 ``error_reason`` recorded.
 """
-from pathlib import Path
-
 from ascendbench.engine.eval import evaluate
 
-REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias"
-_SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
-
-def test_phase2b_grading_runs_to_completion():
+def test_phase2b_grading_runs_to_completion(tiny_eval_fixture):
     """Grading must reach the per-shape loop and set a real verdict."""
-    assert _SOLUTION.exists(), f"fixture solution missing: {_SOLUTION}"
-
-    result = evaluate(_TASK, _SOLUTION)
+    task, solution = tiny_eval_fixture
+    result = evaluate(task.task_id, solution, task_def=task)
 
     # static check must pass so grading actually enters phase-2b.
     assert result.static_checks_passed, result.static_findings

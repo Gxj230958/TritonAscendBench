@@ -2,12 +2,12 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+from pathlib import Path
 
 
 def main():
@@ -22,6 +22,7 @@ def main():
     sys.path.insert(0, str(args.root))
     import psutil
     import torch
+
     from ascendbench.integrity import process_isolation as pi
     pi.sys.executable = str(Path(__file__).with_name("cpu_only_python.sh"))
     torch.set_num_threads(1)
