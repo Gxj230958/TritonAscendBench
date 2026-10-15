@@ -76,7 +76,7 @@ The final worktree is retained at
 primary/replay/supplement raw records are also retained beneath
 `/inspire/sj-ssd3/project/qianghuaxuexi/s26045/tab-streaming-evaluation-2026-10-10/`.
 
-## CI Repair (October 13-14, 2026)
+## CI Repair (October 13-15, 2026)
 
 GitHub run `38245311955` stopped at Ruff before unit tests or the release gate
 executed. Ruff 0.17.0 reported 4,965 violations; clean baseline `main` already
@@ -128,6 +128,19 @@ on push came from invalid indentation in the existing `verified_runner.yml`;
 its YAML nesting and Docker build context were corrected, retaining only manual
 and repository-dispatch triggers. This syntax repair does not certify that
 legacy device workflow's commands or publish any leaderboard results.
+
+Remote run `38515847268` subsequently exceeded the CPU job's 60-minute limit;
+GitHub recorded a timeout annotation but retained no usable job log. The full
+suite now runs in four disjoint pytest-split groups on independent hosted
+runners, with fail-fast disabled, a 600-second per-test timeout, and retained
+JUnit/log diagnostics. A mandatory aggregate check retains the original CPU
+check name and requires every shard (including its release gates) to succeed.
+The CPU jobs explicitly install PyTorch from its CPU wheel index, avoiding
+unnecessary CUDA dependencies. Sharding changes scheduling, not formal shapes,
+trial counts, assertions, or the device-evaluation timeout protocol.
+Collection verification assigned 641/641/641/638 cases across the four groups:
+all 2,561 cases exactly once. A coverage/timeout/sharding smoke run passed 31/31
+selected generator cases; Ruff and both workflow definitions also passed checks.
 
 ## CPU Regression
 

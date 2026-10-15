@@ -7,11 +7,15 @@ on:
     branches: [main]
 
 jobs:
-  unit-tests:
-    name: Unit tests (CPU, mock backends)
+  cpu-unit-shards:
+    name: CPU unit tests (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-22.04
     # Full CPU coverage includes thousands of cases and isolated subprocesses.
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +32,7 @@ jobs:
             sudo apt-get install -y rsync
           fi
           pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[dev,automation]"
 
       - name: Lint with ruff
@@ -138,8 +143,22 @@ jobs:
           TAB_BACKEND: mock
           TORCH_DEVICE_BACKEND_AUTOLOAD: "0"
           OMP_NUM_THREADS: "1"
+          PYTHONUNBUFFERED: "1"
         run: |
-          pytest tests/unit_tests/ -v --cov=ascendbench --durations=25
+          set -o pipefail
+          pytest tests/unit_tests/ -v --cov=ascendbench --durations=25 \
+            --splits 4 --group ${{ matrix.shard }} --timeout=600 \
+            --junitxml=cpu-tests.xml 2>&1 | tee cpu-tests.log
+
+      - name: Save CPU test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-tests-${{ matrix.shard }}
+          path: |
+            cpu-tests.xml
+            cpu-tests.log
+          if-no-files-found: warn
 
       - name: Validate task manifests against schema
         run: |
@@ -160,6 +179,17 @@ jobs:
         # that is the intentional S6 hard gate, not a CI flake.
         run: |
           python scripts/corpus/validate_tasks.py --release-gate
+
+  unit-tests:
+    name: Unit tests (CPU, mock backends)
+    runs-on: ubuntu-22.04
+    needs: cpu-unit-shards
+    if: always()
+    steps:
+      - name: Require every CPU shard and release gate to pass
+        env:
+          CPU_RESULT: ${{ needs.cpu-unit-shards.result }}
+        run: test "$CPU_RESULT" = success
 
   adversarial-tests:
     name: Adversarial defense self-checks
