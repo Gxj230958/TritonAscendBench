@@ -16,6 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
+    env:
+      TAB_BACKEND: mock
+      TORCH_DEVICE_BACKEND_AUTOLOAD: "0"
+      OMP_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -24,6 +29,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Provision memory for full-size corpus validation
+        run: |
+          # One official input plus its construction temporaries peaks at 25 GiB.
+          # Keep the full shapes on the standard hosted runner.
+          df -h "$RUNNER_TEMP"
+          sudo fallocate -l 16G "$RUNNER_TEMP/tab-ci.swap"
+          sudo chmod 600 "$RUNNER_TEMP/tab-ci.swap"
+          sudo mkswap "$RUNNER_TEMP/tab-ci.swap"
+          sudo swapon "$RUNNER_TEMP/tab-ci.swap"
+          free -h
 
       - name: Install dependencies (CPU-only)
         run: |
@@ -139,15 +155,10 @@ jobs:
           mypy ascendbench/ || true
 
       - name: Run unit tests
-        env:
-          TAB_BACKEND: mock
-          TORCH_DEVICE_BACKEND_AUTOLOAD: "0"
-          OMP_NUM_THREADS: "1"
-          PYTHONUNBUFFERED: "1"
         run: |
           set -o pipefail
           pytest tests/unit_tests/ -v --cov=ascendbench --durations=25 \
-            --splits 4 --group ${{ matrix.shard }} --timeout=600 \
+            --splits 4 --group ${{ matrix.shard }} --timeout=600 --timeout-method=thread \
             --junitxml=cpu-tests.xml 2>&1 | tee cpu-tests.log
 
       - name: Save CPU test diagnostics

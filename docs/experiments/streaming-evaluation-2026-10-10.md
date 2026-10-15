@@ -142,6 +142,20 @@ Collection verification assigned 641/641/641/638 cases across the four groups:
 all 2,561 cases exactly once. A coverage/timeout/sharding smoke run passed 31/31
 selected generator cases; Ruff and both workflow definitions also passed checks.
 
+Run `38668665682` exposed a timeout-plugin integration conflict: signal-based
+pytest timeouts occupied the `SIGALRM` timer that the streaming runner correctly
+refuses to overwrite. CI now uses pytest-timeout's thread method, preserving
+the runner's own preparation deadlines. The first completed shard passed all
+641 cases before its hosted runner shut down during manifest validation.
+Local measurement of the identical validation command passed but reached
+25,698,312 KiB peak RSS (26.3 decimal GB). The formal rejection-sampling P4
+input `x` alone occupies 8.6 GB, and its float32 construction temporaries explain
+the larger peak. Each hosted shard now provisions a private 16 GiB swap file
+for these existing full-size checks; it is reclaimed with the ephemeral VM.
+Mock backend selection, backend-autoload suppression, and single-threaded CPU
+settings apply to all steps. Development dependencies also include cryptography
+so signature checks run instead of becoming dependency skips on a clean runner.
+
 ## CPU Regression
 
 The campaign's distinct regression total is **279 passed and 1 skipped**. The core
