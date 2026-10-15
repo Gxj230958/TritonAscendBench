@@ -10,7 +10,7 @@ import socket
 import stat
 import tempfile
 
-from safetensors.torch import load_file, save_file
+from safetensors.torch import load_file, save, save_file
 
 VERSION = 1
 MAX_MESSAGE = 65536
@@ -77,7 +77,17 @@ def payload_file(tensors, directory, transport="memfd"):
     try:
         if transport == "memfd" and hasattr(os, "memfd_create"):
             fd = os.memfd_create("tab-trial", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
-            save_file(tensors, f"/proc/self/fd/{fd}")
+            # Path writers may use atomic rename, which procfs cannot support.
+            encoded = save(tensors)
+            if not 8 <= len(encoded) <= MAX_PAYLOAD:
+                raise ValueError("payload size outside bounds")
+            view = memoryview(encoded)
+            while view:
+                written = os.write(fd, view)
+                if written <= 0:
+                    raise OSError("short payload write")
+                view = view[written:]
+            del view, encoded
             fcntl.fcntl(fd, fcntl.F_ADD_SEALS, SEALS)
             kind = "memfd"
         else:

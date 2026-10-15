@@ -10,6 +10,56 @@ from ascendbench.integrity import stream_transport as wire
 from ascendbench.integrity.streaming import InputSource, run_streaming_two_pass
 
 
+@pytest.mark.parametrize("empty", [False, True])
+def test_memfd_writer_uses_bytes_and_handles_short_writes(tmp_path, monkeypatch, empty):
+    def reject_path_writer(*args, **kwargs):
+        raise AssertionError("memfd must not use a path-based writer")
+
+    original_write = os.write
+    writes = []
+
+    def short_write(fd, data):
+        writes.append(len(data))
+        return original_write(fd, data[:7])
+
+    monkeypatch.setattr(wire, "save_file", reject_path_writer)
+    monkeypatch.setattr(wire.os, "write", short_write)
+    tensors = {} if empty else {
+        "x": torch.arange(12, dtype=torch.bfloat16).reshape(3, 4),
+        "flag": torch.tensor(True),
+    }
+    baseline = len(os.listdir("/proc/self/fd"))
+    with wire.payload_file(tensors, tmp_path) as (fd, meta):
+        loaded = wire.load_payload(os.dup(fd), meta)
+        assert loaded.keys() == tensors.keys()
+        for name, tensor in tensors.items():
+            torch.testing.assert_close(loaded[name], tensor)
+        with pytest.raises(OSError):
+            original_write(fd, b"sealed")
+    assert len(writes) > 1
+    assert len(os.listdir("/proc/self/fd")) == baseline
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("write_result", [0, "error"])
+def test_memfd_write_failure_closes_descriptor(tmp_path, monkeypatch, write_result):
+    descriptors = []
+
+    def fail_write(fd, data):
+        descriptors.append(fd)
+        if write_result == "error":
+            raise OSError("injected write failure")
+        return write_result
+
+    monkeypatch.setattr(wire.os, "write", fail_write)
+    with pytest.raises(OSError):
+        with wire.payload_file({"x": torch.ones(1)}, tmp_path):
+            pytest.fail("a failed payload must never be transferred")
+    with pytest.raises(OSError):
+        os.fstat(descriptors[0])
+    assert not list(tmp_path.iterdir())
+
+
 @pytest.mark.parametrize("transport", ["memfd", "file"])
 def test_stream_lifecycle(tmp_path, transport):
     sol = tmp_path / "solution.py"

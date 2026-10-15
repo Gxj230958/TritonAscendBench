@@ -109,7 +109,7 @@ validation, version-matrix validation, release boundary checks, and the frozen
 experiment audit also passed locally. This is code validation, not an upgrade
 of incomplete device coverage to 101/101 acceptance.
 
-Local Python 3.11 verification covered every case in the current collection:
+Initial CI-repair verification at `c057b2c` covered every collected Python 3.11 case:
 **2,559 passed, 2 skipped, 0 missing, 0 unresolved failures** across 2,561 cases.
 This was a partitioned verification with focused retries after fixture repairs,
 not a claim that the first all-tests invocation passed. The latest JUnit outcome
@@ -155,6 +155,22 @@ for these existing full-size checks; it is reclaimed with the ephemeral VM.
 Mock backend selection, backend-autoload suppression, and single-threaded CPU
 settings apply to all steps. Development dependencies also include cryptography
 so signature checks run instead of becoming dependency skips on a clean runner.
+
+Run `38670155996` confirmed the memory-provisioned shard completed manifest,
+version-matrix, and S6 checks. Its remaining streaming failures exposed a
+safetensors 0.8 compatibility issue: the path writer attempts atomic temporary
+files under `/proc/self/fd`, which cannot support that operation. Memfd transport
+now uses the public [`safetensors.torch.save`](https://raw.githubusercontent.com/huggingface/safetensors/v0.8.0/bindings/python/py_src/safetensors/torch.py)
+byte serializer and writes directly to the descriptor, handling partial writes
+before applying the same seals. The serialized buffer is released before
+transfer; it adds a current-payload buffer, never a queue of later trials.
+Four new cases cover empty/mixed payloads, short writes, and failure cleanup.
+The NPU campaign's archived memory/I/O receipts still describe its recorded
+runtime revisions, not a new measurement of this compatibility repair.
+With safetensors 0.8.0 and thread-based pytest timeouts, all 64 streaming,
+offline-golden, sampled-output anti-cheat, and grading regressions passed in
+126 seconds. The [JUnit receipt](../../scripts/internal/evidence/ci-repair-2026-10-14/safetensors-0.8-regressions.xml)
+includes the four new transport cases. Ruff also passed after this repair.
 
 ## CPU Regression
 

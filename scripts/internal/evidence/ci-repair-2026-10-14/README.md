@@ -1,10 +1,16 @@
 # CPU CI Repair Evidence
 
 The JUnit files retain the diagnosis runs and subsequent focused retries.
-`receipt-audit.json` matches the latest outcome for every test in the current
-pytest collection: 2,559 passing cases, two existing integration skips, no
+`receipt-audit.json` matches the latest outcome for every test collected at
+initial CI-repair commit `c057b2c`: 2,559 passing cases, two existing integration skips, no
 missing cases and no unresolved failures. An obsolete renamed test is not part
-of the current collection. Earlier failed attempts remain in the raw receipts.
+of that collection. Earlier failed attempts remain in the raw receipts.
+
+Later safetensors 0.8 transport regressions add four cases. Their focused
+verification and subsequent full remote CI are documented in the experiment
+report. `safetensors-0.8-regressions.xml` records all 64 focused cases passing
+with safetensors 0.8.0 and thread-based pytest timeouts. The initial receipt
+audit does not incorporate that later receipt.
 
 The audit source is preserved as `receipt-audit.py.txt`. It ran from the CI
 repair worktree with Python 3.11.14 and the CPU-only test environment. Local
