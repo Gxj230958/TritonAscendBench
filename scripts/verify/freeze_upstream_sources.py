@@ -30,7 +30,6 @@ import argparse
 import ast
 import hashlib
 import json
-import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -242,7 +241,7 @@ def freeze_task(task_id: str, dry_run: bool) -> ResolveResult:
     if task_dir is None:
         return ResolveResult(
             task_id=task_id, repo="", kernel_name="", raw_path="",
-            status="error", diagnostics=[f"task dir not found"],
+            status="error", diagnostics=["task dir not found"],
         )
 
     if task_id in SKIP_TASKS:

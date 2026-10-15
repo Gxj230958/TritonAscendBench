@@ -884,14 +884,13 @@ def _params(fn: ast.AST) -> tuple[list[str], list[str]]:
     a = fn.args
     pos = list(a.posonlyargs) + list(a.args) + list(a.kwonlyargs)
     names = [p.arg for p in pos]
-    n_pos = len(a.posonlyargs) + len(a.args)
     defaults = list(a.defaults)
     n_req_pos = (len(a.posonlyargs) + len(a.args)) - len(defaults)
     required: list[str] = []
     for i, p in enumerate(a.posonlyargs + a.args):
         if i < n_req_pos:
             required.append(p.arg)
-    for p, d in zip(a.kwonlyargs, a.kw_defaults):
+    for p, d in zip(a.kwonlyargs, a.kw_defaults, strict=False):
         if d is None:
             required.append(p.arg)
     return names, required
@@ -1416,14 +1415,7 @@ def resolve_task(task_dir: Path, pap, apply: bool) -> Resolution:
     # jit-only: if the task ships an authored _pa_launcher.py, try its
     # run(inputs) first (the loaders exec it into the kernel module).
     if (task_dir / "_pa_launcher.py").is_file():
-        ordered = [
-            Candidate(
-                name="run",
-                is_host_wrapper=True,
-                score=1e9,
-                rationale="authored-jit-only-launcher",
-            )
-        ] + ordered
+        ordered = [Candidate(name="run", is_host_wrapper=True, score=1000000000.0, rationale="authored-jit-only-launcher"), *ordered]
 
     for c in ordered:
         tried.append(c.name)

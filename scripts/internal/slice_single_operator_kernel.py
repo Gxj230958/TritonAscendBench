@@ -151,7 +151,7 @@ def slice_source(src: str, td: Path) -> str | None:
     ok = module_bound | _BUILTINS | _ALWAYS_OK
     free: set[str] = set()
 
-    def _audit(table: "symtable.SymbolTable") -> None:
+    def _audit(table: symtable.SymbolTable) -> None:
         for s in table.get_symbols():
             if s.is_global() and not s.is_assigned() and s.get_name() not in ok:
                 free.add(s.get_name())

@@ -1,0 +1,50 @@
+"""Match the latest test receipts against the current pytest collection."""
+import json
+import sys
+import xml.etree.ElementTree as ET
+from collections import Counter
+from pathlib import Path
+
+import pytest
+from _pytest.junitxml import mangle_test_address
+
+
+class ReceiptAudit:
+    def pytest_collection_finish(self, session):
+        receipts = [
+            "/tmp/tab-ci-full-unit.xml", "/tmp/tab-ci-remaining-unit.xml",
+            "/tmp/tab-ci-fixture-unit.xml", "/tmp/tab-ci-rollback.xml",
+            "/tmp/tab-ci-clean-checkout.xml", "/tmp/tab-ci-tail-unit.xml",
+            "/tmp/tab-ci-shims.xml",
+        ]
+        latest = {}
+        for path in receipts:
+            for case in ET.parse(path).iter("testcase"):
+                key = (case.attrib["classname"], case.attrib["name"])
+                state = "passed"
+                for tag in ("skipped", "failure", "error"):
+                    if case.find(tag) is not None:
+                        state = tag
+                latest[key] = {"state": state, "receipt": path}
+        collected = set()
+        for item in session.items:
+            parts = mangle_test_address(item.nodeid)
+            collected.add((".".join(parts[:-1]), parts[-1]))
+        missing = sorted(collected - latest.keys())
+        failed = sorted(key for key in collected & latest.keys()
+                        if latest[key]["state"] in {"failure", "error"})
+        counts = Counter(latest[key]["state"] for key in collected & latest.keys())
+        result = {
+            "collected": len(collected), "latest_outcomes": dict(counts),
+            "missing": missing, "failed": failed, "receipts": receipts,
+            "cases": [{"classname": key[0], "name": key[1], **latest[key]}
+                      for key in sorted(collected & latest.keys())],
+        }
+        Path("/tmp/tab-ci-coverage-audit.json").write_text(json.dumps(result, indent=2))
+        print(json.dumps({k: v for k, v in result.items() if k != "cases"}, indent=2))
+        assert not missing, missing
+        assert not failed, failed
+
+
+sys.exit(pytest.main(["tests/unit_tests/", "--collect-only", "-qq"],
+                     plugins=[ReceiptAudit()]))

@@ -21,8 +21,9 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def _canonical_tensor_bytes(obj: Any) -> bytes:
     serialised as ``<dtype><shape><raw bytes>``; dicts walk keys in
     sorted order; lists / tuples walk in order.
     """
-    import torch  # noqa: PLC0415
+    import torch
 
     if isinstance(obj, torch.Tensor):
         t = obj.detach().contiguous().cpu()

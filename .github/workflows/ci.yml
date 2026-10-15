@@ -7,10 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  unit-tests:
-    name: Unit tests (CPU, mock backends)
+  cpu-unit-shards:
+    name: CPU unit tests (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    # Full CPU coverage includes thousands of cases and isolated subprocesses.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      TAB_BACKEND: mock
+      TORCH_DEVICE_BACKEND_AUTOLOAD: "0"
+      OMP_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -20,9 +30,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Provision memory for full-size corpus validation
+        run: |
+          # One official input plus its construction temporaries peaks at 25 GiB.
+          # Keep the full shapes on the standard hosted runner.
+          df -h "$RUNNER_TEMP"
+          sudo fallocate -l 16G "$RUNNER_TEMP/tab-ci.swap"
+          sudo chmod 600 "$RUNNER_TEMP/tab-ci.swap"
+          sudo mkswap "$RUNNER_TEMP/tab-ci.swap"
+          sudo swapon "$RUNNER_TEMP/tab-ci.swap"
+          free -h
+
       - name: Install dependencies (CPU-only)
         run: |
+          if ! command -v rsync >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y rsync
+          fi
           pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[dev,automation]"
 
       - name: Lint with ruff
@@ -129,14 +155,27 @@ jobs:
           mypy ascendbench/ || true
 
       - name: Run unit tests
-        env:
-          TAB_BACKEND: mock
         run: |
-          pytest tests/unit_tests/ -v --cov=ascendbench
+          set -o pipefail
+          pytest tests/unit_tests/ -v --cov=ascendbench --durations=25 \
+            --splits 4 --group ${{ matrix.shard }} --timeout=600 --timeout-method=thread \
+            --junitxml=cpu-tests.xml 2>&1 | tee cpu-tests.log
+
+      - name: Save CPU test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-tests-${{ matrix.shard }}
+          path: |
+            cpu-tests.xml
+            cpu-tests.log
+          if-no-files-found: warn
 
       - name: Validate task manifests against schema
         run: |
-          python scripts/corpus/validate_tasks.py --strict
+          # Golden tensors are machine-local; release artifact validation keeps
+          # the default golden requirement and --release-gate-strict.
+          python scripts/corpus/validate_tasks.py --strict --source-only
 
       - name: Verify version matrix
         run: |
@@ -151,6 +190,17 @@ jobs:
         # that is the intentional S6 hard gate, not a CI flake.
         run: |
           python scripts/corpus/validate_tasks.py --release-gate
+
+  unit-tests:
+    name: Unit tests (CPU, mock backends)
+    runs-on: ubuntu-22.04
+    needs: cpu-unit-shards
+    if: always()
+    steps:
+      - name: Require every CPU shard and release gate to pass
+        env:
+          CPU_RESULT: ${{ needs.cpu-unit-shards.result }}
+        run: test "$CPU_RESULT" = success
 
   adversarial-tests:
     name: Adversarial defense self-checks

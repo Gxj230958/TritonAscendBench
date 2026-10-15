@@ -182,11 +182,13 @@ def test_metamorphic_annihilation_pass_and_fail():
     base = {"x1": torch.randn(4, 8), "x3": torch.randn(4, 8)}
 
     # honest kernel: out = silu(x1) * x3 — silu(0)=0 ⇒ zeroing x1 ⇒ 0.
-    honest = lambda i: {"out": torch.nn.functional.silu(i["x1"]) * i["x3"]}
+    def honest(i):
+        return {"out": torch.nn.functional.silu(i["x1"]) * i["x3"]}
     assert _run_one("zero_x1_yields_zero", _ctx(base, honest)).passed
 
     # cheating kernel: returns a constant, ignores x1.
-    cheat = lambda i: {"out": torch.ones(4, 8)}
+    def cheat(i):
+        return {"out": torch.ones(4, 8)}
     res = _run_one("zero_x1_yields_zero", _ctx(base, cheat))
     assert not res.passed
     assert "all-zero" in (res.detail or "")
@@ -196,11 +198,13 @@ def test_metamorphic_homogeneity_pass_and_fail():
     """linear_x3_scaling: scaling x3 by k scales the output by k."""
     base = {"x1": torch.randn(4, 8), "x3": torch.randn(4, 8)}
 
-    honest = lambda i: {"out": torch.nn.functional.silu(i["x1"]) * i["x3"]}
+    def honest(i):
+        return {"out": torch.nn.functional.silu(i["x1"]) * i["x3"]}
     assert _run_one("linear_x3_scaling", _ctx(base, honest)).passed
 
     # non-linear in x3 (squares it) ⇒ scaling does not scale linearly.
-    cheat = lambda i: {"out": i["x3"] * i["x3"]}
+    def cheat(i):
+        return {"out": i["x3"] * i["x3"]}
     assert not _run_one("linear_x3_scaling", _ctx(base, cheat)).passed
 
 
@@ -208,11 +212,13 @@ def test_metamorphic_compensating_pair_pass_and_fail():
     """qk_scale_inverse: (Q*α, K/α) leaves Q·K unchanged."""
     base = {"q": torch.randn(4, 8), "k": torch.randn(4, 8)}
 
-    honest = lambda i: {"out": i["q"] * i["k"]}    # bilinear product
+    def honest(i):
+        return {"out": i["q"] * i["k"]}    # bilinear product
     assert _run_one("qk_scale_inverse", _ctx(base, honest)).passed
 
     # additive kernel: q+k is NOT invariant to the compensating pair.
-    cheat = lambda i: {"out": i["q"] + i["k"]}
+    def cheat(i):
+        return {"out": i["q"] + i["k"]}
     assert not _run_one("qk_scale_inverse", _ctx(base, cheat)).passed
 
 
@@ -220,7 +226,8 @@ def test_metamorphic_row_independence_pass_and_fail():
     """row_independence: permuting input rows permutes output rows."""
     base = {"input": torch.randn(6, 8)}
 
-    honest = lambda i: {"out": i["input"] * 2.0}      # per-row, no mixing
+    def honest(i):
+        return {"out": i["input"] * 2.0}      # per-row, no mixing
     assert _run_one("row_independence", _ctx(base, honest)).passed
 
     # cross-row contamination: output row r depends on input row r-1
@@ -235,12 +242,14 @@ def test_metamorphic_differential_pass_and_fail():
     """differential_perturbation_general: perturbing input changes output."""
     base = {"x": torch.randn(4, 8)}
 
-    honest = lambda i: {"out": i["x"] * 3.0}
+    def honest(i):
+        return {"out": i["x"] * 3.0}
     assert _run_one("differential_perturbation_general",
                     _ctx(base, honest)).passed
 
     # constant kernel: ignores its input ⇒ caught.
-    cheat = lambda i: {"out": torch.zeros(4, 8)}
+    def cheat(i):
+        return {"out": torch.zeros(4, 8)}
     res = _run_one("differential_perturbation_general", _ctx(base, cheat))
     assert not res.passed
     assert "ignores its input" in (res.detail or "")

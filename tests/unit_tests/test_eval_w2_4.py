@@ -23,10 +23,6 @@ from ascendbench.integrity.process_isolation import (
     TwoPassResult,
 )
 
-REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias"
-_SOLUTION = REPO / "solutions" / _TASK / "solution.py"
-
 
 def _two_pass(diag: dict) -> TwoPassResult:
     """Build a TwoPassResult whose timing pass carries one shape's W2.4
@@ -234,11 +230,11 @@ def test_run_task_metamorphic_real_registry_catches_cheat(monkeypatch):
 # ─────────────────────────────────────────────────────────────────────────────
 # full evaluate() carries metamorphic_results
 # ─────────────────────────────────────────────────────────────────────────────
-def test_evaluate_attaches_metamorphic_results():
+def test_evaluate_attaches_metamorphic_results(tiny_eval_fixture):
     """A graded task's shape results carry a metamorphic_results list
     (empty when the task declares no checks — the field still exists)."""
-    assert _SOLUTION.exists(), f"fixture missing: {_SOLUTION}"
-    result = evaluate(_TASK, _SOLUTION)
+    task, solution = tiny_eval_fixture
+    result = evaluate(task.task_id, solution, task_def=task)
     assert result.error_reason is None, result.error_reason
     for r in result.shape_results:
         assert hasattr(r, "metamorphic_results")

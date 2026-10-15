@@ -81,7 +81,7 @@ def test_install_vllm_c_stub_injects_safe_placeholder_modules(
             assert getattr(mod, "__tab_missing_extension__", None) == name
             assert hasattr(mod, "missing_symbol") is False
             try:
-                mod.missing_symbol
+                _ = mod.missing_symbol
             except AttributeError as exc:
                 assert name in str(exc)
             else:
@@ -266,13 +266,13 @@ def test_install_vllm_c_stub_imports_real_upstream_cuda_without_extensions(
     import_utils_mod = types.ModuleType("vllm.utils.import_utils")
 
     class _Nvml:
-        def nvmlInit(self):
+        def nvmlInit(self):  # noqa: N802 - mock the NVML API verbatim
             return None
 
-        def nvmlShutdown(self):
+        def nvmlShutdown(self):  # noqa: N802
             return None
 
-        def nvmlDeviceGetCount(self):
+        def nvmlDeviceGetCount(self):  # noqa: N802
             return 0
 
     import_utils_mod.import_pynvml = lambda: _Nvml()

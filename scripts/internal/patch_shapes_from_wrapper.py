@@ -91,7 +91,7 @@ def _resolve_kernel_entrypoint(
     R10.b / auto-patch) now route through one implementation that
     rejects @triton.jit picks AND gates the resolve_all.json cache by
     jaccard overlap."""
-    from ascendbench.corpus.kernel_resolver import (  # noqa: PLC0415
+    from ascendbench.corpus.kernel_resolver import (
         resolve_kernel_entrypoint,
     )
 

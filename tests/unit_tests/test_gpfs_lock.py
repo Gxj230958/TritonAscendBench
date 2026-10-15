@@ -238,18 +238,22 @@ def test_global_lock_blocks_second_acquire(tmp_path):
             lock.acquire_lock(gl, start_heartbeat=False, timeout_s=1)
 
 
-def test_mkdir_permission_failure_propagates(tmp_path):
+def test_mkdir_permission_failure_propagates(tmp_path, monkeypatch):
     from automation.lib import lock
 
-    # Make the parent unwritable to provoke ``PermissionError``.
+    # Simulate denial at the atomic lock mkdir, including when tests run as root.
     parent = tmp_path / "ro"
     parent.mkdir()
-    os.chmod(parent, 0o500)
-    try:
-        with pytest.raises((PermissionError, OSError)):
-            lock.acquire_lock(parent / ".lock", start_heartbeat=False)
-    finally:
-        os.chmod(parent, 0o700)
+    real_mkdir = lock.os.mkdir
+
+    def denied(path, *args, **kwargs):
+        if Path(path) == parent / ".lock":
+            raise PermissionError("lock directory access denied")
+        return real_mkdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(lock.os, "mkdir", denied)
+    with pytest.raises(PermissionError, match="access denied"):
+        lock.acquire_lock(parent / ".lock", start_heartbeat=False)
 
 
 def test_corrupt_meta_lets_us_steal(tmp_path):

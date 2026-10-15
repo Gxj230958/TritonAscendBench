@@ -244,7 +244,7 @@ def resolve_kernel_entrypoint(
     a clean LAUNCH_BLOCKED with that reason beats a misleading runtime
     trace from invoking a Triton kernel with bare tensor args.
     """
-    import json as _json  # noqa: PLC0415
+    import json as _json
 
     def _accept(cand: str) -> bool:
         if not cand:
@@ -333,8 +333,8 @@ def resolve_kernel_entrypoint(
 
 
 __all__ = [
-    "is_jit_decorated",
     "enumerate_non_jit_module_defs",
+    "is_jit_decorated",
     "kernel_function_exists",
     "resolve_kernel_entrypoint",
 ]

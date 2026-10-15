@@ -30,7 +30,6 @@ R13c gate reads the JSON output to compute
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import logging
 import re
@@ -154,7 +153,7 @@ def _commit_sha_verifiable(meta: dict) -> tuple[bool, str | None]:
     # Lazy import via the canonical ``scripts.`` package path so the
     # module identity is unique (sys.modules entry is shared with
     # other callers / tests' mocks).
-    import importlib  # noqa: PLC0415
+    import importlib
 
     sys.path.insert(0, str(REPO_ROOT))
     vcc = importlib.import_module(

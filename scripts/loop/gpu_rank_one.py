@@ -87,13 +87,13 @@ def run(task: str, peak_table: str) -> RankVerdict:
     import run_oracle_equivalence_gpu as oeq
     import yaml
 
-    from ascendbench.perf import peak_table as pt
-    from ascendbench.perf import scoring
     from ascendbench.corpus.dataset import load_task
     from ascendbench.engine.eval import (
         _representative_dtype_size,
         _shape_knobs,
     )
+    from ascendbench.perf import peak_table as pt
+    from ascendbench.perf import scoring
 
     try:
         import torch

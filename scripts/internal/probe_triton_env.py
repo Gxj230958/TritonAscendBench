@@ -213,7 +213,6 @@ def probe_sglang_assertion() -> None:
     real failure mode (without needing to import all of sglang)."""
     _hdr("sglang CachedKernel assertion reproduction")
     try:
-        import triton
         from triton.runtime.jit import JITFunction
     except Exception as exc:
         print(f"prerequisite FAIL: {type(exc).__name__}: {exc}")

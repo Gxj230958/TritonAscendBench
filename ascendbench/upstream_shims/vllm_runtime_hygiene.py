@@ -17,11 +17,11 @@ the bench runners; vendored vLLM / SGLang source stays untouched.
 from __future__ import annotations
 
 import importlib.util
-from importlib.machinery import EXTENSION_SUFFIXES, ModuleSpec
 import re
 import sys
 import types
 from importlib import metadata as importlib_metadata
+from importlib.machinery import EXTENSION_SUFFIXES, ModuleSpec
 from pathlib import Path
 
 _REGISTER_RE = re.compile(
@@ -129,7 +129,7 @@ def _make_missing_vllm_extension_stub(
     stub.__tab_stub__ = True
     stub.__tab_missing_extension__ = module_name
 
-    def __getattr__(attr: str):
+    def __getattr__(attr: str):  # noqa: N807 - installed as the module hook
         raise AttributeError(
             f"{module_name}.{attr} is unavailable because the compiled "
             f"extension {module_name!r} is missing from the source "

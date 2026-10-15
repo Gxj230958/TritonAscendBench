@@ -47,7 +47,7 @@ def _run_tab(*args: str) -> subprocess.CompletedProcess:
 # ---------------------------------------------------------------------------
 # R8-1 — verified-mode `blocked` stays in the fixed |S| denominator.
 # ---------------------------------------------------------------------------
-class TestR8_1BlockedInDenominator:
+class TestR81BlockedInDenominator:
     def test_codex_repro_1_evaluated_1_blocked_fixed_denom(self):
         """repro: 1 evaluated + 1 verified-blocked eligible task.
 
@@ -69,10 +69,8 @@ class TestR8_1BlockedInDenominator:
         score differently: `unsupported` leaves |S| (score 1.0), `blocked`
         stays as ε (score 0.1). They are NOT interchangeable."""
         evaluated_only = [TaskMeasurement(task_id="a", s_t=1.0)]
-        with_blocked = evaluated_only + [
-            TaskMeasurement(task_id="b", s_t=1.0, task_status="blocked")]
-        with_unsupported = evaluated_only + [
-            TaskMeasurement(task_id="b", s_t=1.0, task_status="unsupported")]
+        with_blocked = [*evaluated_only, TaskMeasurement(task_id="b", s_t=1.0, task_status="blocked")]
+        with_unsupported = [*evaluated_only, TaskMeasurement(task_id="b", s_t=1.0, task_status="unsupported")]
 
         assert capped_geomean_native(
             with_unsupported, s_native_size=2) == pytest.approx(1.0)
@@ -195,7 +193,7 @@ def _tol_cls():
     return next(iter(pol.values()))
 
 
-class TestR8_2SampledOutputFailClosed:
+class TestR82SampledOutputFailClosed:
     def test_oracle_rerun_exception_is_mismatch(self):
         """R8-2: an oracle re-run that raises must yield `mismatch=True`
         (fail-closed) — never a silently skipped trial."""

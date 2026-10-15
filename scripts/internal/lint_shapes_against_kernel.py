@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -26,8 +27,6 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TASKS_ROOT = REPO_ROOT / "tasks"
-
-import sys
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))

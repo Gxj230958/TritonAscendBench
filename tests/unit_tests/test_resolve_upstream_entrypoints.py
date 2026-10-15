@@ -393,7 +393,7 @@ def test_structure_mismatch_is_wrong_operator_not_env_limitation():
     )
 
 
-def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path):
+def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path, pinned_infer_roots):
     """MUST-FIX 1 -- FAIL ON REVERT.
 
     A cache written by ``write_resolver_cache`` carries a provenance
@@ -406,6 +406,7 @@ def test_provenance_stamp_roundtrip_and_staleness_detection(tmp_path):
     write (no stamp) makes the fresh-roundtrip assertion FAIL."""
     import json
 
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
 
     class _R:
@@ -865,7 +866,7 @@ def test_upstream_closure_fingerprint_detects_infer_byte_change(
         rue.VLLM_ROOT = saved_vllm
 
 
-def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
+def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path, pinned_infer_roots):
     """-- FAIL ON REVERT (global belt).
 
     ``load_resolver_cache`` MUST report a non-None staleness when the
@@ -878,6 +879,7 @@ def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
     """
     import json
 
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
 
     # Fresh cache: code_fp + infer_state both current -> trusted.
@@ -911,7 +913,7 @@ def test_load_resolver_cache_rejects_infer_state_mismatch(tmp_path):
 
 
 def test_hole1_nongit_infer_state_is_fail_closed_not_fail_open(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, pinned_infer_roots
 ):
     """HOLE 1 -- FAIL ON REVERT.
 
@@ -929,6 +931,7 @@ def test_hole1_nongit_infer_state_is_fail_closed_not_fail_open(
     FAIL: the sentinel disappears, the cache validates fresh, and the
     raise never happens.
     """
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
 
     # 1. Direct: a non-git root yields the UNVERIFIABLE sentinel
@@ -1130,7 +1133,7 @@ def test_expected_infer_pins_match_meta_consensus():
 
 
 def test_hole4_clean_but_wrong_commit_infer_is_fail_closed(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, pinned_infer_roots
 ):
     """FIX 1 / HOLE 4 -- FAIL ON REVERT.
 
@@ -1149,6 +1152,7 @@ def test_hole4_clean_but_wrong_commit_infer_is_fail_closed(
     disappears, build_infer_state stays self-consistent, and the cache
     validates fresh with NO raise.
     """
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
 
     # Build a well-formed cache while infer/ is the real clean+pinned
@@ -1261,7 +1265,7 @@ def test_fix2_unverifiable_checked_before_regenerable_no_regen(
     )
 
 
-def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path):
+def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path, pinned_infer_roots):
     """FIX 2 -- the regenerable auto-regen path
     MUST stay intact for a code-fp drift on a VERIFIABLE clean-pinned
     infer/ (the legitimate "resolver code changed, regenerate" case).
@@ -1270,6 +1274,7 @@ def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path):
     the existing auto-regen behaviour is preserved."""
     import json
 
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
     rue.write_resolver_cache(cache, [])
     payload = json.loads(cache.read_text())
@@ -1290,7 +1295,7 @@ def test_fix2_regenerable_path_intact_on_clean_pinned_infer(tmp_path):
 
 
 def test_missing_managed_root_is_fail_closed_not_omitted(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, pinned_infer_roots
 ):
     """FIX 1 -- FAIL ON REVERT.
 
@@ -1307,6 +1312,7 @@ def test_missing_managed_root_is_fail_closed_not_omitted(
     self-consistent across the absent state, and load_resolver_cache
     validates fresh with NO raise.
     """
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
 
     # Baseline: real clean+pinned infer/ -> well-formed cache.
@@ -1451,7 +1457,7 @@ def test_unverifiable_before_missing_cache_no_regen(
     )
 
 
-def test_regenerable_path_intact_on_clean_pinned(tmp_path):
+def test_regenerable_path_intact_on_clean_pinned(tmp_path, pinned_infer_roots):
     """FIX 2 -- the legitimate REGENERABLE path
     (code-fp drift on a verifiable clean+pinned infer/) MUST still
     auto-regen. With the real clean+pinned infer/ here, a code-fp
@@ -1461,6 +1467,7 @@ def test_regenerable_path_intact_on_clean_pinned(tmp_path):
     """
     import json
 
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
     rue.write_resolver_cache(cache, [])
     payload = json.loads(cache.read_text())
@@ -1590,7 +1597,7 @@ def _fresh_pap():
 
 
 def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
-    tmp_path,
+    tmp_path, pinned_infer_roots,
 ):
     """MUST-FIX 1 [confirmed PRODUCTION bug] -- FAIL ON
     REVERT, and does NOT rely on the conftest memo reset.
@@ -1611,6 +1618,7 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     import json
 
     pap, rue = _fresh_pap()
+    pinned_infer_roots(rue)
 
     # Two distinct valid caches written by the REAL writer (so each is
     # genuinely fresh under the current code+clean-pinned infer/).
@@ -1678,9 +1686,10 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
     #     code_fp/infer_state stamp, defeating the scenario).
     st_before = cache_b.stat()
     raw_before = cache_b.read_text()
-    assert raw_before.count('"TASK_B2"') == 1, (
+    token_count = raw_before.count('"TASK_B2"')
+    assert token_count == 1, (
         f"test setup broken: expected exactly one '\"TASK_B2\"' token "
-        f"in the cache, found {raw_before.count('\"TASK_B2\"')}"
+        f"in the cache, found {token_count}"
     )
     # "TASK_B2" -> "TASK_XY": both 7 chars, equal-length quoted token
     # -> the file is byte-for-byte the SAME SIZE, only contents differ.
@@ -1739,7 +1748,7 @@ def test_r10_mustfix1_resolver_memo_is_provenance_keyed_not_bare(
 
 
 def test_r10_mustfix1_memo_hit_serves_same_object_when_key_stable(
-    tmp_path,
+    tmp_path, pinned_infer_roots,
 ):
     """MUST-FIX 1 -- the keyed memo is still a REAL memo: a
     second call with an UNCHANGED path / cache file / provenance MUST
@@ -1747,6 +1756,7 @@ def test_r10_mustfix1_memo_hit_serves_same_object_when_key_stable(
     genuinely skipped). Proves the provenance key did not turn the memo
     into a no-op."""
     pap, rue = _fresh_pap()
+    pinned_infer_roots(rue)
     cache = tmp_path / "c.json"
 
     class _R:
@@ -1768,7 +1778,7 @@ def test_r10_mustfix1_memo_hit_serves_same_object_when_key_stable(
     )
 
 
-def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
+def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path, pinned_infer_roots):
     """MUST-FIX [confirmed] -- FAIL ON REVERT (the parse-vs
     -store TOCTOU).
 
@@ -1806,6 +1816,7 @@ def test_r12_mustfix_memo_store_toctou_single_snapshot(tmp_path):
     import json
 
     pap, rue = _fresh_pap()
+    pinned_infer_roots(rue)
     cache = tmp_path / "c.json"
 
     class _R:

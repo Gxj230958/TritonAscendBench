@@ -11,7 +11,7 @@ Covers:
 from __future__ import annotations
 
 import os
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 from ascendbench.integrity.static_checker import (
     _DENYLIST_IMPORT_EXACT,
@@ -119,16 +119,15 @@ def test_self_check_passes_when_uid_matches_provider():
 def test_self_check_fails_when_uid_mismatch_and_no_cap_setuid():
     """uid mismatch + no CAP_SETUID -> refuse to start.
 
-    The current process is unprivileged (dev machine, uid != 0,
-    no CAP_SETUID in the user-level env), so setting
-    $TAB_PROVIDER_UID to a NEVER-equal value reliably triggers the
-    failure path.
+    Explicitly simulate absent capabilities so this also works as root.
     """
     # Pick a uid the current process cannot possibly be.
     impossible_uid = (os.geteuid() + 1) if os.geteuid() != 0 else 65534
     env = {"TAB_PROVIDER_UID": str(impossible_uid)}
     env.pop("TAB_R19_SELF_CHECK_DISABLE", None)
-    with patch.dict(os.environ, env, clear=False):
+    with patch.dict(os.environ, env, clear=False), patch(
+        "builtins.open", mock_open(read_data="CapEff:\t0000000000000000\n")
+    ):
         os.environ.pop("TAB_R19_SELF_CHECK_DISABLE", None)
         ok, reason = _r19_startup_self_check()
     # Reason mentions either the uid mismatch OR the missing CAP_SETUID.

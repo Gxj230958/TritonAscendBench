@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch  # noqa: F401  -- ensures torch is importable for the allowlist test
+import torch
 import yaml
 
 from ascendbench.input_spec.inputs import _materialise_struct

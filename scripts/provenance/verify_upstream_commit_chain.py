@@ -28,9 +28,9 @@ import logging
 import shutil
 import subprocess
 import sys
-from dataclasses import asdict, dataclass, field
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
 
 import yaml
 
@@ -260,7 +260,7 @@ def _emit_report(verdicts: list[Verdict], report_path: Path) -> None:
     lines: list[str] = [
         "---",
         "tool: scripts/provenance/verify_upstream_commit_chain.py",
-        f"date: 2026-05-27",
+        "date: 2026-05-27",
         "purpose: V9 plan M2.0.5 — R12 SHA-chain integrity verdict",
         "---",
         "",

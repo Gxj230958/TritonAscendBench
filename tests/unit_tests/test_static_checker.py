@@ -179,7 +179,7 @@ def test_assign_aliased_eval_blocked():
     assert report.blocked
 
 
-def test_assign_aliased_F_softmax_blocked():
+def test_assign_aliased_f_softmax_blocked():
     """`sf = F.softmax` via Assign alias must block."""
     src = _src(
         """

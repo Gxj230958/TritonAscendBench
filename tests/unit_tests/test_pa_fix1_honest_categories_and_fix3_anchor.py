@@ -307,7 +307,7 @@ def test_render_status_emits_resolver_error_not_false_no_callable(
 
 
 def test_stale_provenance_cache_is_never_silently_consumed(
-    tmp_path, monkeypatch,
+    tmp_path, monkeypatch, pinned_infer_roots,
 ):
     """MUST-FIX 1 (codex r3 [confirmed]) -- FAIL ON REVERT.
 
@@ -335,6 +335,7 @@ def test_stale_provenance_cache_is_never_silently_consumed(
     _rue = _ilu.module_from_spec(_rs)
     sys.modules["resolve_upstream_entrypoints"] = _rue
     _rs.loader.exec_module(_rue)
+    pinned_infer_roots(_rue)
 
     # A cache that LOOKS fresh (correct shape) but carries a STALE
     # fingerprint -- exactly a cache built before a resolver/anchor

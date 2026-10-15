@@ -1100,7 +1100,9 @@ def run_canary_validation(strict: bool) -> list[str]:
     return all_errs
 
 
-def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> list[str]:
+def validate_task(
+    task_dir: Path, policy_classes: set[str], strict: bool, *, require_golden: bool = True,
+) -> list[str]:
     errs: list[str] = []
     tid = task_dir.name
 
@@ -1209,7 +1211,8 @@ def validate_task(task_dir: Path, policy_classes: set[str], strict: bool) -> lis
     # Step 7e: golden/ layout completeness for score-eligible
     # upstream_oracle_required tasks. A non-score-eligible task (stub oracle /
     # PHASE-C-MANUAL) has no capturable offline golden and is exempt.
-    errs.extend(_validate_golden(tid, meta, task_dir))
+    if require_golden:
+        errs.extend(_validate_golden(tid, meta, task_dir))
 
     # Step 7f: metamorphic_checks names must be in the known-check registry
     # (`ascendbench.integrity.adversarial.KNOWN_METAMORPHIC_CHECKS`).
@@ -1472,6 +1475,11 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true",
                         help="Stop on first task error")
     parser.add_argument(
+        "--source-only", action="store_true",
+        help="Validate tracked schemas, source, hashes and provenance without requiring "
+             "machine-local golden tensors. Not a release artifact acceptance check.",
+    )
+    parser.add_argument(
         "--release-gate", action="store_true",
         help="S6 release gate (SEPARATE from schema/hash mode): over the "
              "release-ready set (score-eligible AND C2-aligned), "
@@ -1497,6 +1505,9 @@ def main() -> int:
              "runs by default at the end of a full scan.",
     )
     args = parser.parse_args()
+
+    if args.source_only and (args.release_gate or args.release_gate_strict):
+        parser.error("--source-only cannot be combined with a release gate")
 
     if args.release_gate or args.release_gate_strict:
         strict = args.release_gate_strict or os.environ.get("TAB_RELEASE_STRICT") == "1"
@@ -1524,7 +1535,8 @@ def main() -> int:
                 continue
             if args.task and task_dir.name != args.task:
                 continue
-            errs = validate_task(task_dir, policy_classes, args.strict)
+            errs = validate_task(task_dir, policy_classes, args.strict,
+                                 require_golden=not args.source_only)
             all_errs.extend(errs)
             for e in errs:
                 print(f"ERROR: {e}", file=sys.stderr)
@@ -1539,7 +1551,8 @@ def main() -> int:
     if all_errs:
         print(f"\n{len(all_errs)} validation error(s)", file=sys.stderr)
         return 1
-    print("All tasks validated successfully.")
+    print("All task sources validated successfully (golden artifacts not checked)."
+          if args.source_only else "All tasks validated successfully.")
     return 0
 
 
