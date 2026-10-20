@@ -63,7 +63,126 @@ import sys
 
 import pytest
 
+
+@pytest.fixture
+def tiny_eval_fixture(tmp_path, monkeypatch):
+    """Self-contained grading inputs and CPU mock execution; no private solution."""
+    import hashlib
+
+    import torch
+    import yaml
+
+    from ascendbench.corpus.dataset import TaskDef
+    from ascendbench.integrity import process_isolation as pi
+
+    source = (
+        "import triton\nimport triton.language as tl\n"
+        "@triton.jit\n"
+        "def kernel(x, y, BLOCK: tl.constexpr):\n"
+        "    i = tl.arange(0, BLOCK)\n"
+        "    tl.store(y + i, tl.load(x + i) + 1.0)\n"
+        "def npu_triton_impl(inputs):\n"
+        "    x = inputs['x']\n"
+        "    y = x.new_empty(x.shape)\n"
+        "    kernel[(1,)](x, y, BLOCK=4)\n"
+        "    return {'y': y}\n"
+    )
+    shapes = {
+        "size_knobs": {"N": 4},
+        "public_shapes": [{"id": "P1", "knobs": {"N": 4}}],
+        "hidden_shapes": [{"id": "H1", "knobs": {"N": 6}}],
+        "inputs": {"x": {"dims": ["N"], "dtype": "float32", "dist": "randn"}},
+    }
+    (tmp_path / "shapes.yaml").write_text(yaml.safe_dump(shapes))
+    (tmp_path / "oracle_pytorch.py").write_text("def run(inputs):\n    return {'y': inputs['x'] + 1.0}\n")
+    solution = tmp_path / "solution.py"
+    solution.write_text(source)
+    task = TaskDef(
+        task_id="SYN_cpu_eval", level=1, task_dir=tmp_path,
+        meta={"tolerance_class": "elementwise", "oracle_simplified": "simple_pytorch_ok",
+              "runner_checks": {}, "oracle": {"pytorch": "oracle_pytorch.py::run"},
+              "param_constraints": {"scaffold": False, "dims": ["N >= 1"],
+                                    "dtypes": {"x": "float32"},
+                                    "dists": {"x": {"kind": "randn"}},
+                                    "scalars": {}, "tensor_invariants": []}},
+        public_shapes=[], contract_md="Synthetic CPU grading fixture.",
+        kernel_py=source, kernel_py_sha256=hashlib.sha256(source.encode()).hexdigest(),
+    )
+    task.param_constraints = task.meta["param_constraints"]
+
+    def mock_execution(_solution, correctness_inputs, _timing_inputs, **_kwargs):
+        correct = {}
+        timed = {}
+        for sid, inputs in correctness_inputs.items():
+            tensor = inputs["x"]
+            assert torch.is_tensor(tensor)
+            correct[sid] = pi.ShapeCandidateResult(sid, True, outputs={"y": tensor + 1.0})
+            timed[sid] = pi.ShapeCandidateResult(sid, True, durations=[5_000_000.0] * 99)
+        return pi.TwoPassResult(
+            pi.CandidateRunResult(True, False, None, correct),
+            pi.CandidateRunResult(True, False, None, timed, pass_kind="timing"),
+            scrubbed=[],
+        )
+
+    monkeypatch.setattr(pi, "run_two_pass", mock_execution)
+    return task, solution
+
+
+@pytest.fixture
+def tiny_cli_fixture(tiny_eval_fixture, monkeypatch):
+    """Exercise the actual argument parser and producer with CPU mock execution."""
+    from ascendbench.corpus import dataset
+    from ascendbench.engine import cli
+    from ascendbench.engine import eval as evaluator
+
+    task, solution = tiny_eval_fixture
+
+    def load_task(task_id):
+        assert task_id == task.task_id
+        return task
+
+    monkeypatch.setattr(dataset, "load_task", load_task)
+    monkeypatch.setattr(evaluator, "load_task", load_task)
+    monkeypatch.setattr(dataset, "iter_all_tasks", lambda: [task])
+
+    def run(*args):
+        monkeypatch.setattr(sys, "argv", ["tab", *args])
+        return cli.main()
+
+    return task, solution, run
+
+
 _GUARDED_KEYS = ("phase_a_prime", "resolve_upstream_entrypoints")
+
+
+@pytest.fixture
+def pinned_infer_roots(tmp_path, monkeypatch):
+    """Opt-in clean Git roots for cache tests; no external checkout required."""
+    import subprocess
+
+    roots = []
+    pins = {}
+    for name in ("vllm", "sglang"):
+        root = tmp_path / "infer" / name
+        root.mkdir(parents=True)
+        (root / "fixture.py").write_text("value = 1\n")
+        for args in (
+            ["init", "-q"], ["add", "fixture.py"],
+            ["-c", "user.name=CPU fixture", "-c", "user.email=fixture@example.invalid",
+             "commit", "-qm", "Pinned test fixture"],
+        ):
+            subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+        pins[name] = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        roots.append((name, root))
+
+    def configure(module):
+        monkeypatch.setattr(module, "_INFER_ROOTS", tuple(roots))
+        monkeypatch.setattr(module, "VLLM_ROOT", roots[0][1])
+        monkeypatch.setattr(module, "SGLANG_ROOT", roots[1][1])
+        monkeypatch.setattr(module, "expected_infer_pins", lambda: dict(pins))
+
+    return configure
 
 
 def _reset_resolver_memo() -> None:

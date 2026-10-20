@@ -75,13 +75,13 @@ def _write_contract(td: Path, text: str) -> Path:
 
 # ------------------ _S — list routes to scalar_seq ------------------
 
-def test_S_scalar_for_plain_value():
+def test_s_scalar_for_plain_value():
     assert pcd._S(8) == {"scalar": 8}
     assert pcd._S(0.125) == {"scalar": 0.125}
     assert pcd._S("tanh") == {"scalar": "tanh"}
 
 
-def test_S_scalar_seq_for_list():
+def test_s_scalar_seq_for_list():
     """A list literal must be emitted under ``scalar_seq``, not ``scalar``."""
     assert pcd._S([8, 8]) == {"scalar_seq": [8, 8]}
     assert pcd._S([3, 3, 2]) == {"scalar_seq": [3, 3, 2]}

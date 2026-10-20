@@ -8,27 +8,20 @@ drift onto the result status fields without a slow full grading run.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from ascendbench.engine import eval as _eval
 from ascendbench.engine.eval import ShapeRunResult, evaluate
 from ascendbench.input_spec import inputs as _inputs
 from ascendbench.perf import timing
 
-REPO = Path(__file__).resolve().parents[2]
-_TASK = "L1_01_bias"
-_SOLUTION = REPO / "solutions" / _TASK / "solution.py"
-
-
 # ---------------------------------------------------------------------------
 # evaluate() drives the two-pass pipeline and records timing durations.
 # ---------------------------------------------------------------------------
 
-def test_evaluate_records_timing_durations():
+def test_evaluate_records_timing_durations(tiny_eval_fixture):
     """A graded task carries the timing pass's per-trial host_ns series
     on its shape results — proof eval orchestrated the timing pass."""
-    assert _SOLUTION.exists(), f"fixture missing: {_SOLUTION}"
-    result = evaluate(_TASK, _SOLUTION)
+    task, solution = tiny_eval_fixture
+    result = evaluate(task.task_id, solution, task_def=task)
 
     assert result.error_reason is None, result.error_reason
     assert len(result.shape_results) > 0
@@ -41,10 +34,11 @@ def test_evaluate_records_timing_durations():
             assert all(d > 0 for d in r.durations)
 
 
-def test_evaluate_no_parent_side_timing():
+def test_evaluate_no_parent_side_timing(tiny_eval_fixture):
     """eval.py must not time candidate code in the parent — measured_ns
     and baseline_ns stay None (W1.4 fills them from durations later)."""
-    result = evaluate(_TASK, _SOLUTION)
+    task, solution = tiny_eval_fixture
+    result = evaluate(task.task_id, solution, task_def=task)
     for r in result.shape_results:
         # W1.3: parent does no wall-clock timing of its own.
         assert r.measured_ns is None

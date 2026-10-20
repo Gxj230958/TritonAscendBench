@@ -14,8 +14,8 @@ host-independent properties:
   * **Two sandboxes** — a candidate is graded in two *independent*
     subprocess passes: a correctness pass then a timing pass. Between
     them the runner SIGKILLs the correctness pass's whole process group
-    and scrubs `/tmp` scratch + the Triton compile cache (device memory
-    too, on NPU). This cuts the correctness-pass → timing-pass
+    and removes its private scratch + Triton compile cache. Device allocations
+    die with their owning process. This cuts the correctness-pass → timing-pass
     pre-computation channel and stops a forked descendant from leaking
     state into the timing pass (DESIGN §3.3 / §6.6,
     the process-isolation model "Why Two Candidate Processes").
@@ -141,7 +141,6 @@ import json
 import logging
 import os
 import secrets
-import shutil
 import signal
 import stat
 import subprocess
@@ -234,8 +233,19 @@ DEFAULT_N_WARMUP = 10
 DEFAULT_N_TRIALS = 100
 DEFAULT_SAMPLE_SIZE = 10
 
-# Triton-Ascend compile-cache / scratch paths scrubbed between the two
-# passes so the timing pass cannot read a correctness-pass artifact.
+
+def _default_pass_timeout_s():
+    try:
+        value = int(os.environ.get("TAB_PASS_TIMEOUT_S", "90"))
+        return value if value > 0 else 90
+    except ValueError:
+        return 90
+
+
+DEFAULT_PASS_TIMEOUT_S = _default_pass_timeout_s()
+
+# Historical paths, retained for callers that imported the constant. Cleanup
+# no longer touches these shared locations; every pass owns its own directories.
 _SCRUB_PATHS = (
     "/tmp/triton-ascend-cache",
     "/tmp/scratch",
@@ -278,6 +288,7 @@ class CandidateRunResult:
     schema_version: int = STATUS_SCHEMA_VERSION
     # which pass produced this result ("correctness" | "timing").
     pass_kind: str = "correctness"
+    streamed: bool = False
 
 
 @dataclass
@@ -309,6 +320,7 @@ class TwoPassResult:
 # non-default-stream / fallback diagnostics (kernel-event source stubbed on dev).
 _CHILD = r'''
 import contextlib, json, math, sys, time, importlib.util
+from ascendbench.integrity.stream_transport import child_loop as _stream_child
 from pathlib import Path
 import torch
 from safetensors.torch import load_file, save_file
@@ -565,7 +577,7 @@ install_runtime_audit_hook()
 # candidate: the dev box / torch-only paths take NO extra call, keeping the
 # exactly-one-graded-call R5/R6 invariant intact. Errors are swallowed — a
 # genuine candidate fault resurfaces in the graded passes below.
-if (fn is not None and _BACKEND is not None
+if (not args.get("stream_fd") and fn is not None and _BACKEND is not None
         and _BACKEND.needs_compile_warmup() and _uses_triton):
     set_audit_phase("compile")
     try:
@@ -806,6 +818,10 @@ def _timing_shape(fn, shape, rec):
         rec["sampled_outputs"] = sampled_ref
 
 
+if args.get("stream_fd"):
+    _stream_child(globals())
+    sys.exit(0)
+
 for shape in args["shapes"]:
     sid = shape["shape_id"]
     rec = _new_rec()
@@ -881,7 +897,7 @@ def run_candidate_isolated(
     solution_path: Path,
     materialised_inputs: dict[str, object],
     *,
-    timeout_s: int = 90,
+    timeout_s: int = DEFAULT_PASS_TIMEOUT_S,
     pass_kind: str = "correctness",
     n_warmup: int = DEFAULT_N_WARMUP,
     sample_size: int = DEFAULT_SAMPLE_SIZE,
@@ -1026,6 +1042,12 @@ def run_candidate_isolated(
             # trusted-shim import path (REPO_ROOT first).
             "PYTHONPATH": child_pythonpath,
         }
+        from ascendbench.integrity.streaming import device_environment
+        env.update(device_environment(backend))
+        for name in ("home", "scratch", "cache"):
+            (tdp / name).mkdir()
+        env.update(HOME=str(tdp / "home"), TMPDIR=str(tdp / "scratch"),
+                   TRITON_CACHE_DIR=str(tdp / "cache"))
         # On NPU the trusted child must load torch_npu + the CANN/driver
         # runtime, which need the Ascend environment (set on the parent via
         # set_env.sh). Forward a FIXED, value-AUDITED allowlist of CANN/driver
@@ -1181,7 +1203,7 @@ def _run_with_timeout(fn, timeout_s):
     return done["ok"] and not th.is_alive()
 
 
-def _parse_npu_kernel_event(raw_dir, prof_root):
+def _parse_npu_kernel_event(raw_dir, prof_root, *, synchronous=False):
     """Trusted-PARENT offline parse of a child-recorded NPU profiler raw dir.
 
     The in-child CSV parse is blocked by the graded sandbox (the profiler's CSV
@@ -1243,7 +1265,10 @@ def _parse_npu_kernel_event(raw_dir, prof_root):
         # Bound the parse: a corrupted raw trace could make CANN parsing hang —
         # a wedged parser must not hang the runner. A hung/raised parse ->
         # unverified -> G4 fails closed.
-        if not _run_with_timeout(lambda: analyse(rd), _ANALYSE_TIMEOUT_S):
+        if synchronous:
+            # Streaming runs this in a separately killable trusted parser group.
+            analyse(rd)
+        elif not _run_with_timeout(lambda: analyse(rd), _ANALYSE_TIMEOUT_S):
             return unverified
         # Re-validate the WHOLE path right before reading (defense-in-depth: an
         # out-of-model writer could TOCTOU-swap an intermediate component to a
@@ -1261,36 +1286,14 @@ def _parse_npu_kernel_event(raw_dir, prof_root):
 
 
 def scrub_between_passes() -> list[str]:
-    """Clear the cross-pass leak channel between the two sandboxes.
+    """Compatibility hook: pass-owned resources have already been reclaimed.
 
-    Removes the Triton-Ascend compile cache and `/tmp` scratch dirs that a
-    correctness-pass child could have planted pre-computed answers in, and
-    empties NPU device memory when an NPU is present. Returns the list of
-    paths/resources actually scrubbed (the isolation receipt
-    :class:`TwoPassResult` records and the tests assert on).
-
-    Safe to call on the dev machine: the compile-cache / scratch dirs
-    simply do not exist and are skipped; the NPU branch is a no-op without
-    `torch.npu`.
+    Both entrypoints now give each child a private HOME, scratch and compile
+    cache and kill its process group before removing them. Deleting global
+    cache paths or touching the parent's device allocator here would interfere
+    with other workers and is neither necessary nor safe.
     """
-    scrubbed: list[str] = []
-    for path in _SCRUB_PATHS:
-        p = Path(path)
-        if p.exists():
-            try:
-                shutil.rmtree(p, ignore_errors=True)
-                scrubbed.append(path)
-            except OSError as e:
-                logger.warning("scrub failed for %s: %s", path, e)
-    # Device memory — only meaningful on the NPU machine.
-    npu = getattr(torch, "npu", None)
-    if npu is not None and getattr(npu, "is_available", lambda: False)():
-        try:
-            npu.empty_cache()
-            scrubbed.append("npu:device_memory")
-        except Exception as e:
-            logger.warning("npu.empty_cache failed: %s", e)
-    return scrubbed
+    return []
 
 
 def _fresh_sampling_seed() -> int:
@@ -1323,21 +1326,21 @@ def run_two_pass(
     correctness_inputs: dict[str, object],
     timing_inputs: dict[str, object],
     *,
-    timeout_s: int = 90,
+    timeout_s: int = DEFAULT_PASS_TIMEOUT_S,
     n_warmup: int = DEFAULT_N_WARMUP,
     sample_size: int = DEFAULT_SAMPLE_SIZE,
     golden_fixed_inputs: dict[str, object] | None = None,
     backend: str = "npu",
+    result_consumer=None,
 ) -> TwoPassResult:
     """Dual-sandbox driver — two independent candidate subprocesses.
 
     1. **Correctness pass** — a fresh subprocess over ``correctness_inputs``
        (one inputs dict per shape). The subprocess is killed on exit.
-    2. **Scrub** — :func:`scrub_between_passes` clears the Triton compile
-       cache + `/tmp` scratch + NPU device memory so the timing pass
-       cannot read anything the correctness pass left behind. The
-       correctness-pass process group is SIGKILLed before the
-       scrub so no forked descendant survives into the timing pass.
+    2. **Cleanup** — kill the correctness-pass process group and delete
+       its owned directories. Each pass has private HOME, compile cache,
+       scratch and profiler directories. Shared global paths are never
+       deleted; device allocations disappear with their owning process.
     3. **Timing pass** — a *separate* fresh subprocess over
        ``timing_inputs`` (a per-trial sequence per shape). A runner-secret
        RNG picks which measured trials' outputs are sampled and sent up.
@@ -1347,7 +1350,9 @@ def run_two_pass(
     passes never share interpreter / device / cache state — this is what
     the process-isolation model "Why Two Candidate Processes" requires.
 
-    `correctness_inputs` is ``{shape_id: built_dict}``; `timing_inputs` is
+    The default InputSource path builds one trial at a time and requires an
+    immediate result consumer. Legacy `correctness_inputs` is
+    ``{shape_id: built_dict}``; `timing_inputs` is
     ``{shape_id: [t0_dict, ...]}`` whose leading ``n_warmup`` entries are
     warm-up trials.
 
@@ -1365,22 +1370,24 @@ def run_two_pass(
     wrong only in the timed pass). When ``golden_fixed_inputs`` is given,
     the runner OVERWRITES every runner-secret sampled measured trial's
     input with that shape's fixed input (the seed-0 input the offline
-    golden covers). The candidate cannot tell a sampled trial apart from
-    any other measured trial (the indices are runner-secret), so it
-    cannot target the cheat at the non-sampled trials; the non-sampled
-    trials keep their fresh per-trial inputs so the cache-reuse defence
-    still holds. The caller then reverifies the shipped-up sampled outputs
+    golden covers). Secret indices do not hide repeated seed-0 content:
+    offline sampled inputs remain recognizable and cacheable. Non-sampled
+    trials keep fresh per-trial inputs. The caller reverifies sampled outputs
     against the offline golden. ``None`` (the in-process-oracle path)
     leaves ``timing_inputs`` untouched.
     """
+    from ascendbench.integrity.streaming import InputSource, run_streaming_two_pass
+    if isinstance(correctness_inputs, InputSource):
+        return run_streaming_two_pass(
+            solution_path, correctness_inputs, result_consumer,
+            timeout_s=timeout_s, sample_size=sample_size, backend=backend)
+
     # Pass 1 — correctness sandbox.
     correctness = run_candidate_isolated(
         solution_path, correctness_inputs,
         timeout_s=timeout_s, pass_kind="correctness", backend=backend)
 
-    # Between passes — the correctness-pass process group was SIGKILLed in
-    # `run_candidate_isolated`; here we scrub the cross-pass pre-computation
-    # channel so the timing pass starts clean.
+    # Each isolated call already kills its group and deletes owned directories.
     scrubbed = scrub_between_passes()
 
     # Pass 2 — timing sandbox. The sampled-trial indices come from a

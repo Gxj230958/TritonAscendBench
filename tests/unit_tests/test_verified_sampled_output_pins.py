@@ -302,7 +302,10 @@ def test_evaluate_upstream_verified_cheat_detected(tmp_path, static_pass):
     assert "measured_outputs_drift" in result.performance_flags, (
         f"cheat not caught; flags={result.performance_flags}"
     )
-    assert result.performance_status == "suspicious"
+    # Streaming rejects the pass as soon as a sampled output fails and drops
+    # partial timing scalars, rather than retaining a suspicious performance.
+    assert result.performance_status == "error"
+    assert all(not shape.durations for shape in result.shape_results)
 
 
 # ===========================================================================

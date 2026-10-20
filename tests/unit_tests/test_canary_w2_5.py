@@ -26,6 +26,7 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 from ascendbench.corpus.dataset import (
@@ -51,6 +52,38 @@ _spec = importlib.util.spec_from_file_location(
 vt = importlib.util.module_from_spec(_spec)
 sys.modules["validate_tasks"] = vt
 _spec.loader.exec_module(vt)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def synthetic_canary(tmp_path_factory):
+    """Exercise the framework without publishing or depending on sealed traps."""
+    from ascendbench.corpus import dataset
+
+    root = tmp_path_factory.mktemp("synthetic-canaries")
+    task = root / CANARY_ID
+    task.mkdir()
+    meta = {
+        "schema_version": "1.0", "task_id": CANARY_ID, "level": "canary",
+        "name": "Synthetic identity fixture", "is_canary": True,
+        "is_hidden_only": True, "canary_trap_type": "identity_hack",
+        "source_task_id": "L1_01_bias", "expected_honest_pass": False,
+        "tolerance_class": "elementwise_exact_or_inf_safe",
+        "oracle_simplified": "simple_pytorch_ok",
+        "oracle": {"pytorch": "oracle_pytorch.py::run"},
+    }
+    shapes = {
+        "size_knobs": {"N": 4},
+        "public_shapes": [{"id": "P1", "knobs": {"N": 4}}],
+        "inputs": {"x": {"dims": ["N"], "dtype": "float32", "dist": "randn"}},
+    }
+    (task / "meta.yaml").write_text(yaml.safe_dump(meta))
+    (task / "shapes.yaml").write_text(yaml.safe_dump(shapes))
+    (task / "contract.md").write_text("Synthetic unit-test identity contract.\n")
+    (task / "oracle_pytorch.py").write_text('def run(inputs):\n    return {"out": inputs["x"]}\n')
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(dataset, "CANARY_ROOT", root)
+        patch.setattr(vt, "CANARY_ROOT", root)
+        yield
 
 
 # ─────────────────────────────────────────────────────────────────────────────

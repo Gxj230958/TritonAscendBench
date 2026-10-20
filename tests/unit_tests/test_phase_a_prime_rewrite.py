@@ -227,8 +227,8 @@ def test_rewrite_severs_batch_invariant_shim_imports():
     )
     cls = pap.TaskClassification(task_id="L2_20_bmm", symbols=[])
     out = pap.rewrite_imports_to_standalone(src, cls, task_dir=None)
-    assert not [l for l in out.splitlines()
-                if re.search(r"^\s*(from|import)\s+vllm", l)], out
+    assert not [line for line in out.splitlines()
+                if re.search(r"^\s*(from|import)\s+vllm", line)], out
     assert "import ascendbench.frozen.shim.envs as envs" in out
     assert "from ascendbench.frozen.shim import get_max_shared_memory_bytes" in out
     assert "from ascendbench.frozen.shim import is_torch_equal_or_newer" in out
@@ -255,7 +255,7 @@ def test_envs_shim_exposes_only_verified_inert_flag():
     import importlib
 
     import pytest
-    REPO = Path(__file__).resolve().parent.parent.parent
+    REPO = Path(__file__).resolve().parent.parent.parent  # noqa: N806 - checkout root constant
     sys.path.insert(0, str(REPO))
     envs = importlib.import_module("ascendbench.frozen.shim.envs")
     assert envs.VLLM_BATCH_INVARIANT is False
@@ -269,7 +269,7 @@ def test_rewrite_severs_real_l2_13_and_l2_14_kernels():
     """Real-kernel evidence (not synthetic): rewriting the actual
     L2_20_bmm / L2_14 kernel.py leaves ZERO direct vllm imports."""
     import re
-    REPO = Path(__file__).resolve().parent.parent.parent
+    REPO = Path(__file__).resolve().parent.parent.parent  # noqa: N806
     for tid in ("L2_20_bmm", "L2_21_matmul_kernel_persistent"):
         kps = list(REPO.glob(f"tasks/level*/{tid}/kernel.py"))
         if not kps:
@@ -278,8 +278,8 @@ def test_rewrite_severs_real_l2_13_and_l2_14_kernels():
         out = pap.rewrite_imports_to_standalone(
             src, pap.TaskClassification(task_id=tid, symbols=[]), task_dir=None
         )
-        leaks = [l for l in out.splitlines()
-                 if re.search(r"^\s*(from|import)\s+vllm(\.|\s|$)", l)]
+        leaks = [line for line in out.splitlines()
+                 if re.search(r"^\s*(from|import)\s+vllm(\.|\s|$)", line)]
         assert not leaks, f"{tid}: {leaks}"
 
 
@@ -289,7 +289,8 @@ def test_rewrite_customop_inert_shim_and_failclosed_guards():
     if other symbols share the line (PluggableLayer) or the module
     references op_registry/op_registry_oot."""
     cls = pap.TaskClassification(task_id="T", symbols=[])
-    rw = lambda s: pap.rewrite_imports_to_standalone(s, cls, task_dir=None)
+    def rw(s):
+        return pap.rewrite_imports_to_standalone(s, cls, task_dir=None)
     ok = rw("from vllm.model_executor.custom_op import CustomOp\n"
             "@CustomOp.register('x')\nclass Y(CustomOp):\n    pass\n")
     assert "from ascendbench.frozen.shim import CustomOp" in ok
@@ -306,7 +307,7 @@ def test_customop_shim_is_nn_module_with_noop_register():
     from pathlib import Path
 
     import torch
-    REPO = Path(__file__).resolve().parent.parent.parent
+    REPO = Path(__file__).resolve().parent.parent.parent  # noqa: N806
     sys.path.insert(0, str(REPO))
     import importlib
     shim = importlib.import_module("ascendbench.frozen.shim")

@@ -901,7 +901,7 @@ def check_solution(
                     if ints is not None:
                         try:
                             return bytes(ints).decode("utf-8", errors="replace")
-                        except Exception:                              # noqa: BLE001
+                        except Exception:
                             return None
             # `chr(99)` — chr of literal int.
             if fname == "chr" and n.args:
@@ -949,7 +949,7 @@ def check_solution(
                     else:
                         # **{"d": "cpu"} — Dict literal unpacking.
                         if isinstance(kw.value, ast.Dict):
-                            for k_node, v_node in zip(kw.value.keys, kw.value.values):
+                            for k_node, v_node in zip(kw.value.keys, kw.value.values, strict=False):
                                 if isinstance(k_node, ast.Constant) and isinstance(k_node.value, str):
                                     folded = _eval_str_const(v_node)
                                     if folded is not None:
@@ -1048,7 +1048,7 @@ def check_solution(
                         else:
                             # `dev(**{"d": "cpu"})`
                             if isinstance(kw.value, ast.Dict):
-                                for k_node, v_node in zip(kw.value.keys, kw.value.values):
+                                for k_node, v_node in zip(kw.value.keys, kw.value.values, strict=False):
                                     if isinstance(k_node, ast.Constant) and isinstance(k_node.value, str):
                                         f2 = _eval_str_const(v_node)
                                         if f2 is not None:
@@ -1071,16 +1071,16 @@ def check_solution(
                         # Recursively substitute Name
                         # in BinOp (Add/Mod/Mult).
                         if isinstance(body, ast.BinOp):
-                            l = _fold_in_callee_body(body.left)
-                            r = _fold_in_callee_body(body.right)
-                            if isinstance(body.op, ast.Add) and l is not None and r is not None:
-                                return l + r
+                            left = _fold_in_callee_body(body.left)
+                            right = _fold_in_callee_body(body.right)
+                            if isinstance(body.op, ast.Add) and left is not None and right is not None:
+                                return left + right
                             if isinstance(body.op, ast.Mult):
-                                if l is not None and isinstance(body.right, ast.Constant) and isinstance(body.right.value, int) and body.right.value > 0:
-                                    return l * body.right.value
-                                if r is not None and isinstance(body.left, ast.Constant) and isinstance(body.left.value, int) and body.left.value > 0:
-                                    return r * body.left.value
-                            if isinstance(body.op, ast.Mod) and l is not None:
+                                if left is not None and isinstance(body.right, ast.Constant) and isinstance(body.right.value, int) and body.right.value > 0:
+                                    return left * body.right.value
+                                if right is not None and isinstance(body.left, ast.Constant) and isinstance(body.left.value, int) and body.left.value > 0:
+                                    return right * body.left.value
+                            if isinstance(body.op, ast.Mod) and left is not None:
                                 # "%s" % d → substitute d via bindings
                                 if isinstance(body.right, ast.Tuple):
                                     args = tuple(_fold_in_callee_body(e) for e in body.right.elts)
@@ -1088,14 +1088,14 @@ def check_solution(
                                     args = (_fold_in_callee_body(body.right),)
                                 if all(a is not None for a in args):
                                     try:
-                                        return l % args
+                                        return left % args
                                     except (TypeError, ValueError):
                                         return None
                         if isinstance(body, ast.BinOp) and isinstance(body.op, ast.Add):
-                            l = _fold_in_callee_body(body.left)
-                            r = _fold_in_callee_body(body.right)
-                            if l is not None and r is not None:
-                                return l + r
+                            left = _fold_in_callee_body(body.left)
+                            right = _fold_in_callee_body(body.right)
+                            if left is not None and right is not None:
+                                return left + right
                         return _eval_str_const(body)
 
                     # Walk body returns and substitute. Prefer cpu-bearing
@@ -1250,7 +1250,7 @@ def check_solution(
                     _mark_if_cpu(args.kwonlyargs[i].arg, v)
 
     # Back-compat: `string_constants` dict kept as fallback for direct lookup.
-    string_constants: dict[str, str] = {n: "cpu" for n in cpu_aliases}
+    string_constants: dict[str, str] = dict.fromkeys(cpu_aliases, "cpu")
 
     kernel_fn_ids: set[int] = set()
     for node in ast.walk(tree):
@@ -1317,7 +1317,7 @@ def check_solution(
             if isinstance(value, (ast.Tuple, ast.List)):
                 for tgt in targets:
                     if isinstance(tgt, (ast.Tuple, ast.List)) and len(tgt.elts) == len(value.elts):
-                        for lhs_elt, rhs_elt in zip(tgt.elts, value.elts):
+                        for lhs_elt, rhs_elt in zip(tgt.elts, value.elts, strict=False):
                             if not isinstance(lhs_elt, ast.Name):
                                 continue
                             r_dotted = _resolve_dotted_with_aliases(rhs_elt)
@@ -1354,7 +1354,7 @@ def check_solution(
 
     def _merge_into(name: str, other: ast.Dict) -> None:
         d = _ensure_dict(name)
-        for k_node, v_node in zip(other.keys, other.values):
+        for k_node, v_node in zip(other.keys, other.values, strict=False):
             replaced = False
             for i, existing in enumerate(d.keys):
                 if (
@@ -1376,7 +1376,7 @@ def check_solution(
             if any(k is None for k in expr.keys):
                 synth_keys: list[ast.AST] = []
                 synth_values: list[ast.AST] = []
-                for k_node, v_node in zip(expr.keys, expr.values):
+                for k_node, v_node in zip(expr.keys, expr.values, strict=False):
                     if k_node is None:
                         inner = _resolve_to_dict_literal(v_node)
                         if inner is not None:
@@ -1435,7 +1435,7 @@ def check_solution(
                 return None
             idx_n = expr.slice
             if isinstance(idx_n, ast.Constant):
-                for k_node, v_node in zip(container.keys, container.values):
+                for k_node, v_node in zip(container.keys, container.values, strict=False):
                     if isinstance(k_node, ast.Constant) and k_node.value == idx_n.value:
                         return _resolve_to_dict_literal(v_node)
         return None
@@ -1685,7 +1685,7 @@ def check_solution(
                 if t is not None:
                     container = t
         if isinstance(container, ast.Dict) and isinstance(rhs.slice, ast.Constant):
-            for k_node, v_node in zip(container.keys, container.values):
+            for k_node, v_node in zip(container.keys, container.values, strict=False):
                 if isinstance(k_node, ast.Constant) and k_node.value == rhs.slice.value:
                     return v_node
         if isinstance(container, (ast.Tuple, ast.List)) and isinstance(rhs.slice, ast.Constant):
@@ -1828,7 +1828,7 @@ def check_solution(
                     star_idx = i
                     break
             if star_idx is None:
-                for lhs_elt, rhs_elt in zip(lhs.elts, rhs.elts):
+                for lhs_elt, rhs_elt in zip(lhs.elts, rhs.elts, strict=False):
                     _walk_destructure(lhs_elt, rhs_elt, ct_set, cm_set)
                 return
             # Split RHS into [head | starred | tail].
@@ -1838,10 +1838,10 @@ def check_solution(
             head_rhs = rhs.elts[:star_idx]
             tail_rhs = rhs.elts[len(rhs.elts) - n_tail:] if n_tail else []
             star_rhs = rhs.elts[star_idx:len(rhs.elts) - n_tail] if n_tail else rhs.elts[star_idx:]
-            for l, r in zip(head_lhs, head_rhs):
-                _walk_destructure(l, r, ct_set, cm_set)
-            for l, r in zip(tail_lhs, tail_rhs):
-                _walk_destructure(l, r, ct_set, cm_set)
+            for left, right in zip(head_lhs, head_rhs, strict=False):
+                _walk_destructure(left, right, ct_set, cm_set)
+            for left, right in zip(tail_lhs, tail_rhs, strict=False):
+                _walk_destructure(left, right, ct_set, cm_set)
             star_name_node = lhs.elts[star_idx].value
             if isinstance(star_name_node, ast.Name):
                 # Bind starred to a synthesized list of remaining RHS elts.
@@ -1921,8 +1921,8 @@ def check_solution(
                         "list", "List", "typing.List",
                         "tuple", "Tuple", "typing.Tuple",
                     } and any(
-                        isinstance(n2, ast.Name) and n2.id == "Tensor"
-                        or isinstance(n2, ast.Attribute) and n2.attr == "Tensor"
+                        (isinstance(n2, ast.Name) and n2.id == "Tensor")
+                        or (isinstance(n2, ast.Attribute) and n2.attr == "Tensor")
                         for n2 in ast.walk(base.slice)
                     ):
                         list_tensor_subclasses.add(sub.name)
@@ -2040,7 +2040,7 @@ def check_solution(
     # destructuring tuple/list, for-target, IIFE Call results.
     lambda_aliases: dict[str, list[ast.Lambda]] = {}
 
-    def _record_callable_binding(name: str, value: ast.AST) -> None:  # noqa: C901
+    def _record_callable_binding(name: str, value: ast.AST) -> None:
         # Starred, BoolOp aliases.
         if isinstance(value, ast.Starred):
             _record_callable_binding(name, value.value)
@@ -2209,6 +2209,7 @@ def check_solution(
                                     local_containers.add(tgt.value.id)
                                     grew = True
 
+                    # Invoked before this assignment iteration advances; it never escapes.
                     def _spread(target: ast.expr, is_t: bool, is_c: bool) -> None:
                         nonlocal grew
                         if isinstance(target, ast.Name):
@@ -2222,10 +2223,10 @@ def check_solution(
                             # Destructure: if RHS is a Tuple/List literal,
                             # zip elements; otherwise propagate type to
                             # all targets (conservative).
-                            if isinstance(rhs, (ast.Tuple, ast.List)):
+                            if isinstance(rhs, (ast.Tuple, ast.List)):  # noqa: B023
                                 for i, sub_tgt in enumerate(target.elts):
-                                    if i < len(rhs.elts):
-                                        sub_rhs = rhs.elts[i]
+                                    if i < len(rhs.elts):  # noqa: B023
+                                        sub_rhs = rhs.elts[i]  # noqa: B023
                                         elem_t = (
                                             isinstance(sub_rhs, ast.Name)
                                             and sub_rhs.id in local_tensors
@@ -2266,7 +2267,7 @@ def check_solution(
     _hit_cap = True
     for _iteration in range(_MAX_ITERATIONS):
         changed = False
-        for caller_name, caller_fn in fn_defs.items():
+        for _caller_name, caller_fn in fn_defs.items():
             local_tensors, local_containers = _fn_local_tensors(caller_fn)
             for sub in ast.walk(caller_fn):
                 if not isinstance(sub, ast.Call):
@@ -2291,9 +2292,10 @@ def check_solution(
                 if not resolved:
                     continue
                 # Apply propagation to ALL resolved callees.
+                # These helpers are consumed synchronously in this call-site iteration.
                 def _actual_is_tensor(actual: ast.AST) -> bool:
                     return _expr_contains_tensor(
-                        actual, local_tensors, local_containers
+                        actual, local_tensors, local_containers  # noqa: B023
                     )
 
                 def _actual_is_container(actual: ast.AST) -> bool:
@@ -2302,11 +2304,11 @@ def check_solution(
                     Tuple/List/Dict) to a helper taints the formal as
                     container."""
                     # Direct Name reference.
-                    if isinstance(actual, ast.Name) and actual.id in local_containers:
+                    if isinstance(actual, ast.Name) and actual.id in local_containers:  # noqa: B023
                         return True
                     # Walk wrapping expressions.
                     for sub in ast.walk(actual):
-                        if isinstance(sub, ast.Name) and sub.id in local_containers:
+                        if isinstance(sub, ast.Name) and sub.id in local_containers:  # noqa: B023
                             return True
                     return False
 
@@ -2400,6 +2402,7 @@ def check_solution(
                         formal.arg
                     )
 
+    # Per-function helpers below execute within this iteration, never as callbacks.
     for fn_node in ast.walk(tree):
         if not isinstance(fn_node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -2462,19 +2465,19 @@ def check_solution(
                     return True
                 if anno_node.id in type_alias_to_container:
                     return True
-                if anno_node.id in _ALWAYS_TENSOR_CONTAINER_HEADS:
+                if anno_node.id in _ALWAYS_TENSOR_CONTAINER_HEADS:  # noqa: B023
                     return True
                 return False
             if isinstance(anno_node, ast.Attribute):
                 head = _canonical(anno_node) or _dotted_name(anno_node)
-                return head in _ALWAYS_TENSOR_CONTAINER_HEADS
+                return head in _ALWAYS_TENSOR_CONTAINER_HEADS  # noqa: B023
             if isinstance(anno_node, ast.Subscript):
                 head = _canonical(anno_node.value) or _dotted_name(anno_node.value)
                 if head in {"Optional", "typing.Optional", "Union", "typing.Union"}:
                     return _slice_has_container(anno_node.slice)
-                if head in _ALWAYS_TENSOR_CONTAINER_HEADS:
+                if head in _ALWAYS_TENSOR_CONTAINER_HEADS:  # noqa: B023
                     return True
-                if head in _CONDITIONAL_CONTAINER_HEADS and _slice_has_tensor(anno_node.slice):
+                if head in _CONDITIONAL_CONTAINER_HEADS and _slice_has_tensor(anno_node.slice):  # noqa: B023
                     return True
                 return False
             if isinstance(anno_node, ast.BinOp) and isinstance(anno_node.op, ast.BitOr):
@@ -2491,9 +2494,9 @@ def check_solution(
                 # Conditional containers (List/Tuple/Sequence/...) require
                 # an explicit Tensor token in the slice. Word-boundary
                 # match avoids "NotTensor" false-positives.
-                if head in _CONDITIONAL_CONTAINER_HEADS and has_tensor_token:
+                if head in _CONDITIONAL_CONTAINER_HEADS and has_tensor_token:  # noqa: B023
                     return True
-                if head in _ALWAYS_TENSOR_CONTAINER_HEADS:
+                if head in _ALWAYS_TENSOR_CONTAINER_HEADS:  # noqa: B023
                     return True
                 if head in dict_subclasses or head in type_alias_to_container:
                     return True
@@ -2512,10 +2515,10 @@ def check_solution(
             if anno_node is None:
                 return False
             if isinstance(anno_node, ast.Name):
-                return anno_node.id in _TENSOR_ANNOTATIONS
+                return anno_node.id in _TENSOR_ANNOTATIONS  # noqa: B023
             if isinstance(anno_node, ast.Attribute):
                 head = _canonical(anno_node) or _dotted_name(anno_node)
-                return head in _TENSOR_ANNOTATIONS
+                return head in _TENSOR_ANNOTATIONS  # noqa: B023
             if isinstance(anno_node, ast.Subscript):
                 head = _canonical(anno_node.value) or _dotted_name(anno_node.value)
                 if head in {"Optional", "typing.Optional", "Union", "typing.Union"}:
@@ -2526,7 +2529,7 @@ def check_solution(
                 return _annotation_is_tensor(anno_node.left) or _annotation_is_tensor(anno_node.right)
             if isinstance(anno_node, ast.Constant) and isinstance(anno_node.value, str):
                 tokens = re.split(r"[,\s\[\]\(\)\|]+", anno_node.value)
-                return any(t.strip("'\"") in _TENSOR_ANNOTATIONS for t in tokens)
+                return any(t.strip("'\"") in _TENSOR_ANNOTATIONS for t in tokens)  # noqa: B023
             return False
 
         for arg in all_args:
@@ -2570,7 +2573,7 @@ def check_solution(
         # RHS is a Tensor-yielding call.
         def _spread_tensor(target: ast.expr) -> None:
             if isinstance(target, ast.Name):
-                tensors.add(target.id)
+                tensors.add(target.id)  # noqa: B023
             elif isinstance(target, (ast.Tuple, ast.List)):
                 for elt in target.elts:
                     _spread_tensor(elt)
@@ -2580,7 +2583,7 @@ def check_solution(
                 # Writing Tensor into a slot /
                 # attribute promotes the base name to a Tensor container.
                 if isinstance(target.value, ast.Name):
-                    containers.add(target.value.id)
+                    containers.add(target.value.id)  # noqa: B023
 
         # Iterate to a fixed point — same-pass forward propagation may
         # reveal new Tensor names that change later RHS evaluation.
@@ -2619,7 +2622,7 @@ def check_solution(
                 ) -> bool:
                     """Broadened: also walks BinOp (multiply
                     list), IIFE Lambda defaults."""
-                    cs = ctx if ctx is not None else containers
+                    cs = ctx if ctx is not None else containers  # noqa: B023
                     if isinstance(node, ast.Name):
                         return node.id in cs
                     if isinstance(node, ast.Call):
@@ -2704,7 +2707,7 @@ def check_solution(
                     # Reuse the broad walker — handles `box: object = [inputs]`.
                     def _rhs_has_container(v: ast.AST) -> bool:
                         return any(
-                            isinstance(s, ast.Name) and s.id in containers
+                            isinstance(s, ast.Name) and s.id in containers  # noqa: B023
                             for s in ast.walk(v)
                         )
                     if _rhs_has_container(sub.value):
@@ -2729,7 +2732,7 @@ def check_solution(
                 # iter contains container in any element (incl. IfExp).
                 def _for_target_container(target: ast.expr) -> None:
                     if isinstance(target, ast.Name):
-                        containers.add(target.id)
+                        containers.add(target.id)  # noqa: B023
                     elif isinstance(target, (ast.Tuple, ast.List)):
                         # `for (c,) in [(inputs,)]:` — destructure to
                         # each element.
@@ -2741,7 +2744,7 @@ def check_solution(
                     # Subscript, etc. anything that references a known
                     # container Name.
                     for s in ast.walk(it):
-                        if isinstance(s, ast.Name) and s.id in containers:
+                        if isinstance(s, ast.Name) and s.id in containers:  # noqa: B023
                             return True
                     return False
 
@@ -2844,7 +2847,7 @@ def check_solution(
             ):
                 for tgt in s.targets:
                     if isinstance(tgt, (ast.Tuple, ast.List)) and len(tgt.elts) == len(s.value.elts):
-                        for lhs_elt, rhs_elt in zip(tgt.elts, s.value.elts):
+                        for lhs_elt, rhs_elt in zip(tgt.elts, s.value.elts, strict=False):
                             if not isinstance(lhs_elt, ast.Name):
                                 continue
                             if isinstance(rhs_elt, ast.Attribute):
@@ -2957,7 +2960,7 @@ def check_solution(
                     callable_instance_names_in_fn.add(sub.target.id)
             # Tensor truthiness in control flow.
             elif isinstance(sub, (ast.If, ast.While, ast.Assert)):
-                test_node = sub.test if isinstance(sub, ast.Assert) else sub.test
+                test_node = sub.test
                 if _expr_contains_tensor(test_node, tensors, containers):
                     report.add(
                         "G-tensor-truthiness", "block",
@@ -3026,10 +3029,10 @@ def check_solution(
                         return (
                             rcv.id in {"tl", "triton", "torch", "torch_npu"}
                             or rcv.id in aliases
-                            or rcv.id in tensors
-                            or rcv.id in containers
+                            or rcv.id in tensors  # noqa: B023
+                            or rcv.id in containers  # noqa: B023
                         )
-                    if _expr_contains_tensor(rcv, tensors, containers):
+                    if _expr_contains_tensor(rcv, tensors, containers):  # noqa: B023
                         return True
                     canon = _canonical(rcv)
                     if canon in {"triton.language"}:
@@ -3110,7 +3113,7 @@ def check_solution(
                         if isinstance(v, ast.Lambda):
                             return v
                         if isinstance(v, ast.Name):
-                            if v.id in lambda_aliases and lambda_aliases[v.id]:
+                            if lambda_aliases.get(v.id):
                                 return lambda_aliases[v.id][0]
                             if v.id in fn_defs:
                                 fnd = fn_defs[v.id]
@@ -3172,7 +3175,7 @@ def check_solution(
                             if resolved is not None:
                                 lambda_actuals[kw.arg] = resolved
                         elif isinstance(kw.value, ast.Dict):
-                            for k_node, v_node in zip(kw.value.keys, kw.value.values):
+                            for k_node, v_node in zip(kw.value.keys, kw.value.values, strict=False):
                                 if isinstance(k_node, ast.Constant) and isinstance(k_node.value, str):
                                     resolved = _resolve_to_lambda(v_node)
                                     if resolved is not None:
@@ -3717,7 +3720,7 @@ def check_solution(
                         # `dict(device="cpu")`, or `outer["k"]` nested.
                         resolved = _resolve_to_dict_literal(kw.value)
                         if resolved is not None:
-                            for k_node, v_node in zip(resolved.keys, resolved.values):
+                            for k_node, v_node in zip(resolved.keys, resolved.values, strict=False):
                                 if (
                                     isinstance(k_node, ast.Constant)
                                     and isinstance(k_node.value, str)
@@ -3786,7 +3789,7 @@ def check_solution(
                     elif kw.arg is None:
                         d = _resolve_to_dict_literal(kw.value)
                         if d is not None:
-                            for k_node, v_node in zip(d.keys, d.values):
+                            for k_node, v_node in zip(d.keys, d.values, strict=False):
                                 if isinstance(k_node, ast.Constant):
                                     key_name = k_node.value
                                     if key_name in tainted or (kwarg_name and kwarg_name in tainted):
@@ -3946,13 +3949,13 @@ def check_solution(
                             # Look at the dict and check if any key matches sensitive.
                             d = _resolve_to_dict_literal(kw.value)
                             if d is not None:
-                                for k_node, v_node in zip(d.keys, d.values):
+                                for k_node, v_node in zip(d.keys, d.values, strict=False):
                                     if isinstance(k_node, ast.Constant):
                                         hit = _value_is_cpu(v_node)
                                         if hit:
                                             report.add(
                                                 "D-cpu-transfer", "block",
-                                                f"cpu string flows via **kw into IIFE lambda",
+                                                "cpu string flows via **kw into IIFE lambda",
                                                 node.lineno,
                                             )
                     # If lambda has **kw formal AND keywords contain device="cpu",
@@ -4279,7 +4282,7 @@ _AUDIT_IMPORT_DENY = frozenset({
 })
 
 
-class RuntimeAuditViolation(RuntimeError):
+class RuntimeAuditViolation(RuntimeError):  # noqa: N818 - public exception API
     """Raised by the Layer E audit hook when a candidate trips a blocked
     runtime operation. Uncaught, it aborts the isolated candidate process;
     the runner records the candidate as failed."""

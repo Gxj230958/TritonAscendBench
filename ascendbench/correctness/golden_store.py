@@ -242,4 +242,4 @@ class GoldenStore:
         return True
 
 
-__all__ = ["GoldenStore", "GoldenArtifact"]
+__all__ = ["GoldenArtifact", "GoldenStore"]

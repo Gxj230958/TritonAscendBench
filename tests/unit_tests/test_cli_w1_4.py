@@ -14,11 +14,6 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
-# WA.4: use a RECONCILED task (`param_constraints.scaffold: false`,
-# semantically clean) so its repo-authoritative `task_status` is genuinely
-# "evaluated" — a `scaffold: true` corpus task is "blocked" by the WA.4 gate.
-_TASK = "L2_04_silu_and_mul"
-_SOLUTION = REPO / "solutions" / _TASK / "solution.py"
 
 
 def _run_tab(*args: str) -> subprocess.CompletedProcess:
@@ -28,12 +23,12 @@ def _run_tab(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_run_emits_w1_4_schema(tmp_path):
+def test_run_emits_w1_4_schema(tmp_path, tiny_cli_fixture):
     """`tab run` round_result.json carries s_t / baseline_ns / measured_ns
     / task_status and a per-shape shape_results list."""
-    assert _SOLUTION.exists(), f"fixture missing: {_SOLUTION}"
+    task, solution, run = tiny_cli_fixture
     out = tmp_path / "round_result.json"
-    _run_tab("run", _TASK, "--solution", str(_SOLUTION), "--out", str(out))
+    assert run("run", task.task_id, "--solution", str(solution), "--out", str(out)) == 0
     doc = json.loads(out.read_text())
 
     # W1.4 task-level fields present (value may be null on a dev box with
@@ -45,11 +40,12 @@ def test_run_emits_w1_4_schema(tmp_path):
     assert isinstance(doc["shape_results"], list)
 
 
-def test_run_shape_results_disclose_timing_stats(tmp_path):
+def test_run_shape_results_disclose_timing_stats(tmp_path, tiny_cli_fixture):
     """Each per-shape entry discloses median / p99 / cv / trials and the
     Roofline provenance keys (DESIGN §6.6 / §9)."""
     out = tmp_path / "round_result.json"
-    _run_tab("run", _TASK, "--solution", str(_SOLUTION), "--out", str(out))
+    task, solution, run = tiny_cli_fixture
+    assert run("run", task.task_id, "--solution", str(solution), "--out", str(out)) == 0
     doc = json.loads(out.read_text())
     assert doc["shape_results"], "expected at least one shape result"
     for sr in doc["shape_results"]:

@@ -55,7 +55,7 @@ def install() -> bool:
         return False
 
     @contextlib.contextmanager
-    def _noop_device(index=None):  # noqa: ANN001 - mirror torch.*.device arity
+    def _noop_device(index=None):
         # CPU interpret has no device placement to enter; the guard is purely a
         # host-side context with no numeric effect.
         yield

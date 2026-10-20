@@ -215,10 +215,10 @@ def sign_envelope(envelope: dict[str, Any], *, key_id: str) -> bytes:
     instead of producing a fake signature.
     """
     try:
+        from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (
             Ed25519PrivateKey,
         )
-        from cryptography.hazmat.primitives import serialization
     except ImportError as exc:
         raise RuntimeError(
             "golden_manifest.sign_envelope requires the `cryptography` "
@@ -249,10 +249,10 @@ def verify_envelope(
 ) -> bool:
     """Verify a detached signature against the loaded trust roots."""
     try:
+        from cryptography.exceptions import InvalidSignature
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (
             Ed25519PublicKey,
         )
-        from cryptography.exceptions import InvalidSignature
     except ImportError:
         return False
 

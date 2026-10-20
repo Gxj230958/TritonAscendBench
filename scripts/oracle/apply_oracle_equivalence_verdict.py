@@ -35,7 +35,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from ascendbench._util.atomic import atomic_write_yaml  # noqa: E402
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",

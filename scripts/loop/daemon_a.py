@@ -35,6 +35,7 @@ working tree (dev side rsyncs new code into gpfs before submitting a batch).
 from __future__ import annotations
 
 import argparse
+import builtins as _builtins
 import datetime
 import json
 import os
@@ -122,7 +123,7 @@ def _maybe_restart_self() -> None:
         f" -> {new_mtime:.0f}); re-execing self to pick up new code.",
         flush=True,
     )
-    os.execv(sys.executable, [sys.executable] + sys.argv)
+    os.execv(sys.executable, [sys.executable, *sys.argv])
 
 
 def _utc_now() -> str:
@@ -130,10 +131,7 @@ def _utc_now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-import builtins as _builtins
-
-
-def print(*args, **kwargs):  # noqa: A001 -- timestamp every daemon log line
+def print(*args, **kwargs):
     """Prefix each daemon log line with a UTC timestamp so the trail is
     human-readable chronologically."""
     if args and isinstance(args[0], str):
@@ -227,7 +225,7 @@ def _run_verify_one(
     accept_stale_cache: bool,
     require_smoke: bool,
     timeout_s: int,
-    gpu_pool: "queue.Queue[int] | None",
+    gpu_pool: queue.Queue[int] | None,
     phase_python: str,
     action: str,
 ) -> dict:
@@ -477,7 +475,7 @@ def _handle_batch(
     spec_path: Path,
     workers: int,
     timeout_s: int,
-    gpu_pool: "queue.Queue[int] | None",
+    gpu_pool: queue.Queue[int] | None,
     phase_python: str,
 ) -> None:
     """Run every task in a claimed spec; write results + heartbeat + done flag."""
@@ -703,7 +701,7 @@ def main() -> int:
             return 2
 
     gpu_ids = _parse_gpu_spec(args.gpus)
-    gpu_pool: "queue.Queue[int] | None" = None
+    gpu_pool: queue.Queue[int] | None = None
     if gpu_ids:
         if args.workers > len(gpu_ids):
             # Allowed but warn: extra workers will block on get() until a

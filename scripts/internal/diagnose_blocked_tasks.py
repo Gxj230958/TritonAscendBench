@@ -228,7 +228,8 @@ def _pick_intended_segment(
     # entrypoint name only loosely overlap (e.g. L1_04 task_id derives
     # ``copy_page_indices`` but the resolver tried ``trtllm_prefill_*``).
     intended = intended_canonical or re.sub(r"^L\d+_\d+_", "", task_id)
-    norm = lambda s: s.replace("-", "_")
+    def norm(s):
+        return s.replace("-", "_")
     intended_n = norm(intended)
     for name, sub, seg in segments:
         if norm(name) == intended_n:
@@ -391,7 +392,7 @@ def _diagnose_one(verdict: dict) -> TaskDiagnosis:
             "missing step before PASS."
         )
         diag.fix_recipe = [
-            f"On GPU host: bash scripts/automation/runners/tab_quickstart.sh verify-all",
+            "On GPU host: bash scripts/automation/runners/tab_quickstart.sh verify-all",
             f"Or per-task: python3 scripts/verify/standalone_freeze_verifier.py --run --task {tid}",
             "Expected outcome: PASS after Phase A' completes",
         ]
@@ -507,8 +508,8 @@ def _classify_root_cause(
             f"Resolver surface error masks the real contract bug."
         )
         diag.fix_recipe = [
-            f"Pick ONE casing across all three: kernel.py / shapes.yaml / oracle_pytorch.py",
-            f"Rename in the minority file (usually the oracle or kernel) so all match",
+            "Pick ONE casing across all three: kernel.py / shapes.yaml / oracle_pytorch.py",
+            "Rename in the minority file (usually the oracle or kernel) so all match",
             f"Collisions: {pairs}",
         ]
         diag.effort = "S"
@@ -594,7 +595,7 @@ def _classify_root_cause(
                 diag.fix_recipe = [
                     f"First refresh cache for this task: "
                     f"python3 scripts/verify/resolve_upstream_entrypoints.py --task {diag.task_id} --json /tmp/r_{diag.task_id}.json",
-                    f"Then merge the fresh verdict into results/resolve_all.json",
+                    "Then merge the fresh verdict into results/resolve_all.json",
                     f"Then add the still-missing params to shapes.yaml: {still_missing}",
                 ]
                 diag.effort = "M"
@@ -608,7 +609,7 @@ def _classify_root_cause(
                 diag.fix_recipe = [
                     f"Refresh cache for this task: "
                     f"python3 scripts/verify/resolve_upstream_entrypoints.py --task {diag.task_id} --json /tmp/r_{diag.task_id}.json",
-                    f"Merge into results/resolve_all.json, then re-run this diagnostic to confirm new status",
+                    "Merge into results/resolve_all.json, then re-run this diagnostic to confirm new status",
                 ]
                 diag.effort = "S"
         elif is_known_to_kernel:
@@ -627,7 +628,7 @@ def _classify_root_cause(
                 "For each, refer to kernel.py signature for dtype + dims + dist semantics",
                 "Re-run resolver after each batch to confirm progress",
             ]
-            diag.effort = "S" if len(all_missing) == 1 and param in ("chunk_size", "max_seq_len") or all(p.startswith("BLOCK_SIZE") for p in all_missing) else ("M" if len(all_missing) <= 5 else "L")
+            diag.effort = "S" if (len(all_missing) == 1 and param in ("chunk_size", "max_seq_len")) or all(p.startswith("BLOCK_SIZE") for p in all_missing) else ("M" if len(all_missing) <= 5 else "L")
         else:
             diag.root_cause_category = "shapes-incomplete-sibling"
             diag.root_cause_detail = (
@@ -822,8 +823,8 @@ def _classify_root_cause(
                 f"OR: locate the existing wrapper elsewhere in upstream "
                 f"(grep `infer/{{vllm,sglang}}/` for callers of `{name}`) "
                 f"and copy it into kernel.py",
-                f"Update meta.oracle.gpu_triton to point at the wrapper, "
-                f"then add shapes.yaml inputs matching the wrapper signature",
+                "Update meta.oracle.gpu_triton to point at the wrapper, "
+                "then add shapes.yaml inputs matching the wrapper signature",
             ]
             diag.effort = "L"
         else:
@@ -967,7 +968,7 @@ def _render_markdown(diags: list[TaskDiagnosis]) -> str:
                     f"`{', '.join(declared)}`"
                 )
             if d.fix_recipe:
-                out.append(f"- **fix recipe**:")
+                out.append("- **fix recipe**:")
                 for step in d.fix_recipe:
                     out.append(f"  - {step}")
             out.append(f"- **effort**: `{d.effort}`")

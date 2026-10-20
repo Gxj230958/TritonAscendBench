@@ -817,7 +817,7 @@ def test_synth_run_template_missing_required_param_is_explicit_blocked():
 
 
 # ───────── ISSUE 2: L2_10 inputs are INT8 per contract ──────
-def test_L2_10_w8a8_inputs_are_int8_per_contract():
+def test_l2_10_w8a8_inputs_are_int8_per_contract():
     """ISSUE 2 (fixture dtype bug). L2_10 is a W8A8 *INT8*
     block matmul -- contract.md requires ``A_int8``/``B_int8`` and the
     kernel does ``tl.dot(int8, int8) -> int32``. shapes.yaml previously
@@ -934,7 +934,7 @@ def _rue():
 
 
 def test_writeback_fresh_verdict_updates_only_that_task(
-    tmp_path, monkeypatch,
+    tmp_path, monkeypatch, pinned_infer_roots,
 ):
     """residual #2 [confirmed] -- FAIL ON REVERT.
 
@@ -949,6 +949,7 @@ def test_writeback_fresh_verdict_updates_only_that_task(
     import json
 
     rue = _rue()
+    pinned_infer_roots(rue)
     cache = tmp_path / "resolve_all.json"
     monkeypatch.setattr(pap, "RESOLVE_CACHE", cache)
     monkeypatch.setattr(pap, "_RESOLVER_CACHE_MEM", None)

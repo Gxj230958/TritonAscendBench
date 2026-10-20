@@ -133,8 +133,8 @@ def _grade(pi, torch, sol_text: str, x):
 def run(task: str) -> GradeVerdict:
     import torch
 
-    from ascendbench.integrity import process_isolation as pi
     from ascendbench.backends import get_backend
+    from ascendbench.integrity import process_isolation as pi
 
     try:
         device = get_backend("gpu").device_name()

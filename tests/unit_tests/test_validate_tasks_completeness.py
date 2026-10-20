@@ -21,6 +21,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 import yaml
 from safetensors.torch import save_file
@@ -480,6 +481,24 @@ def test_no_golden_dir_is_an_error_for_upstream_task(tmp_path):
     _write_task(tmp_path, oracle_simplified="upstream_oracle_required")
     errs = _run(tmp_path)
     assert any("no golden/ directory" in e for e in errs), errs
+
+
+def test_source_only_skips_golden_but_preserves_source_checks(tmp_path):
+    _write_task(tmp_path, oracle_simplified="upstream_oracle_required")
+    errs = vt.validate_task(tmp_path, {"_t"}, strict=False, require_golden=False)
+    assert not any("golden/" in e for e in errs), errs
+    (tmp_path / "kernel.py").write_text("def broken(:\n")
+    errs = vt.validate_task(tmp_path, {"_t"}, strict=False, require_golden=False)
+    assert any("SyntaxError" in e for e in errs), errs
+    assert any("sha256" in e for e in errs), errs
+
+
+@pytest.mark.parametrize("gate", ["--release-gate", "--release-gate-strict"])
+def test_source_only_cannot_disable_release_gate(monkeypatch, gate):
+    monkeypatch.setattr(sys, "argv", ["validate_tasks.py", "--source-only", gate])
+    with pytest.raises(SystemExit) as exc:
+        vt.main()
+    assert exc.value.code == 2
 
 
 def test_no_golden_dir_not_an_error_for_non_upstream_task(tmp_path):

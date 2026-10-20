@@ -29,7 +29,7 @@ _BOUNDS = load_bounds()
 def test_load_bounds_returns_known_categories():
     """The central YAML covers every category seen in the corpus."""
     # Categories observed in the 100-task census:
-    EXPECTED = {
+    EXPECTED = {  # noqa: N806 - fixed schema key set
         "norm", "normalization", "elementwise", "attention", "softmax",
         "paged-attention", "gemm", "moe", "ssm", "scan", "quantization",
         "sampling", "rng", "convolution", "spec_decode", "other",

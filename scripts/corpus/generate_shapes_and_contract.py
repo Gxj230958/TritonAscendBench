@@ -196,15 +196,15 @@ def _infer_input_spec(name: str, ann: dict[str, list[str]]) -> dict:
 # Per-task exact input specs (authored from the oracle helper code —
 # the docstring shape parser cannot recover prose/math shape forms).
 # dims are size-knob formulas; dist ∈ inputs._make_tensor vocabulary.
-def _T(dims, dist="randn", dtype="float32"):
+def _T(dims, dist="randn", dtype="float32"):  # noqa: N802 - fixture constructor API
     return {"dims": dims, "dtype": dtype, "dist": dist}
 
 
-def _I(dims, dist="randint:0:2"):
+def _I(dims, dist="randint:0:2"):  # noqa: N802
     return {"dims": dims, "dtype": "int64", "dist": dist}
 
 
-def _S(v):
+def _S(v):  # noqa: N802
     """Non-tensor literal input spec.
 
     A list literal is emitted under the ``scalar_seq`` key (WA.3 literal
@@ -216,7 +216,7 @@ def _S(v):
     return {"scalar": v}
 
 
-def _SK(expr):
+def _SK(expr):  # noqa: N802
     """Scalar whose value equals a size-knob expression (e.g. num_toks==B)."""
     return {"scalar_knob": expr}
 
@@ -934,7 +934,7 @@ def process_body(task_dir: Path, dry: bool) -> str:
     # non-indptr cumulative convention (cu[0]=count of req0, no leading
     # 0), which the generic `offsets` dist cannot produce; a bespoke
     # one-task dist is past the point of diminishing returns.
-    _MANUAL = {"L2_11_rejection_sample"}
+    _MANUAL = {"L2_11_rejection_sample"}  # noqa: N806 - fixed allowlist
     manual_note = (
         "\n# PHASE-C-MANUAL: cu_num_draft_tokens uses a non-indptr "
         "cumulative\n# convention; build_inputs cannot auto-generate a "

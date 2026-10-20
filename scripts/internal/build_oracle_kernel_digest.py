@@ -32,7 +32,7 @@ def _oracle_summary(src: str) -> str:
     except SyntaxError:
         return "  <oracle parse error>"
     out: list[str] = []
-    mod_doc = ast.get_docstring(tree)
+    ast.get_docstring(tree)
     for n in tree.body:
         if isinstance(n, ast.FunctionDef):
             args = []

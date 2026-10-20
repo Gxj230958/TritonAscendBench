@@ -304,12 +304,12 @@ def validate_provenance_golden(meta: dict[str, Any]) -> list[str]:
 
 
 __all__ = [
-    "ProvenanceGoldenSpec",
+    "VALID_GPU_KERNEL_CAPTURE_STATUS",
+    "VALID_ORACLE_KERNEL_EQUIVALENCE",
+    "VALID_RECONSTRUCTABILITY_RISK",
     "VALID_SOURCE",
     "VALID_TOLERANCE_SOURCE",
-    "VALID_ORACLE_KERNEL_EQUIVALENCE",
-    "VALID_GPU_KERNEL_CAPTURE_STATUS",
-    "VALID_RECONSTRUCTABILITY_RISK",
+    "ProvenanceGoldenSpec",
     "parse_provenance_golden",
     "validate_provenance_golden",
 ]
